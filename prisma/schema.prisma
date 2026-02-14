@@ -1,0 +1,221 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CCRO_TEAM
+  METRIC_OWNER
+  VIEWER
+}
+
+enum ReportStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum RAGStatus {
+  GOOD
+  WARNING
+  HARM
+}
+
+enum SectionType {
+  TEXT_BLOCK
+  DATA_TABLE
+  CONSUMER_DUTY_DASHBOARD
+  CHART
+  CARD_GRID
+  IMPORTED_COMPONENT
+  TEMPLATE_INSTANCE
+  ACCORDION
+}
+
+model User {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  name             String
+  role             Role      @default(VIEWER)
+  assignedMeasures String[]
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  lastLoginAt      DateTime?
+  updatedAt        DateTime  @updatedAt
+
+  reports         Report[]        @relation("CreatedReports")
+  versions        ReportVersion[] @relation("PublishedVersions")
+  templates       Template[]
+  components      Component[]
+  auditLogs       AuditLog[]
+
+  @@map("users")
+}
+
+model Report {
+  id        String       @id @default(cuid())
+  title     String
+  period    String
+  status    ReportStatus @default(DRAFT)
+  createdBy String
+  creator   User         @relation("CreatedReports", fields: [createdBy], references: [id])
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  sections  Section[]
+  versions  ReportVersion[]
+  outcomes  ConsumerDutyOutcome[]
+  auditLogs AuditLog[]
+
+  @@map("reports")
+}
+
+model Section {
+  id           String      @id @default(cuid())
+  reportId     String
+  report       Report      @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  type         SectionType
+  position     Int
+  title        String?
+  content      Json        @default("{}")
+  layoutConfig Json        @default("{}")
+  styleConfig  Json        @default("{}")
+  templateId   String?
+  componentId  String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@map("sections")
+}
+
+model ConsumerDutyOutcome {
+  id        String    @id @default(cuid())
+  reportId  String
+  report    Report    @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  outcomeId String
+  name      String
+  shortDesc String
+  icon      String?
+  ragStatus RAGStatus @default(GOOD)
+  position  Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  measures ConsumerDutyMeasure[]
+
+  @@unique([reportId, outcomeId])
+  @@map("consumer_duty_outcomes")
+}
+
+model ConsumerDutyMeasure {
+  id         String    @id @default(cuid())
+  outcomeId  String
+  outcome    ConsumerDutyOutcome @relation(fields: [outcomeId], references: [id], onDelete: Cascade)
+  measureId  String
+  name       String
+  owner      String?
+  summary    String    @default("")
+  ragStatus  RAGStatus @default(GOOD)
+  position   Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  metrics ConsumerDutyMI[]
+
+  @@map("consumer_duty_measures")
+}
+
+model ConsumerDutyMI {
+  id        String    @id @default(cuid())
+  measureId String
+  measure   ConsumerDutyMeasure @relation(fields: [measureId], references: [id], onDelete: Cascade)
+  metric    String
+  current   String    @default("")
+  previous  String    @default("")
+  change    String    @default("")
+  ragStatus RAGStatus @default(GOOD)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("consumer_duty_mi")
+}
+
+model ReportVersion {
+  id           String   @id @default(cuid())
+  reportId     String
+  report       Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  version      Int
+  snapshotData Json
+  htmlExport   String?  @db.Text
+  publishedBy  String
+  publisher    User     @relation("PublishedVersions", fields: [publishedBy], references: [id])
+  publishedAt  DateTime @default(now())
+  publishNote  String?
+
+  @@unique([reportId, version])
+  @@map("report_versions")
+}
+
+model Template {
+  id            String      @id @default(cuid())
+  name          String
+  description   String      @default("")
+  category      String      @default("General")
+  thumbnailUrl  String?
+  layoutConfig  Json        @default("{}")
+  styleConfig   Json        @default("{}")
+  contentSchema Json        @default("[]")
+  sectionType   SectionType @default(TEXT_BLOCK)
+  createdBy     String
+  creator       User        @relation(fields: [createdBy], references: [id])
+  isGlobal      Boolean     @default(false)
+  version       Int         @default(1)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("templates")
+}
+
+model Component {
+  id          String   @id @default(cuid())
+  name        String
+  description String   @default("")
+  category    String   @default("General")
+  htmlContent String   @db.Text
+  cssContent  String?  @db.Text
+  jsContent   String?  @db.Text
+  version     String   @default("1.0")
+  sanitized   Boolean  @default(false)
+  createdBy   String
+  creator     User     @relation(fields: [createdBy], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("components")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  timestamp  DateTime @default(now())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  userRole   Role
+  action     String
+  entityType String
+  entityId   String?
+  changes    Json?
+  reportId   String?
+  report     Report?  @relation(fields: [reportId], references: [id], onDelete: SetNull)
+  ipAddress  String?
+  userAgent  String?
+
+  @@index([userId])
+  @@index([reportId])
+  @@index([timestamp])
+  @@index([action])
+  @@map("audit_logs")
+}

@@ -1,0 +1,495 @@
+import type { Report, Section, ConsumerDutyOutcome, ReportVersion, Template, ImportedComponent, AuditLogEntry, User } from "./types";
+import { DEMO_USERS } from "./auth";
+
+export const demoReports: Report[] = [
+  {
+    id: "report-feb-2025",
+    title: "CCRO Monthly Report",
+    period: "February 2025",
+    status: "DRAFT",
+    createdBy: "user-rob",
+    createdAt: "2025-02-01T10:00:00Z",
+    updatedAt: "2025-02-13T14:30:00Z",
+  },
+  {
+    id: "report-jan-2025",
+    title: "CCRO Monthly Report",
+    period: "January 2025",
+    status: "PUBLISHED",
+    createdBy: "user-cath",
+    createdAt: "2025-01-02T09:00:00Z",
+    updatedAt: "2025-01-02T09:15:00Z",
+  },
+  {
+    id: "report-dec-2024",
+    title: "CCRO Monthly Report",
+    period: "December 2024",
+    status: "ARCHIVED",
+    createdBy: "user-rob",
+    createdAt: "2024-12-04T14:00:00Z",
+    updatedAt: "2024-12-04T14:42:00Z",
+  },
+];
+
+export const demoSections: Section[] = [
+  {
+    id: "section-1",
+    reportId: "report-feb-2025",
+    type: "TEXT_BLOCK",
+    position: 0,
+    title: "Executive Summary",
+    content: {
+      html: `<h3>Overall Verdict</h3>
+<p>Updraft continues to demonstrate strong operational performance across key compliance metrics. Customer satisfaction remains high with NPS scores trending positively, while complaints have reduced quarter-on-quarter.</p>
+<blockquote>Technology investment progressing well with new monitoring capabilities deployed this quarter.</blockquote>
+<h3>Key Highlights</h3>
+<ul>
+<li><strong>Collections:</strong> Record performance - 98.2% recovery rate</li>
+<li><strong>Complaints:</strong> Down 15% MoM - process improvements taking effect</li>
+<li><strong>Consumer Duty:</strong> All 5 outcomes rated Good or Warning - no Harm</li>
+<li><strong>Technology:</strong> New fraud detection system live, patching schedule improved</li>
+</ul>`
+    },
+    layoutConfig: { width: "full", columnSpan: 12 },
+    styleConfig: { borderPosition: "left", borderWidth: 4, borderColor: "#7B1FA2", borderStyle: "solid", borderRadius: 16, padding: { top: 24, right: 24, bottom: 24, left: 24 }, margin: { top: 0, right: 0, bottom: 16, left: 0 } },
+    templateId: null,
+    componentId: null,
+    createdAt: "2025-02-01T10:00:00Z",
+    updatedAt: "2025-02-13T14:30:00Z",
+  },
+  {
+    id: "section-2",
+    reportId: "report-feb-2025",
+    type: "CARD_GRID",
+    position: 1,
+    title: "Key Statistics",
+    content: {
+      cards: [
+        { icon: "TrendingUp", title: "NPS Score", value: "72", subtitle: "+2 from last month" },
+        { icon: "Shield", title: "Complaints", value: "23", subtitle: "-15% MoM" },
+        { icon: "CheckCircle", title: "Recovery Rate", value: "98.2%", subtitle: "Record high" },
+        { icon: "AlertTriangle", title: "Open Risks", value: "3 Red", subtitle: "7 Amber, 12 Green" },
+      ],
+    },
+    layoutConfig: { width: "full", columnSpan: 12, layout: "card-grid" },
+    styleConfig: { borderRadius: 16, padding: { top: 24, right: 24, bottom: 24, left: 24 }, margin: { top: 0, right: 0, bottom: 16, left: 0 } },
+    templateId: null,
+    componentId: null,
+    createdAt: "2025-02-01T10:05:00Z",
+    updatedAt: "2025-02-13T14:30:00Z",
+  },
+  {
+    id: "section-3",
+    reportId: "report-feb-2025",
+    type: "DATA_TABLE",
+    position: 2,
+    title: "Risk Profile",
+    content: {
+      headers: ["Risk", "Owner", "RAG Status", "Trend", "Commentary"],
+      rows: [
+        ["Credit Risk", "Ash", "Good", "Stable", "Collections performing well"],
+        ["Operational Risk", "Chris", "Warning", "Improving", "New controls being implemented"],
+        ["Cyber Risk", "Micha", "Harm", "Worsening", "Patching behind schedule"],
+        ["Conduct Risk", "Cath", "Good", "Stable", "No regulatory findings"],
+        ["Financial Crime", "Chris", "Warning", "Stable", "Enhanced monitoring in place"],
+        ["People Risk", "Cath", "Good", "Improving", "Key hires completed"],
+        ["Technology Risk", "Micha", "Warning", "Improving", "Infrastructure upgrade underway"],
+      ],
+    },
+    layoutConfig: { width: "full", columnSpan: 12 },
+    styleConfig: { borderRadius: 16, padding: { top: 24, right: 24, bottom: 24, left: 24 }, margin: { top: 0, right: 0, bottom: 16, left: 0 } },
+    templateId: null,
+    componentId: null,
+    createdAt: "2025-02-01T10:10:00Z",
+    updatedAt: "2025-02-13T14:30:00Z",
+  },
+  {
+    id: "section-4",
+    reportId: "report-feb-2025",
+    type: "CONSUMER_DUTY_DASHBOARD",
+    position: 3,
+    title: "Consumer Duty Dashboard",
+    content: {},
+    layoutConfig: { width: "full", columnSpan: 12 },
+    styleConfig: {},
+    templateId: null,
+    componentId: null,
+    createdAt: "2025-02-01T10:15:00Z",
+    updatedAt: "2025-02-13T14:30:00Z",
+  },
+  {
+    id: "section-5",
+    reportId: "report-feb-2025",
+    type: "ACCORDION",
+    position: 4,
+    title: "Detailed Analysis",
+    content: {
+      items: [
+        { title: "Working Well", content: "<p>Collections recovery rate at an all-time high of 98.2%. Customer satisfaction (NPS) continues upward trend. New fraud detection system showing 40% improvement in detection rates.</p>" },
+        { title: "Challenges", content: "<p>Cyber patching schedule behind by 2 weeks. Three red-rated risks require immediate management attention. Staffing gaps in technology team affecting delivery timelines.</p>" },
+        { title: "Actions for Next Month", content: "<p>1. Emergency patching sprint for critical vulnerabilities. 2. Recruit 2 additional engineers. 3. Complete Consumer Duty annual assessment. 4. Board risk report preparation.</p>" },
+      ],
+    },
+    layoutConfig: { width: "full", columnSpan: 12 },
+    styleConfig: { borderRadius: 16, padding: { top: 24, right: 24, bottom: 24, left: 24 }, margin: { top: 0, right: 0, bottom: 16, left: 0 } },
+    templateId: null,
+    componentId: null,
+    createdAt: "2025-02-01T10:20:00Z",
+    updatedAt: "2025-02-13T14:30:00Z",
+  },
+];
+
+export const demoOutcomes: ConsumerDutyOutcome[] = [
+  {
+    id: "outcome-1",
+    reportId: "report-feb-2025",
+    outcomeId: "o1",
+    name: "Products & Services",
+    shortDesc: "Products designed to meet customer needs",
+    icon: "Package",
+    ragStatus: "GOOD",
+    position: 0,
+    measures: [
+      {
+        id: "measure-1-1",
+        outcomeId: "outcome-1",
+        measureId: "1.1",
+        name: "Customer Needs Met",
+        owner: "ash@updraft.com",
+        summary: "Products meeting identified customer needs",
+        ragStatus: "GOOD",
+        position: 0,
+        metrics: [
+          { id: "mi-1-1-1", measureId: "measure-1-1", metric: "Net Promoter Score", current: "72", previous: "70", change: "+2", ragStatus: "GOOD" },
+          { id: "mi-1-1-2", measureId: "measure-1-1", metric: "TrustPilot Score", current: "4.8", previous: "4.8", change: "0", ragStatus: "GOOD" },
+        ],
+      },
+      {
+        id: "measure-1-3",
+        outcomeId: "outcome-1",
+        measureId: "1.3",
+        name: "New Credit Applications",
+        owner: "ash@updraft.com",
+        summary: "Quality of new application process",
+        ragStatus: "GOOD",
+        position: 1,
+        metrics: [
+          { id: "mi-1-3-1", measureId: "measure-1-3", metric: "Application Approval Rate", current: "68%", previous: "65%", change: "+3%", ragStatus: "GOOD" },
+          { id: "mi-1-3-2", measureId: "measure-1-3", metric: "Time to Decision", current: "2.1 days", previous: "2.4 days", change: "-0.3", ragStatus: "GOOD" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "outcome-2",
+    reportId: "report-feb-2025",
+    outcomeId: "o2",
+    name: "Price & Value",
+    shortDesc: "Fair pricing and value for money",
+    icon: "DollarSign",
+    ragStatus: "GOOD",
+    position: 1,
+    measures: [
+      {
+        id: "measure-2-1",
+        outcomeId: "outcome-2",
+        measureId: "2.1",
+        name: "APR Alignment",
+        owner: "micha@updraft.com",
+        summary: "APR rates competitive and fair",
+        ragStatus: "GOOD",
+        position: 0,
+        metrics: [
+          { id: "mi-2-1-1", measureId: "measure-2-1", metric: "Average APR", current: "29.9%", previous: "29.9%", change: "0", ragStatus: "GOOD" },
+          { id: "mi-2-1-2", measureId: "measure-2-1", metric: "Market Comparison", current: "Below avg", previous: "Below avg", change: "-", ragStatus: "GOOD" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "outcome-3",
+    reportId: "report-feb-2025",
+    outcomeId: "o3",
+    name: "Customer Understanding",
+    shortDesc: "Clear communication and information",
+    icon: "BookOpen",
+    ragStatus: "WARNING",
+    position: 2,
+    measures: [
+      {
+        id: "measure-3-1",
+        outcomeId: "outcome-3",
+        measureId: "3.1",
+        name: "Communication Clarity",
+        owner: "ash@updraft.com",
+        summary: "Customer communications clear and timely",
+        ragStatus: "GOOD",
+        position: 0,
+        metrics: [
+          { id: "mi-3-1-1", measureId: "measure-3-1", metric: "Readability Score", current: "82", previous: "80", change: "+2", ragStatus: "GOOD" },
+        ],
+      },
+      {
+        id: "measure-3-3",
+        outcomeId: "outcome-3",
+        measureId: "3.3",
+        name: "Drop-off Points",
+        owner: "chris@updraft.com",
+        summary: "Customer journey drop-off analysis",
+        ragStatus: "WARNING",
+        position: 1,
+        metrics: [
+          { id: "mi-3-3-1", measureId: "measure-3-3", metric: "Pre-contract Drop-off", current: "45%", previous: "40%", change: "+5%", ragStatus: "WARNING" },
+          { id: "mi-3-3-2", measureId: "measure-3-3", metric: "Application Abandonment", current: "22%", previous: "20%", change: "+2%", ragStatus: "WARNING" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "outcome-4",
+    reportId: "report-feb-2025",
+    outcomeId: "o4",
+    name: "Customer Support",
+    shortDesc: "Responsive and effective support",
+    icon: "Headphones",
+    ragStatus: "GOOD",
+    position: 3,
+    measures: [
+      {
+        id: "measure-4-2",
+        outcomeId: "outcome-4",
+        measureId: "4.2",
+        name: "Response Times",
+        owner: "chris@updraft.com",
+        summary: "Customer support response performance",
+        ragStatus: "GOOD",
+        position: 0,
+        metrics: [
+          { id: "mi-4-2-1", measureId: "measure-4-2", metric: "Avg Response Time", current: "2.4 hrs", previous: "3.1 hrs", change: "-0.7", ragStatus: "GOOD" },
+          { id: "mi-4-2-2", measureId: "measure-4-2", metric: "First Contact Resolution", current: "78%", previous: "75%", change: "+3%", ragStatus: "GOOD" },
+        ],
+      },
+      {
+        id: "measure-4-7",
+        outcomeId: "outcome-4",
+        measureId: "4.7",
+        name: "Broken Payment Plans",
+        owner: "chris@updraft.com",
+        summary: "Payment plan adherence tracking",
+        ragStatus: "WARNING",
+        position: 1,
+        metrics: [
+          { id: "mi-4-7-1", measureId: "measure-4-7", metric: "Broken Plans Rate", current: "15%", previous: "12%", change: "+3%", ragStatus: "WARNING" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "outcome-5",
+    reportId: "report-feb-2025",
+    outcomeId: "g1",
+    name: "Governance & Culture",
+    shortDesc: "Effective governance and consumer-focused culture",
+    icon: "Building",
+    ragStatus: "GOOD",
+    position: 4,
+    measures: [
+      {
+        id: "measure-5-1",
+        outcomeId: "outcome-5",
+        measureId: "5.1",
+        name: "Board Oversight",
+        owner: "cath@updraft.com",
+        summary: "Board governance and oversight effectiveness",
+        ragStatus: "GOOD",
+        position: 0,
+        metrics: [
+          { id: "mi-5-1-1", measureId: "measure-5-1", metric: "Board Attendance", current: "100%", previous: "95%", change: "+5%", ragStatus: "GOOD" },
+          { id: "mi-5-1-2", measureId: "measure-5-1", metric: "Actions Completed", current: "92%", previous: "88%", change: "+4%", ragStatus: "GOOD" },
+        ],
+      },
+    ],
+  },
+];
+
+export const demoVersions: ReportVersion[] = [
+  {
+    id: "version-jan-1",
+    reportId: "report-jan-2025",
+    version: 1,
+    snapshotData: {},
+    htmlExport: null,
+    publishedBy: "user-cath",
+    publishedAt: "2025-01-02T09:15:00Z",
+    publishNote: "January monthly report",
+  },
+  {
+    id: "version-dec-1",
+    reportId: "report-dec-2024",
+    version: 1,
+    snapshotData: {},
+    htmlExport: null,
+    publishedBy: "user-rob",
+    publishedAt: "2024-12-04T14:42:00Z",
+    publishNote: "Year-end comprehensive review",
+  },
+];
+
+export const demoTemplates: Template[] = [
+  {
+    id: "template-1",
+    name: "Risk Analysis Layout",
+    description: "2-column narrative + data table with highlighted call-out box",
+    category: "Analysis",
+    thumbnailUrl: null,
+    layoutConfig: { layout: "two-col" },
+    styleConfig: { borderPosition: "left", borderWidth: 4, borderColor: "#7B1FA2" },
+    contentSchema: [
+      { key: "title", label: "Section Title", type: "text", required: true },
+      { key: "narrative", label: "Analysis Narrative", type: "richtext", required: true },
+      { key: "risk_table", label: "Risk Data", type: "table" },
+      { key: "callout", label: "Key Callout", type: "text" },
+    ],
+    sectionType: "TEXT_BLOCK",
+    createdBy: "user-rob",
+    isGlobal: true,
+    version: 1,
+    createdAt: "2025-01-15T10:00:00Z",
+  },
+  {
+    id: "template-2",
+    name: "3-Stat Cards",
+    description: "Three statistic cards in a row",
+    category: "Stats",
+    thumbnailUrl: null,
+    layoutConfig: { layout: "card-grid" },
+    styleConfig: {},
+    contentSchema: [
+      { key: "card1_title", label: "Card 1 Title", type: "text", required: true },
+      { key: "card1_value", label: "Card 1 Value", type: "text", required: true },
+      { key: "card2_title", label: "Card 2 Title", type: "text", required: true },
+      { key: "card2_value", label: "Card 2 Value", type: "text", required: true },
+      { key: "card3_title", label: "Card 3 Title", type: "text", required: true },
+      { key: "card3_value", label: "Card 3 Value", type: "text", required: true },
+    ],
+    sectionType: "CARD_GRID",
+    createdBy: "user-rob",
+    isGlobal: true,
+    version: 1,
+    createdAt: "2025-01-20T10:00:00Z",
+  },
+];
+
+export const demoComponents: ImportedComponent[] = [
+  {
+    id: "component-1",
+    name: "DPO Deep Dive Q1 2025",
+    description: "Data protection compliance review section with interactive charts",
+    category: "Regulatory",
+    htmlContent: `<div class="dpo-section">
+  <h3 style="color:#311B92;font-size:1.25rem;font-weight:600;margin-bottom:1rem">Data Protection Overview</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+    <div style="background:#F3F4F6;padding:1rem;border-radius:0.75rem">
+      <div style="font-size:2rem;font-weight:700;color:#311B92">0</div>
+      <div style="color:#6b7280;font-size:0.875rem">Data Breaches</div>
+    </div>
+    <div style="background:#F3F4F6;padding:1rem;border-radius:0.75rem">
+      <div style="font-size:2rem;font-weight:700;color:#10B981">100%</div>
+      <div style="color:#6b7280;font-size:0.875rem">DSAR Response Rate</div>
+    </div>
+  </div>
+  <p style="margin-top:1rem;font-size:0.875rem;color:#374151">All data protection obligations met for the quarter. Zero breaches reported. DSAR response time averaging 18 days (target: 30 days).</p>
+</div>`,
+    cssContent: null,
+    jsContent: null,
+    version: "1.0",
+    sanitized: true,
+    createdBy: "user-rob",
+    createdAt: "2025-01-10T10:00:00Z",
+  },
+];
+
+export const demoAuditLogs: AuditLogEntry[] = [
+  {
+    id: "log-1",
+    timestamp: "2025-02-13T14:30:00Z",
+    userId: "user-rob",
+    userRole: "CCRO_TEAM",
+    action: "edit_section",
+    entityType: "section",
+    entityId: "section-1",
+    changes: { field: "content", old_summary: "Previous verdict text", new_summary: "Updated verdict text" },
+    reportId: "report-feb-2025",
+    ipAddress: "10.0.1.45",
+    userAgent: "Mozilla/5.0",
+  },
+  {
+    id: "log-2",
+    timestamp: "2025-02-12T16:45:00Z",
+    userId: "user-ash",
+    userRole: "METRIC_OWNER",
+    action: "update_mi",
+    entityType: "consumer_duty_mi",
+    entityId: "mi-1-1-1",
+    changes: { field: "current_value", old_value: "70", new_value: "72" },
+    reportId: "report-feb-2025",
+    ipAddress: "10.0.1.50",
+    userAgent: "Mozilla/5.0",
+  },
+  {
+    id: "log-3",
+    timestamp: "2025-02-12T14:30:00Z",
+    userId: "user-chris",
+    userRole: "METRIC_OWNER",
+    action: "update_mi",
+    entityType: "consumer_duty_mi",
+    entityId: "mi-4-7-1",
+    changes: { field: "current_value", old_value: "12%", new_value: "15%" },
+    reportId: "report-feb-2025",
+    ipAddress: "10.0.1.55",
+    userAgent: "Mozilla/5.0",
+  },
+  {
+    id: "log-4",
+    timestamp: "2025-02-12T14:31:00Z",
+    userId: "user-chris",
+    userRole: "METRIC_OWNER",
+    action: "change_rag",
+    entityType: "consumer_duty_measure",
+    entityId: "measure-4-7",
+    changes: { field: "ragStatus", old_value: "GOOD", new_value: "WARNING" },
+    reportId: "report-feb-2025",
+    ipAddress: "10.0.1.55",
+    userAgent: "Mozilla/5.0",
+  },
+  {
+    id: "log-5",
+    timestamp: "2025-02-10T11:20:00Z",
+    userId: "user-cath",
+    userRole: "CCRO_TEAM",
+    action: "edit_section",
+    entityType: "section",
+    entityId: "section-1",
+    changes: { field: "content", summary: "Updated executive summary narrative" },
+    reportId: "report-feb-2025",
+    ipAddress: "10.0.1.42",
+    userAgent: "Mozilla/5.0",
+  },
+  {
+    id: "log-6",
+    timestamp: "2025-01-02T09:15:00Z",
+    userId: "user-cath",
+    userRole: "CCRO_TEAM",
+    action: "publish_report",
+    entityType: "report",
+    entityId: "report-jan-2025",
+    changes: { version: 1 },
+    reportId: "report-jan-2025",
+    ipAddress: "10.0.1.42",
+    userAgent: "Mozilla/5.0",
+  },
+];
+
+export function getDemoUser(userId: string): User | undefined {
+  return DEMO_USERS.find((u) => u.id === userId);
+}
