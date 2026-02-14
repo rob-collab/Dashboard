@@ -12,8 +12,10 @@ import { TableRow } from "@tiptap/extension-table-row";
 import { TableCell } from "@tiptap/extension-table-cell";
 import { TableHeader } from "@tiptap/extension-table-header";
 import { Link } from "@tiptap/extension-link";
+import { Image as TiptapImage } from "@tiptap/extension-image";
 import { Placeholder } from "@tiptap/extension-placeholder";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import { fileToBase64, ACCEPTED_IMAGE_TYPES } from "@/lib/image-utils";
 import {
   Bold,
   Italic,
@@ -33,6 +35,7 @@ import {
   AlignJustify,
   Link as LinkIcon,
   Table as TableIcon,
+  ImageIcon,
   Undo,
   Redo,
 } from "lucide-react";
@@ -101,6 +104,17 @@ function ToolbarDivider() {
 // ---------------------------------------------------------------------------
 
 function Toolbar({ editor }: { editor: Editor }) {
+  const imgInputRef = useRef<HTMLInputElement>(null);
+
+  const insertImage = useCallback(async (file: File) => {
+    try {
+      const src = await fileToBase64(file);
+      editor.chain().focus().setImage({ src }).run();
+    } catch {
+      // Silently ignore — validation errors from fileToBase64
+    }
+  }, [editor]);
+
   const setLink = useCallback(() => {
     const previousUrl = editor.getAttributes("link").href as string | undefined;
     const url = window.prompt("Enter URL", previousUrl ?? "https://");
@@ -288,6 +302,24 @@ function Toolbar({ editor }: { editor: Editor }) {
       >
         <TableIcon size={iconSize} />
       </ToolbarButton>
+      <ToolbarButton
+        editor={editor}
+        onClick={() => imgInputRef.current?.click()}
+        title="Insert Image"
+      >
+        <ImageIcon size={iconSize} />
+      </ToolbarButton>
+      <input
+        ref={imgInputRef}
+        type="file"
+        accept={ACCEPTED_IMAGE_TYPES.join(",")}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) insertImage(file);
+          e.target.value = "";
+        }}
+        className="hidden"
+      />
 
       <ToolbarDivider />
 
@@ -342,6 +374,11 @@ export default function RichTextEditor({
       Link.configure({
         openOnClick: false,
         HTMLAttributes: { class: "text-updraft-bright-purple underline" },
+      }),
+      TiptapImage.configure({
+        inline: false,
+        allowBase64: true,
+        HTMLAttributes: { class: "rounded-lg max-w-full" },
       }),
       Placeholder.configure({ placeholder }),
     ],

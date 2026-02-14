@@ -11,6 +11,7 @@ import {
   Puzzle,
   ClipboardList,
   Users,
+  Settings,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -35,6 +36,7 @@ const NAV_ITEMS: { label: string; href: string; icon: typeof LayoutDashboard; ro
   { label: "Components", href: "/components-lib", icon: Puzzle, roles: ["CCRO_TEAM"] },
   { label: "Audit Trail", href: "/audit", icon: ClipboardList, roles: ["CCRO_TEAM"] },
   { label: "Users", href: "/users", icon: Users, roles: ["CCRO_TEAM"] },
+  { label: "Settings", href: "/settings", icon: Settings, roles: ["CCRO_TEAM"] },
 ];
 
 const ROLE_LABELS: Record<string, string> = {

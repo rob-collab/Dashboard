@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMI, ReportVersion } from "./types";
+import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMI, ReportVersion, BrandingConfig } from "./types";
 import { demoReports, demoSections, demoOutcomes, demoTemplates, demoComponents, demoAuditLogs, demoVersions } from "./demo-data";
 import { DEMO_USERS } from "./auth";
 
@@ -58,6 +58,10 @@ interface AppState {
   addUser: (user: User) => void;
   updateUser: (id: string, data: Partial<User>) => void;
   deleteUser: (id: string) => void;
+
+  // Branding
+  branding: BrandingConfig;
+  updateBranding: (data: Partial<BrandingConfig>) => void;
 
   // UI State
   sidebarOpen: boolean;
@@ -154,6 +158,17 @@ export const useAppStore = create<AppState>((set) => ({
     })),
   deleteUser: (id) =>
     set((state) => ({ users: state.users.filter((u) => u.id !== id) })),
+
+  branding: {
+    logoSrc: null,
+    logoAlt: "Team Logo",
+    logoWidth: 120,
+    companyName: "Updraft",
+    showInHeader: true,
+    showInFooter: true,
+  },
+  updateBranding: (data) =>
+    set((state) => ({ branding: { ...state.branding, ...data } })),
 
   sidebarOpen: true,
   setSidebarOpen: (open) => set({ sidebarOpen: open }),

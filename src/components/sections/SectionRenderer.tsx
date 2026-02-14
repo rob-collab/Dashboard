@@ -9,6 +9,7 @@ import DataTable from "./DataTable";
 import CardGrid from "./CardGrid";
 import AccordionSection from "./AccordionSection";
 import ChartSection from "./ChartSection";
+import ImageSection from "./ImageSection";
 import { useAppStore } from "@/lib/store";
 import { sanitizeHTML } from "@/lib/sanitize";
 
@@ -148,6 +149,15 @@ function SectionContent({
     case "CHART":
       return (
         <ChartSection
+          section={section}
+          editable={editable}
+          onUpdate={(content) => updateContent(content)}
+        />
+      );
+
+    case "IMAGE_BLOCK":
+      return (
+        <ImageSection
           section={section}
           editable={editable}
           onUpdate={(content) => updateContent(content)}

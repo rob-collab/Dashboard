@@ -72,6 +72,7 @@ export default function ReportViewPage() {
   const storeSections = useAppStore((s) => s.sections);
   const storeOutcomes = useAppStore((s) => s.outcomes);
   const storeVersions = useAppStore((s) => s.versions);
+  const branding = useAppStore((s) => s.branding);
   const report = useMemo(() => storeReports.find((r) => r.id === reportId) ?? null, [storeReports, reportId]);
   const sections = useMemo(() => report ? storeSections.filter((s) => s.reportId === report.id).sort((a, b) => a.position - b.position) : [], [storeSections, report]);
   const versions = useMemo(() => report ? storeVersions.filter((v) => v.reportId === report.id) : [], [storeVersions, report]);
@@ -99,7 +100,7 @@ export default function ReportViewPage() {
   }
 
   const handleExportHTML = () => {
-    const html = generateHTMLExport(report, sections, outcomes);
+    const html = generateHTMLExport(report, sections, outcomes, {}, branding);
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -111,6 +112,17 @@ export default function ReportViewPage() {
 
   return (
     <div className="space-y-6">
+      {/* Branding logo in header */}
+      {branding.logoSrc && branding.showInHeader && (
+        <div className="flex justify-center mb-2">
+          <img
+            src={branding.logoSrc}
+            alt={branding.logoAlt}
+            style={{ width: branding.logoWidth, objectFit: "contain" }}
+          />
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-3">
@@ -277,6 +289,28 @@ export default function ReportViewPage() {
                   <BarChart3 size={24} className="mr-2" /> Chart visualization
                 </div>
               )}
+
+              {/* IMAGE_BLOCK */}
+              {section.type === "IMAGE_BLOCK" && (() => {
+                const imgSrc = (section.content?.src as string) || "";
+                const imgAlt = (section.content?.alt as string) || "";
+                const imgCaption = (section.content?.caption as string) || "";
+                const imgWidth = (section.content?.width as number | null) ?? null;
+                const imgAlignment = (section.content?.alignment as string) || "center";
+                const imgFit = (section.content?.objectFit as string) || "contain";
+                const alignCls = imgAlignment === "left" ? "mr-auto" : imgAlignment === "right" ? "ml-auto" : "mx-auto";
+                if (!imgSrc) return (
+                  <div className="flex items-center justify-center py-12 text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
+                    No image uploaded
+                  </div>
+                );
+                return (
+                  <figure className={cn("flex flex-col", alignCls)} style={{ maxWidth: imgWidth ? `${imgWidth}px` : "100%" }}>
+                    <img src={imgSrc} alt={imgAlt} className="rounded-lg" style={{ width: "100%", objectFit: imgFit as React.CSSProperties["objectFit"] }} />
+                    {imgCaption && <figcaption className="mt-2 text-center text-xs text-gray-500 italic">{imgCaption}</figcaption>}
+                  </figure>
+                );
+              })()}
             </div>
           ))}
         </div>
@@ -311,6 +345,20 @@ export default function ReportViewPage() {
           </div>
         )}
       </div>
+
+      {/* Branding logo in footer */}
+      {branding.logoSrc && branding.showInFooter && (
+        <div className="flex flex-col items-center gap-1 pt-4 border-t border-gray-200">
+          <img
+            src={branding.logoSrc}
+            alt={branding.logoAlt}
+            style={{ width: branding.logoWidth * 0.75, objectFit: "contain" }}
+          />
+          {branding.companyName && (
+            <p className="text-xs text-gray-400">{branding.companyName}</p>
+          )}
+        </div>
+      )}
 
       {/* MI Modal */}
       <MIModal

@@ -19,6 +19,7 @@ import {
   Type,
   BarChart3,
   ChevronsUpDown,
+  ImageIcon,
 } from "lucide-react";
 import {
   DndContext,
@@ -49,6 +50,7 @@ const SECTION_TYPES: { type: SectionType; label: string; icon: React.ReactNode }
   { type: "CONSUMER_DUTY_DASHBOARD", label: "Consumer Duty", icon: <ShieldCheck size={16} /> },
   { type: "ACCORDION", label: "Accordion", icon: <ChevronsUpDown size={16} /> },
   { type: "CHART", label: "Chart", icon: <BarChart3 size={16} /> },
+  { type: "IMAGE_BLOCK", label: "Image", icon: <ImageIcon size={16} /> },
 ];
 
 function defaultContent(type: SectionType): Record<string, unknown> {
@@ -63,6 +65,8 @@ function defaultContent(type: SectionType): Record<string, unknown> {
       return { items: [{ title: "Section 1", content: "<p>Content here</p>" }] };
     case "CHART":
       return { chartType: "bar", chartData: { labels: ["Q1", "Q2", "Q3", "Q4"], datasets: [{ label: "Performance", data: [65, 78, 82, 91], color: "#7B1FA2" }] } };
+    case "IMAGE_BLOCK":
+      return { src: "", alt: "", caption: "", width: null, alignment: "center", objectFit: "contain" };
     default:
       return {};
   }

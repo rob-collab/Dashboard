@@ -9,7 +9,26 @@ export type SectionType =
   | "CARD_GRID"
   | "IMPORTED_COMPONENT"
   | "TEMPLATE_INSTANCE"
-  | "ACCORDION";
+  | "ACCORDION"
+  | "IMAGE_BLOCK";
+
+export interface ImageBlockContent {
+  src: string;
+  alt: string;
+  caption: string;
+  width: number | null;
+  alignment: "left" | "center" | "right";
+  objectFit: "contain" | "cover" | "fill";
+}
+
+export interface BrandingConfig {
+  logoSrc: string | null;
+  logoAlt: string;
+  logoWidth: number;
+  companyName: string;
+  showInHeader: boolean;
+  showInFooter: boolean;
+}
 
 export interface User {
   id: string;

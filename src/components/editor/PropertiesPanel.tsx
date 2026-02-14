@@ -9,6 +9,9 @@ import {
   Columns3,
   Columns4,
   Square,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Section, StyleConfig, LayoutConfig } from "@/lib/types";
@@ -467,6 +470,74 @@ export default function PropertiesPanel({
             </div>
           </div>
         </CollapsibleSection>
+
+        {/* ============================================================ */}
+        {/* IMAGE BLOCK CONTROLS (only visible for IMAGE_BLOCK sections) */}
+        {/* ============================================================ */}
+        {section.type === "IMAGE_BLOCK" && (
+          <CollapsibleSection title="Image" defaultOpen={true}>
+            <div>
+              <Label>Alignment</Label>
+              <div className="grid grid-cols-3 gap-1">
+                {([
+                  { value: "left", icon: <AlignLeft size={14} />, label: "Left" },
+                  { value: "center", icon: <AlignCenter size={14} />, label: "Centre" },
+                  { value: "right", icon: <AlignRight size={14} />, label: "Right" },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => onUpdate({ content: { ...section.content, alignment: opt.value } })}
+                    className={cn(
+                      "flex items-center justify-center gap-1 rounded-md border py-1.5 text-xs transition-colors",
+                      (section.content?.alignment as string) === opt.value
+                        ? "border-updraft-bright-purple bg-updraft-pale-purple/30 text-updraft-bright-purple"
+                        : "border-gray-200 text-gray-500 hover:border-gray-300"
+                    )}
+                  >
+                    {opt.icon} {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label>Width {(section.content?.width as number) ? `${section.content.width}px` : "Auto"}</Label>
+              <input
+                type="range"
+                min={100}
+                max={1200}
+                step={10}
+                value={(section.content?.width as number) ?? 800}
+                onChange={(e) =>
+                  onUpdate({ content: { ...section.content, width: Number(e.target.value) } })
+                }
+                className="w-full accent-updraft-bright-purple"
+              />
+            </div>
+
+            <div>
+              <Label>Object Fit</Label>
+              <div className="grid grid-cols-3 gap-1">
+                {(["contain", "cover", "fill"] as const).map((fit) => (
+                  <button
+                    key={fit}
+                    type="button"
+                    onClick={() => onUpdate({ content: { ...section.content, objectFit: fit } })}
+                    className={cn(
+                      "rounded-md border py-1.5 text-xs capitalize transition-colors",
+                      (section.content?.objectFit as string) === fit
+                        ? "border-updraft-bright-purple bg-updraft-pale-purple/30 text-updraft-bright-purple"
+                        : "border-gray-200 text-gray-500 hover:border-gray-300"
+                    )}
+                  >
+                    {fit}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </CollapsibleSection>
+        )}
       </div>
     </aside>
   );
