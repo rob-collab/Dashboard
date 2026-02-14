@@ -1,9 +1,6 @@
-import { PrismaClient } from "@/generated/prisma";
+// Prisma client — not connected yet.
+// This file is a placeholder for when a database is wired up.
+// See docs/IMPLEMENTATION-GUIDE.md §6 for setup instructions.
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
-
-export const prisma = globalForPrisma.prisma || new PrismaClient();
-
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
-
+export const prisma = null;
 export default prisma;
