@@ -1,9 +1,10 @@
 "use client";
 
 import "./globals.css";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { AuthContext, DEMO_USERS } from "@/lib/auth";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { useAppStore } from "@/lib/store";
 import type { User } from "@/lib/types";
 
 export default function RootLayout({
@@ -14,6 +15,12 @@ export default function RootLayout({
   const [user, setUser] = useState<User>(DEMO_USERS[0]);
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const setStoreUser = useAppStore((s) => s.setCurrentUser);
+
+  // Keep Zustand store in sync with local user state
+  useEffect(() => {
+    setStoreUser(user);
+  }, [user, setStoreUser]);
 
   const signIn = useCallback(async () => {
     setLoading(true);

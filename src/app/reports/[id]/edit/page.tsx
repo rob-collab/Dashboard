@@ -34,7 +34,8 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { demoSections, demoReports, demoOutcomes } from "@/lib/demo-data";
+import { useAppStore } from "@/lib/store";
+import { logAuditEvent } from "@/lib/audit";
 import SectionRenderer from "@/components/sections/SectionRenderer";
 import PropertiesPanel from "@/components/editor/PropertiesPanel";
 import PublishDialog from "@/components/reports/PublishDialog";
@@ -60,6 +61,8 @@ function defaultContent(type: SectionType): Record<string, unknown> {
       return { cards: [{ icon: "BarChart3", title: "Stat", value: "0", subtitle: "Description" }] };
     case "ACCORDION":
       return { items: [{ title: "Section 1", content: "<p>Content here</p>" }] };
+    case "CHART":
+      return { chartType: "bar", chartData: { labels: ["Q1", "Q2", "Q3", "Q4"], datasets: [{ label: "Performance", data: [65, 78, 82, 91], color: "#7B1FA2" }] } };
     default:
       return {};
   }
@@ -127,15 +130,31 @@ export default function ReportEditorPage() {
   const params = useParams();
   const router = useRouter();
   const reportId = params.id as string;
+  const storeReports = useAppStore((s) => s.reports);
+  const storeSections = useAppStore((s) => s.sections);
+  const storeOutcomes = useAppStore((s) => s.outcomes);
+  const setStoreSections = useAppStore((s) => s.setSections);
+  const updateReport = useAppStore((s) => s.updateReport);
+  const addVersion = useAppStore((s) => s.addVersion);
+  const storeVersions = useAppStore((s) => s.versions);
+  const currentUser = useAppStore((s) => s.currentUser);
+  const addAuditLog = useAppStore((s) => s.addAuditLog);
 
   const report = useMemo(
-    () => demoReports.find((r) => r.id === reportId) ?? demoReports[0],
-    [reportId]
+    () => storeReports.find((r) => r.id === reportId) ?? null,
+    [storeReports, reportId]
   );
 
-  const [sections, setSections] = useState<Section[]>(() =>
-    demoSections.filter((s) => s.reportId === report.id).sort((a, b) => a.position - b.position)
+  const outcomes = useMemo(
+    () => report ? storeOutcomes.filter((o) => o.reportId === report.id) : [],
+    [storeOutcomes, report]
   );
+
+  const [sections, setSections] = useState<Section[]>(() => {
+    const found = storeReports.find((r) => r.id === reportId);
+    if (!found) return [];
+    return storeSections.filter((s) => s.reportId === found.id).sort((a, b) => a.position - b.position);
+  });
   const [selectedId, setSelectedId] = useState<string | null>(sections[0]?.id ?? null);
   const [showProperties, setShowProperties] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
@@ -170,6 +189,7 @@ export default function ReportEditorPage() {
   }, []);
 
   const addSection = useCallback((type: SectionType) => {
+    if (!report) return;
     const newSection: Section = {
       id: `section-${generateId()}`,
       reportId: report.id,
@@ -187,7 +207,7 @@ export default function ReportEditorPage() {
     setSections((prev) => [...prev, newSection]);
     setSelectedId(newSection.id);
     setShowAddMenu(false);
-  }, [report.id, sections.length]);
+  }, [report, sections.length]);
 
   const deleteSection = useCallback((id: string) => {
     setSections((prev) => prev.filter((s) => s.id !== id));
@@ -197,9 +217,35 @@ export default function ReportEditorPage() {
   }, [selectedId, sections]);
 
   const handleSave = useCallback(() => {
+    if (!report) return;
+    // Merge editor sections into the global store
+    const otherSections = storeSections.filter((s) => s.reportId !== report.id);
+    setStoreSections([...otherSections, ...sections]);
+    // Update report's updatedAt timestamp
+    updateReport(report.id, { updatedAt: new Date().toISOString() });
+    logAuditEvent({
+      action: "save_report",
+      entityType: "report",
+      entityId: report.id,
+      changes: { sectionCount: sections.length },
+      reportId: report.id,
+    });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
-  }, []);
+  }, [report, sections, storeSections, setStoreSections, updateReport]);
+
+  if (!report) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <FileText size={48} className="mb-4 text-gray-300" />
+        <h1 className="text-xl font-bold text-gray-700 font-poppins">Report Not Found</h1>
+        <p className="text-sm text-fca-gray mt-2">The report you&apos;re looking for doesn&apos;t exist or has been removed.</p>
+        <Link href="/reports" className="mt-6 inline-flex items-center gap-1.5 rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colors">
+          <ArrowLeft size={14} /> Back to Reports
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-[calc(100vh-1.5rem)] -m-6">
@@ -343,10 +389,42 @@ export default function ReportEditorPage() {
       <PublishDialog
         report={report}
         sections={sections}
-        outcomes={demoOutcomes}
+        outcomes={outcomes}
         open={publishOpen}
         onClose={() => setPublishOpen(false)}
-        onPublish={() => {
+        onPublish={(publishNote) => {
+          // Save sections to store first
+          const otherSections = storeSections.filter((s) => s.reportId !== report.id);
+          setStoreSections([...otherSections, ...sections]);
+          // Update report status
+          updateReport(report.id, { status: "PUBLISHED", updatedAt: new Date().toISOString() });
+          // Create version
+          const existingVersions = storeVersions.filter((v) => v.reportId === report.id);
+          const nextVersion = existingVersions.length > 0 ? Math.max(...existingVersions.map((v) => v.version)) + 1 : 1;
+          addVersion({
+            id: `version-${generateId()}`,
+            reportId: report.id,
+            version: nextVersion,
+            snapshotData: { sections: sections.map((s) => ({ ...s })) },
+            htmlExport: null,
+            publishedBy: currentUser?.id ?? "unknown",
+            publishedAt: new Date().toISOString(),
+            publishNote: publishNote || null,
+          });
+          // Audit log
+          addAuditLog({
+            id: `log-${generateId()}`,
+            timestamp: new Date().toISOString(),
+            userId: currentUser?.id ?? "unknown",
+            userRole: currentUser?.role ?? "VIEWER",
+            action: "publish_report",
+            entityType: "report",
+            entityId: report.id,
+            changes: { version: nextVersion, note: publishNote },
+            reportId: report.id,
+            ipAddress: null,
+            userAgent: null,
+          });
           setPublishOpen(false);
           router.push(`/reports/${reportId}`);
         }}

@@ -4,10 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, FileText } from "lucide-react";
 import Link from "next/link";
+import { useAppStore } from "@/lib/store";
+import { logAuditEvent } from "@/lib/audit";
 import { generateId } from "@/lib/utils";
 
 export default function NewReportPage() {
   const router = useRouter();
+  const addReport = useAppStore((s) => s.addReport);
+  const currentUser = useAppStore((s) => s.currentUser);
   const [title, setTitle] = useState("CCRO Monthly Report");
   const [period, setPeriod] = useState("");
 
@@ -21,6 +25,23 @@ export default function NewReportPage() {
   const handleCreate = () => {
     if (!title.trim() || !period.trim()) return;
     const reportId = `report-${generateId()}`;
+    const now = new Date().toISOString();
+    addReport({
+      id: reportId,
+      title: title.trim(),
+      period: period.trim(),
+      status: "DRAFT",
+      createdBy: currentUser?.id ?? "user-rob",
+      createdAt: now,
+      updatedAt: now,
+    });
+    logAuditEvent({
+      action: "create_report",
+      entityType: "report",
+      entityId: reportId,
+      changes: { title: title.trim(), period: period.trim() },
+      reportId,
+    });
     router.push(`/reports/${reportId}/edit`);
   };
 

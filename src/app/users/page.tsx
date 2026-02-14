@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   Users,
   Search,
@@ -12,9 +12,12 @@ import {
   XCircle,
   Pencil,
 } from "lucide-react";
-import { DEMO_USERS } from "@/lib/auth";
+import { useAppStore } from "@/lib/store";
+import RoleGuard from "@/components/common/RoleGuard";
+import UserFormDialog from "@/components/users/UserFormDialog";
 import { cn, formatDate } from "@/lib/utils";
-import type { Role } from "@/lib/types";
+import type { Role, User } from "@/lib/types";
+import { logAuditEvent } from "@/lib/audit";
 
 const ROLE_CONFIG: Record<Role, { label: string; color: string; description: string }> = {
   CCRO_TEAM: {
@@ -35,32 +38,77 @@ const ROLE_CONFIG: Record<Role, { label: string; color: string; description: str
 };
 
 export default function UsersPage() {
+  const users = useAppStore((s) => s.users);
+  const addUser = useAppStore((s) => s.addUser);
+  const updateUser = useAppStore((s) => s.updateUser);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<Role | "ALL">("ALL");
 
+  // Dialog state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | undefined>(undefined);
+
   const filteredUsers = useMemo(() => {
-    let users = DEMO_USERS;
+    let filtered = users;
     if (roleFilter !== "ALL") {
-      users = users.filter((u) => u.role === roleFilter);
+      filtered = filtered.filter((u) => u.role === roleFilter);
     }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      users = users.filter(
+      filtered = filtered.filter(
         (u) =>
           u.name.toLowerCase().includes(q) ||
           u.email.toLowerCase().includes(q)
       );
     }
-    return users;
-  }, [roleFilter, searchQuery]);
+    return filtered;
+  }, [users, roleFilter, searchQuery]);
 
   const roleCounts = useMemo(() => ({
-    CCRO_TEAM: DEMO_USERS.filter((u) => u.role === "CCRO_TEAM").length,
-    METRIC_OWNER: DEMO_USERS.filter((u) => u.role === "METRIC_OWNER").length,
-    VIEWER: DEMO_USERS.filter((u) => u.role === "VIEWER").length,
-  }), []);
+    CCRO_TEAM: users.filter((u) => u.role === "CCRO_TEAM").length,
+    METRIC_OWNER: users.filter((u) => u.role === "METRIC_OWNER").length,
+    VIEWER: users.filter((u) => u.role === "VIEWER").length,
+  }), [users]);
+
+  const handleOpenAdd = useCallback(() => {
+    setEditingUser(undefined);
+    setDialogOpen(true);
+  }, []);
+
+  const handleOpenEdit = useCallback((user: User) => {
+    setEditingUser(user);
+    setDialogOpen(true);
+  }, []);
+
+  const handleCloseDialog = useCallback(() => {
+    setDialogOpen(false);
+    setEditingUser(undefined);
+  }, []);
+
+  const handleSave = useCallback(
+    (saved: User) => {
+      if (editingUser) {
+        updateUser(saved.id, saved);
+        logAuditEvent({ action: "update_user", entityType: "user", entityId: saved.id, changes: { name: saved.name, role: saved.role } });
+      } else {
+        addUser(saved);
+        logAuditEvent({ action: "add_user", entityType: "user", entityId: saved.id, changes: { name: saved.name, role: saved.role } });
+      }
+    },
+    [editingUser, addUser, updateUser]
+  );
+
+  const handleToggleActive = useCallback(
+    (user: User) => {
+      updateUser(user.id, { isActive: !user.isActive });
+      logAuditEvent({ action: "toggle_user_status", entityType: "user", entityId: user.id, changes: { name: user.name, isActive: !user.isActive } });
+    },
+    [updateUser]
+  );
 
   return (
+    <RoleGuard allowedRoles={["CCRO_TEAM"]}>
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
@@ -73,7 +121,10 @@ export default function UsersPage() {
             <p className="text-sm text-fca-gray mt-0.5">Manage team members and their roles</p>
           </div>
         </div>
-        <button className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colors">
+        <button
+          onClick={handleOpenAdd}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colors"
+        >
           <Plus size={16} /> Add User
         </button>
       </div>
@@ -153,15 +204,21 @@ export default function UsersPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      {user.isActive ? (
-                        <span className="inline-flex items-center gap-1 text-xs text-risk-green font-medium">
-                          <CheckCircle size={12} /> Active
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-xs text-gray-400 font-medium">
-                          <XCircle size={12} /> Inactive
-                        </span>
-                      )}
+                      <button
+                        onClick={() => handleToggleActive(user)}
+                        title={user.isActive ? "Click to deactivate" : "Click to activate"}
+                        className="group cursor-pointer"
+                      >
+                        {user.isActive ? (
+                          <span className="inline-flex items-center gap-1 text-xs text-risk-green font-medium group-hover:opacity-70 transition-opacity">
+                            <CheckCircle size={12} /> Authorised
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs text-gray-400 font-medium group-hover:opacity-70 transition-opacity">
+                            <XCircle size={12} /> Inactive
+                          </span>
+                        )}
+                      </button>
                     </td>
                     <td className="px-4 py-3">
                       {user.assignedMeasures.length > 0 ? (
@@ -178,7 +235,7 @@ export default function UsersPage() {
                           )}
                         </div>
                       ) : (
-                        <span className="text-xs text-gray-400">—</span>
+                        <span className="text-xs text-gray-400">&mdash;</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -191,7 +248,11 @@ export default function UsersPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
+                      <button
+                        onClick={() => handleOpenEdit(user)}
+                        className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                        title="Edit user"
+                      >
                         <Pencil size={14} />
                       </button>
                     </td>
@@ -210,6 +271,15 @@ export default function UsersPage() {
           </div>
         )}
       </div>
+
+      {/* User Form Dialog */}
+      <UserFormDialog
+        open={dialogOpen}
+        onClose={handleCloseDialog}
+        onSave={handleSave}
+        user={editingUser}
+      />
     </div>
+    </RoleGuard>
   );
 }

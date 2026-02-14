@@ -1,14 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Search, FileText } from "lucide-react";
-import { demoReports } from "@/lib/demo-data";
+import { useAppStore } from "@/lib/store";
+import { generateHTMLExport } from "@/lib/export-html";
 import { ReportCard } from "@/components/reports/ReportCard";
-import type { ReportStatus } from "@/lib/types";
+import type { Report, ReportStatus } from "@/lib/types";
 
 export default function ReportsPage() {
-  const [reports] = useState(demoReports);
+  const router = useRouter();
+  const reports = useAppStore((s) => s.reports);
+  const sections = useAppStore((s) => s.sections);
+  const outcomes = useAppStore((s) => s.outcomes);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<ReportStatus | "ALL">("ALL");
 
@@ -19,6 +24,31 @@ export default function ReportsPage() {
     const matchesStatus = statusFilter === "ALL" || r.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const handleView = (report: Report) => {
+    router.push(`/reports/${report.id}`);
+  };
+
+  const handleEdit = (report: Report) => {
+    router.push(`/reports/${report.id}/edit`);
+  };
+
+  const handlePublish = (report: Report) => {
+    router.push(`/reports/${report.id}/edit`);
+  };
+
+  const handleExport = (report: Report) => {
+    const reportSections = sections.filter((s) => s.reportId === report.id).sort((a, b) => a.position - b.position);
+    const reportOutcomes = outcomes.filter((o) => o.reportId === report.id);
+    const html = generateHTMLExport(report, reportSections, reportOutcomes);
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `CCRO_Report_${report.period.replace(/\s+/g, "_")}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="space-y-6">
@@ -69,10 +99,10 @@ export default function ReportsPage() {
             <ReportCard
               key={report.id}
               report={report}
-              onEdit={() => {}}
-              onView={() => {}}
-              onPublish={() => {}}
-              onExport={() => {}}
+              onEdit={handleEdit}
+              onView={handleView}
+              onPublish={handlePublish}
+              onExport={handleExport}
             />
           ))}
         </div>

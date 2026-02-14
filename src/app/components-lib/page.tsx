@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   Blocks,
   Search,
@@ -12,30 +12,100 @@ import {
   CheckCircle,
   AlertTriangle,
 } from "lucide-react";
-import { demoComponents, getDemoUser } from "@/lib/demo-data";
+import { getDemoUser } from "@/lib/demo-data";
+import { useAppStore } from "@/lib/store";
+import { sanitizeHTML } from "@/lib/sanitize";
+import RoleGuard from "@/components/common/RoleGuard";
+import ImportComponentDialog from "@/components/components-lib/ImportComponentDialog";
+import type { ImportedComponentPayload } from "@/components/components-lib/ImportComponentDialog";
 import { cn, formatDate } from "@/lib/utils";
+import { logAuditEvent } from "@/lib/audit";
 
 export default function ComponentsLibPage() {
+  const components = useAppStore((s) => s.components);
+  const addComponent = useAppStore((s) => s.addComponent);
+  const deleteComponent = useAppStore((s) => s.deleteComponent);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"preview" | "code">("preview");
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const filteredComponents = useMemo(() => {
-    if (!searchQuery) return demoComponents;
+    if (!searchQuery) return components;
     const q = searchQuery.toLowerCase();
-    return demoComponents.filter(
+    return components.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
         c.description.toLowerCase().includes(q) ||
         c.category.toLowerCase().includes(q)
     );
-  }, [searchQuery]);
+  }, [searchQuery, components]);
 
   const selectedComponent = previewId
-    ? demoComponents.find((c) => c.id === previewId) ?? null
+    ? components.find((c) => c.id === previewId) ?? null
     : null;
 
+  // -----------------------------------------------------------------------
+  // Handlers
+  // -----------------------------------------------------------------------
+
+  const handleDuplicate = useCallback(
+    (componentId: string) => {
+      const source = components.find((c) => c.id === componentId);
+      if (!source) return;
+
+      const copy = {
+        ...source,
+        id: `component-${Date.now()}`,
+        name: `${source.name} (Copy)`,
+        createdAt: new Date().toISOString(),
+      };
+      delete copy.creator;
+      addComponent(copy);
+      logAuditEvent({ action: "duplicate_component", entityType: "component", entityId: copy.id, changes: { sourceComponent: source.name } });
+    },
+    [components, addComponent]
+  );
+
+  const handleDelete = useCallback(
+    (componentId: string) => {
+      const comp = components.find((c) => c.id === componentId);
+      if (window.confirm("Are you sure you want to delete this component?")) {
+        deleteComponent(componentId);
+        logAuditEvent({ action: "delete_component", entityType: "component", entityId: componentId, changes: { name: comp?.name } });
+        if (previewId === componentId) {
+          setPreviewId(null);
+        }
+      }
+    },
+    [components, deleteComponent, previewId]
+  );
+
+  const handleImport = useCallback(
+    (payload: ImportedComponentPayload) => {
+      const sanitiseResult = sanitizeHTML(payload.htmlContent);
+      const compId = `component-${Date.now()}`;
+      addComponent({
+        id: compId,
+        name: payload.name,
+        description: payload.description,
+        category: payload.category,
+        htmlContent: payload.htmlContent,
+        cssContent: null,
+        jsContent: null,
+        version: payload.version,
+        sanitized: sanitiseResult.safe,
+        createdBy: "user-rob",
+        createdAt: new Date().toISOString(),
+      });
+      logAuditEvent({ action: "import_component", entityType: "component", entityId: compId, changes: { name: payload.name, category: payload.category } });
+    },
+    [addComponent]
+  );
+
   return (
+    <RoleGuard allowedRoles={["CCRO_TEAM"]}>
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
@@ -48,7 +118,10 @@ export default function ComponentsLibPage() {
             <p className="text-sm text-fca-gray mt-0.5">Imported HTML components for embedding in reports</p>
           </div>
         </div>
-        <button className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colors">
+        <button
+          onClick={() => setImportDialogOpen(true)}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colours"
+        >
           <Plus size={16} /> Import Component
         </button>
       </div>
@@ -57,18 +130,18 @@ export default function ComponentsLibPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bento-card">
           <p className="text-xs text-fca-gray">Total Components</p>
-          <p className="text-2xl font-bold text-updraft-deep mt-1">{demoComponents.length}</p>
+          <p className="text-2xl font-bold text-updraft-deep mt-1">{components.length}</p>
         </div>
         <div className="bento-card">
-          <p className="text-xs text-fca-gray">Sanitized</p>
+          <p className="text-xs text-fca-gray">Sanitised</p>
           <p className="text-2xl font-bold text-risk-green mt-1">
-            {demoComponents.filter((c) => c.sanitized).length}
+            {components.filter((c) => c.sanitized).length}
           </p>
         </div>
         <div className="bento-card">
           <p className="text-xs text-fca-gray">Categories</p>
           <p className="text-2xl font-bold text-updraft-deep mt-1">
-            {new Set(demoComponents.map((c) => c.category)).size}
+            {new Set(components.map((c) => c.category)).size}
           </p>
         </div>
       </div>
@@ -81,7 +154,7 @@ export default function ComponentsLibPage() {
           placeholder="Search components..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple transition-colors"
+          className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple transition-colours"
         />
       </div>
 
@@ -108,11 +181,11 @@ export default function ComponentsLibPage() {
                       </span>
                       {component.sanitized ? (
                         <span className="inline-flex items-center gap-1 text-[10px] text-risk-green font-medium">
-                          <CheckCircle size={10} /> Sanitized
+                          <CheckCircle size={10} /> Sanitised
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-[10px] text-risk-amber font-medium">
-                          <AlertTriangle size={10} /> Unsanitized
+                          <AlertTriangle size={10} /> Unsanitised
                         </span>
                       )}
                     </div>
@@ -130,7 +203,7 @@ export default function ComponentsLibPage() {
                         setPreviewId(component.id);
                         setViewMode("preview");
                       }}
-                      className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colours"
                       title="Preview"
                     >
                       <Eye size={14} />
@@ -141,21 +214,27 @@ export default function ComponentsLibPage() {
                         setPreviewId(component.id);
                         setViewMode("code");
                       }}
-                      className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colours"
                       title="View Code"
                     >
                       <Code size={14} />
                     </button>
                     <button
-                      onClick={(e) => e.stopPropagation()}
-                      className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDuplicate(component.id);
+                      }}
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colours"
                       title="Duplicate"
                     >
                       <Copy size={14} />
                     </button>
                     <button
-                      onClick={(e) => e.stopPropagation()}
-                      className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-risk-red transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(component.id);
+                      }}
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-risk-red transition-colours"
                       title="Delete"
                     >
                       <Trash2 size={14} />
@@ -185,7 +264,7 @@ export default function ComponentsLibPage() {
                   <button
                     onClick={() => setViewMode("preview")}
                     className={cn(
-                      "rounded-md px-2 py-1 text-xs font-medium transition-colors",
+                      "rounded-md px-2 py-1 text-xs font-medium transition-colours",
                       viewMode === "preview"
                         ? "bg-updraft-pale-purple/40 text-updraft-deep"
                         : "text-gray-500"
@@ -197,7 +276,7 @@ export default function ComponentsLibPage() {
                   <button
                     onClick={() => setViewMode("code")}
                     className={cn(
-                      "rounded-md px-2 py-1 text-xs font-medium transition-colors",
+                      "rounded-md px-2 py-1 text-xs font-medium transition-colours",
                       viewMode === "code"
                         ? "bg-updraft-pale-purple/40 text-updraft-deep"
                         : "text-gray-500"
@@ -212,7 +291,7 @@ export default function ComponentsLibPage() {
               {viewMode === "preview" ? (
                 <div
                   className="rounded-lg border border-gray-200 p-4 bg-white"
-                  dangerouslySetInnerHTML={{ __html: selectedComponent.htmlContent }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHTML(selectedComponent.htmlContent).html }}
                 />
               ) : (
                 <pre className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-xs text-gray-700 overflow-x-auto max-h-96 overflow-y-auto">
@@ -223,6 +302,14 @@ export default function ComponentsLibPage() {
           </div>
         )}
       </div>
+
+      {/* Import dialogue */}
+      <ImportComponentDialog
+        open={importDialogOpen}
+        onClose={() => setImportDialogOpen(false)}
+        onImport={handleImport}
+      />
     </div>
+    </RoleGuard>
   );
 }

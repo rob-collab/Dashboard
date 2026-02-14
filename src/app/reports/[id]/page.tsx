@@ -21,8 +21,11 @@ import {
   FileText,
   type LucideIcon,
 } from "lucide-react";
-import { demoSections, demoReports, demoOutcomes, demoVersions } from "@/lib/demo-data";
+import { useAppStore } from "@/lib/store";
+import { sanitizeHTML } from "@/lib/sanitize";
+import { generateHTMLExport } from "@/lib/export-html";
 import VersionList from "@/components/reports/VersionList";
+import VersionCompare from "@/components/reports/VersionCompare";
 import OutcomeCard from "@/components/consumer-duty/OutcomeCard";
 import MeasurePanel from "@/components/consumer-duty/MeasurePanel";
 import MIModal from "@/components/consumer-duty/MIModal";
@@ -65,17 +68,46 @@ function buildSectionStyle(sc: Section["styleConfig"]): React.CSSProperties {
 export default function ReportViewPage() {
   const params = useParams();
   const reportId = params.id as string;
-  const report = useMemo(() => demoReports.find((r) => r.id === reportId) ?? demoReports[0], [reportId]);
-  const sections = useMemo(() => demoSections.filter((s) => s.reportId === report.id).sort((a, b) => a.position - b.position), [report.id]);
-  const versions = useMemo(() => demoVersions.filter((v) => v.reportId === report.id), [report.id]);
-  const outcomes = useMemo(() => demoOutcomes.filter((o) => o.reportId === report.id), [report.id]);
+  const storeReports = useAppStore((s) => s.reports);
+  const storeSections = useAppStore((s) => s.sections);
+  const storeOutcomes = useAppStore((s) => s.outcomes);
+  const storeVersions = useAppStore((s) => s.versions);
+  const report = useMemo(() => storeReports.find((r) => r.id === reportId) ?? null, [storeReports, reportId]);
+  const sections = useMemo(() => report ? storeSections.filter((s) => s.reportId === report.id).sort((a, b) => a.position - b.position) : [], [storeSections, report]);
+  const versions = useMemo(() => report ? storeVersions.filter((v) => v.reportId === report.id) : [], [storeVersions, report]);
+  const outcomes = useMemo(() => report ? storeOutcomes.filter((o) => o.reportId === report.id) : [], [storeOutcomes, report]);
 
   const [showHistory, setShowHistory] = useState(false);
+  const [showCompare, setShowCompare] = useState(false);
   const [selectedOutcomeId, setSelectedOutcomeId] = useState<string | null>(null);
   const [selectedMeasure, setSelectedMeasure] = useState<ConsumerDutyMeasure | null>(null);
   const [openAccordions, setOpenAccordions] = useState<Record<string, number | null>>({});
 
   const selectedOutcome = outcomes.find((o) => o.id === selectedOutcomeId);
+
+  if (!report) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <FileText size={48} className="mb-4 text-gray-300" />
+        <h1 className="text-xl font-bold text-gray-700 font-poppins">Report Not Found</h1>
+        <p className="text-sm text-fca-gray mt-2">The report you&apos;re looking for doesn&apos;t exist or has been removed.</p>
+        <Link href="/reports" className="mt-6 inline-flex items-center gap-1.5 rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colors">
+          <ArrowLeft size={14} /> Back to Reports
+        </Link>
+      </div>
+    );
+  }
+
+  const handleExportHTML = () => {
+    const html = generateHTMLExport(report, sections, outcomes);
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `CCRO_Report_${report.period.replace(/\s+/g, "_")}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="space-y-6">
@@ -106,7 +138,10 @@ export default function ReportViewPage() {
           >
             <Pencil size={14} /> Edit
           </Link>
-          <button className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+          <button
+            onClick={handleExportHTML}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
             <Download size={14} /> Export HTML
           </button>
           <button
@@ -132,7 +167,7 @@ export default function ReportViewPage() {
 
               {/* TEXT_BLOCK */}
               {section.type === "TEXT_BLOCK" && (
-                <div className="prose prose-sm max-w-none prose-headings:text-gray-800 prose-p:text-gray-600 prose-a:text-updraft-bright-purple" dangerouslySetInnerHTML={{ __html: (section.content?.html as string) ?? "" }} />
+                <div className="prose prose-sm max-w-none prose-headings:text-gray-800 prose-p:text-gray-600 prose-a:text-updraft-bright-purple" dangerouslySetInnerHTML={{ __html: sanitizeHTML((section.content?.html as string) ?? "").html }} />
               )}
 
               {/* DATA_TABLE */}
@@ -227,7 +262,7 @@ export default function ReportViewPage() {
                         </button>
                         {isOpen && (
                           <div className="border-t border-gray-100 px-4 py-3">
-                            <div className="prose prose-sm max-w-none text-gray-600" dangerouslySetInnerHTML={{ __html: item.content }} />
+                            <div className="prose prose-sm max-w-none text-gray-600" dangerouslySetInnerHTML={{ __html: sanitizeHTML(item.content).html }} />
                           </div>
                         )}
                       </div>
@@ -248,15 +283,30 @@ export default function ReportViewPage() {
 
         {/* Version history sidebar */}
         {showHistory && (
-          <div className="w-80 shrink-0">
+          <div className={cn("shrink-0", showCompare ? "w-[520px]" : "w-80")}>
             <div className="bento-card">
-              <VersionList
-                versions={versions}
-                currentVersionId={versions[0]?.id ?? ""}
-                onView={() => {}}
-                onDownload={() => {}}
-                onCompare={() => {}}
-              />
+              {showCompare ? (
+                <>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-poppins text-base font-semibold text-gray-900">Compare Versions</h3>
+                    <button
+                      onClick={() => setShowCompare(false)}
+                      className="text-xs text-updraft-bright-purple hover:underline"
+                    >
+                      Back to list
+                    </button>
+                  </div>
+                  <VersionCompare versions={versions} reportId={report.id} />
+                </>
+              ) : (
+                <VersionList
+                  versions={versions}
+                  currentVersionId={versions[0]?.id ?? ""}
+                  onView={() => {}}
+                  onDownload={() => {}}
+                  onCompare={() => setShowCompare(true)}
+                />
+              )}
             </div>
           </div>
         )}

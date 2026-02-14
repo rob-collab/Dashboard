@@ -10,18 +10,31 @@ import {
   User,
   ChevronDown,
 } from "lucide-react";
-import { demoAuditLogs, getDemoUser, demoReports } from "@/lib/demo-data";
+import { getDemoUser } from "@/lib/demo-data";
+import { useAppStore } from "@/lib/store";
+import RoleGuard from "@/components/common/RoleGuard";
 import { cn, formatDate } from "@/lib/utils";
 import type { Role } from "@/lib/types";
 
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {
+  create_report: { label: "Create Report", color: "bg-green-100 text-green-700" },
+  save_report: { label: "Save Report", color: "bg-blue-100 text-blue-700" },
+  publish_report: { label: "Publish Report", color: "bg-purple-100 text-purple-700" },
   edit_section: { label: "Edit Section", color: "bg-blue-100 text-blue-700" },
+  add_section: { label: "Add Section", color: "bg-indigo-100 text-indigo-700" },
+  delete_section: { label: "Delete Section", color: "bg-red-100 text-red-700" },
   update_mi: { label: "Update MI", color: "bg-emerald-100 text-emerald-700" },
   change_rag: { label: "Change RAG", color: "bg-amber-100 text-amber-700" },
-  publish_report: { label: "Publish Report", color: "bg-purple-100 text-purple-700" },
-  create_report: { label: "Create Report", color: "bg-green-100 text-green-700" },
-  delete_section: { label: "Delete Section", color: "bg-red-100 text-red-700" },
-  add_section: { label: "Add Section", color: "bg-indigo-100 text-indigo-700" },
+  create_template: { label: "Create Template", color: "bg-green-100 text-green-700" },
+  update_template: { label: "Update Template", color: "bg-blue-100 text-blue-700" },
+  delete_template: { label: "Delete Template", color: "bg-red-100 text-red-700" },
+  duplicate_template: { label: "Duplicate Template", color: "bg-teal-100 text-teal-700" },
+  import_component: { label: "Import Component", color: "bg-cyan-100 text-cyan-700" },
+  delete_component: { label: "Delete Component", color: "bg-red-100 text-red-700" },
+  duplicate_component: { label: "Duplicate Component", color: "bg-teal-100 text-teal-700" },
+  add_user: { label: "Add User", color: "bg-green-100 text-green-700" },
+  update_user: { label: "Update User", color: "bg-blue-100 text-blue-700" },
+  toggle_user_status: { label: "Toggle User Status", color: "bg-amber-100 text-amber-700" },
 };
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -36,18 +49,21 @@ function actionBadge(action: string) {
 }
 
 export default function AuditPage() {
+  const auditLogs = useAppStore((s) => s.auditLogs);
+  const reports = useAppStore((s) => s.reports);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [actionFilter, setActionFilter] = useState<string>("ALL");
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
   const [showFilters, setShowFilters] = useState(false);
 
   const uniqueActions = useMemo(
-    () => Array.from(new Set(demoAuditLogs.map((l) => l.action))),
-    []
+    () => Array.from(new Set(auditLogs.map((l) => l.action))),
+    [auditLogs]
   );
 
   const filteredLogs = useMemo(() => {
-    let logs = demoAuditLogs;
+    let logs = auditLogs;
 
     if (actionFilter !== "ALL") {
       logs = logs.filter((l) => l.action === actionFilter);
@@ -72,6 +88,7 @@ export default function AuditPage() {
   }, [actionFilter, roleFilter, searchQuery]);
 
   return (
+    <RoleGuard allowedRoles={["CCRO_TEAM"]}>
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
@@ -93,18 +110,18 @@ export default function AuditPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bento-card">
           <p className="text-xs text-fca-gray">Total Events</p>
-          <p className="text-2xl font-bold text-updraft-deep mt-1">{demoAuditLogs.length}</p>
+          <p className="text-2xl font-bold text-updraft-deep mt-1">{auditLogs.length}</p>
         </div>
         <div className="bento-card">
           <p className="text-xs text-fca-gray">Unique Users</p>
           <p className="text-2xl font-bold text-updraft-deep mt-1">
-            {new Set(demoAuditLogs.map((l) => l.userId)).size}
+            {new Set(auditLogs.map((l) => l.userId)).size}
           </p>
         </div>
         <div className="bento-card">
           <p className="text-xs text-fca-gray">Reports Affected</p>
           <p className="text-2xl font-bold text-updraft-deep mt-1">
-            {new Set(demoAuditLogs.filter((l) => l.reportId).map((l) => l.reportId)).size}
+            {new Set(auditLogs.filter((l) => l.reportId).map((l) => l.reportId)).size}
           </p>
         </div>
       </div>
@@ -199,7 +216,7 @@ export default function AuditPage() {
             <tbody>
               {filteredLogs.map((log) => {
                 const user = getDemoUser(log.userId);
-                const report = log.reportId ? demoReports.find((r) => r.id === log.reportId) : null;
+                const report = log.reportId ? reports.find((r) => r.id === log.reportId) : null;
                 const badge = actionBadge(log.action);
                 return (
                   <tr key={log.id} className="hover:bg-gray-50/50 border-b border-gray-100 last:border-b-0">
@@ -251,5 +268,6 @@ export default function AuditPage() {
         )}
       </div>
     </div>
+    </RoleGuard>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import {
   FileText,
@@ -10,16 +10,17 @@ import {
   ArrowRight,
   Plus,
 } from "lucide-react";
-import { demoReports, demoOutcomes, demoAuditLogs, getDemoUser } from "@/lib/demo-data";
-import { useAuth } from "@/lib/auth";
+import { getDemoUser } from "@/lib/demo-data";
+import { useAppStore } from "@/lib/store";
 import { formatDate, ragBgColor } from "@/lib/utils";
 import { getActionLabel } from "@/lib/audit";
 
 export default function DashboardHome() {
-  const { user } = useAuth();
-  const [reports] = useState(demoReports);
-  const [outcomes] = useState(demoOutcomes);
-  const [auditLogs] = useState(demoAuditLogs.slice(0, 5));
+  const currentUser = useAppStore((s) => s.currentUser);
+  const reports = useAppStore((s) => s.reports);
+  const outcomes = useAppStore((s) => s.outcomes);
+  const allAuditLogs = useAppStore((s) => s.auditLogs);
+  const auditLogs = useMemo(() => allAuditLogs.slice(0, 5), [allAuditLogs]);
 
   const draftCount = reports.filter((r) => r.status === "DRAFT").length;
   const publishedCount = reports.filter((r) => r.status === "PUBLISHED").length;
@@ -38,7 +39,7 @@ export default function DashboardHome() {
         </div>
         <div className="relative">
           <h1 className="text-2xl font-bold">
-            Welcome back, {user?.name || "User"}
+            Welcome back, {currentUser?.name || "User"}
           </h1>
           <p className="mt-1 text-white/80">
             Updraft CCRO Report Management Dashboard
@@ -92,7 +93,7 @@ export default function DashboardHome() {
               <Shield className="h-5 w-5 text-updraft-bright-purple" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-updraft-deep">5</p>
+              <p className="text-2xl font-bold text-updraft-deep">{outcomes.length}</p>
               <p className="text-sm text-fca-gray">CD Outcomes</p>
             </div>
           </div>

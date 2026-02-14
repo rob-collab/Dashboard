@@ -257,7 +257,7 @@ export default function PropertiesPanel({
         {/* ============================================================ */}
         <CollapsibleSection title="Background">
           <div>
-            <Label>Color</Label>
+            <Label>Colour</Label>
             <div className="grid grid-cols-5 gap-1.5 mb-2">
               {BRAND_PALETTE.map((c) => (
                 <button
@@ -339,7 +339,7 @@ export default function PropertiesPanel({
           </div>
 
           <div>
-            <Label>Color</Label>
+            <Label>Colour</Label>
             <div className="flex items-center gap-2">
               <input
                 type="color"

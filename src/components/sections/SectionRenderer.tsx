@@ -8,6 +8,9 @@ import TextBlock from "./TextBlock";
 import DataTable from "./DataTable";
 import CardGrid from "./CardGrid";
 import AccordionSection from "./AccordionSection";
+import ChartSection from "./ChartSection";
+import { useAppStore } from "@/lib/store";
+import { sanitizeHTML } from "@/lib/sanitize";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -32,6 +35,38 @@ function PlaceholderBlock({ label }: { label: string }) {
   return (
     <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 py-12 text-sm text-gray-400">
       {label}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Imported component renderer -- resolves componentId from the store
+// ---------------------------------------------------------------------------
+
+function ImportedComponentBlock({ componentId }: { componentId: string | null }) {
+  const component = useAppStore((s) =>
+    s.components.find((c) => c.id === componentId) ?? null
+  );
+
+  if (!componentId || !component) {
+    return (
+      <PlaceholderBlock label="Imported Component -- component not found in library" />
+    );
+  }
+
+  const sanitised = sanitizeHTML(component.htmlContent);
+
+  return (
+    <div className="imported-component-wrapper">
+      {!sanitised.safe && (
+        <div className="mb-2 rounded-md bg-amber-50 px-3 py-1.5 text-xs text-amber-700 border border-amber-200">
+          This component contains potentially unsafe content that has been sanitised.
+        </div>
+      )}
+      <div
+        className="rounded-lg border border-gray-200 bg-white p-4"
+        dangerouslySetInnerHTML={{ __html: sanitised.html }}
+      />
     </div>
   );
 }
@@ -111,12 +146,16 @@ function SectionContent({
       );
 
     case "CHART":
-      return <PlaceholderBlock label="Chart section -- configure via chart editor" />;
+      return (
+        <ChartSection
+          section={section}
+          editable={editable}
+          onUpdate={(content) => updateContent(content)}
+        />
+      );
 
     case "IMPORTED_COMPONENT":
-      return (
-        <PlaceholderBlock label="Imported Component -- rendered from component library" />
-      );
+      return <ImportedComponentBlock componentId={section.componentId} />;
 
     case "CONSUMER_DUTY_DASHBOARD":
       return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -13,9 +13,11 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
-  LogOut,
+  ChevronDown,
+  Check,
 } from "lucide-react";
-import type { User } from "@/lib/types";
+import { DEMO_USERS } from "@/lib/auth";
+import type { User, Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
@@ -25,15 +27,15 @@ interface SidebarProps {
   onSwitchUser?: (user: User) => void;
 }
 
-const NAV_ITEMS = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard },
-  { label: "Reports", href: "/reports", icon: FileText },
-  { label: "Consumer Duty", href: "/consumer-duty", icon: ShieldCheck },
-  { label: "Templates", href: "/templates", icon: LayoutTemplate },
-  { label: "Components", href: "/components-lib", icon: Puzzle },
-  { label: "Audit Trail", href: "/audit", icon: ClipboardList },
-  { label: "Users", href: "/users", icon: Users },
-] as const;
+const NAV_ITEMS: { label: string; href: string; icon: typeof LayoutDashboard; roles: Role[] }[] = [
+  { label: "Dashboard", href: "/", icon: LayoutDashboard, roles: ["CCRO_TEAM", "METRIC_OWNER", "VIEWER"] },
+  { label: "Reports", href: "/reports", icon: FileText, roles: ["CCRO_TEAM", "METRIC_OWNER", "VIEWER"] },
+  { label: "Consumer Duty", href: "/consumer-duty", icon: ShieldCheck, roles: ["CCRO_TEAM", "METRIC_OWNER", "VIEWER"] },
+  { label: "Templates", href: "/templates", icon: LayoutTemplate, roles: ["CCRO_TEAM"] },
+  { label: "Components", href: "/components-lib", icon: Puzzle, roles: ["CCRO_TEAM"] },
+  { label: "Audit Trail", href: "/audit", icon: ClipboardList, roles: ["CCRO_TEAM"] },
+  { label: "Users", href: "/users", icon: Users, roles: ["CCRO_TEAM"] },
+];
 
 const ROLE_LABELS: Record<string, string> = {
   CCRO_TEAM: "CCRO Team",
@@ -47,11 +49,25 @@ const ROLE_COLORS: Record<string, string> = {
   VIEWER: "bg-gray-200 text-gray-700",
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwitchUser }: SidebarProps) {
   const [collapsedInternal, setCollapsedInternal] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const collapsed = collapsedProp ?? collapsedInternal;
   const pathname = usePathname();
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close user menu on click outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    }
+    if (userMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [userMenuOpen]);
 
   function isActive(href: string): boolean {
     if (href === "/") return pathname === "/";
@@ -84,7 +100,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-1">
-        {NAV_ITEMS.map((item) => {
+        {NAV_ITEMS.filter((item) => item.roles.includes(currentUser.role)).map((item) => {
           const active = isActive(item.href);
           const Icon = item.icon;
           return (
@@ -129,26 +145,31 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
         </button>
       </div>
 
-      {/* User Info */}
+      {/* User Switcher */}
       <div
+        ref={userMenuRef}
         className={cn(
-          "border-t border-gray-100 px-3 py-3",
+          "relative border-t border-gray-100 px-3 py-3",
           collapsed ? "flex justify-center" : ""
         )}
       >
         {collapsed ? (
-          <div
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-updraft-bar text-xs font-semibold text-white"
-            title={`${currentUser.name} (${ROLE_LABELS[currentUser.role]})`}
+          <button
+            onClick={() => setUserMenuOpen(!userMenuOpen)}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-updraft-bar text-xs font-semibold text-white hover:ring-2 hover:ring-updraft-light-purple transition-all"
+            title={`${currentUser.name} (${ROLE_LABELS[currentUser.role]}) — Click to switch`}
           >
             {currentUser.name.charAt(0).toUpperCase()}
-          </div>
+          </button>
         ) : (
-          <div className="flex items-center gap-3">
+          <button
+            onClick={() => setUserMenuOpen(!userMenuOpen)}
+            className="flex w-full items-center gap-3 rounded-lg px-2 py-2 hover:bg-gray-50 transition-colors"
+          >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-updraft-bar text-xs font-semibold text-white">
               {currentUser.name.charAt(0).toUpperCase()}
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 text-left">
               <p className="text-sm font-medium text-gray-800 truncate">
                 {currentUser.name}
               </p>
@@ -161,12 +182,65 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
                 {ROLE_LABELS[currentUser.role]}
               </span>
             </div>
-            <button
-              className="shrink-0 rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-              title="Sign out"
-            >
-              <LogOut size={16} />
-            </button>
+            <ChevronDown
+              size={14}
+              className={cn(
+                "shrink-0 text-gray-400 transition-transform",
+                userMenuOpen && "rotate-180"
+              )}
+            />
+          </button>
+        )}
+
+        {/* Dropdown */}
+        {userMenuOpen && (
+          <div className={cn(
+            "absolute bottom-full mb-2 rounded-lg border border-gray-200 bg-white shadow-lg animate-fade-in z-50",
+            collapsed ? "left-full ml-2 bottom-0 mb-0 w-64" : "left-2 right-2"
+          )}>
+            <div className="px-3 py-2 border-b border-gray-100">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                Switch Demo User
+              </p>
+            </div>
+            <div className="py-1 max-h-72 overflow-y-auto">
+              {DEMO_USERS.map((u) => {
+                const isSelected = u.id === currentUser.id;
+                return (
+                  <button
+                    key={u.id}
+                    onClick={() => {
+                      onSwitchUser?.(u);
+                      setUserMenuOpen(false);
+                    }}
+                    className={cn(
+                      "flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors",
+                      isSelected
+                        ? "bg-updraft-pale-purple/30 text-updraft-deep"
+                        : "text-gray-700 hover:bg-gray-50"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white",
+                        isSelected ? "bg-updraft-deep" : "bg-updraft-bar"
+                      )}
+                    >
+                      {u.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate text-xs">{u.name}</p>
+                      <p className="text-[10px] text-gray-500 truncate">
+                        {ROLE_LABELS[u.role]}
+                      </p>
+                    </div>
+                    {isSelected && (
+                      <Check size={14} className="shrink-0 text-updraft-bright-purple" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
