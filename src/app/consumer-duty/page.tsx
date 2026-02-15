@@ -1,14 +1,17 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ShieldCheck, Search, Filter, ClipboardEdit } from "lucide-react";
+import { ShieldCheck, Search, Filter, ClipboardEdit, Plus, Upload, Pencil, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { logAuditEvent } from "@/lib/audit";
 import OutcomeCard from "@/components/consumer-duty/OutcomeCard";
 import MeasurePanel from "@/components/consumer-duty/MeasurePanel";
 import MIModal from "@/components/consumer-duty/MIModal";
+import OutcomeFormDialog from "@/components/consumer-duty/OutcomeFormDialog";
+import MeasureFormDialog from "@/components/consumer-duty/MeasureFormDialog";
+import CSVUploadDialog from "@/components/consumer-duty/CSVUploadDialog";
 import { cn, ragBgColor, ragLabel } from "@/lib/utils";
-import type { ConsumerDutyMeasure, ConsumerDutyMI, RAGStatus } from "@/lib/types";
+import type { ConsumerDutyMeasure, ConsumerDutyOutcome, ConsumerDutyMI, RAGStatus } from "@/lib/types";
 
 const RAG_FILTERS: { value: RAGStatus | "ALL"; label: string }[] = [
   { value: "ALL", label: "All" },
@@ -21,6 +24,14 @@ export default function ConsumerDutyPage() {
   const outcomes = useAppStore((s) => s.outcomes);
   const currentUser = useAppStore((s) => s.currentUser);
   const updateMeasureMetrics = useAppStore((s) => s.updateMeasureMetrics);
+  const addOutcome = useAppStore((s) => s.addOutcome);
+  const updateOutcome = useAppStore((s) => s.updateOutcome);
+  const deleteOutcome = useAppStore((s) => s.deleteOutcome);
+  const addMeasure = useAppStore((s) => s.addMeasure);
+  const updateMeasure = useAppStore((s) => s.updateMeasure);
+  const deleteMeasure = useAppStore((s) => s.deleteMeasure);
+  const bulkAddMeasures = useAppStore((s) => s.bulkAddMeasures);
+
   const isMetricOwner = currentUser?.role === "METRIC_OWNER";
   const isCCROTeam = currentUser?.role === "CCRO_TEAM";
   const canEdit = isMetricOwner || isCCROTeam;
@@ -30,6 +41,14 @@ export default function ConsumerDutyPage() {
   const [ragFilter, setRagFilter] = useState<RAGStatus | "ALL">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"all" | "my">("all");
+
+  // Management dialog state
+  const [outcomeDialogOpen, setOutcomeDialogOpen] = useState(false);
+  const [editingOutcome, setEditingOutcome] = useState<ConsumerDutyOutcome | undefined>(undefined);
+  const [measureDialogOpen, setMeasureDialogOpen] = useState(false);
+  const [editingMeasure, setEditingMeasure] = useState<ConsumerDutyMeasure | undefined>(undefined);
+  const [csvDialogOpen, setCsvDialogOpen] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const selectedOutcome = outcomes.find((o) => o.id === selectedOutcomeId);
 
@@ -84,6 +103,55 @@ export default function ConsumerDutyPage() {
     setSelectedMeasure(null);
   };
 
+  // CRUD handlers
+  const handleSaveOutcome = (outcome: ConsumerDutyOutcome) => {
+    if (editingOutcome) {
+      updateOutcome(outcome.id, outcome);
+      logAuditEvent({ action: "update_outcome", entityType: "consumer_duty_outcome", entityId: outcome.id, changes: { name: outcome.name } });
+    } else {
+      addOutcome(outcome);
+      logAuditEvent({ action: "add_outcome", entityType: "consumer_duty_outcome", entityId: outcome.id, changes: { name: outcome.name } });
+    }
+    setEditingOutcome(undefined);
+  };
+
+  const handleDeleteOutcome = (id: string) => {
+    if (deleteConfirmId === id) {
+      deleteOutcome(id);
+      logAuditEvent({ action: "delete_outcome", entityType: "consumer_duty_outcome", entityId: id });
+      setDeleteConfirmId(null);
+      if (selectedOutcomeId === id) setSelectedOutcomeId(null);
+    } else {
+      setDeleteConfirmId(id);
+    }
+  };
+
+  const handleSaveMeasure = (outcomeId: string, measure: ConsumerDutyMeasure) => {
+    if (editingMeasure) {
+      updateMeasure(measure.id, measure);
+      logAuditEvent({ action: "update_measure", entityType: "consumer_duty_measure", entityId: measure.id, changes: { name: measure.name } });
+    } else {
+      addMeasure(outcomeId, measure);
+      logAuditEvent({ action: "add_measure", entityType: "consumer_duty_measure", entityId: measure.id, changes: { name: measure.name, outcomeId } });
+    }
+    setEditingMeasure(undefined);
+  };
+
+  const handleDeleteMeasure = (measure: ConsumerDutyMeasure) => {
+    if (deleteConfirmId === measure.id) {
+      deleteMeasure(measure.id);
+      logAuditEvent({ action: "delete_measure", entityType: "consumer_duty_measure", entityId: measure.id });
+      setDeleteConfirmId(null);
+    } else {
+      setDeleteConfirmId(measure.id);
+    }
+  };
+
+  const handleCSVImport = (items: { outcomeId: string; measure: ConsumerDutyMeasure }[]) => {
+    bulkAddMeasures(items);
+    logAuditEvent({ action: "bulk_add_measures", entityType: "consumer_duty_measure", changes: { count: items.length } });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -99,39 +167,67 @@ export default function ConsumerDutyPage() {
             </div>
           </div>
         </div>
-        {/* View toggle for metric owners */}
-        {canEdit && (
-          <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-1">
-            <button
-              onClick={() => setViewMode("all")}
-              className={cn(
-                "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                viewMode === "all"
-                  ? "bg-updraft-pale-purple/40 text-updraft-deep"
-                  : "text-gray-500 hover:text-gray-700"
-              )}
-            >
-              All Outcomes
-            </button>
-            <button
-              onClick={() => setViewMode("my")}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                viewMode === "my"
-                  ? "bg-updraft-pale-purple/40 text-updraft-deep"
-                  : "text-gray-500 hover:text-gray-700"
-              )}
-            >
-              <ClipboardEdit size={12} />
-              My Measures
-              {myMeasures.length > 0 && (
-                <span className="rounded-full bg-updraft-bright-purple/10 px-1.5 py-0.5 text-[10px] font-semibold text-updraft-bright-purple">
-                  {myMeasures.length}
-                </span>
-              )}
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {/* CCRO Team management buttons */}
+          {isCCROTeam && (
+            <>
+              <button
+                onClick={() => { setEditingOutcome(undefined); setOutcomeDialogOpen(true); }}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <Plus size={14} />
+                Add Outcome
+              </button>
+              <button
+                onClick={() => { setEditingMeasure(undefined); setMeasureDialogOpen(true); }}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <Plus size={14} />
+                Add Measure
+              </button>
+              <button
+                onClick={() => setCsvDialogOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-bright-purple px-3 py-2 text-xs font-medium text-white hover:bg-updraft-deep transition-colors"
+              >
+                <Upload size={14} />
+                CSV Import
+              </button>
+            </>
+          )}
+          {/* View toggle for metric owners */}
+          {canEdit && (
+            <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-1 ml-2">
+              <button
+                onClick={() => setViewMode("all")}
+                className={cn(
+                  "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                  viewMode === "all"
+                    ? "bg-updraft-pale-purple/40 text-updraft-deep"
+                    : "text-gray-500 hover:text-gray-700"
+                )}
+              >
+                All Outcomes
+              </button>
+              <button
+                onClick={() => setViewMode("my")}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                  viewMode === "my"
+                    ? "bg-updraft-pale-purple/40 text-updraft-deep"
+                    : "text-gray-500 hover:text-gray-700"
+                )}
+              >
+                <ClipboardEdit size={12} />
+                My Measures
+                {myMeasures.length > 0 && (
+                  <span className="rounded-full bg-updraft-bright-purple/10 px-1.5 py-0.5 text-[10px] font-semibold text-updraft-bright-purple">
+                    {myMeasures.length}
+                  </span>
+                )}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Summary cards */}
@@ -279,14 +375,38 @@ export default function ConsumerDutyPage() {
           {/* Outcomes grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredOutcomes.map((outcome) => (
-              <OutcomeCard
-                key={outcome.id}
-                outcome={outcome}
-                selected={outcome.id === selectedOutcomeId}
-                onClick={() =>
-                  setSelectedOutcomeId(outcome.id === selectedOutcomeId ? null : outcome.id)
-                }
-              />
+              <div key={outcome.id} className="relative group/outcome">
+                <OutcomeCard
+                  outcome={outcome}
+                  selected={outcome.id === selectedOutcomeId}
+                  onClick={() =>
+                    setSelectedOutcomeId(outcome.id === selectedOutcomeId ? null : outcome.id)
+                  }
+                />
+                {isCCROTeam && (
+                  <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover/outcome:opacity-100 transition-opacity z-10">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEditingOutcome(outcome); setOutcomeDialogOpen(true); }}
+                      className="rounded-full bg-white/90 p-1 text-gray-400 hover:text-updraft-bright-purple shadow-sm transition-colors"
+                      title="Edit outcome"
+                    >
+                      <Pencil size={12} />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteOutcome(outcome.id); }}
+                      className={cn(
+                        "rounded-full p-1 shadow-sm transition-colors",
+                        deleteConfirmId === outcome.id
+                          ? "bg-risk-red text-white"
+                          : "bg-white/90 text-gray-400 hover:text-risk-red"
+                      )}
+                      title={deleteConfirmId === outcome.id ? "Click again to confirm" : "Delete outcome"}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
 
@@ -304,6 +424,8 @@ export default function ConsumerDutyPage() {
               <MeasurePanel
                 measures={selectedOutcome.measures}
                 onMeasureClick={(m) => setSelectedMeasure(m)}
+                onEditMeasure={isCCROTeam ? (m) => { setEditingMeasure(m); setMeasureDialogOpen(true); } : undefined}
+                onDeleteMeasure={isCCROTeam ? handleDeleteMeasure : undefined}
               />
             </div>
           )}
@@ -320,6 +442,9 @@ export default function ConsumerDutyPage() {
                     <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">Owner</th>
                     <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">RAG</th>
                     <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">Metrics</th>
+                    {isCCROTeam && (
+                      <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700 w-20">Actions</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -327,7 +452,7 @@ export default function ConsumerDutyPage() {
                     (outcome.measures ?? []).map((measure) => (
                       <tr
                         key={measure.id}
-                        className="hover:bg-gray-50/50 cursor-pointer"
+                        className="hover:bg-gray-50/50 cursor-pointer group"
                         onClick={() => setSelectedMeasure(measure)}
                       >
                         <td className="border border-gray-200 px-3 py-2 text-gray-600">{outcome.name}</td>
@@ -348,6 +473,31 @@ export default function ConsumerDutyPage() {
                           </span>
                         </td>
                         <td className="border border-gray-200 px-3 py-2 text-gray-500">{measure.metrics?.length ?? 0}</td>
+                        {isCCROTeam && (
+                          <td className="border border-gray-200 px-3 py-2">
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setEditingMeasure(measure); setMeasureDialogOpen(true); }}
+                                className="rounded p-1 text-gray-400 hover:text-updraft-bright-purple hover:bg-updraft-pale-purple/20 transition-colors"
+                                title="Edit measure"
+                              >
+                                <Pencil size={13} />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleDeleteMeasure(measure); }}
+                                className={cn(
+                                  "rounded p-1 transition-colors",
+                                  deleteConfirmId === measure.id
+                                    ? "text-white bg-risk-red"
+                                    : "text-gray-400 hover:text-risk-red hover:bg-red-50"
+                                )}
+                                title={deleteConfirmId === measure.id ? "Click again to confirm" : "Delete measure"}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))
                   )}
@@ -365,6 +515,33 @@ export default function ConsumerDutyPage() {
         onClose={() => setSelectedMeasure(null)}
         editable={selectedMeasure ? canEditMeasure(selectedMeasure) : false}
         onSave={handleSaveMetrics}
+      />
+
+      {/* Outcome Form Dialog */}
+      <OutcomeFormDialog
+        open={outcomeDialogOpen}
+        onClose={() => { setOutcomeDialogOpen(false); setEditingOutcome(undefined); }}
+        onSave={handleSaveOutcome}
+        outcome={editingOutcome}
+        nextPosition={outcomes.length}
+      />
+
+      {/* Measure Form Dialog */}
+      <MeasureFormDialog
+        open={measureDialogOpen}
+        onClose={() => { setMeasureDialogOpen(false); setEditingMeasure(undefined); }}
+        onSave={handleSaveMeasure}
+        measure={editingMeasure}
+        outcomes={outcomes}
+        defaultOutcomeId={selectedOutcomeId ?? undefined}
+      />
+
+      {/* CSV Upload Dialog */}
+      <CSVUploadDialog
+        open={csvDialogOpen}
+        onClose={() => setCsvDialogOpen(false)}
+        onImport={handleCSVImport}
+        outcomes={outcomes}
       />
     </div>
   );

@@ -11,13 +11,15 @@ import {
   Mail,
 } from "lucide-react";
 import Modal from "@/components/common/Modal";
-import type { Report, Section, ConsumerDutyOutcome } from "@/lib/types";
-import { cn, formatDate } from "@/lib/utils";
+import type { Report, Section, ConsumerDutyOutcome, ReportVersion } from "@/lib/types";
+import { cn, formatDate, formatDateShort } from "@/lib/utils";
+import { getLastPublishDate, getStaleMeasures } from "@/lib/stale-utils";
 
 interface PublishDialogProps {
   report: Report;
   sections: Section[];
   outcomes: ConsumerDutyOutcome[];
+  versions?: ReportVersion[];
   open: boolean;
   onClose: () => void;
   onPublish: (publishNote: string) => void;
@@ -56,12 +58,9 @@ function runValidation(
   sections: Section[],
   outcomes: ConsumerDutyOutcome[]
 ): ValidationCheck[] {
-  // 1. All required sections present (at least one TEXT_BLOCK and one CONSUMER_DUTY_DASHBOARD)
+  // 1. All required sections present (at least one TEXT_BLOCK — Consumer Duty is now always included)
   const hasText = sections.some((s) => s.type === "TEXT_BLOCK");
-  const hasCDDashboard = sections.some(
-    (s) => s.type === "CONSUMER_DUTY_DASHBOARD"
-  );
-  const requiredSections = hasText && hasCDDashboard;
+  const requiredSections = hasText;
 
   // 2. No placeholder text in any section content
   const allContentStr = sections
@@ -85,8 +84,8 @@ function runValidation(
       label: "All required sections present",
       passed: requiredSections,
       description: requiredSections
-        ? "Text and Consumer Duty dashboard sections found"
-        : "Missing required section types (TEXT_BLOCK or CONSUMER_DUTY_DASHBOARD)",
+        ? "Required section types found (Consumer Duty is always included)"
+        : "Missing required section type (TEXT_BLOCK)",
     },
     {
       label: "No placeholder text detected",
@@ -116,6 +115,7 @@ export default function PublishDialog({
   report,
   sections,
   outcomes,
+  versions = [],
   open,
   onClose,
   onPublish,
@@ -124,12 +124,21 @@ export default function PublishDialog({
   const [notifyExCo, setNotifyExCo] = useState(false);
   const [notifyMetricOwners, setNotifyMetricOwners] = useState(false);
 
+  const lastPublishDate = useMemo(
+    () => getLastPublishDate(versions, report.id),
+    [versions, report.id]
+  );
+
+  const staleMeasures = useMemo(
+    () => getStaleMeasures(outcomes, lastPublishDate),
+    [outcomes, lastPublishDate]
+  );
+
   const checks = useMemo(
     () => runValidation(sections, outcomes),
     [sections, outcomes]
   );
 
-  const allPassed = checks.every((c) => c.passed);
   const warningCount = checks.filter((c) => !c.passed).length;
 
   function handlePublish() {
@@ -149,13 +158,7 @@ export default function PublishDialog({
       </button>
       <button
         onClick={handlePublish}
-        disabled={!allPassed}
-        className={cn(
-          "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors",
-          allPassed
-            ? "bg-updraft-bright-purple hover:bg-updraft-dark-purple"
-            : "cursor-not-allowed bg-gray-300"
-        )}
+        className="inline-flex items-center gap-2 rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-updraft-dark-purple"
       >
         <Send size={15} />
         Publish Report
@@ -213,6 +216,33 @@ export default function PublishDialog({
           </div>
         </div>
       </div>
+
+      {/* Stale data warning */}
+      {staleMeasures.length > 0 && (
+        <div className="mb-5 rounded-xl border border-red-200 bg-red-50/60 p-4">
+          <div className="flex items-start gap-2 mb-2">
+            <AlertTriangle size={18} className="mt-0.5 shrink-0 text-red-500" />
+            <div>
+              <p className="text-sm font-semibold text-red-800">
+                {staleMeasures.length} measure{staleMeasures.length > 1 ? "s" : ""} not updated since last publish
+              </p>
+              <p className="text-xs text-red-600 mt-0.5">
+                The following measures have not been refreshed since the report was last published. You can still publish, but these will be flagged as stale.
+              </p>
+            </div>
+          </div>
+          <ul className="ml-7 space-y-1 mt-2">
+            {staleMeasures.map((m) => (
+              <li key={m.id} className="flex items-center gap-2 text-xs text-red-700">
+                <span className="font-semibold">{m.measureId} {m.name}</span>
+                <span className="text-red-500">
+                  {m.lastUpdatedAt ? `Last updated ${formatDateShort(m.lastUpdatedAt)}` : "Never updated"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Pre-publish validation checklist */}
       <div className="mb-5">

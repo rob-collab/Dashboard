@@ -30,6 +30,7 @@ import OutcomeCard from "@/components/consumer-duty/OutcomeCard";
 import MeasurePanel from "@/components/consumer-duty/MeasurePanel";
 import MIModal from "@/components/consumer-duty/MIModal";
 import { cn, formatDate, statusColor, statusLabel } from "@/lib/utils";
+import { getLastPublishDate, hasStaleChildren } from "@/lib/stale-utils";
 import type { ConsumerDutyMeasure, Section } from "@/lib/types";
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -76,7 +77,9 @@ export default function ReportViewPage() {
   const report = useMemo(() => storeReports.find((r) => r.id === reportId) ?? null, [storeReports, reportId]);
   const sections = useMemo(() => report ? storeSections.filter((s) => s.reportId === report.id).sort((a, b) => a.position - b.position) : [], [storeSections, report]);
   const versions = useMemo(() => report ? storeVersions.filter((v) => v.reportId === report.id) : [], [storeVersions, report]);
-  const outcomes = useMemo(() => report ? storeOutcomes.filter((o) => o.reportId === report.id) : [], [storeOutcomes, report]);
+  const outcomes = useMemo(() => [...storeOutcomes].sort((a, b) => a.position - b.position), [storeOutcomes]);
+
+  const lastPublishDate = useMemo(() => getLastPublishDate(versions, reportId), [versions, reportId]);
 
   const [showHistory, setShowHistory] = useState(false);
   const [showCompare, setShowCompare] = useState(false);
@@ -100,7 +103,7 @@ export default function ReportViewPage() {
   }
 
   const handleExportHTML = () => {
-    const html = generateHTMLExport(report, sections, outcomes, {}, branding);
+    const html = generateHTMLExport(report, sections, outcomes, {}, branding, versions);
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -171,7 +174,7 @@ export default function ReportViewPage() {
       <div className="flex gap-6">
         {/* Main content */}
         <div className="flex-1 space-y-4">
-          {sections.map((section) => (
+          {sections.filter((s) => s.type !== "CONSUMER_DUTY_DASHBOARD").map((section) => (
             <div key={section.id} className="bento-card" style={buildSectionStyle(section.styleConfig)}>
               {section.title && (
                 <h2 className="text-lg font-bold text-updraft-deep font-poppins mb-4">{section.title}</h2>
@@ -230,27 +233,6 @@ export default function ReportViewPage() {
                       </div>
                     );
                   })}
-                </div>
-              )}
-
-              {/* CONSUMER_DUTY_DASHBOARD */}
-              {section.type === "CONSUMER_DUTY_DASHBOARD" && (
-                <div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                    {outcomes.map((outcome) => (
-                      <OutcomeCard
-                        key={outcome.id}
-                        outcome={outcome}
-                        selected={outcome.id === selectedOutcomeId}
-                        onClick={() => setSelectedOutcomeId(outcome.id === selectedOutcomeId ? null : outcome.id)}
-                      />
-                    ))}
-                  </div>
-                  {selectedOutcome && selectedOutcome.measures && (
-                    <div className="animate-slide-up">
-                      <MeasurePanel measures={selectedOutcome.measures} onMeasureClick={(m) => setSelectedMeasure(m)} />
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -313,6 +295,29 @@ export default function ReportViewPage() {
               })()}
             </div>
           ))}
+
+          {/* Consumer Duty Dashboard — always rendered */}
+          {outcomes.length > 0 && (
+            <div className="bento-card">
+              <h2 className="text-lg font-bold text-updraft-deep font-poppins mb-4">Consumer Duty Dashboard</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                {outcomes.map((outcome) => (
+                  <OutcomeCard
+                    key={outcome.id}
+                    outcome={outcome}
+                    selected={outcome.id === selectedOutcomeId}
+                    onClick={() => setSelectedOutcomeId(outcome.id === selectedOutcomeId ? null : outcome.id)}
+                    hasStaleData={hasStaleChildren(outcome, lastPublishDate)}
+                  />
+                ))}
+              </div>
+              {selectedOutcome && selectedOutcome.measures && (
+                <div className="animate-slide-up">
+                  <MeasurePanel measures={selectedOutcome.measures} onMeasureClick={(m) => setSelectedMeasure(m)} lastPublishDate={lastPublishDate} />
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Version history sidebar */}

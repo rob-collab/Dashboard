@@ -1,4 +1,5 @@
-import type { Report, Section, ConsumerDutyOutcome, BrandingConfig } from "./types";
+import type { Report, Section, ConsumerDutyOutcome, BrandingConfig, ReportVersion } from "./types";
+import { getLastPublishDate, isMeasureStale } from "./stale-utils";
 
 interface ExportOptions {
   includeInteractive: boolean;
@@ -20,10 +21,12 @@ export function generateHTMLExport(
   sections: Section[],
   outcomes: ConsumerDutyOutcome[],
   options: Partial<ExportOptions> = {},
-  branding?: BrandingConfig
+  branding?: BrandingConfig,
+  versions?: ReportVersion[]
 ): string {
   const opts = { ...defaultOptions, ...options };
   const publishDate = new Date().toISOString();
+  const lastPublishDate = versions ? getLastPublishDate(versions, report.id) : null;
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -58,9 +61,9 @@ export function generateHTMLExport(
   </header>
 
   <main class="report-content">
-    ${sections.sort((a, b) => a.position - b.position).map((section) => renderSection(section)).join("\n")}
+    ${sections.filter((s) => s.type !== "CONSUMER_DUTY_DASHBOARD").sort((a, b) => a.position - b.position).map((section) => renderSection(section)).join("\n")}
 
-    ${outcomes.length > 0 ? renderConsumerDutyDashboard(outcomes, opts.includeInteractive) : ""}
+    ${outcomes.length > 0 ? renderConsumerDutyDashboard(outcomes, opts.includeInteractive, lastPublishDate) : ""}
   </main>
 
   <footer class="report-footer">
@@ -197,31 +200,37 @@ function renderAccordion(content: Record<string, unknown>): string {
   </div>`;
 }
 
-function renderConsumerDutyDashboard(outcomes: ConsumerDutyOutcome[], interactive: boolean): string {
+function renderConsumerDutyDashboard(outcomes: ConsumerDutyOutcome[], interactive: boolean, lastPublishDate: string | null = null): string {
   return `<section class="consumer-duty-section">
     <h2>Consumer Duty Dashboard</h2>
     <div class="outcome-grid">
-      ${outcomes.sort((a, b) => a.position - b.position).map((outcome) => `
+      ${outcomes.sort((a, b) => a.position - b.position).map((outcome) => {
+        const hasStale = lastPublishDate && (outcome.measures || []).some((m) => isMeasureStale(m, lastPublishDate));
+        return `
         <div class="outcome-card ${interactive ? "clickable" : ""}" data-outcome="${outcome.outcomeId}">
           <div class="outcome-rag rag-${outcome.ragStatus.toLowerCase()}">&bull;</div>
           <h3>${escapeHtml(outcome.name)}</h3>
           <p>${escapeHtml(outcome.shortDesc)}</p>
-          <div class="measure-count">${outcome.measures?.length || 0} measures</div>
+          <div class="measure-count">${outcome.measures?.length || 0} measures${hasStale ? ' <span class="stale-badge">Stale</span>' : ""}</div>
         </div>
-      `).join("")}
+      `;
+      }).join("")}
     </div>
     ${outcomes.map((outcome) => `
       <div class="measures-panel" id="measures-${outcome.outcomeId}" style="display:none">
         <h3>${escapeHtml(outcome.name)} - Measures</h3>
         <div class="measures-grid">
-          ${(outcome.measures || []).map((measure) => `
+          ${(outcome.measures || []).map((measure) => {
+            const stale = lastPublishDate && isMeasureStale(measure, lastPublishDate);
+            return `
             <div class="measure-card clickable" data-measure="${measure.id}">
               <div class="measure-rag rag-${measure.ragStatus.toLowerCase()}">&bull;</div>
-              <div class="measure-id">${escapeHtml(measure.measureId)}</div>
+              <div class="measure-id">${escapeHtml(measure.measureId)}${stale ? ' <span class="stale-badge">Not Updated</span>' : ""}</div>
               <div class="measure-name">${escapeHtml(measure.name)}</div>
               <div class="measure-summary">${escapeHtml(measure.summary)}</div>
             </div>
-          `).join("")}
+          `;
+          }).join("")}
         </div>
       </div>
     `).join("")}
@@ -280,6 +289,7 @@ function getExportCSS(): string {
     .measure-name { font-weight: 600; margin: 0.25rem 0; }
     .measure-summary { font-size: 0.8rem; color: #6b7280; }
     .measure-count { font-size: 0.75rem; color: #9ca3af; margin-top: 0.5rem; }
+    .stale-badge { display: inline-block; background: #FEE2E2; color: #DC2626; font-size: 0.65rem; font-weight: 700; padding: 0.15em 0.5em; border-radius: 9999px; vertical-align: middle; margin-left: 0.25rem; }
     .image-placeholder { display: flex; align-items: center; justify-content: center; padding: 3rem; border: 2px dashed #d1d5db; border-radius: 0.5rem; color: #9ca3af; font-size: 0.875rem; }
     .report-footer { text-align: center; padding: 2rem; color: #9ca3af; font-size: 0.75rem; }
     .confidential { color: #DC2626; font-weight: 600; margin-top: 0.5rem; }

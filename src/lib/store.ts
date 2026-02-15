@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMI, ReportVersion, BrandingConfig } from "./types";
+import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig } from "./types";
 import { demoReports, demoSections, demoOutcomes, demoTemplates, demoComponents, demoAuditLogs, demoVersions } from "./demo-data";
 import { DEMO_USERS } from "./auth";
 
@@ -32,6 +32,13 @@ interface AppState {
   // Consumer Duty Outcomes
   outcomes: ConsumerDutyOutcome[];
   setOutcomes: (outcomes: ConsumerDutyOutcome[]) => void;
+  addOutcome: (outcome: ConsumerDutyOutcome) => void;
+  updateOutcome: (id: string, data: Partial<ConsumerDutyOutcome>) => void;
+  deleteOutcome: (id: string) => void;
+  addMeasure: (outcomeId: string, measure: ConsumerDutyMeasure) => void;
+  updateMeasure: (measureId: string, data: Partial<ConsumerDutyMeasure>) => void;
+  deleteMeasure: (measureId: string) => void;
+  bulkAddMeasures: (items: { outcomeId: string; measure: ConsumerDutyMeasure }[]) => void;
   updateMeasureMetrics: (measureId: string, metrics: ConsumerDutyMI[]) => void;
 
   // Templates
@@ -115,12 +122,60 @@ export const useAppStore = create<AppState>((set) => ({
 
   outcomes: demoOutcomes,
   setOutcomes: (outcomes) => set({ outcomes }),
+  addOutcome: (outcome) =>
+    set((state) => ({ outcomes: [...state.outcomes, outcome] })),
+  updateOutcome: (id, data) =>
+    set((state) => ({
+      outcomes: state.outcomes.map((o) => (o.id === id ? { ...o, ...data } : o)),
+    })),
+  deleteOutcome: (id) =>
+    set((state) => ({ outcomes: state.outcomes.filter((o) => o.id !== id) })),
+  addMeasure: (outcomeId, measure) =>
+    set((state) => ({
+      outcomes: state.outcomes.map((o) =>
+        o.id === outcomeId
+          ? { ...o, measures: [...(o.measures ?? []), measure] }
+          : o
+      ),
+    })),
+  updateMeasure: (measureId, data) =>
+    set((state) => ({
+      outcomes: state.outcomes.map((o) => ({
+        ...o,
+        measures: o.measures?.map((m) =>
+          m.id === measureId ? { ...m, ...data } : m
+        ),
+      })),
+    })),
+  deleteMeasure: (measureId) =>
+    set((state) => ({
+      outcomes: state.outcomes.map((o) => ({
+        ...o,
+        measures: o.measures?.filter((m) => m.id !== measureId),
+      })),
+    })),
+  bulkAddMeasures: (items) =>
+    set((state) => {
+      const outcomeMap = new Map<string, ConsumerDutyMeasure[]>();
+      for (const { outcomeId, measure } of items) {
+        const arr = outcomeMap.get(outcomeId) ?? [];
+        arr.push(measure);
+        outcomeMap.set(outcomeId, arr);
+      }
+      return {
+        outcomes: state.outcomes.map((o) => {
+          const newMeasures = outcomeMap.get(o.id);
+          if (!newMeasures) return o;
+          return { ...o, measures: [...(o.measures ?? []), ...newMeasures] };
+        }),
+      };
+    }),
   updateMeasureMetrics: (measureId, metrics) =>
     set((state) => ({
       outcomes: state.outcomes.map((o) => ({
         ...o,
         measures: o.measures?.map((m) =>
-          m.id === measureId ? { ...m, metrics } : m
+          m.id === measureId ? { ...m, metrics, lastUpdatedAt: new Date().toISOString() } : m
         ),
       })),
     })),

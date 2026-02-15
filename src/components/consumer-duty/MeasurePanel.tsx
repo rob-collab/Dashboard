@@ -2,7 +2,8 @@
 
 import type { ConsumerDutyMeasure } from "@/lib/types";
 import { cn, ragBgColor, ragLabel } from "@/lib/utils";
-import { Activity } from "lucide-react";
+import { isMeasureStale } from "@/lib/stale-utils";
+import { Activity, AlertTriangle } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
 /* Props                                                               */
@@ -10,6 +11,9 @@ import { Activity } from "lucide-react";
 interface MeasurePanelProps {
   measures: ConsumerDutyMeasure[];
   onMeasureClick: (measure: ConsumerDutyMeasure) => void;
+  lastPublishDate?: string | null;
+  onEditMeasure?: (measure: ConsumerDutyMeasure) => void;
+  onDeleteMeasure?: (measure: ConsumerDutyMeasure) => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -18,6 +22,9 @@ interface MeasurePanelProps {
 export default function MeasurePanel({
   measures,
   onMeasureClick,
+  lastPublishDate,
+  onEditMeasure,
+  onDeleteMeasure,
 }: MeasurePanelProps) {
   if (measures.length === 0) {
     return (
@@ -54,7 +61,7 @@ export default function MeasurePanel({
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-updraft-bar focus-visible:ring-offset-2"
             )}
           >
-            {/* Top row: RAG dot + measure ID */}
+            {/* Top row: RAG dot + measure ID + stale/edit/delete */}
             <div className="flex items-center gap-2">
               <span
                 className={cn(
@@ -66,6 +73,12 @@ export default function MeasurePanel({
               <span className="text-xs font-medium text-updraft-bar/70 uppercase tracking-wide">
                 {measure.measureId}
               </span>
+              {lastPublishDate && isMeasureStale(measure, lastPublishDate) && (
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-red-100 px-1.5 py-0.5 text-[9px] font-semibold text-red-700">
+                  <AlertTriangle size={9} />
+                  Not Updated
+                </span>
+              )}
               <span
                 className={cn(
                   "ml-auto inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight",
@@ -91,15 +104,43 @@ export default function MeasurePanel({
               {measure.summary}
             </p>
 
-            {/* Metrics count if available */}
-            {measure.metrics && measure.metrics.length > 0 && (
-              <div className="mt-auto pt-2 border-t border-gray-100">
+            {/* Metrics count + edit/delete */}
+            <div className="mt-auto pt-2 border-t border-gray-100 flex items-center justify-between">
+              {measure.metrics && measure.metrics.length > 0 ? (
                 <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
                   {measure.metrics.length}{" "}
                   {measure.metrics.length === 1 ? "metric" : "metrics"}
                 </span>
-              </div>
-            )}
+              ) : (
+                <span />
+              )}
+              {(onEditMeasure || onDeleteMeasure) && (
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {onEditMeasure && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => { e.stopPropagation(); onEditMeasure(measure); }}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); onEditMeasure(measure); } }}
+                      className="text-[10px] font-medium text-updraft-bright-purple hover:underline cursor-pointer"
+                    >
+                      Edit
+                    </span>
+                  )}
+                  {onDeleteMeasure && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => { e.stopPropagation(); onDeleteMeasure(measure); }}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); onDeleteMeasure(measure); } }}
+                      className="text-[10px] font-medium text-red-500 hover:underline cursor-pointer"
+                    >
+                      Delete
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Hover accent */}
             <div className="absolute inset-x-0 bottom-0 h-0.5 rounded-b-xl bg-gradient-to-r from-updraft-bright-purple to-updraft-light-purple opacity-0 transition-opacity duration-200 group-hover:opacity-100" />

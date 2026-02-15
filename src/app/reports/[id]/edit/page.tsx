@@ -150,8 +150,8 @@ export default function ReportEditorPage() {
   );
 
   const outcomes = useMemo(
-    () => report ? storeOutcomes.filter((o) => o.reportId === report.id) : [],
-    [storeOutcomes, report]
+    () => [...storeOutcomes].sort((a, b) => a.position - b.position),
+    [storeOutcomes]
   );
 
   const [sections, setSections] = useState<Section[]>(() => {
@@ -394,6 +394,7 @@ export default function ReportEditorPage() {
         report={report}
         sections={sections}
         outcomes={outcomes}
+        versions={storeVersions.filter((v) => v.reportId === report.id)}
         open={publishOpen}
         onClose={() => setPublishOpen(false)}
         onPublish={(publishNote) => {

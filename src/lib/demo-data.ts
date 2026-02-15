@@ -159,6 +159,7 @@ export const demoOutcomes: ConsumerDutyOutcome[] = [
         summary: "Products meeting identified customer needs",
         ragStatus: "GOOD",
         position: 0,
+        lastUpdatedAt: "2025-02-12T16:45:00Z",
         metrics: [
           { id: "mi-1-1-1", measureId: "measure-1-1", metric: "Net Promoter Score", current: "72", previous: "70", change: "+2", ragStatus: "GOOD" },
           { id: "mi-1-1-2", measureId: "measure-1-1", metric: "TrustPilot Score", current: "4.8", previous: "4.8", change: "0", ragStatus: "GOOD" },
@@ -173,6 +174,7 @@ export const demoOutcomes: ConsumerDutyOutcome[] = [
         summary: "Quality of new application process",
         ragStatus: "GOOD",
         position: 1,
+        lastUpdatedAt: "2024-12-20T10:00:00Z",
         metrics: [
           { id: "mi-1-3-1", measureId: "measure-1-3", metric: "Application Approval Rate", current: "68%", previous: "65%", change: "+3%", ragStatus: "GOOD" },
           { id: "mi-1-3-2", measureId: "measure-1-3", metric: "Time to Decision", current: "2.1 days", previous: "2.4 days", change: "-0.3", ragStatus: "GOOD" },
@@ -199,6 +201,7 @@ export const demoOutcomes: ConsumerDutyOutcome[] = [
         summary: "APR rates competitive and fair",
         ragStatus: "GOOD",
         position: 0,
+        lastUpdatedAt: "2025-02-10T09:30:00Z",
         metrics: [
           { id: "mi-2-1-1", measureId: "measure-2-1", metric: "Average APR", current: "29.9%", previous: "29.9%", change: "0", ragStatus: "GOOD" },
           { id: "mi-2-1-2", measureId: "measure-2-1", metric: "Market Comparison", current: "Below avg", previous: "Below avg", change: "-", ragStatus: "GOOD" },
@@ -225,6 +228,7 @@ export const demoOutcomes: ConsumerDutyOutcome[] = [
         summary: "Customer communications clear and timely",
         ragStatus: "GOOD",
         position: 0,
+        lastUpdatedAt: "2025-02-08T14:00:00Z",
         metrics: [
           { id: "mi-3-1-1", measureId: "measure-3-1", metric: "Readability Score", current: "82", previous: "80", change: "+2", ragStatus: "GOOD" },
         ],
@@ -238,6 +242,7 @@ export const demoOutcomes: ConsumerDutyOutcome[] = [
         summary: "Customer journey drop-off analysis",
         ragStatus: "WARNING",
         position: 1,
+        lastUpdatedAt: "2024-12-15T11:00:00Z",
         metrics: [
           { id: "mi-3-3-1", measureId: "measure-3-3", metric: "Pre-contract Drop-off", current: "45%", previous: "40%", change: "+5%", ragStatus: "WARNING" },
           { id: "mi-3-3-2", measureId: "measure-3-3", metric: "Application Abandonment", current: "22%", previous: "20%", change: "+2%", ragStatus: "WARNING" },
@@ -264,6 +269,7 @@ export const demoOutcomes: ConsumerDutyOutcome[] = [
         summary: "Customer support response performance",
         ragStatus: "GOOD",
         position: 0,
+        lastUpdatedAt: "2025-02-11T10:15:00Z",
         metrics: [
           { id: "mi-4-2-1", measureId: "measure-4-2", metric: "Avg Response Time", current: "2.4 hrs", previous: "3.1 hrs", change: "-0.7", ragStatus: "GOOD" },
           { id: "mi-4-2-2", measureId: "measure-4-2", metric: "First Contact Resolution", current: "78%", previous: "75%", change: "+3%", ragStatus: "GOOD" },
@@ -278,6 +284,7 @@ export const demoOutcomes: ConsumerDutyOutcome[] = [
         summary: "Payment plan adherence tracking",
         ragStatus: "WARNING",
         position: 1,
+        lastUpdatedAt: "2024-12-28T16:00:00Z",
         metrics: [
           { id: "mi-4-7-1", measureId: "measure-4-7", metric: "Broken Plans Rate", current: "15%", previous: "12%", change: "+3%", ragStatus: "WARNING" },
         ],
@@ -303,6 +310,7 @@ export const demoOutcomes: ConsumerDutyOutcome[] = [
         summary: "Board governance and oversight effectiveness",
         ragStatus: "GOOD",
         position: 0,
+        lastUpdatedAt: "2025-02-13T09:00:00Z",
         metrics: [
           { id: "mi-5-1-1", measureId: "measure-5-1", metric: "Board Attendance", current: "100%", previous: "95%", change: "+5%", ragStatus: "GOOD" },
           { id: "mi-5-1-2", measureId: "measure-5-1", metric: "Actions Completed", current: "92%", previous: "88%", change: "+4%", ragStatus: "GOOD" },

@@ -10,6 +10,7 @@ import {
   HandCoins,
   Scale,
   HelpCircle,
+  AlertTriangle,
   type LucideIcon,
 } from "lucide-react";
 
@@ -37,6 +38,7 @@ interface OutcomeCardProps {
   outcome: ConsumerDutyOutcome;
   selected: boolean;
   onClick: () => void;
+  hasStaleData?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -46,6 +48,7 @@ export default function OutcomeCard({
   outcome,
   selected,
   onClick,
+  hasStaleData,
 }: OutcomeCardProps) {
   const Icon = useMemo(() => resolveIcon(outcome.icon), [outcome.icon]);
   const measureCount = outcome.measures?.length ?? 0;
@@ -78,15 +81,23 @@ export default function OutcomeCard({
           <Icon size={22} />
         </div>
 
-        {/* RAG status dot */}
-        <span
-          className={cn(
-            "h-3.5 w-3.5 rounded-full border-2 border-white/80 shadow-sm",
-            ragBgColor(outcome.ragStatus),
-            outcome.ragStatus === "HARM" && "rag-pulse"
+        {/* RAG status dot + stale badge */}
+        <div className="flex items-center gap-2">
+          {hasStaleData && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700">
+              <AlertTriangle size={10} />
+              Stale
+            </span>
           )}
-          title={`Status: ${outcome.ragStatus}`}
-        />
+          <span
+            className={cn(
+              "h-3.5 w-3.5 rounded-full border-2 border-white/80 shadow-sm",
+              ragBgColor(outcome.ragStatus),
+              outcome.ragStatus === "HARM" && "rag-pulse"
+            )}
+            title={`Status: ${outcome.ragStatus}`}
+          />
+        </div>
       </div>
 
       {/* Name */}

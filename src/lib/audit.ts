@@ -64,6 +64,12 @@ export function getActionLabel(action: string): string {
     add_user: "Added user",
     update_user: "Updated user",
     deactivate_user: "Deactivated user",
+    add_outcome: "Added outcome",
+    update_outcome: "Updated outcome",
+    delete_outcome: "Deleted outcome",
+    add_measure: "Added measure",
+    delete_measure: "Deleted measure",
+    bulk_add_measures: "Bulk imported measures",
   };
   return labels[action] || action;
 }

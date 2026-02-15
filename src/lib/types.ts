@@ -96,7 +96,7 @@ export interface StyleConfig {
 
 export interface ConsumerDutyOutcome {
   id: string;
-  reportId: string;
+  reportId?: string;
   outcomeId: string;
   name: string;
   shortDesc: string;
@@ -115,6 +115,7 @@ export interface ConsumerDutyMeasure {
   summary: string;
   ragStatus: RAGStatus;
   position: number;
+  lastUpdatedAt: string | null;
   metrics?: ConsumerDutyMI[];
 }
 
