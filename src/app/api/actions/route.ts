@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  try {
   const userId = getUserId(request);
   if (!userId) return errorResponse("Unauthorised", 401);
 
@@ -35,7 +36,15 @@ export async function POST(request: NextRequest) {
 
   // Snapshot report period
   const report = await prisma.report.findUnique({ where: { id: reportId } });
-  if (!report) return errorResponse("Report not found", 404);
+  if (!report) return errorResponse(`Report not found: ${reportId}`, 404);
+
+  // Verify assignee exists
+  const assignee = await prisma.user.findUnique({ where: { id: assignedTo } });
+  if (!assignee) return errorResponse(`Assigned user not found: ${assignedTo}`, 404);
+
+  // Verify creator exists
+  const creator = await prisma.user.findUnique({ where: { id: userId } });
+  if (!creator) return errorResponse(`Current user not found in DB: ${userId}`, 404);
 
   const action = await prisma.action.create({
     data: {
@@ -83,4 +92,9 @@ export async function POST(request: NextRequest) {
   }).catch((err) => console.warn("[audit] create_action failed:", err));
 
   return jsonResponse(serialiseDates(action), 201);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[POST /api/actions]", message);
+    return errorResponse(`Server error: ${message}`, 500);
+  }
 }
