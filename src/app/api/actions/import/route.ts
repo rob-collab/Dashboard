@@ -38,6 +38,25 @@ export async function POST(request: NextRequest) {
     errors: string[];
   }> = [];
 
+  // Batch load all users upfront to avoid N+1 queries
+  const allUsers = await prisma.user.findMany({
+    select: { id: true, name: true, email: true },
+  });
+  const userByName = new Map(
+    allUsers.map((u) => [u.name.toLowerCase(), u])
+  );
+  const userByEmail = new Map(
+    allUsers.map((u) => [u.email.toLowerCase(), u])
+  );
+
+  // Batch load all actions upfront
+  const actionIds = rows.map((r) => r.actionId).filter(Boolean);
+  const actions = await prisma.action.findMany({
+    where: { id: { in: actionIds } },
+    include: { assignee: true },
+  });
+  const actionMap = new Map(actions.map((a) => [a.id, a]));
+
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     const errors: string[] = [];
@@ -48,10 +67,7 @@ export async function POST(request: NextRequest) {
       continue;
     }
 
-    const action = await prisma.action.findUnique({
-      where: { id: row.actionId },
-      include: { assignee: true },
-    });
+    const action = actionMap.get(row.actionId);
 
     if (!action) {
       errors.push(`Action not found: ${row.actionId}`);
@@ -76,15 +92,9 @@ export async function POST(request: NextRequest) {
       }
     }
     if (row.assignedTo) {
-      // Find user by name or email
-      const assignee = await prisma.user.findFirst({
-        where: {
-          OR: [
-            { name: { equals: row.assignedTo, mode: "insensitive" } },
-            { email: { equals: row.assignedTo, mode: "insensitive" } },
-          ],
-        },
-      });
+      // Lookup user from pre-loaded map
+      const assignee = userByName.get(row.assignedTo.toLowerCase()) ||
+                       userByEmail.get(row.assignedTo.toLowerCase());
       if (!assignee) {
         errors.push(`User not found: ${row.assignedTo}`);
       } else if (assignee.id !== action.assignedTo) {

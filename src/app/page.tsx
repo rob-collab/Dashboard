@@ -155,7 +155,7 @@ export default function DashboardHome() {
             <p className="text-xs text-gray-500">Overdue</p>
             <p className="text-2xl font-bold font-poppins text-red-700">{actionStats.overdue}</p>
           </Link>
-          <Link href="/actions?status=DUE_THIS_MONTH" className="rounded-xl border border-gray-200 bg-amber-50 p-3 cursor-pointer hover:border-amber-300 transition-colors">
+          <Link href="/actions" className="rounded-xl border border-gray-200 bg-amber-50 p-3 cursor-pointer hover:border-amber-300 transition-colors">
             <p className="text-xs text-gray-500">Due This Month</p>
             <p className="text-2xl font-bold font-poppins text-amber-700">{actionStats.dueThisMonth}</p>
           </Link>

@@ -3,11 +3,18 @@ import { prisma, jsonResponse, errorResponse, getUserId } from "@/lib/api-helper
 import { serialiseDates } from "@/lib/serialise";
 import { sendActionAssigned } from "@/lib/email";
 
+const VALID_ACTION_STATUSES = ["OPEN", "IN_PROGRESS", "COMPLETED", "OVERDUE"];
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const reportId = searchParams.get("reportId");
   const assignedTo = searchParams.get("assignedTo");
   const status = searchParams.get("status");
+
+  // Validate status enum
+  if (status && !VALID_ACTION_STATUSES.includes(status)) {
+    return errorResponse(`Invalid status. Must be one of: ${VALID_ACTION_STATUSES.join(", ")}`, 400);
+  }
 
   const where: Record<string, unknown> = {};
   if (reportId) where.reportId = reportId;

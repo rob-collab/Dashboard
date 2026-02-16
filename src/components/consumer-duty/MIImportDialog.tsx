@@ -53,6 +53,7 @@ export default function MIImportDialog({
   const [step, setStep] = useState<WizardStep>("upload");
   const [rawText, setRawText] = useState("");
   const [validated, setValidated] = useState<RowValidation[]>([]);
+  const [importing, setImporting] = useState(false);
 
   const validCount = validated.filter((v) => v.errors.length === 0).length;
   const errorCount = validated.filter((v) => v.errors.length > 0).length;
@@ -150,38 +151,43 @@ export default function MIImportDialog({
     handleTextLoaded(rawText);
   }
 
-  function handleImport() {
-    const validRows = validated.filter((v) => v.errors.length === 0 && v.parsed);
+  async function handleImport() {
+    setImporting(true);
+    try {
+      const validRows = validated.filter((v) => v.errors.length === 0 && v.parsed);
 
-    // Group by measure ID
-    const byMeasure = new Map<string, ParsedMIRow[]>();
-    for (const v of validRows) {
-      if (!v.parsed) continue;
-      const existing = byMeasure.get(v.parsed.measureId) ?? [];
-      existing.push(v.parsed);
-      byMeasure.set(v.parsed.measureId, existing);
+      // Group by measure ID
+      const byMeasure = new Map<string, ParsedMIRow[]>();
+      for (const v of validRows) {
+        if (!v.parsed) continue;
+        const existing = byMeasure.get(v.parsed.measureId) ?? [];
+        existing.push(v.parsed);
+        byMeasure.set(v.parsed.measureId, existing);
+      }
+
+      // Build updates
+      const updates = Array.from(byMeasure.entries()).map(([measureId, rows]) => {
+        const measure = measures.find((m) => m.measureId === measureId)!;
+        const metrics: ConsumerDutyMI[] = rows.map((r) => ({
+          id: `mi-${generateId()}`,
+          measureId: measure.id,
+          metric: r.metricName,
+          current: r.currentValue,
+          previous: "",
+          change: "",
+          ragStatus: r.ragStatus,
+          appetite: null,
+          appetiteOperator: null,
+        }));
+
+        return { measureId: measure.id, metrics };
+      });
+
+      onImport(updates);
+      setStep("done");
+    } finally {
+      setImporting(false);
     }
-
-    // Build updates
-    const updates = Array.from(byMeasure.entries()).map(([measureId, rows]) => {
-      const measure = measures.find((m) => m.measureId === measureId)!;
-      const metrics: ConsumerDutyMI[] = rows.map((r) => ({
-        id: `mi-${generateId()}`,
-        measureId: measure.id,
-        metric: r.metricName,
-        current: r.currentValue,
-        previous: "",
-        change: "",
-        ragStatus: r.ragStatus,
-        appetite: null,
-        appetiteOperator: null,
-      }));
-
-      return { measureId: measure.id, metrics };
-    });
-
-    onImport(updates);
-    setStep("done");
   }
 
   function handleClose() {
@@ -407,16 +413,25 @@ export default function MIImportDialog({
         {step === "preview" && (
           <button
             onClick={handleImport}
-            disabled={validCount === 0}
+            disabled={validCount === 0 || importing}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors",
-              validCount > 0
+              validCount > 0 && !importing
                 ? "bg-updraft-bright-purple hover:bg-updraft-deep"
                 : "cursor-not-allowed bg-gray-300"
             )}
           >
-            <Upload size={15} />
-            Import {validCount} Metric{validCount !== 1 ? "s" : ""}
+            {importing ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                Importing...
+              </>
+            ) : (
+              <>
+                <Upload size={15} />
+                Import {validCount} Metric{validCount !== 1 ? "s" : ""}
+              </>
+            )}
           </button>
         )}
       </>

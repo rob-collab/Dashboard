@@ -56,6 +56,7 @@ export default function CSVUploadDialog({
   const [defaultOutcomeId, setDefaultOutcomeId] = useState("");
   const [importMode, setImportMode] = useState<"append" | "replace">("append");
   const [skipInvalid, setSkipInvalid] = useState(true);
+  const [importing, setImporting] = useState(false);
 
   const validOutcomeIds = useMemo(() => outcomes.map((o) => o.id), [outcomes]);
 
@@ -131,28 +132,33 @@ export default function CSVUploadDialog({
     handleTextLoaded(rawText);
   }
 
-  function handleImport() {
-    const validRows = validated.filter((v) => v.errors.length === 0 && v.mapped);
-    const items = validRows.map((v) => {
-      const m = v.mapped!;
-      return {
-        outcomeId: m.outcomeId,
-        measure: {
-          id: `measure-${generateId()}`,
+  async function handleImport() {
+    setImporting(true);
+    try {
+      const validRows = validated.filter((v) => v.errors.length === 0 && v.mapped);
+      const items = validRows.map((v) => {
+        const m = v.mapped!;
+        return {
           outcomeId: m.outcomeId,
-          measureId: m.measureId,
-          name: m.name,
-          owner: m.owner || null,
-          summary: m.summary,
-          ragStatus: m.ragStatus,
-          position: 0,
-          lastUpdatedAt: new Date().toISOString(),
-          metrics: [],
-        } as ConsumerDutyMeasure,
-      };
-    });
-    onImport(items, importMode, importMode === "replace" ? affectedOutcomeIds : undefined);
-    setStep("done");
+          measure: {
+            id: `measure-${generateId()}`,
+            outcomeId: m.outcomeId,
+            measureId: m.measureId,
+            name: m.name,
+            owner: m.owner || null,
+            summary: m.summary,
+            ragStatus: m.ragStatus,
+            position: 0,
+            lastUpdatedAt: new Date().toISOString(),
+            metrics: [],
+          } as ConsumerDutyMeasure,
+        };
+      });
+      await onImport(items, importMode, importMode === "replace" ? affectedOutcomeIds : undefined);
+      setStep("done");
+    } finally {
+      setImporting(false);
+    }
   }
 
   function handleClose() {
@@ -529,15 +535,20 @@ export default function CSVUploadDialog({
         {step !== "upload" && (
           <button
             onClick={goNext}
-            disabled={!canGoNext}
+            disabled={!canGoNext || importing}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors",
-              canGoNext
+              canGoNext && !importing
                 ? "bg-updraft-bright-purple hover:bg-updraft-deep"
                 : "cursor-not-allowed bg-gray-300"
             )}
           >
-            {step === "preview" ? (
+            {importing ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                Importing...
+              </>
+            ) : step === "preview" ? (
               <>
                 <Upload size={15} />
                 Import {validCount} Measure{validCount !== 1 ? "s" : ""}
