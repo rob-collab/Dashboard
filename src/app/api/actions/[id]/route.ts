@@ -55,9 +55,9 @@ export async function PATCH(
     include: { assignee: true, creator: true, changes: { orderBy: { proposedAt: "desc" } } },
   });
 
-  // Audit log
+  // Audit log (non-blocking)
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  await prisma.auditLog.create({
+  prisma.auditLog.create({
     data: {
       userId,
       userRole: user?.role ?? "VIEWER",
@@ -67,7 +67,7 @@ export async function PATCH(
       reportId: existing.reportId,
       changes: body,
     },
-  });
+  }).catch((err) => console.warn("[audit] update_action failed:", err));
 
   return jsonResponse(serialiseDates(updated));
 }
@@ -85,8 +85,9 @@ export async function DELETE(
 
   await prisma.action.delete({ where: { id } });
 
+  // Audit log (non-blocking)
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  await prisma.auditLog.create({
+  prisma.auditLog.create({
     data: {
       userId,
       userRole: user?.role ?? "VIEWER",
@@ -95,7 +96,7 @@ export async function DELETE(
       entityId: id,
       reportId: existing.reportId,
     },
-  });
+  }).catch((err) => console.warn("[audit] delete_action failed:", err));
 
   return new Response(null, { status: 204 });
 }

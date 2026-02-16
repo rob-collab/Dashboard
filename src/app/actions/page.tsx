@@ -20,7 +20,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { logAuditEvent } from "@/lib/audit";
+// Audit logging is handled server-side by the API routes
 import { cn, formatDateShort } from "@/lib/utils";
 import type { Action, ActionStatus } from "@/lib/types";
 import { api } from "@/lib/api-client";
@@ -123,20 +123,16 @@ export default function ActionsPage() {
 
   const handleCreateAction = useCallback((action: Action) => {
     addAction(action);
-    logAuditEvent({ action: "create_action", entityType: "action", entityId: action.id, reportId: action.reportId });
   }, [addAction]);
 
   const handleEditAction = useCallback((action: Action) => {
     updateAction(action.id, action);
-    logAuditEvent({ action: "update_action", entityType: "action", entityId: action.id, reportId: action.reportId });
   }, [updateAction]);
 
   const handleDeleteAction = useCallback((id: string) => {
     if (!confirm("Are you sure you want to delete this action?")) return;
-    const action = actions.find((a) => a.id === id);
     deleteAction(id);
-    logAuditEvent({ action: "delete_action", entityType: "action", entityId: id, reportId: action?.reportId });
-  }, [actions, deleteAction]);
+  }, [deleteAction]);
 
   const handleApproveChange = useCallback(async (actionId: string, changeId: string, note: string) => {
     try {
@@ -183,7 +179,6 @@ export default function ActionsPage() {
     if (statusFilter !== "ALL") params.set("status", statusFilter);
     if (reportFilter !== "ALL") params.set("reportId", reportFilter);
     window.open(`/api/actions/export?${params.toString()}`, "_blank");
-    logAuditEvent({ action: "download_export", entityType: "action" });
   }, [statusFilter, reportFilter]);
 
   const handleImportComplete = useCallback(async () => {
@@ -448,7 +443,6 @@ export default function ActionsPage() {
                                   <button
                                     onClick={() => {
                                       updateAction(expandedAction.id, { status: "COMPLETED", completedAt: new Date().toISOString() });
-                                      logAuditEvent({ action: "complete_action", entityType: "action", entityId: expandedAction.id, reportId: expandedAction.reportId });
                                     }}
                                     className="rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100 transition-colors"
                                   >

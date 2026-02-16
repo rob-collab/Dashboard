@@ -69,8 +69,8 @@ export async function POST(request: NextRequest) {
     ).catch((err) => console.warn("[actions] email send failed:", err));
   }
 
-  // Log audit
-  await prisma.auditLog.create({
+  // Log audit (non-blocking — don't let audit failure break the response)
+  prisma.auditLog.create({
     data: {
       userId,
       userRole: (await prisma.user.findUnique({ where: { id: userId } }))?.role ?? "VIEWER",
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       reportId,
       changes: { title, assignedTo, dueDate },
     },
-  });
+  }).catch((err) => console.warn("[audit] create_action failed:", err));
 
   return jsonResponse(serialiseDates(action), 201);
 }
