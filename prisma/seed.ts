@@ -2,7 +2,7 @@ import "dotenv/config";
 import { PrismaClient } from "../src/generated/prisma";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Prisma } from "../src/generated/prisma";
-import type { SectionType, RAGStatus, Role, ReportStatus } from "../src/generated/prisma";
+import type { SectionType, RAGStatus, Role, ReportStatus, ControlEffectiveness, RiskAppetite, DirectionOfTravel, MitigationStatus } from "../src/generated/prisma";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
@@ -307,6 +307,177 @@ async function main() {
     await prisma.auditLog.upsert({ where: { id: l.id }, update: data, create: data });
   }
   console.log(`  ✓ ${DEMO_AUDIT_LOGS.length} audit logs`);
+
+  // ── Risk Register ──────────────────────────────────────────────────────────
+
+  // Risk categories (L1 + L2)
+  const RISK_CATEGORIES: {
+    id: string; level: number; parentId: string | null; name: string; definition: string;
+  }[] = [
+    // L1 categories
+    { id: "rcat-conduct", level: 1, parentId: null, name: "Conduct & Compliance Risk", definition: "The risk of customer detriment arising from inappropriate culture, products and processes or the risks of non-compliance with regulation, rules or prescribed industry practices (including data protection)." },
+    { id: "rcat-operational", level: 1, parentId: null, name: "Operational Risk", definition: "The risk of loss or damage resulting from inadequate or failed internal processes, people and systems, fraud or external events." },
+    { id: "rcat-credit", level: 1, parentId: null, name: "Credit Risk", definition: "The risk that unexpected losses might arise as a result of Updraft's customers failing to meet their obligations to repay." },
+    { id: "rcat-financial", level: 1, parentId: null, name: "Financial Risk", definition: "The risk of Updraft having inadequate earnings, cash flow or capital to meet its current or future requirements and expectations." },
+    { id: "rcat-strategic", level: 1, parentId: null, name: "Strategic Risk", definition: "The risk of significant loss or damage arising from business decisions that impact the long-term future of Updraft." },
+    // L2 — Conduct & Compliance
+    { id: "rcat-culture", level: 2, parentId: "rcat-conduct", name: "Culture", definition: "The risk of Updraft's business is not being conducted in line with its core purpose or values." },
+    { id: "rcat-products", level: 2, parentId: "rcat-conduct", name: "Products", definition: "The risk of Updraft's design or service of products which result in poor customer outcomes." },
+    { id: "rcat-regulations", level: 2, parentId: "rcat-conduct", name: "Regulations", definition: "The risk of Updraft not complying with applicable regulations & codes." },
+    // L2 — Operational
+    { id: "rcat-people", level: 2, parentId: "rcat-operational", name: "People", definition: "The risk of damage as a result of an inability to recruit, develop, reward or retain appropriate people." },
+    { id: "rcat-fraud", level: 2, parentId: "rcat-operational", name: "Fraud", definition: "The risk of damage or loss as a result of an act of dishonesty or false representation." },
+    { id: "rcat-service", level: 2, parentId: "rcat-operational", name: "Service Availability & Resilience", definition: "The risk of a failure to maintain suitable technology services to customers." },
+    { id: "rcat-processes", level: 2, parentId: "rcat-operational", name: "Processes", definition: "The risk of damage or loss as a result of failure to maintain effective business processes." },
+    { id: "rcat-change", level: 2, parentId: "rcat-operational", name: "Change & Transformation", definition: "The risk of damage or loss from poorly managed change or transformation activity." },
+    { id: "rcat-third", level: 2, parentId: "rcat-operational", name: "Third Parties", definition: "The risk of failure of a critical third party." },
+    { id: "rcat-infosec", level: 2, parentId: "rcat-operational", name: "Information Management & Data Security", definition: "The risk of loss or damage as a result of material errors in critical reporting or failure to secure key data assets." },
+    // L2 — Credit
+    { id: "rcat-impairments", level: 2, parentId: "rcat-credit", name: "Impairments", definition: "The risk of Updraft being subject to excessive impairment provisions." },
+    { id: "rcat-creditstrat", level: 2, parentId: "rcat-credit", name: "Credit Strategy", definition: "The risk Updraft fails to document, review and adhere to appropriate credit strategies." },
+    { id: "rcat-creditmodels", level: 2, parentId: "rcat-credit", name: "Credit Models", definition: "The risk of failure of Updraft's key credit decisioning models and processes." },
+    // L2 — Financial
+    { id: "rcat-liquidity", level: 2, parentId: "rcat-financial", name: "Liquidity & Funding", definition: "The risk of Updraft being unable to meet its liabilities as they become due." },
+    { id: "rcat-solvency", level: 2, parentId: "rcat-financial", name: "Solvency", definition: "The risk of Updraft failing to maintain sufficient capital." },
+    { id: "rcat-market", level: 2, parentId: "rcat-financial", name: "Market", definition: "The risk that net value of or net income arising from assets and liabilities is impacted by market changes." },
+    // L2 — Strategic
+    { id: "rcat-bizmodel", level: 2, parentId: "rcat-strategic", name: "Business Model", definition: "The risk of failing to adopt an appropriate business model." },
+    { id: "rcat-stratinit", level: 2, parentId: "rcat-strategic", name: "Strategic Initiatives", definition: "The risk of entering into strategic initiatives that undermine the business model." },
+    { id: "rcat-reputation", level: 2, parentId: "rcat-strategic", name: "Reputation", definition: "The risk of events impacting Updraft's reputation to an extent it impacts business operations." },
+  ];
+
+  // Seed L1 first (no parent), then L2
+  for (const c of RISK_CATEGORIES.filter((c) => c.level === 1)) {
+    await prisma.riskCategory.upsert({ where: { id: c.id }, update: c, create: c });
+  }
+  for (const c of RISK_CATEGORIES.filter((c) => c.level === 2)) {
+    await prisma.riskCategory.upsert({ where: { id: c.id }, update: c, create: c });
+  }
+  console.log(`  ✓ ${RISK_CATEGORIES.length} risk categories`);
+
+  // Risks
+  interface SeedRiskControl { id: string; riskId: string; description: string; controlOwner: string | null; sortOrder: number }
+  interface SeedRiskMitigation { id: string; riskId: string; action: string; owner: string | null; deadline: Date | null; status: MitigationStatus }
+  interface SeedRisk {
+    id: string; reference: string; name: string; description: string;
+    categoryL1: string; categoryL2: string; owner: string;
+    inherentLikelihood: number; inherentImpact: number;
+    residualLikelihood: number; residualImpact: number;
+    controlEffectiveness: ControlEffectiveness | null;
+    riskAppetite: RiskAppetite | null;
+    directionOfTravel: DirectionOfTravel;
+    lastReviewed: Date; createdBy: string; updatedBy: string;
+    controls: SeedRiskControl[]; mitigations: SeedRiskMitigation[];
+  }
+
+  const DEMO_RISKS: SeedRisk[] = [
+    {
+      id: "risk-001", reference: "R001", name: "Consumer Duty Non-Compliance",
+      description: "Risk that Updraft fails to meet FCA Consumer Duty requirements, resulting in poor customer outcomes, regulatory sanctions, and reputational damage.",
+      categoryL1: "Conduct & Compliance Risk", categoryL2: "Products", owner: "Cath",
+      inherentLikelihood: 3, inherentImpact: 5, residualLikelihood: 2, residualImpact: 4,
+      controlEffectiveness: "EFFECTIVE", riskAppetite: "VERY_LOW", directionOfTravel: "IMPROVING",
+      lastReviewed: new Date("2026-02-01"), createdBy: "user-rob", updatedBy: "user-cath",
+      controls: [
+        { id: "ctrl-001-1", riskId: "risk-001", description: "Consumer Duty monitoring framework with quarterly reporting", controlOwner: "Cath", sortOrder: 0 },
+        { id: "ctrl-001-2", riskId: "risk-001", description: "Product governance committee meets monthly to review outcomes", controlOwner: "Rob", sortOrder: 1 },
+        { id: "ctrl-001-3", riskId: "risk-001", description: "Customer outcome MI dashboard with automated RAG triggers", controlOwner: "Ash", sortOrder: 2 },
+      ],
+      mitigations: [
+        { id: "mit-001-1", riskId: "risk-001", action: "Implement automated customer outcome testing for all product changes", owner: "Chris", deadline: new Date("2026-03-31"), status: "IN_PROGRESS" },
+      ],
+    },
+    {
+      id: "risk-002", reference: "R002", name: "Credit Model Failure",
+      description: "Risk that Updraft's credit decisioning models produce inaccurate risk assessments, leading to unexpected losses or inappropriate lending decisions.",
+      categoryL1: "Credit Risk", categoryL2: "Credit Models", owner: "Ash",
+      inherentLikelihood: 3, inherentImpact: 4, residualLikelihood: 2, residualImpact: 3,
+      controlEffectiveness: "EFFECTIVE", riskAppetite: "LOW", directionOfTravel: "STABLE",
+      lastReviewed: new Date("2026-01-15"), createdBy: "user-rob", updatedBy: "user-ash",
+      controls: [
+        { id: "ctrl-002-1", riskId: "risk-002", description: "Monthly model monitoring and back-testing with tolerance bands", controlOwner: "Ash", sortOrder: 0 },
+        { id: "ctrl-002-2", riskId: "risk-002", description: "Independent annual model validation by external party", controlOwner: "Rob", sortOrder: 1 },
+        { id: "ctrl-002-3", riskId: "risk-002", description: "Manual override tracking with quarterly review of override rates", controlOwner: "Ash", sortOrder: 2 },
+      ],
+      mitigations: [],
+    },
+    {
+      id: "risk-003", reference: "R003", name: "Cyber Security Breach",
+      description: "Risk of unauthorised access to systems or data resulting from cyber attack, social engineering, or insider threat.",
+      categoryL1: "Operational Risk", categoryL2: "Information Management & Data Security", owner: "Chris",
+      inherentLikelihood: 4, inherentImpact: 5, residualLikelihood: 2, residualImpact: 4,
+      controlEffectiveness: "EFFECTIVE", riskAppetite: "VERY_LOW", directionOfTravel: "STABLE",
+      lastReviewed: new Date("2026-02-10"), createdBy: "user-rob", updatedBy: "user-chris",
+      controls: [
+        { id: "ctrl-003-1", riskId: "risk-003", description: "MFA enforced on all systems and VPN access", controlOwner: "Chris", sortOrder: 0 },
+        { id: "ctrl-003-2", riskId: "risk-003", description: "Quarterly penetration testing by CREST-certified provider", controlOwner: "Chris", sortOrder: 1 },
+        { id: "ctrl-003-3", riskId: "risk-003", description: "Mandatory security awareness training for all staff", controlOwner: "Micha", sortOrder: 2 },
+        { id: "ctrl-003-4", riskId: "risk-003", description: "24/7 SOC monitoring and incident response plan tested annually", controlOwner: "Chris", sortOrder: 3 },
+      ],
+      mitigations: [
+        { id: "mit-003-1", riskId: "risk-003", action: "Implement zero-trust network architecture", owner: "Chris", deadline: new Date("2026-06-30"), status: "IN_PROGRESS" },
+      ],
+    },
+    {
+      id: "risk-004", reference: "R004", name: "Liquidity & Funding Concentration",
+      description: "Risk that Updraft is unable to meet its financial obligations as they fall due, or that funding sources become overly concentrated.",
+      categoryL1: "Financial Risk", categoryL2: "Liquidity & Funding", owner: "CFO",
+      inherentLikelihood: 3, inherentImpact: 5, residualLikelihood: 2, residualImpact: 4,
+      controlEffectiveness: "EFFECTIVE", riskAppetite: "LOW", directionOfTravel: "IMPROVING",
+      lastReviewed: new Date("2026-01-31"), createdBy: "user-rob", updatedBy: "user-rob",
+      controls: [
+        { id: "ctrl-004-1", riskId: "risk-004", description: "Monthly cash flow forecasting with 13-week rolling window and stress scenarios", controlOwner: "CFO", sortOrder: 0 },
+        { id: "ctrl-004-2", riskId: "risk-004", description: "Board-approved liquidity buffer of 120% of 90-day outflows", controlOwner: "CFO", sortOrder: 1 },
+        { id: "ctrl-004-3", riskId: "risk-004", description: "Funding diversification strategy with maximum single-source limit of 40%", controlOwner: "CFO", sortOrder: 2 },
+      ],
+      mitigations: [],
+    },
+    {
+      id: "risk-005", reference: "R005", name: "Key Person Dependency",
+      description: "Risk that critical business knowledge and capability is concentrated in a small number of individuals, creating single points of failure.",
+      categoryL1: "Operational Risk", categoryL2: "People", owner: "COO",
+      inherentLikelihood: 4, inherentImpact: 3, residualLikelihood: 3, residualImpact: 2,
+      controlEffectiveness: "PARTIALLY_EFFECTIVE", riskAppetite: "LOW_TO_MODERATE", directionOfTravel: "IMPROVING",
+      lastReviewed: new Date("2026-01-20"), createdBy: "user-rob", updatedBy: "user-rob",
+      controls: [
+        { id: "ctrl-005-1", riskId: "risk-005", description: "Cross-training programme for all critical roles", controlOwner: "COO", sortOrder: 0 },
+        { id: "ctrl-005-2", riskId: "risk-005", description: "Comprehensive process documentation and knowledge base", controlOwner: "COO", sortOrder: 1 },
+        { id: "ctrl-005-3", riskId: "risk-005", description: "Succession planning for all senior and specialist roles", controlOwner: "COO", sortOrder: 2 },
+      ],
+      mitigations: [
+        { id: "mit-005-1", riskId: "risk-005", action: "Complete succession plans for remaining 3 specialist roles", owner: "COO", deadline: new Date("2026-04-30"), status: "OPEN" },
+      ],
+    },
+    {
+      id: "risk-006", reference: "R006", name: "Regulatory Change (FCA)",
+      description: "Risk that changes in FCA regulations or supervisory expectations require significant operational or strategic adjustment that Updraft is slow to identify or implement.",
+      categoryL1: "Conduct & Compliance Risk", categoryL2: "Regulations", owner: "Cath",
+      inherentLikelihood: 4, inherentImpact: 4, residualLikelihood: 3, residualImpact: 3,
+      controlEffectiveness: "EFFECTIVE", riskAppetite: "VERY_LOW", directionOfTravel: "STABLE",
+      lastReviewed: new Date("2026-02-05"), createdBy: "user-rob", updatedBy: "user-cath",
+      controls: [
+        { id: "ctrl-006-1", riskId: "risk-006", description: "Monthly regulatory horizon scanning and impact assessment", controlOwner: "Cath", sortOrder: 0 },
+        { id: "ctrl-006-2", riskId: "risk-006", description: "Compliance calendar with automated deadline tracking", controlOwner: "Cath", sortOrder: 1 },
+        { id: "ctrl-006-3", riskId: "risk-006", description: "Proactive FCA relationship management and consultation responses", controlOwner: "Rob", sortOrder: 2 },
+      ],
+      mitigations: [],
+    },
+  ];
+
+  let controlCount = 0, mitigationCount = 0;
+  for (const r of DEMO_RISKS) {
+    const { controls, mitigations, ...riskData } = r;
+    await prisma.risk.upsert({ where: { id: r.id }, update: riskData, create: riskData });
+    for (const c of controls) {
+      await prisma.riskControl.upsert({ where: { id: c.id }, update: c, create: c });
+      controlCount++;
+    }
+    for (const m of mitigations) {
+      await prisma.riskMitigation.upsert({ where: { id: m.id }, update: m, create: m });
+      mitigationCount++;
+    }
+  }
+  console.log(`  ✓ ${DEMO_RISKS.length} risks, ${controlCount} controls, ${mitigationCount} mitigations`);
 
   console.log("Seed complete!");
 }

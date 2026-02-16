@@ -254,3 +254,71 @@ export interface AuditLogEntry {
   ipAddress: string | null;
   userAgent: string | null;
 }
+
+// ── Risk Register ──────────────────────────────────────────────────────────────
+
+export type ControlEffectiveness = "EFFECTIVE" | "PARTIALLY_EFFECTIVE" | "INEFFECTIVE";
+export type RiskAppetite = "VERY_LOW" | "LOW" | "LOW_TO_MODERATE" | "MODERATE";
+export type DirectionOfTravel = "IMPROVING" | "STABLE" | "DETERIORATING";
+export type MitigationStatus = "OPEN" | "IN_PROGRESS" | "COMPLETE";
+
+export interface RiskControl {
+  id: string;
+  riskId: string;
+  description: string;
+  controlOwner: string | null;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface RiskMitigation {
+  id: string;
+  riskId: string;
+  action: string;
+  owner: string | null;
+  deadline: string | null;
+  status: MitigationStatus;
+  createdAt: string;
+}
+
+export interface RiskAuditEntry {
+  id: string;
+  riskId: string;
+  userId: string;
+  action: string;
+  fieldChanged: string | null;
+  oldValue: string | null;
+  newValue: string | null;
+  changedAt: string;
+}
+
+export interface Risk {
+  id: string;
+  reference: string;
+  name: string;
+  description: string;
+  categoryL1: string;
+  categoryL2: string;
+  owner: string;
+  inherentLikelihood: number;
+  inherentImpact: number;
+  residualLikelihood: number;
+  residualImpact: number;
+  controlEffectiveness: ControlEffectiveness | null;
+  riskAppetite: RiskAppetite | null;
+  directionOfTravel: DirectionOfTravel;
+  lastReviewed: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  updatedBy: string;
+  controls?: RiskControl[];
+  mitigations?: RiskMitigation[];
+  auditTrail?: RiskAuditEntry[];
+}
+
+export interface RiskCategoryDef {
+  name: string;
+  definition: string;
+  subcategories: { name: string; definition: string }[];
+}

@@ -46,6 +46,7 @@ const config: Config = {
         "slide-up": "slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1)",
         "fade-in": "fadeIn 0.3s ease forwards",
         highlight: "highlight 1.5s ease-out forwards",
+        "slide-in-right": "slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
       },
       keyframes: {
         slideUpFade: {
@@ -59,6 +60,10 @@ const config: Config = {
         highlight: {
           "0%": { backgroundColor: "#E1BEE7" },
           "100%": { backgroundColor: "transparent" },
+        },
+        slideInRight: {
+          from: { transform: "translateX(100%)" },
+          to: { transform: "translateX(0)" },
         },
       },
     },

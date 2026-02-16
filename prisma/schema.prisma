@@ -50,6 +50,31 @@ enum ChangeStatus {
   REJECTED
 }
 
+enum ControlEffectiveness {
+  EFFECTIVE
+  PARTIALLY_EFFECTIVE
+  INEFFECTIVE
+}
+
+enum RiskAppetite {
+  VERY_LOW
+  LOW
+  LOW_TO_MODERATE
+  MODERATE
+}
+
+enum DirectionOfTravel {
+  IMPROVING
+  STABLE
+  DETERIORATING
+}
+
+enum MitigationStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETE
+}
+
 model User {
   id               String    @id @default(cuid())
   email            String    @unique
@@ -70,6 +95,8 @@ model User {
   createdActions  Action[]        @relation("CreatedActions")
   proposedChanges ActionChange[]  @relation("ProposedChanges")
   reviewedChanges ActionChange[]  @relation("ReviewedChanges")
+  createdRisks    Risk[]          @relation("CreatedRisks")
+  updatedRisks    Risk[]          @relation("UpdatedRisks")
 
   @@map("users")
 }
@@ -311,4 +338,93 @@ model ActionChange {
   @@index([actionId])
   @@index([status])
   @@map("action_changes")
+}
+
+// ── Risk Register ──────────────────────────────────────────────────────────────
+
+model RiskCategory {
+  id         String  @id @default(cuid())
+  level      Int
+  parentId   String?
+  parent     RiskCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children   RiskCategory[] @relation("CategoryHierarchy")
+  name       String
+  definition String  @db.Text
+
+  @@map("risk_categories")
+}
+
+model Risk {
+  id                   String               @id @default(cuid())
+  reference            String               @unique
+  name                 String
+  description          String               @db.Text
+  categoryL1           String
+  categoryL2           String
+  owner                String
+  inherentLikelihood   Int
+  inherentImpact       Int
+  residualLikelihood   Int
+  residualImpact       Int
+  controlEffectiveness ControlEffectiveness?
+  riskAppetite         RiskAppetite?
+  directionOfTravel    DirectionOfTravel    @default(STABLE)
+  lastReviewed         DateTime             @default(now()) @db.Date
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  createdBy            String
+  creator              User                 @relation("CreatedRisks", fields: [createdBy], references: [id])
+  updatedBy            String
+  updater              User                 @relation("UpdatedRisks", fields: [updatedBy], references: [id])
+
+  controls    RiskControl[]
+  mitigations RiskMitigation[]
+  auditTrail  RiskAuditLog[]
+
+  @@index([categoryL1])
+  @@index([owner])
+  @@map("risks")
+}
+
+model RiskControl {
+  id          String   @id @default(cuid())
+  riskId      String
+  risk        Risk     @relation(fields: [riskId], references: [id], onDelete: Cascade)
+  description String   @db.Text
+  controlOwner String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([riskId])
+  @@map("risk_controls")
+}
+
+model RiskMitigation {
+  id        String           @id @default(cuid())
+  riskId    String
+  risk      Risk             @relation(fields: [riskId], references: [id], onDelete: Cascade)
+  action    String           @db.Text
+  owner     String?
+  deadline  DateTime?        @db.Date
+  status    MitigationStatus @default(OPEN)
+  createdAt DateTime         @default(now())
+
+  @@index([riskId])
+  @@map("risk_mitigations")
+}
+
+model RiskAuditLog {
+  id           String   @id @default(cuid())
+  riskId       String
+  risk         Risk     @relation(fields: [riskId], references: [id], onDelete: Cascade)
+  userId       String
+  action       String
+  fieldChanged String?
+  oldValue     String?  @db.Text
+  newValue     String?  @db.Text
+  changedAt    DateTime @default(now())
+
+  @@index([riskId])
+  @@index([changedAt])
+  @@map("risk_audit_log")
 }

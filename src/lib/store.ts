@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action } from "./types";
-import { demoReports, demoSections, demoOutcomes, demoTemplates, demoComponents, demoAuditLogs, demoVersions } from "./demo-data";
+import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk } from "./types";
+import { demoReports, demoSections, demoOutcomes, demoTemplates, demoComponents, demoAuditLogs, demoVersions, demoRisks } from "./demo-data";
 import { DEMO_USERS } from "./auth";
 import { api } from "./api-client";
 
@@ -71,6 +71,13 @@ interface AppState {
   updateAction: (id: string, data: Partial<Action>) => void;
   deleteAction: (id: string) => void;
 
+  // Risks
+  risks: Risk[];
+  setRisks: (risks: Risk[]) => void;
+  addRisk: (risk: Risk) => void;
+  updateRisk: (id: string, data: Partial<Risk>) => void;
+  deleteRisk: (id: string) => void;
+
   // Users (in-memory CRUD)
   users: User[];
   setUsers: (users: User[]) => void;
@@ -131,7 +138,7 @@ export const useAppStore = create<AppState>((set) => ({
   _hydrated: false,
   hydrate: async () => {
     try {
-      const [users, reports, outcomes, templates, components, auditLogs, actions] = await Promise.all([
+      const [users, reports, outcomes, templates, components, auditLogs, actions, risks] = await Promise.all([
         api<User[]>("/api/users"),
         api<Report[]>("/api/reports"),
         api<ConsumerDutyOutcome[]>("/api/consumer-duty"),
@@ -139,8 +146,9 @@ export const useAppStore = create<AppState>((set) => ({
         api<ImportedComponent[]>("/api/components"),
         api<{ data: AuditLogEntry[] }>("/api/audit?limit=50").then((r) => r.data),
         api<Action[]>("/api/actions"),
+        api<Risk[]>("/api/risks"),
       ]);
-      set({ users, reports, outcomes, templates, components, auditLogs, actions, _hydrated: true });
+      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, _hydrated: true });
     } catch (err) {
       console.warn("[hydrate] API unreachable, using demo data:", err);
       set({ _hydrated: true });
@@ -335,6 +343,24 @@ export const useAppStore = create<AppState>((set) => ({
   deleteAction: (id) => {
     set((state) => ({ actions: state.actions.filter((a) => a.id !== id) }));
     sync(() => api(`/api/actions/${id}`, { method: "DELETE" }));
+  },
+
+  // ── Risks ──────────────────────────────────────────────────
+  risks: demoRisks,
+  setRisks: (risks) => set({ risks }),
+  addRisk: (risk) => {
+    set((state) => ({ risks: [...state.risks, risk] }));
+    sync(() => api("/api/risks", { method: "POST", body: risk }));
+  },
+  updateRisk: (id, data) => {
+    set((state) => ({
+      risks: state.risks.map((r) => (r.id === id ? { ...r, ...data } : r)),
+    }));
+    sync(() => api(`/api/risks/${id}`, { method: "PATCH", body: data }));
+  },
+  deleteRisk: (id) => {
+    set((state) => ({ risks: state.risks.filter((r) => r.id !== id) }));
+    sync(() => api(`/api/risks/${id}`, { method: "DELETE" }));
   },
 
   // ── Users ──────────────────────────────────────────────────
