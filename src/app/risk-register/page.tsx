@@ -3,12 +3,12 @@
 import { useState, useCallback, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import type { Risk, RiskControl, RiskMitigation } from "@/lib/types";
-import { getRiskScore, getRiskLevel } from "@/lib/risk-categories";
+import { getRiskScore, getRiskLevel, L1_CATEGORY_COLOURS } from "@/lib/risk-categories";
 import RiskHeatmap from "@/components/risk-register/RiskHeatmap";
 import RiskTable from "@/components/risk-register/RiskTable";
 import RiskDetailPanel from "@/components/risk-register/RiskDetailPanel";
 import RiskHistoryChart from "@/components/risk-register/RiskHistoryChart";
-import { Grid3X3, List, Plus, Download, ShieldAlert, TrendingDown, TrendingUp } from "lucide-react";
+import { Grid3X3, List, Plus, Download, ShieldAlert, TrendingDown, TrendingUp, FileText } from "lucide-react";
 
 type ViewTab = "heatmap" | "table";
 type ScoreMode = "inherent" | "residual" | "overlay";
@@ -176,15 +176,216 @@ export default function RiskRegisterPage() {
     [deleteRisk]
   );
 
+  const handleExportHTML = useCallback(() => {
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Risk Register - ${new Date().toLocaleDateString("en-GB")}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Inter, system-ui, sans-serif; background: #f3f4f6; padding: 2rem; }
+    .container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 1rem; padding: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    h1 { font-size: 2rem; font-weight: bold; color: #111827; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+    .subtitle { color: #6b7280; font-size: 0.875rem; margin-bottom: 2rem; }
+    .grid-container { display: flex; gap: 2rem; margin-top: 2rem; }
+    .heatmap-wrapper { flex: 1; }
+    .heatmap { display: grid; grid-template-columns: 4rem repeat(5, 1fr); grid-template-rows: repeat(5, 1fr); gap: 1px; background: #fff; }
+    .axis-label { display: flex; align-items: center; justify-content: flex-end; padding-right: 0.5rem; font-size: 0.75rem; font-weight: 600; color: #374151; }
+    .axis-sublabel { font-size: 0.625rem; color: #9ca3af; font-weight: normal; }
+    .cell { aspect-ratio: 1; min-height: 80px; border: 1px solid rgba(255,255,255,0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; cursor: pointer; transition: transform 0.2s; }
+    .cell:hover { transform: scale(1.05); z-index: 10; }
+    .cell-score { font-size: 0.75rem; font-weight: bold; }
+    .risk-markers { display: flex; flex-wrap: wrap; gap: 0.25rem; justify-content: center; margin-top: 0.25rem; max-width: 90%; }
+    .risk-marker { width: 1.25rem; height: 1.25rem; border-radius: 50%; border: 2px solid; display: flex; align-items: center; justify-content: center; font-size: 0.5rem; font-weight: bold; color: white; position: relative; }
+    .risk-marker.inherent { background: transparent !important; color: #4b5563 !important; }
+    .tooltip { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #111827; color: white; padding: 0.5rem; border-radius: 0.5rem; font-size: 0.75rem; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 50; margin-bottom: 0.5rem; }
+    .risk-marker:hover .tooltip { opacity: 1; }
+    .legend { width: 14rem; }
+    .legend-section { margin-bottom: 1.5rem; }
+    .legend-title { font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+    .legend-item { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.375rem; font-size: 0.75rem; color: #4b5563; }
+    .legend-swatch { width: 1rem; height: 1rem; border-radius: 0.25rem; flex-shrink: 0; }
+    .legend-dot { width: 1rem; height: 1rem; border-radius: 50%; flex-shrink: 0; }
+    .x-axis { display: grid; grid-template-columns: 4rem repeat(5, 1fr); gap: 1px; margin-top: 0.5rem; }
+    .x-label { text-align: center; font-size: 0.75rem; font-weight: 600; color: #374151; }
+    .x-sublabel { font-size: 0.625rem; color: #9ca3af; }
+    .axis-title { text-align: center; margin-top: 0.5rem; font-size: 0.75rem; font-weight: 600; color: #6b7280; }
+    .y-axis-title { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 0.75rem; font-weight: 600; color: #6b7280; position: absolute; left: -2rem; top: 50%; }
+    .risk-list { margin-top: 2rem; }
+    .risk-item { border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; cursor: pointer; transition: all 0.2s; }
+    .risk-item:hover { background: #f9fafb; border-color: #7B1FA2; }
+    .risk-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
+    .risk-ref { font-weight: bold; color: #311B92; font-family: monospace; }
+    .risk-name { font-weight: 600; color: #111827; flex: 1; }
+    .score-badge { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-size: 0.75rem; font-weight: bold; }
+    .score-badge.very-high { background: #dc2626; color: white; }
+    .score-badge.high { background: #ea580c; color: white; }
+    .score-badge.medium { background: #eab308; color: black; }
+    .score-badge.low { background: #22c55e; color: white; }
+    .risk-desc { color: #6b7280; font-size: 0.875rem; line-height: 1.5; }
+    .risk-meta { display: flex; gap: 1.5rem; margin-top: 0.75rem; font-size: 0.75rem; color: #6b7280; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#311B92" stroke-width="2">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+        <line x1="12" y1="9" x2="12" y2="13"></line>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+      </svg>
+      Risk Register
+    </h1>
+    <div class="subtitle">Updraft Risk Management Framework — ${risks.length} risks tracked — Generated ${new Date().toLocaleString("en-GB")}</div>
+
+    <div class="grid-container">
+      <div class="heatmap-wrapper">
+        <div style="position: relative;">
+          <div class="y-axis-title">LIKELIHOOD</div>
+          <div class="heatmap">
+            ${[5, 4, 3, 2, 1].map((likelihood) => `
+              <div class="axis-label">
+                <div>
+                  <div>${likelihood}</div>
+                  <div class="axis-sublabel">${["Almost Certain", "Moderate", "Possible", "Unlikely", "Rare"][5 - likelihood]}</div>
+                </div>
+              </div>
+              ${[1, 2, 3, 4, 5].map((impact) => {
+                const score = likelihood * impact;
+                const level = getRiskLevel(score);
+                const cellRisks = risks.filter((r) =>
+                  (scoreMode === "inherent" && r.inherentLikelihood === likelihood && r.inherentImpact === impact) ||
+                  (scoreMode === "residual" && r.residualLikelihood === likelihood && r.residualImpact === impact) ||
+                  (scoreMode === "overlay" && (
+                    (r.inherentLikelihood === likelihood && r.inherentImpact === impact) ||
+                    (r.residualLikelihood === likelihood && r.residualImpact === impact)
+                  ))
+                );
+                return `
+                  <div class="cell" style="background-color: ${level.colour}30;" onclick="scrollToRisk('${cellRisks[0]?.reference || ""}')">
+                    <span class="cell-score" style="color: ${level.colour};">${score}</span>
+                    ${cellRisks.length > 0 ? `
+                      <div class="risk-markers">
+                        ${cellRisks.map((risk) => {
+                          const catColour = L1_CATEGORY_COLOURS[risk.categoryL1];
+                          const isInherent = scoreMode === "overlay" && risk.inherentLikelihood === likelihood && risk.inherentImpact === impact &&
+                                             (risk.inherentLikelihood !== risk.residualLikelihood || risk.inherentImpact !== risk.residualImpact);
+                          return `
+                            <div class="risk-marker ${isInherent ? 'inherent' : ''}" style="background-color: ${catColour?.fill ?? "#888"}; border-color: ${catColour?.stroke ?? "#666"};">
+                              ${risk.reference.replace("R00", "").replace("R0", "")}
+                              <div class="tooltip">${risk.reference}: ${risk.name}</div>
+                            </div>
+                          `;
+                        }).join("")}
+                      </div>
+                    ` : ""}
+                  </div>
+                `;
+              }).join("")}
+            `).join("")}
+          </div>
+          <div class="x-axis">
+            <div></div>
+            ${[1, 2, 3, 4, 5].map((impact) => `
+              <div>
+                <div class="x-label">${impact}</div>
+                <div class="x-sublabel">${["Negligible", "Minor", "Moderate", "Major", "Significant"][impact - 1]}</div>
+              </div>
+            `).join("")}
+          </div>
+          <div class="axis-title">IMPACT</div>
+        </div>
+      </div>
+
+      <div class="legend">
+        <div class="legend-section">
+          <div class="legend-title">Risk Level</div>
+          ${[
+            { label: "Very High (20–25)", colour: "#dc2626" },
+            { label: "High (10–16)", colour: "#ea580c" },
+            { label: "Medium (5–9)", colour: "#eab308" },
+            { label: "Low (1–4)", colour: "#22c55e" },
+          ].map((item) => `
+            <div class="legend-item">
+              <div class="legend-swatch" style="background-color: ${item.colour}40; border: 2px solid ${item.colour};"></div>
+              <span>${item.label}</span>
+            </div>
+          `).join("")}
+        </div>
+
+        <div class="legend-section">
+          <div class="legend-title">Category</div>
+          ${Object.entries(L1_CATEGORY_COLOURS).map(([, { fill, label }]) => `
+            <div class="legend-item">
+              <div class="legend-dot" style="background-color: ${fill};"></div>
+              <span>${label}</span>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    </div>
+
+    <div class="risk-list">
+      <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem;">Risk Details</h2>
+      ${risks.map((risk) => {
+        const rScore = getRiskScore(risk.residualLikelihood, risk.residualImpact);
+        const rLevel = getRiskLevel(rScore);
+        const iScore = getRiskScore(risk.inherentLikelihood, risk.inherentImpact);
+        return `
+          <div class="risk-item" id="risk-${risk.reference}">
+            <div class="risk-header">
+              <span class="risk-ref">${risk.reference}</span>
+              <span class="risk-name">${risk.name}</span>
+              <span class="score-badge ${rLevel.level.toLowerCase().replace(" ", "-")}">${rScore} ${rLevel.level}</span>
+            </div>
+            <div class="risk-desc">${risk.description}</div>
+            <div class="risk-meta">
+              <span><strong>Category:</strong> ${risk.categoryL1} / ${risk.categoryL2}</span>
+              <span><strong>Owner:</strong> ${risk.owner}</span>
+              <span><strong>Inherent:</strong> ${iScore}</span>
+              <span><strong>Residual:</strong> ${rScore}</span>
+              <span><strong>Direction:</strong> ${risk.directionOfTravel}</span>
+            </div>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  </div>
+
+  <script>
+    function scrollToRisk(ref) {
+      if (!ref) return;
+      const el = document.getElementById('risk-' + ref);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.style.background = '#E1BEE7';
+        setTimeout(() => { el.style.background = ''; }, 2000);
+      }
+    }
+  </script>
+</body>
+</html>`;
+
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `risk-register-${new Date().toISOString().split("T")[0]}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [risks, scoreMode]);
+
   const handleExportCSV = useCallback(() => {
-    const headers = ["Reference", "Name", "Category L1", "Category L2", "Owner", "Inherent L", "Inherent I", "Inherent Score", "Residual L", "Residual I", "Residual Score", "Direction", "Last Reviewed"];
+    const headers = ["Reference", "Name", "Description", "Category L1", "Category L2", "Owner", "Inherent L", "Inherent I", "Inherent Score", "Residual L", "Residual I", "Residual Score", "Direction", "Last Reviewed"];
     const rows = risks.map((r) => [
-      r.reference, r.name, r.categoryL1, r.categoryL2, r.owner,
+      r.reference, r.name, r.description, r.categoryL1, r.categoryL2, r.owner,
       r.inherentLikelihood, r.inherentImpact, getRiskScore(r.inherentLikelihood, r.inherentImpact),
       r.residualLikelihood, r.residualImpact, getRiskScore(r.residualLikelihood, r.residualImpact),
       r.directionOfTravel, r.lastReviewed,
     ]);
-    const csv = [headers, ...rows].map((row) => row.map((v) => `"${v}"`).join(",")).join("\n");
+    const csv = [headers, ...rows].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -218,6 +419,14 @@ export default function RiskRegisterPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportHTML}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            title="Export as standalone HTML file"
+          >
+            <FileText className="w-4 h-4" />
+            Export HTML
+          </button>
           <button
             onClick={handleExportCSV}
             className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"

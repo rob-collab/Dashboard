@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import type { Risk } from "@/lib/types";
 import {
   getCellRiskLevel,
@@ -10,7 +10,6 @@ import {
   IMPACT_SCALE,
   L1_CATEGORY_COLOURS,
 } from "@/lib/risk-categories";
-import RiskHeatmapOverlay from "./RiskHeatmapOverlay";
 
 type ViewMode = "inherent" | "residual" | "overlay";
 
@@ -34,7 +33,6 @@ export default function RiskHeatmap({
 }: RiskHeatmapProps) {
   const [hoveredRisk, setHoveredRisk] = useState<string | null>(null);
   const [selectedCell, setSelectedCell] = useState<{ l: number; i: number } | null>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
 
   // Build a map of risks by cell position
   const risksByCell = useMemo(() => {
@@ -92,7 +90,7 @@ export default function RiskHeatmap({
               LIKELIHOOD
             </div>
 
-            <div className="ml-16" ref={gridRef}>
+            <div className="ml-16">
               {/* Grid rows — likelihood 5 at top, 1 at bottom */}
               {[5, 4, 3, 2, 1].map((likelihood) => (
                 <div key={likelihood} className="flex items-stretch">
@@ -182,10 +180,6 @@ export default function RiskHeatmap({
                 </div>
               ))}
 
-              {/* Overlay arrows in overlay mode */}
-              {viewMode === "overlay" && (
-                <RiskHeatmapOverlay risks={risks} gridRef={gridRef} />
-              )}
 
               {/* X-axis labels */}
               <div className="flex ml-0">
@@ -255,13 +249,6 @@ export default function RiskHeatmap({
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded-full bg-gray-600" />
                 <span className="text-xs text-gray-600">Residual position</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4" viewBox="0 0 16 16">
-                  <path d="M2 14 L14 2" stroke="#7B1FA2" strokeWidth="2" fill="none" markerEnd="url(#arrow)" />
-                  <defs><marker id="arrow" viewBox="0 0 6 6" refX="5" refY="3" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#7B1FA2" /></marker></defs>
-                </svg>
-                <span className="text-xs text-gray-600">Movement arrow</span>
               </div>
             </div>
           )}
