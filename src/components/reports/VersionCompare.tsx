@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import type { ReportVersion } from "@/lib/types";
 import type { RAGStatus } from "@/lib/types";
-import { cn, ragLabel } from "@/lib/utils";
+import { cn, ragLabelShort } from "@/lib/utils";
 
 /* -------------------------------------------------------------------------- */
 /*  Types for internal diff results                                           */
@@ -247,7 +247,7 @@ function RAGBadge({ status }: { status: RAGStatus }) {
         styles[status]
       )}
     >
-      {ragLabel(status)}
+      {ragLabelShort(status)}
     </span>
   );
 }

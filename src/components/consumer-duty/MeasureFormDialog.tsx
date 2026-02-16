@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Modal from "@/components/common/Modal";
-import type { ConsumerDutyMeasure, ConsumerDutyOutcome, RAGStatus } from "@/lib/types";
+import type { ConsumerDutyMeasure, ConsumerDutyOutcome, ConsumerDutyMI, RAGStatus } from "@/lib/types";
 import { generateId } from "@/lib/utils";
+import { Plus, X } from "lucide-react";
 
 interface MeasureFormDialogProps {
   open: boolean;
@@ -15,10 +16,24 @@ interface MeasureFormDialogProps {
 }
 
 const RAG_OPTIONS: { value: RAGStatus; label: string; colour: string }[] = [
-  { value: "GOOD", label: "Good", colour: "text-risk-green" },
-  { value: "WARNING", label: "Warning", colour: "text-risk-amber" },
-  { value: "HARM", label: "Harm", colour: "text-risk-red" },
+  { value: "GOOD", label: "Green", colour: "text-risk-green" },
+  { value: "WARNING", label: "Amber", colour: "text-risk-amber" },
+  { value: "HARM", label: "Red", colour: "text-risk-red" },
 ];
+
+function blankMetric(measureRefId: string): ConsumerDutyMI {
+  return {
+    id: `mi-${generateId()}`,
+    measureId: measureRefId,
+    metric: "",
+    current: "",
+    previous: "",
+    change: "",
+    ragStatus: "GOOD",
+    appetite: null,
+    appetiteOperator: null,
+  };
+}
 
 export default function MeasureFormDialog({
   open,
@@ -36,6 +51,7 @@ export default function MeasureFormDialog({
   const [owner, setOwner] = useState("");
   const [summary, setSummary] = useState("");
   const [ragStatus, setRagStatus] = useState<RAGStatus>("GOOD");
+  const [inlineMetrics, setInlineMetrics] = useState<ConsumerDutyMI[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -47,6 +63,7 @@ export default function MeasureFormDialog({
         setOwner(measure.owner ?? "");
         setSummary(measure.summary);
         setRagStatus(measure.ragStatus);
+        setInlineMetrics((measure.metrics ?? []).map((m) => ({ ...m })));
       } else {
         setMeasureId("");
         setName("");
@@ -54,6 +71,7 @@ export default function MeasureFormDialog({
         setOwner("");
         setSummary("");
         setRagStatus("GOOD");
+        setInlineMetrics([]);
       }
       setErrors({});
     }
@@ -74,9 +92,15 @@ export default function MeasureFormDialog({
 
     const targetOutcome = outcomes.find((o) => o.id === outcomeId);
     const nextPos = targetOutcome?.measures?.length ?? 0;
+    const mId = measure?.id ?? `measure-${generateId()}`;
+
+    // Filter out blank metrics (no metric name)
+    const validMetrics = inlineMetrics
+      .filter((m) => m.metric.trim())
+      .map((m) => ({ ...m, measureId: mId }));
 
     const saved: ConsumerDutyMeasure = {
-      id: measure?.id ?? `measure-${generateId()}`,
+      id: mId,
       outcomeId,
       measureId: measureId.trim(),
       name: name.trim(),
@@ -85,11 +109,29 @@ export default function MeasureFormDialog({
       ragStatus,
       position: measure?.position ?? nextPos,
       lastUpdatedAt: new Date().toISOString(),
-      metrics: measure?.metrics ?? [],
+      metrics: validMetrics,
     };
 
     onSave(outcomeId, saved);
     onClose();
+  }
+
+  function addMetric() {
+    setInlineMetrics((prev) => [...prev, blankMetric(measure?.id ?? "")]);
+  }
+
+  function removeMetric(index: number) {
+    setInlineMetrics((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function updateInlineMetric(
+    index: number,
+    field: keyof ConsumerDutyMI,
+    value: string
+  ) {
+    setInlineMetrics((prev) =>
+      prev.map((m, i) => (i === index ? { ...m, [field]: value } : m))
+    );
   }
 
   const inputClasses =
@@ -102,7 +144,7 @@ export default function MeasureFormDialog({
       open={open}
       onClose={onClose}
       title={isEdit ? "Edit Measure" : "Add Measure"}
-      size="md"
+      size="lg"
       footer={
         <>
           <button
@@ -207,6 +249,68 @@ export default function MeasureFormDialog({
               </label>
             ))}
           </div>
+        </div>
+
+        {/* Inline MI Metrics */}
+        <div className="border-t border-gray-200 pt-4">
+          <div className="flex items-center justify-between mb-3">
+            <label className={labelClasses}>MI Metrics</label>
+            <button
+              type="button"
+              onClick={addMetric}
+              className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              <Plus size={12} />
+              Add Metric
+            </button>
+          </div>
+
+          {inlineMetrics.length === 0 ? (
+            <p className="text-xs text-gray-400 py-2">
+              No metrics yet. Click &ldquo;Add Metric&rdquo; to add one.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {inlineMetrics.map((m, idx) => (
+                <div
+                  key={m.id}
+                  className="flex items-center gap-2 rounded-lg border border-gray-100 bg-gray-50/50 p-2"
+                >
+                  <input
+                    type="text"
+                    value={m.metric}
+                    onChange={(e) => updateInlineMetric(idx, "metric", e.target.value)}
+                    placeholder="Metric name"
+                    className="flex-1 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-updraft-light-purple"
+                  />
+                  <input
+                    type="text"
+                    value={m.current}
+                    onChange={(e) => updateInlineMetric(idx, "current", e.target.value)}
+                    placeholder="Value"
+                    className="w-20 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-right outline-none focus:border-updraft-light-purple"
+                  />
+                  <select
+                    value={m.ragStatus}
+                    onChange={(e) => updateInlineMetric(idx, "ragStatus", e.target.value)}
+                    className="rounded-md border border-gray-200 bg-white px-1.5 py-1.5 text-xs outline-none focus:border-updraft-light-purple"
+                  >
+                    {RAG_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => removeMetric(idx)}
+                    className="shrink-0 rounded-md p-1 text-gray-400 hover:text-risk-red hover:bg-red-50 transition-colors"
+                    title="Remove metric"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </form>
     </Modal>

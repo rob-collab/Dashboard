@@ -207,10 +207,10 @@ export default function DashboardHome() {
                     }`}
                   >
                     {outcome.ragStatus === "GOOD"
-                      ? "Good"
+                      ? "Green"
                       : outcome.ragStatus === "WARNING"
-                      ? "Warning"
-                      : "Harm"}
+                      ? "Amber"
+                      : "Red"}
                   </span>
                 </div>
               </div>

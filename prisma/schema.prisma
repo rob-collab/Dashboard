@@ -150,18 +150,36 @@ model ConsumerDutyMeasure {
 }
 
 model ConsumerDutyMI {
-  id        String    @id @default(cuid())
-  measureId String
-  measure   ConsumerDutyMeasure @relation(fields: [measureId], references: [id], onDelete: Cascade)
-  metric    String
-  current   String    @default("")
-  previous  String    @default("")
-  change    String    @default("")
-  ragStatus RAGStatus @default(GOOD)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id               String    @id @default(cuid())
+  measureId        String
+  measure          ConsumerDutyMeasure @relation(fields: [measureId], references: [id], onDelete: Cascade)
+  metric           String
+  current          String    @default("")
+  previous         String    @default("")
+  change           String    @default("")
+  ragStatus        RAGStatus @default(GOOD)
+  appetite         String?
+  appetiteOperator String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  snapshots MetricSnapshot[]
 
   @@map("consumer_duty_mi")
+}
+
+model MetricSnapshot {
+  id        String    @id @default(cuid())
+  miId      String
+  mi        ConsumerDutyMI @relation(fields: [miId], references: [id], onDelete: Cascade)
+  month     DateTime
+  value     String
+  ragStatus RAGStatus @default(GOOD)
+  createdAt DateTime  @default(now())
+
+  @@unique([miId, month])
+  @@index([miId])
+  @@map("metric_snapshots")
 }
 
 model ReportVersion {

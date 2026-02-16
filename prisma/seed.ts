@@ -70,7 +70,7 @@ const DEMO_SECTIONS: {
 ];
 
 // ── Demo Outcomes & Measures ────────────────────────────────────────────────────
-interface SeedMI { id: string; measureId: string; metric: string; current: string; previous: string; change: string; ragStatus: RAGStatus }
+interface SeedMI { id: string; measureId: string; metric: string; current: string; previous: string; change: string; ragStatus: RAGStatus; appetite: string | null; appetiteOperator: string | null }
 interface SeedMeasure { id: string; outcomeId: string; measureId: string; name: string; owner: string | null; summary: string; ragStatus: RAGStatus; position: number; lastUpdatedAt: Date | null; metrics: SeedMI[] }
 interface SeedOutcome { id: string; reportId: string | null; outcomeId: string; name: string; shortDesc: string; icon: string | null; ragStatus: RAGStatus; position: number; measures: SeedMeasure[] }
 
@@ -79,12 +79,12 @@ const DEMO_OUTCOMES: SeedOutcome[] = [
     id: "outcome-1", reportId: "report-feb-2025", outcomeId: "o1", name: "Products & Services", shortDesc: "Products designed to meet customer needs", icon: "Package", ragStatus: "GOOD", position: 0,
     measures: [
       { id: "measure-1-1", outcomeId: "outcome-1", measureId: "1.1", name: "Customer Needs Met", owner: "ash@updraft.com", summary: "Products meeting identified customer needs", ragStatus: "GOOD", position: 0, lastUpdatedAt: new Date("2025-02-12T16:45:00Z"), metrics: [
-        { id: "mi-1-1-1", measureId: "measure-1-1", metric: "Net Promoter Score", current: "72", previous: "70", change: "+2", ragStatus: "GOOD" },
-        { id: "mi-1-1-2", measureId: "measure-1-1", metric: "TrustPilot Score", current: "4.8", previous: "4.8", change: "0", ragStatus: "GOOD" },
+        { id: "mi-1-1-1", measureId: "measure-1-1", metric: "Net Promoter Score", current: "72", previous: "70", change: "+2", ragStatus: "GOOD", appetite: "70", appetiteOperator: ">=" },
+        { id: "mi-1-1-2", measureId: "measure-1-1", metric: "TrustPilot Score", current: "4.8", previous: "4.8", change: "0", ragStatus: "GOOD", appetite: "4.5", appetiteOperator: ">=" },
       ]},
       { id: "measure-1-3", outcomeId: "outcome-1", measureId: "1.3", name: "New Credit Applications", owner: "ash@updraft.com", summary: "Quality of new application process", ragStatus: "GOOD", position: 1, lastUpdatedAt: new Date("2024-12-20T10:00:00Z"), metrics: [
-        { id: "mi-1-3-1", measureId: "measure-1-3", metric: "Application Approval Rate", current: "68%", previous: "65%", change: "+3%", ragStatus: "GOOD" },
-        { id: "mi-1-3-2", measureId: "measure-1-3", metric: "Time to Decision", current: "2.1 days", previous: "2.4 days", change: "-0.3", ragStatus: "GOOD" },
+        { id: "mi-1-3-1", measureId: "measure-1-3", metric: "Application Approval Rate", current: "68%", previous: "65%", change: "+3%", ragStatus: "GOOD", appetite: null, appetiteOperator: null },
+        { id: "mi-1-3-2", measureId: "measure-1-3", metric: "Time to Decision", current: "2.1 days", previous: "2.4 days", change: "-0.3", ragStatus: "GOOD", appetite: "3", appetiteOperator: "<=" },
       ]},
     ],
   },
@@ -92,8 +92,8 @@ const DEMO_OUTCOMES: SeedOutcome[] = [
     id: "outcome-2", reportId: "report-feb-2025", outcomeId: "o2", name: "Price & Value", shortDesc: "Fair pricing and value for money", icon: "DollarSign", ragStatus: "GOOD", position: 1,
     measures: [
       { id: "measure-2-1", outcomeId: "outcome-2", measureId: "2.1", name: "APR Alignment", owner: "micha@updraft.com", summary: "APR rates competitive and fair", ragStatus: "GOOD", position: 0, lastUpdatedAt: new Date("2025-02-10T09:30:00Z"), metrics: [
-        { id: "mi-2-1-1", measureId: "measure-2-1", metric: "Average APR", current: "29.9%", previous: "29.9%", change: "0", ragStatus: "GOOD" },
-        { id: "mi-2-1-2", measureId: "measure-2-1", metric: "Market Comparison", current: "Below avg", previous: "Below avg", change: "-", ragStatus: "GOOD" },
+        { id: "mi-2-1-1", measureId: "measure-2-1", metric: "Average APR", current: "29.9%", previous: "29.9%", change: "0", ragStatus: "GOOD", appetite: null, appetiteOperator: null },
+        { id: "mi-2-1-2", measureId: "measure-2-1", metric: "Market Comparison", current: "Below avg", previous: "Below avg", change: "-", ragStatus: "GOOD", appetite: null, appetiteOperator: null },
       ]},
     ],
   },
@@ -101,11 +101,11 @@ const DEMO_OUTCOMES: SeedOutcome[] = [
     id: "outcome-3", reportId: "report-feb-2025", outcomeId: "o3", name: "Customer Understanding", shortDesc: "Clear communication and information", icon: "BookOpen", ragStatus: "WARNING", position: 2,
     measures: [
       { id: "measure-3-1", outcomeId: "outcome-3", measureId: "3.1", name: "Communication Clarity", owner: "ash@updraft.com", summary: "Customer communications clear and timely", ragStatus: "GOOD", position: 0, lastUpdatedAt: new Date("2025-02-08T14:00:00Z"), metrics: [
-        { id: "mi-3-1-1", measureId: "measure-3-1", metric: "Readability Score", current: "82", previous: "80", change: "+2", ragStatus: "GOOD" },
+        { id: "mi-3-1-1", measureId: "measure-3-1", metric: "Readability Score", current: "82", previous: "80", change: "+2", ragStatus: "GOOD", appetite: "75", appetiteOperator: ">=" },
       ]},
       { id: "measure-3-3", outcomeId: "outcome-3", measureId: "3.3", name: "Drop-off Points", owner: "chris@updraft.com", summary: "Customer journey drop-off analysis", ragStatus: "WARNING", position: 1, lastUpdatedAt: new Date("2024-12-15T11:00:00Z"), metrics: [
-        { id: "mi-3-3-1", measureId: "measure-3-3", metric: "Pre-contract Drop-off", current: "45%", previous: "40%", change: "+5%", ragStatus: "WARNING" },
-        { id: "mi-3-3-2", measureId: "measure-3-3", metric: "Application Abandonment", current: "22%", previous: "20%", change: "+2%", ragStatus: "WARNING" },
+        { id: "mi-3-3-1", measureId: "measure-3-3", metric: "Pre-contract Drop-off", current: "45%", previous: "40%", change: "+5%", ragStatus: "WARNING", appetite: "40", appetiteOperator: "<=" },
+        { id: "mi-3-3-2", measureId: "measure-3-3", metric: "Application Abandonment", current: "22%", previous: "20%", change: "+2%", ragStatus: "WARNING", appetite: "15", appetiteOperator: "<=" },
       ]},
     ],
   },
@@ -113,11 +113,11 @@ const DEMO_OUTCOMES: SeedOutcome[] = [
     id: "outcome-4", reportId: "report-feb-2025", outcomeId: "o4", name: "Customer Support", shortDesc: "Responsive and effective support", icon: "Headphones", ragStatus: "GOOD", position: 3,
     measures: [
       { id: "measure-4-2", outcomeId: "outcome-4", measureId: "4.2", name: "Response Times", owner: "chris@updraft.com", summary: "Customer support response performance", ragStatus: "GOOD", position: 0, lastUpdatedAt: new Date("2025-02-11T10:15:00Z"), metrics: [
-        { id: "mi-4-2-1", measureId: "measure-4-2", metric: "Avg Response Time", current: "2.4 hrs", previous: "3.1 hrs", change: "-0.7", ragStatus: "GOOD" },
-        { id: "mi-4-2-2", measureId: "measure-4-2", metric: "First Contact Resolution", current: "78%", previous: "75%", change: "+3%", ragStatus: "GOOD" },
+        { id: "mi-4-2-1", measureId: "measure-4-2", metric: "Avg Response Time", current: "2.4 hrs", previous: "3.1 hrs", change: "-0.7", ragStatus: "GOOD", appetite: null, appetiteOperator: null },
+        { id: "mi-4-2-2", measureId: "measure-4-2", metric: "First Contact Resolution", current: "78%", previous: "75%", change: "+3%", ragStatus: "GOOD", appetite: "70", appetiteOperator: ">=" },
       ]},
       { id: "measure-4-7", outcomeId: "outcome-4", measureId: "4.7", name: "Broken Payment Plans", owner: "chris@updraft.com", summary: "Payment plan adherence tracking", ragStatus: "WARNING", position: 1, lastUpdatedAt: new Date("2024-12-28T16:00:00Z"), metrics: [
-        { id: "mi-4-7-1", measureId: "measure-4-7", metric: "Broken Plans Rate", current: "15%", previous: "12%", change: "+3%", ragStatus: "WARNING" },
+        { id: "mi-4-7-1", measureId: "measure-4-7", metric: "Broken Plans Rate", current: "15%", previous: "12%", change: "+3%", ragStatus: "WARNING", appetite: "10", appetiteOperator: "<=" },
       ]},
     ],
   },
@@ -125,8 +125,8 @@ const DEMO_OUTCOMES: SeedOutcome[] = [
     id: "outcome-5", reportId: "report-feb-2025", outcomeId: "g1", name: "Governance & Culture", shortDesc: "Effective governance and consumer-focused culture", icon: "Building", ragStatus: "GOOD", position: 4,
     measures: [
       { id: "measure-5-1", outcomeId: "outcome-5", measureId: "5.1", name: "Board Oversight", owner: "cath@updraft.com", summary: "Board governance and oversight effectiveness", ragStatus: "GOOD", position: 0, lastUpdatedAt: new Date("2025-02-13T09:00:00Z"), metrics: [
-        { id: "mi-5-1-1", measureId: "measure-5-1", metric: "Board Attendance", current: "100%", previous: "95%", change: "+5%", ragStatus: "GOOD" },
-        { id: "mi-5-1-2", measureId: "measure-5-1", metric: "Actions Completed", current: "92%", previous: "88%", change: "+4%", ragStatus: "GOOD" },
+        { id: "mi-5-1-1", measureId: "measure-5-1", metric: "Board Attendance", current: "100%", previous: "95%", change: "+5%", ragStatus: "GOOD", appetite: "90", appetiteOperator: ">=" },
+        { id: "mi-5-1-2", measureId: "measure-5-1", metric: "Actions Completed", current: "92%", previous: "88%", change: "+4%", ragStatus: "GOOD", appetite: "85", appetiteOperator: ">=" },
       ]},
     ],
   },
@@ -205,6 +205,80 @@ async function main() {
     }
   }
   console.log(`  ✓ ${DEMO_OUTCOMES.length} outcomes, ${measureCount} measures, ${miCount} MI metrics`);
+
+  // Metric Snapshots — 12 months of history for key metrics
+  const SNAPSHOT_DATA: { miId: string; months: { month: string; value: string; ragStatus: RAGStatus }[] }[] = [
+    { miId: "mi-1-1-1", months: [ // NPS
+      { month: "2024-03-01", value: "65", ragStatus: "GOOD" },
+      { month: "2024-04-01", value: "66", ragStatus: "GOOD" },
+      { month: "2024-05-01", value: "64", ragStatus: "GOOD" },
+      { month: "2024-06-01", value: "67", ragStatus: "GOOD" },
+      { month: "2024-07-01", value: "68", ragStatus: "GOOD" },
+      { month: "2024-08-01", value: "66", ragStatus: "WARNING" },
+      { month: "2024-09-01", value: "69", ragStatus: "GOOD" },
+      { month: "2024-10-01", value: "70", ragStatus: "GOOD" },
+      { month: "2024-11-01", value: "68", ragStatus: "GOOD" },
+      { month: "2024-12-01", value: "69", ragStatus: "GOOD" },
+      { month: "2025-01-01", value: "70", ragStatus: "GOOD" },
+      { month: "2025-02-01", value: "72", ragStatus: "GOOD" },
+    ]},
+    { miId: "mi-3-3-1", months: [ // Pre-contract Drop-off
+      { month: "2024-03-01", value: "35", ragStatus: "GOOD" },
+      { month: "2024-04-01", value: "36", ragStatus: "GOOD" },
+      { month: "2024-05-01", value: "37", ragStatus: "GOOD" },
+      { month: "2024-06-01", value: "38", ragStatus: "GOOD" },
+      { month: "2024-07-01", value: "39", ragStatus: "GOOD" },
+      { month: "2024-08-01", value: "40", ragStatus: "WARNING" },
+      { month: "2024-09-01", value: "41", ragStatus: "WARNING" },
+      { month: "2024-10-01", value: "42", ragStatus: "WARNING" },
+      { month: "2024-11-01", value: "43", ragStatus: "WARNING" },
+      { month: "2024-12-01", value: "40", ragStatus: "WARNING" },
+      { month: "2025-01-01", value: "42", ragStatus: "WARNING" },
+      { month: "2025-02-01", value: "45", ragStatus: "WARNING" },
+    ]},
+    { miId: "mi-4-7-1", months: [ // Broken Plans Rate
+      { month: "2024-03-01", value: "8", ragStatus: "GOOD" },
+      { month: "2024-04-01", value: "7", ragStatus: "GOOD" },
+      { month: "2024-05-01", value: "9", ragStatus: "GOOD" },
+      { month: "2024-06-01", value: "8", ragStatus: "GOOD" },
+      { month: "2024-07-01", value: "10", ragStatus: "WARNING" },
+      { month: "2024-08-01", value: "11", ragStatus: "WARNING" },
+      { month: "2024-09-01", value: "10", ragStatus: "WARNING" },
+      { month: "2024-10-01", value: "12", ragStatus: "WARNING" },
+      { month: "2024-11-01", value: "11", ragStatus: "WARNING" },
+      { month: "2024-12-01", value: "12", ragStatus: "WARNING" },
+      { month: "2025-01-01", value: "13", ragStatus: "WARNING" },
+      { month: "2025-02-01", value: "15", ragStatus: "WARNING" },
+    ]},
+    { miId: "mi-5-1-1", months: [ // Board Attendance
+      { month: "2024-03-01", value: "90", ragStatus: "GOOD" },
+      { month: "2024-04-01", value: "95", ragStatus: "GOOD" },
+      { month: "2024-05-01", value: "85", ragStatus: "WARNING" },
+      { month: "2024-06-01", value: "90", ragStatus: "GOOD" },
+      { month: "2024-07-01", value: "100", ragStatus: "GOOD" },
+      { month: "2024-08-01", value: "95", ragStatus: "GOOD" },
+      { month: "2024-09-01", value: "90", ragStatus: "GOOD" },
+      { month: "2024-10-01", value: "100", ragStatus: "GOOD" },
+      { month: "2024-11-01", value: "95", ragStatus: "GOOD" },
+      { month: "2024-12-01", value: "100", ragStatus: "GOOD" },
+      { month: "2025-01-01", value: "95", ragStatus: "GOOD" },
+      { month: "2025-02-01", value: "100", ragStatus: "GOOD" },
+    ]},
+  ];
+
+  let snapshotCount = 0;
+  for (const s of SNAPSHOT_DATA) {
+    for (const m of s.months) {
+      const monthDate = new Date(m.month);
+      await prisma.metricSnapshot.upsert({
+        where: { miId_month: { miId: s.miId, month: monthDate } },
+        update: { value: m.value, ragStatus: m.ragStatus },
+        create: { miId: s.miId, month: monthDate, value: m.value, ragStatus: m.ragStatus },
+      });
+      snapshotCount++;
+    }
+  }
+  console.log(`  ✓ ${snapshotCount} metric snapshots`);
 
   // Versions
   for (const v of DEMO_VERSIONS) {

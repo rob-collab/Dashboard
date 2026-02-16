@@ -1,7 +1,7 @@
 "use client";
 
 import type { RAGStatus } from "@/lib/types";
-import { cn, ragColor, ragBgColor, ragLabel } from "@/lib/utils";
+import { cn, ragColor, ragBgColor, ragLabel, ragLabelShort } from "@/lib/utils";
 
 type BadgeSize = "sm" | "md" | "lg";
 
@@ -46,6 +46,7 @@ export default function RAGBadge({
 
   return (
     <span
+      title={ragLabel(status)}
       className={cn(
         "inline-flex items-center rounded-full font-medium",
         sizeConfig.wrapper,
@@ -71,7 +72,7 @@ export default function RAGBadge({
           )}
         />
       </span>
-      <span className={sizeConfig.text}>{ragLabel(status)}</span>
+      <span className={sizeConfig.text}>{ragLabelShort(status)}</span>
     </span>
   );
 }

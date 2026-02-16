@@ -23,9 +23,9 @@ const ICON_OPTIONS = [
 ];
 
 const RAG_OPTIONS: { value: RAGStatus; label: string; colour: string }[] = [
-  { value: "GOOD", label: "Good", colour: "text-risk-green" },
-  { value: "WARNING", label: "Warning", colour: "text-risk-amber" },
-  { value: "HARM", label: "Harm", colour: "text-risk-red" },
+  { value: "GOOD", label: "Green", colour: "text-risk-green" },
+  { value: "WARNING", label: "Amber", colour: "text-risk-amber" },
+  { value: "HARM", label: "Red", colour: "text-risk-red" },
 ];
 
 export default function OutcomeFormDialog({

@@ -42,9 +42,17 @@ export function ragBgColor(status: RAGStatus): string {
 
 export function ragLabel(status: RAGStatus): string {
   switch (status) {
-    case "GOOD": return "Good";
-    case "WARNING": return "Warning";
-    case "HARM": return "Harm";
+    case "GOOD": return "Green — Good Customer Outcome";
+    case "WARNING": return "Amber — Possible Detriment";
+    case "HARM": return "Red — Harm Identified";
+  }
+}
+
+export function ragLabelShort(status: RAGStatus): string {
+  switch (status) {
+    case "GOOD": return "Green";
+    case "WARNING": return "Amber";
+    case "HARM": return "Red";
   }
 }
 

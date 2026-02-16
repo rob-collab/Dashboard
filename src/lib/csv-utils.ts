@@ -128,9 +128,42 @@ export function autoMapColumns(headers: string[]): Partial<ColumnMapping> {
  */
 export function normaliseRAG(input: string): RAGStatus | null {
   const lower = input.toLowerCase().trim();
-  if (["good", "green", "g"].includes(lower)) return "GOOD";
-  if (["warning", "amber", "w", "a"].includes(lower)) return "WARNING";
-  if (["harm", "red", "h", "r"].includes(lower)) return "HARM";
+  if (["good", "green", "g", "good customer outcome"].includes(lower)) return "GOOD";
+  if (["warning", "amber", "w", "a", "possible detriment"].includes(lower)) return "WARNING";
+  if (["harm", "red", "h", "r", "harm identified"].includes(lower)) return "HARM";
+  return null;
+}
+
+/**
+ * Resolve an outcome from a raw CSV value. Matches by:
+ * - internal ID (e.g. "outcome-1")
+ * - outcomeId code (e.g. "o1")
+ * - name (e.g. "Products & Services")
+ * - partial name (case-insensitive startsWith)
+ */
+export function resolveOutcomeId(
+  rawValue: string,
+  outcomes: { id: string; outcomeId: string; name: string }[]
+): string | null {
+  if (!rawValue) return null;
+  const lower = rawValue.toLowerCase().trim();
+
+  // Exact match on internal ID
+  const byId = outcomes.find((o) => o.id.toLowerCase() === lower);
+  if (byId) return byId.id;
+
+  // Match on outcomeId code
+  const byCode = outcomes.find((o) => o.outcomeId.toLowerCase() === lower);
+  if (byCode) return byCode.id;
+
+  // Exact match on name
+  const byName = outcomes.find((o) => o.name.toLowerCase() === lower);
+  if (byName) return byName.id;
+
+  // Partial match on name
+  const byPartial = outcomes.find((o) => o.name.toLowerCase().startsWith(lower));
+  if (byPartial) return byPartial.id;
+
   return null;
 }
 
@@ -141,7 +174,8 @@ export function validateRow(
   row: ParsedRow,
   rowIndex: number,
   columnMapping: Partial<ColumnMapping>,
-  validOutcomeIds: string[]
+  validOutcomeIds: string[],
+  outcomes?: { id: string; outcomeId: string; name: string }[]
 ): RowValidation {
   const errors: string[] = [];
 
@@ -154,15 +188,24 @@ export function validateRow(
 
   if (!measureId) errors.push("Missing Measure ID");
   if (!name) errors.push("Missing Name");
-  if (!outcomeIdRaw) errors.push("Missing Outcome");
 
-  // Try to match outcome by ID or name
+  // Try to match outcome
   let matchedOutcomeId = "";
   if (outcomeIdRaw) {
-    const match = validOutcomeIds.find(
-      (id) => id.toLowerCase() === outcomeIdRaw.toLowerCase()
-    );
-    matchedOutcomeId = match ?? outcomeIdRaw;
+    if (outcomes) {
+      const resolved = resolveOutcomeId(outcomeIdRaw, outcomes);
+      if (resolved) {
+        matchedOutcomeId = resolved;
+      } else {
+        const validNames = outcomes.map((o) => `${o.name} (${o.outcomeId})`).join(", ");
+        errors.push(`Could not match outcome '${outcomeIdRaw}'. Valid: ${validNames}`);
+      }
+    } else {
+      const match = validOutcomeIds.find(
+        (id) => id.toLowerCase() === outcomeIdRaw.toLowerCase()
+      );
+      matchedOutcomeId = match ?? outcomeIdRaw;
+    }
   }
 
   const ragStatus = ragRaw ? normaliseRAG(ragRaw) : "GOOD";

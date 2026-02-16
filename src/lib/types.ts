@@ -130,6 +130,18 @@ export interface ConsumerDutyMI {
   previous: string;
   change: string;
   ragStatus: RAGStatus;
+  appetite: string | null;
+  appetiteOperator: string | null;
+  snapshots?: MetricSnapshot[];
+}
+
+export interface MetricSnapshot {
+  id: string;
+  miId: string;
+  month: string;
+  value: string;
+  ragStatus: RAGStatus;
+  createdAt: string;
 }
 
 export interface ReportVersion {

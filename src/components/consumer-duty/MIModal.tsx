@@ -10,10 +10,12 @@ import {
   cn,
   ragBgColor,
   ragLabel,
+  ragLabelShort,
   calculateChange,
   suggestRAG,
 } from "@/lib/utils";
 import Modal from "@/components/common/Modal";
+import MetricDrillDown from "@/components/consumer-duty/MetricDrillDown";
 import { TrendingUp, TrendingDown, Minus, Save } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -24,7 +26,9 @@ interface MIModalProps {
   open: boolean;
   onClose: () => void;
   editable: boolean;
+  isCCRO?: boolean;
   onSave?: (measureId: string, metrics: ConsumerDutyMI[]) => void;
+  onSaveAppetite?: (miId: string, appetite: string | null, appetiteOperator: string | null) => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -66,10 +70,13 @@ export default function MIModal({
   open,
   onClose,
   editable,
+  isCCRO = false,
   onSave,
+  onSaveAppetite,
 }: MIModalProps) {
   const [editedMetrics, setEditedMetrics] = useState<ConsumerDutyMI[]>([]);
   const [dirty, setDirty] = useState(false);
+  const [drillDownMetric, setDrillDownMetric] = useState<ConsumerDutyMI | null>(null);
 
   /* Sync local state when measure changes */
   useEffect(() => {
@@ -174,7 +181,7 @@ export default function MIModal({
             )}
           />
           <span className="text-xs font-medium text-gray-500">
-            Overall status: {ragLabel(measure.ragStatus)}
+            Overall status: {ragLabelShort(measure.ragStatus)}
           </span>
           {measure.owner && (
             <>
@@ -218,7 +225,8 @@ export default function MIModal({
               {metrics.map((metric, idx) => (
                 <tr
                   key={metric.id}
-                  className="group hover:bg-updraft-pale-purple/5 transition-colors"
+                  className="group cursor-pointer hover:bg-updraft-pale-purple/10 transition-colors"
+                  onClick={() => !editable && setDrillDownMetric(metric)}
                 >
                   {/* Metric name */}
                   <td className="py-3 pr-4 font-medium text-gray-800">
@@ -296,7 +304,7 @@ export default function MIModal({
                               )}
                               title={ragLabel(rag)}
                             >
-                              {ragLabel(rag).charAt(0)}
+                              {ragLabelShort(rag).charAt(0)}
                             </button>
                           );
                         })}
@@ -320,7 +328,7 @@ export default function MIModal({
                               ragBgColor(metric.ragStatus)
                             )}
                           />
-                          {ragLabel(metric.ragStatus)}
+                          {ragLabelShort(metric.ragStatus)}
                         </span>
                       </div>
                     )}
@@ -339,6 +347,21 @@ export default function MIModal({
           You have unsaved changes
         </div>
       )}
+
+      {!editable && metrics.length > 0 && (
+        <p className="mt-3 text-center text-xs text-gray-400">
+          Click a metric row to view history and target details
+        </p>
+      )}
+
+      {/* Metric Drill-Down */}
+      <MetricDrillDown
+        metric={drillDownMetric}
+        open={!!drillDownMetric}
+        onClose={() => setDrillDownMetric(null)}
+        isCCRO={isCCRO}
+        onSaveAppetite={onSaveAppetite}
+      />
     </Modal>
   );
 }

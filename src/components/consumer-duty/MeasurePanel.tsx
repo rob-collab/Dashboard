@@ -1,7 +1,7 @@
 "use client";
 
 import type { ConsumerDutyMeasure } from "@/lib/types";
-import { cn, ragBgColor, ragLabel } from "@/lib/utils";
+import { cn, ragBgColor, ragLabelShort } from "@/lib/utils";
 import { isMeasureStale } from "@/lib/stale-utils";
 import { Activity, AlertTriangle } from "lucide-react";
 
@@ -90,7 +90,7 @@ export default function MeasurePanel({
                     "bg-risk-red/10 text-risk-red"
                 )}
               >
-                {ragLabel(measure.ragStatus)}
+                {ragLabelShort(measure.ragStatus)}
               </span>
             </div>
 

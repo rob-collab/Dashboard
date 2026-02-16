@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ShieldCheck, Search, Filter, ClipboardEdit, Plus, Upload, Pencil, Trash2 } from "lucide-react";
+import { ShieldCheck, Search, Filter, ClipboardEdit, Plus, Upload, Pencil, Trash2, Shield } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { logAuditEvent } from "@/lib/audit";
 import OutcomeCard from "@/components/consumer-duty/OutcomeCard";
@@ -11,16 +11,17 @@ import MIModal from "@/components/consumer-duty/MIModal";
 import OutcomeFormDialog from "@/components/consumer-duty/OutcomeFormDialog";
 import MeasureFormDialog from "@/components/consumer-duty/MeasureFormDialog";
 import CSVUploadDialog from "@/components/consumer-duty/CSVUploadDialog";
-import { cn, ragBgColor, ragLabel } from "@/lib/utils";
+import AdminRAGPanel from "@/components/consumer-duty/AdminRAGPanel";
+import { cn, ragBgColor, ragLabelShort } from "@/lib/utils";
 import type { ConsumerDutyMeasure, ConsumerDutyOutcome, ConsumerDutyMI, RAGStatus } from "@/lib/types";
 
 type RagFilterValue = RAGStatus | "ALL" | "ATTENTION";
 
 const RAG_FILTERS: { value: RAGStatus | "ALL"; label: string }[] = [
   { value: "ALL", label: "All" },
-  { value: "GOOD", label: "Good" },
-  { value: "WARNING", label: "Warning" },
-  { value: "HARM", label: "Harm" },
+  { value: "GOOD", label: "Green" },
+  { value: "WARNING", label: "Amber" },
+  { value: "HARM", label: "Red" },
 ];
 
 function ConsumerDutyContent() {
@@ -49,7 +50,7 @@ function ConsumerDutyContent() {
     return "ALL";
   });
   const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState<"all" | "my">("all");
+  const [viewMode, setViewMode] = useState<"all" | "my" | "admin">("all");
 
   // Management dialog state
   const [outcomeDialogOpen, setOutcomeDialogOpen] = useState(false);
@@ -156,6 +157,10 @@ function ConsumerDutyContent() {
       addMeasure(outcomeId, measure);
       logAuditEvent({ action: "add_measure", entityType: "consumer_duty_measure", entityId: measure.id, changes: { name: measure.name, outcomeId } });
     }
+    // Sync inline metrics if provided
+    if (measure.metrics && measure.metrics.length > 0) {
+      updateMeasureMetrics(measure.id, measure.metrics);
+    }
     setEditingMeasure(undefined);
   };
 
@@ -169,9 +174,29 @@ function ConsumerDutyContent() {
     }
   };
 
-  const handleCSVImport = (items: { outcomeId: string; measure: ConsumerDutyMeasure }[]) => {
-    bulkAddMeasures(items);
-    logAuditEvent({ action: "bulk_add_measures", entityType: "consumer_duty_measure", changes: { count: items.length } });
+  const handleCSVImport = async (
+    items: { outcomeId: string; measure: ConsumerDutyMeasure }[],
+    mode?: "append" | "replace",
+    affectedOutcomeIds?: string[]
+  ) => {
+    if (mode === "replace" && affectedOutcomeIds?.length) {
+      // Call bulk-replace API — transactionally delete existing then insert
+      try {
+        await fetch("/api/consumer-duty/measures/bulk-replace", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ outcomeIds: affectedOutcomeIds, measures: items }),
+        });
+      } catch {
+        // Fallback to local-only if API unreachable
+      }
+      // Refresh store from API
+      useAppStore.getState().hydrate();
+      logAuditEvent({ action: "bulk_replace_measures", entityType: "consumer_duty_measure", changes: { count: items.length, mode: "replace", outcomeIds: affectedOutcomeIds } });
+    } else {
+      bulkAddMeasures(items);
+      logAuditEvent({ action: "bulk_add_measures", entityType: "consumer_duty_measure", changes: { count: items.length } });
+    }
   };
 
   return (
@@ -247,6 +272,20 @@ function ConsumerDutyContent() {
                   </span>
                 )}
               </button>
+              {isCCROTeam && (
+                <button
+                  onClick={() => setViewMode("admin")}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                    viewMode === "admin"
+                      ? "bg-updraft-pale-purple/40 text-updraft-deep"
+                      : "text-gray-500 hover:text-gray-700"
+                  )}
+                >
+                  <Shield size={12} />
+                  RAG Admin
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -274,10 +313,10 @@ function ConsumerDutyContent() {
         >
           <div className="flex items-center gap-2">
             <span className={cn("h-2.5 w-2.5 rounded-full", ragBgColor("GOOD"))} />
-            <p className="text-xs text-fca-gray">Good</p>
+            <p className="text-xs text-fca-gray">Green</p>
           </div>
           <p className="text-2xl font-bold text-risk-green mt-1">{goodCount}</p>
-          <p className="text-xs text-fca-gray mt-1">outcomes on track</p>
+          <p className="text-xs text-fca-gray mt-1">good customer outcome</p>
         </button>
         <button
           onClick={() => handleStatRagClick("WARNING")}
@@ -288,10 +327,10 @@ function ConsumerDutyContent() {
         >
           <div className="flex items-center gap-2">
             <span className={cn("h-2.5 w-2.5 rounded-full", ragBgColor("WARNING"))} />
-            <p className="text-xs text-fca-gray">Warning</p>
+            <p className="text-xs text-fca-gray">Amber</p>
           </div>
           <p className="text-2xl font-bold text-risk-amber mt-1">{warningCount}</p>
-          <p className="text-xs text-fca-gray mt-1">need attention</p>
+          <p className="text-xs text-fca-gray mt-1">possible detriment</p>
         </button>
         <button
           onClick={() => handleStatRagClick("HARM")}
@@ -302,15 +341,22 @@ function ConsumerDutyContent() {
         >
           <div className="flex items-center gap-2">
             <span className={cn("h-2.5 w-2.5 rounded-full", ragBgColor("HARM"))} />
-            <p className="text-xs text-fca-gray">Harm</p>
+            <p className="text-xs text-fca-gray">Red</p>
           </div>
           <p className="text-2xl font-bold text-risk-red mt-1">{harmCount}</p>
-          <p className="text-xs text-fca-gray mt-1">require action</p>
+          <p className="text-xs text-fca-gray mt-1">harm identified</p>
         </button>
       </div>
 
-      {/* MY MEASURES VIEW */}
-      {viewMode === "my" && canEdit ? (
+      {/* ADMIN RAG VIEW */}
+      {viewMode === "admin" && isCCROTeam ? (
+        <AdminRAGPanel
+          outcomes={outcomes}
+          onUpdateOutcomeRAG={(id, rag) => updateOutcome(id, { ragStatus: rag })}
+          onUpdateMeasureRAG={(id, rag) => updateMeasure(id, { ragStatus: rag })}
+        />
+      ) : /* MY MEASURES VIEW */
+      viewMode === "my" && canEdit ? (
         <div className="space-y-4">
           <div className="bento-card">
             <div className="flex items-center gap-2 mb-4">
@@ -358,7 +404,7 @@ function ConsumerDutyContent() {
                           measure.ragStatus === "HARM" && "bg-risk-red/10 text-risk-red"
                         )}
                       >
-                        {ragLabel(measure.ragStatus)}
+                        {ragLabelShort(measure.ragStatus)}
                       </span>
                     </div>
                     <h5 className="text-sm font-semibold text-gray-800 leading-snug group-hover:text-updraft-deep transition-colors">
@@ -515,7 +561,7 @@ function ConsumerDutyContent() {
                             measure.ragStatus === "HARM" && "bg-risk-red/10 text-risk-red"
                           )}>
                             <span className={cn("h-1.5 w-1.5 rounded-full", ragBgColor(measure.ragStatus))} />
-                            {ragLabel(measure.ragStatus)}
+                            {ragLabelShort(measure.ragStatus)}
                           </span>
                         </td>
                         <td className="border border-gray-200 px-3 py-2 text-gray-500">{measure.metrics?.length ?? 0}</td>
@@ -560,7 +606,15 @@ function ConsumerDutyContent() {
         open={!!selectedMeasure}
         onClose={() => setSelectedMeasure(null)}
         editable={selectedMeasure ? canEditMeasure(selectedMeasure) : false}
+        isCCRO={isCCROTeam}
         onSave={handleSaveMetrics}
+        onSaveAppetite={(miId, appetite, appetiteOperator) => {
+          if (!selectedMeasure) return;
+          const updatedMetrics = (selectedMeasure.metrics ?? []).map((m) =>
+            m.id === miId ? { ...m, appetite, appetiteOperator } : m
+          );
+          updateMeasureMetrics(selectedMeasure.id, updatedMetrics);
+        }}
       />
 
       {/* Outcome Form Dialog */}

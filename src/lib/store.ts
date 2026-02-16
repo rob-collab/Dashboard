@@ -184,7 +184,7 @@ export const useAppStore = create<AppState>((set) => ({
     set((state) => ({
       outcomes: state.outcomes.map((o) => (o.id === id ? { ...o, ...data } : o)),
     }));
-    // Outcome update — no dedicated PATCH route; use consumer-duty measures individually
+    sync(() => api(`/api/consumer-duty/outcomes/${id}`, { method: "PATCH", body: data }));
   },
   deleteOutcome: (id) => {
     set((state) => ({ outcomes: state.outcomes.filter((o) => o.id !== id) }));
