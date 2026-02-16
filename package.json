@@ -42,6 +42,7 @@
     "react": "^18",
     "react-dom": "^18",
     "recharts": "^3.7.0",
+    "resend": "^6.9.2",
     "uuid": "^13.0.0",
     "zustand": "^5.0.11"
   },

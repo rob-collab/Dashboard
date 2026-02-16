@@ -37,6 +37,19 @@ enum SectionType {
   IMAGE_BLOCK
 }
 
+enum ActionStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+}
+
+enum ChangeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id               String    @id @default(cuid())
   email            String    @unique
@@ -53,6 +66,10 @@ model User {
   templates       Template[]
   components      Component[]
   auditLogs       AuditLog[]
+  assignedActions Action[]        @relation("AssignedActions")
+  createdActions  Action[]        @relation("CreatedActions")
+  proposedChanges ActionChange[]  @relation("ProposedChanges")
+  reviewedChanges ActionChange[]  @relation("ReviewedChanges")
 
   @@map("users")
 }
@@ -71,6 +88,7 @@ model Report {
   versions  ReportVersion[]
   outcomes  ConsumerDutyOutcome[]
   auditLogs AuditLog[]
+  actions   Action[]
 
   @@map("reports")
 }
@@ -220,4 +238,53 @@ model AuditLog {
   @@index([timestamp])
   @@index([action])
   @@map("audit_logs")
+}
+
+model Action {
+  id            String       @id @default(cuid())
+  reportId      String
+  report        Report       @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  reportPeriod  String
+  sectionId     String?
+  sectionTitle  String?
+  title         String
+  description   String       @default("") @db.Text
+  status        ActionStatus @default(OPEN)
+  assignedTo    String
+  assignee      User         @relation("AssignedActions", fields: [assignedTo], references: [id])
+  createdBy     String
+  creator       User         @relation("CreatedActions", fields: [createdBy], references: [id])
+  dueDate       DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  changes ActionChange[]
+
+  @@index([reportId])
+  @@index([assignedTo])
+  @@index([status])
+  @@index([dueDate])
+  @@map("actions")
+}
+
+model ActionChange {
+  id           String       @id @default(cuid())
+  actionId     String
+  action       Action       @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  proposedBy   String
+  proposer     User         @relation("ProposedChanges", fields: [proposedBy], references: [id])
+  fieldChanged String
+  oldValue     String?      @db.Text
+  newValue     String?      @db.Text
+  proposedAt   DateTime     @default(now())
+  status       ChangeStatus @default(PENDING)
+  reviewedBy   String?
+  reviewer     User?        @relation("ReviewedChanges", fields: [reviewedBy], references: [id])
+  reviewedAt   DateTime?
+  reviewNote   String?
+
+  @@index([actionId])
+  @@index([status])
+  @@map("action_changes")
 }

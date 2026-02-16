@@ -12,6 +12,9 @@ export type SectionType =
   | "ACCORDION"
   | "IMAGE_BLOCK";
 
+export type ActionStatus = "OPEN" | "IN_PROGRESS" | "COMPLETED" | "OVERDUE";
+export type ChangeStatus = "PENDING" | "APPROVED" | "REJECTED";
+
 export interface ImageBlockContent {
   src: string;
   alt: string;
@@ -179,6 +182,43 @@ export interface ImportedComponent {
   createdBy: string;
   creator?: User;
   createdAt: string;
+}
+
+export interface Action {
+  id: string;
+  reportId: string;
+  reportPeriod: string;
+  sectionId: string | null;
+  sectionTitle: string | null;
+  title: string;
+  description: string;
+  status: ActionStatus;
+  assignedTo: string;
+  assignee?: User;
+  createdBy: string;
+  creator?: User;
+  dueDate: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  changes?: ActionChange[];
+  report?: Report;
+}
+
+export interface ActionChange {
+  id: string;
+  actionId: string;
+  proposedBy: string;
+  proposer?: User;
+  fieldChanged: string;
+  oldValue: string | null;
+  newValue: string | null;
+  proposedAt: string;
+  status: ChangeStatus;
+  reviewedBy: string | null;
+  reviewer?: User;
+  reviewedAt: string | null;
+  reviewNote: string | null;
 }
 
 export interface AuditLogEntry {

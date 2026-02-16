@@ -1,4 +1,4 @@
-import type { RAGStatus } from "./types";
+import type { RAGStatus, Action } from "./types";
 
 export interface ParsedRow {
   [key: string]: string;
@@ -185,4 +185,167 @@ export function validateRow(
       ragStatus: ragStatus ?? "GOOD",
     },
   };
+}
+
+// ──────────────────────────────────────────────────────────
+// Action CSV utilities
+// ──────────────────────────────────────────────────────────
+
+export interface ActionColumnMapping {
+  actionId: string;
+  title: string;
+  description: string;
+  status: string;
+  assignedTo: string;
+  dueDate: string;
+}
+
+export interface ActionRowValidation {
+  row: ParsedRow;
+  rowIndex: number;
+  errors: string[];
+  mapped: {
+    actionId: string;
+    title?: string;
+    description?: string;
+    status?: string;
+    assignedTo?: string;
+    dueDate?: string;
+  } | null;
+}
+
+/**
+ * Map common header variations to action field names.
+ */
+export function autoMapActionColumns(headers: string[]): Partial<ActionColumnMapping> {
+  const mapping: Partial<ActionColumnMapping> = {};
+  const normalise = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  const patterns: { field: keyof ActionColumnMapping; matches: string[] }[] = [
+    { field: "actionId", matches: ["actionid", "action_id", "id"] },
+    { field: "title", matches: ["title", "name", "actiontitle", "action_title"] },
+    { field: "description", matches: ["description", "desc", "detail", "details"] },
+    { field: "status", matches: ["status", "actionstatus", "action_status", "state"] },
+    { field: "assignedTo", matches: ["assignedto", "assigned_to", "owner", "assignee", "responsible"] },
+    { field: "dueDate", matches: ["duedate", "due_date", "due", "deadline"] },
+  ];
+
+  for (const header of headers) {
+    const norm = normalise(header);
+    for (const pattern of patterns) {
+      if (pattern.matches.includes(norm) && !mapping[pattern.field]) {
+        mapping[pattern.field] = header;
+        break;
+      }
+    }
+  }
+
+  return mapping;
+}
+
+const VALID_ACTION_STATUSES = ["OPEN", "IN_PROGRESS", "COMPLETED", "OVERDUE"];
+
+/**
+ * Validate a single parsed row for action import.
+ */
+export function validateActionRow(
+  row: ParsedRow,
+  rowIndex: number,
+  columnMapping: Partial<ActionColumnMapping>
+): ActionRowValidation {
+  const errors: string[] = [];
+
+  const actionId = row[columnMapping.actionId ?? ""] ?? "";
+  const title = row[columnMapping.title ?? ""] ?? "";
+  const description = row[columnMapping.description ?? ""] ?? "";
+  const statusRaw = row[columnMapping.status ?? ""] ?? "";
+  const assignedTo = row[columnMapping.assignedTo ?? ""] ?? "";
+  const dueDate = row[columnMapping.dueDate ?? ""] ?? "";
+
+  if (!actionId) {
+    errors.push("Missing Action ID");
+    return { row, rowIndex, errors, mapped: null };
+  }
+
+  if (statusRaw) {
+    const upper = statusRaw.toUpperCase().replace(/ /g, "_");
+    if (!VALID_ACTION_STATUSES.includes(upper)) {
+      errors.push(`Invalid status: ${statusRaw}`);
+    }
+  }
+
+  if (dueDate) {
+    const parsed = new Date(dueDate);
+    if (isNaN(parsed.getTime())) {
+      errors.push(`Invalid date: ${dueDate}`);
+    }
+  }
+
+  if (errors.length > 0) {
+    return { row, rowIndex, errors, mapped: null };
+  }
+
+  return {
+    row,
+    rowIndex,
+    errors: [],
+    mapped: {
+      actionId,
+      ...(title && { title }),
+      ...(description && { description }),
+      ...(statusRaw && { status: statusRaw.toUpperCase().replace(/ /g, "_") }),
+      ...(assignedTo && { assignedTo }),
+      ...(dueDate && { dueDate }),
+    },
+  };
+}
+
+/**
+ * Build CSV content from action data.
+ */
+export function buildActionCSV(actions: Action[], users: { id: string; name: string }[]): string {
+  const userMap = new Map(users.map((u) => [u.id, u.name]));
+
+  const headers = [
+    "Action ID",
+    "Title",
+    "Description",
+    "Report / Period",
+    "Section",
+    "Owner",
+    "Due Date",
+    "Status",
+    "Created",
+    "Completed Date",
+  ];
+
+  function escapeField(val: string): string {
+    if (val.includes(",") || val.includes('"') || val.includes("\n")) {
+      return `"${val.replace(/"/g, '""')}"`;
+    }
+    return val;
+  }
+
+  function fmtDate(iso: string | null): string {
+    if (!iso) return "";
+    return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  }
+
+  const rows = actions.map((a) => [
+    a.id,
+    a.title,
+    a.description,
+    a.reportPeriod,
+    a.sectionTitle || "",
+    userMap.get(a.assignedTo) || a.assignedTo,
+    fmtDate(a.dueDate),
+    a.status,
+    fmtDate(a.createdAt),
+    fmtDate(a.completedAt),
+  ]);
+
+  return [
+    headers.map(escapeField).join(","),
+    ...rows.map((r) => r.map(escapeField).join(",")),
+  ].join("\n");
 }

@@ -19,6 +19,10 @@ import {
   BarChart3,
   Users,
   FileText,
+  ListChecks,
+  Circle,
+  Clock,
+  CheckCircle2,
   type LucideIcon,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
@@ -29,7 +33,7 @@ import VersionCompare from "@/components/reports/VersionCompare";
 import OutcomeCard from "@/components/consumer-duty/OutcomeCard";
 import MeasurePanel from "@/components/consumer-duty/MeasurePanel";
 import MIModal from "@/components/consumer-duty/MIModal";
-import { cn, formatDate, statusColor, statusLabel } from "@/lib/utils";
+import { cn, formatDate, formatDateShort, statusColor, statusLabel } from "@/lib/utils";
 import { getLastPublishDate, hasStaleChildren } from "@/lib/stale-utils";
 import type { ConsumerDutyMeasure, Section } from "@/lib/types";
 
@@ -73,11 +77,14 @@ export default function ReportViewPage() {
   const storeSections = useAppStore((s) => s.sections);
   const storeOutcomes = useAppStore((s) => s.outcomes);
   const storeVersions = useAppStore((s) => s.versions);
+  const storeActions = useAppStore((s) => s.actions);
+  const storeUsers = useAppStore((s) => s.users);
   const branding = useAppStore((s) => s.branding);
   const report = useMemo(() => storeReports.find((r) => r.id === reportId) ?? null, [storeReports, reportId]);
   const sections = useMemo(() => report ? storeSections.filter((s) => s.reportId === report.id).sort((a, b) => a.position - b.position) : [], [storeSections, report]);
   const versions = useMemo(() => report ? storeVersions.filter((v) => v.reportId === report.id) : [], [storeVersions, report]);
   const outcomes = useMemo(() => [...storeOutcomes].sort((a, b) => a.position - b.position), [storeOutcomes]);
+  const reportActions = useMemo(() => report ? storeActions.filter((a) => a.reportId === report.id) : [], [storeActions, report]);
 
   const lastPublishDate = useMemo(() => getLastPublishDate(versions, reportId), [versions, reportId]);
 
@@ -316,6 +323,66 @@ export default function ReportViewPage() {
                   <MeasurePanel measures={selectedOutcome.measures} onMeasureClick={(m) => setSelectedMeasure(m)} lastPublishDate={lastPublishDate} />
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Actions Panel */}
+          {reportActions.length > 0 && (
+            <div className="bento-card">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-updraft-deep font-poppins flex items-center gap-2">
+                  <ListChecks size={18} className="text-updraft-bright-purple" />
+                  Actions ({reportActions.length})
+                </h2>
+                <Link
+                  href={`/actions?reportId=${reportId}`}
+                  className="text-xs text-updraft-bright-purple hover:underline"
+                >
+                  View all
+                </Link>
+              </div>
+              <div className="space-y-2">
+                {reportActions.slice(0, 10).map((action) => {
+                  const owner = storeUsers.find((u) => u.id === action.assignedTo);
+                  const statusCfg: Record<string, { color: string; icon: typeof Circle }> = {
+                    OPEN: { color: "text-blue-600", icon: Circle },
+                    IN_PROGRESS: { color: "text-amber-600", icon: Clock },
+                    COMPLETED: { color: "text-blue-600", icon: CheckCircle2 },
+                    OVERDUE: { color: "text-red-600", icon: AlertTriangle },
+                  };
+                  const cfg = statusCfg[action.status] || statusCfg.OPEN;
+                  const Icon = cfg.icon;
+
+                  return (
+                    <div
+                      key={action.id}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg border px-3 py-2 text-sm",
+                        action.status === "OVERDUE" ? "border-red-200 bg-red-50/50" :
+                        action.status === "COMPLETED" ? "border-blue-200 bg-blue-50/30" :
+                        "border-gray-200"
+                      )}
+                    >
+                      <Icon size={14} className={cfg.color} />
+                      <span className="flex-1 truncate font-medium text-gray-800">{action.title}</span>
+                      {action.sectionTitle && (
+                        <span className="hidden sm:inline text-xs text-gray-400 truncate max-w-[120px]">{action.sectionTitle}</span>
+                      )}
+                      <span className="text-xs text-gray-500 shrink-0">{owner?.name || "—"}</span>
+                      {action.dueDate && (
+                        <span className={cn("text-xs shrink-0", action.status === "OVERDUE" ? "text-red-600 font-medium" : "text-gray-400")}>
+                          {formatDateShort(action.dueDate)}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+                {reportActions.length > 10 && (
+                  <p className="text-xs text-gray-400 text-center pt-1">
+                    + {reportActions.length - 10} more actions
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </div>

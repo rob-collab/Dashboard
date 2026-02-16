@@ -70,6 +70,14 @@ export function getActionLabel(action: string): string {
     add_measure: "Added measure",
     delete_measure: "Deleted measure",
     bulk_add_measures: "Bulk imported measures",
+    create_action: "Created action",
+    update_action: "Updated action",
+    complete_action: "Completed action",
+    delete_action: "Deleted action",
+    approve_change: "Approved proposed change",
+    reject_change: "Rejected proposed change",
+    send_reminder: "Sent action reminders",
+    import_actions: "Imported actions from CSV",
   };
   return labels[action] || action;
 }

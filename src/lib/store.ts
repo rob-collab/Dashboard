@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig } from "./types";
+import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action } from "./types";
 import { demoReports, demoSections, demoOutcomes, demoTemplates, demoComponents, demoAuditLogs, demoVersions } from "./demo-data";
 import { DEMO_USERS } from "./auth";
 import { api } from "./api-client";
@@ -64,6 +64,13 @@ interface AppState {
   setAuditLogs: (logs: AuditLogEntry[]) => void;
   addAuditLog: (entry: AuditLogEntry) => void;
 
+  // Actions
+  actions: Action[];
+  setActions: (actions: Action[]) => void;
+  addAction: (action: Action) => void;
+  updateAction: (id: string, data: Partial<Action>) => void;
+  deleteAction: (id: string) => void;
+
   // Users (in-memory CRUD)
   users: User[];
   setUsers: (users: User[]) => void;
@@ -94,15 +101,16 @@ export const useAppStore = create<AppState>((set) => ({
   _hydrated: false,
   hydrate: async () => {
     try {
-      const [users, reports, outcomes, templates, components, auditLogs] = await Promise.all([
+      const [users, reports, outcomes, templates, components, auditLogs, actions] = await Promise.all([
         api<User[]>("/api/users"),
         api<Report[]>("/api/reports"),
         api<ConsumerDutyOutcome[]>("/api/consumer-duty"),
         api<Template[]>("/api/templates"),
         api<ImportedComponent[]>("/api/components"),
         api<AuditLogEntry[]>("/api/audit"),
+        api<Action[]>("/api/actions"),
       ]);
-      set({ users, reports, outcomes, templates, components, auditLogs, _hydrated: true });
+      set({ users, reports, outcomes, templates, components, auditLogs, actions, _hydrated: true });
     } catch (err) {
       console.warn("[hydrate] API unreachable, using demo data:", err);
       set({ _hydrated: true });
@@ -279,6 +287,24 @@ export const useAppStore = create<AppState>((set) => ({
   addAuditLog: (entry) => {
     set((state) => ({ auditLogs: [entry, ...state.auditLogs] }));
     sync(() => api("/api/audit", { method: "POST", body: entry }));
+  },
+
+  // ── Actions ────────────────────────────────────────────────
+  actions: [],
+  setActions: (actions) => set({ actions }),
+  addAction: (action) => {
+    set((state) => ({ actions: [action, ...state.actions] }));
+    sync(() => api("/api/actions", { method: "POST", body: action }));
+  },
+  updateAction: (id, data) => {
+    set((state) => ({
+      actions: state.actions.map((a) => (a.id === id ? { ...a, ...data } : a)),
+    }));
+    sync(() => api(`/api/actions/${id}`, { method: "PATCH", body: data }));
+  },
+  deleteAction: (id) => {
+    set((state) => ({ actions: state.actions.filter((a) => a.id !== id) }));
+    sync(() => api(`/api/actions/${id}`, { method: "DELETE" }));
   },
 
   // ── Users ──────────────────────────────────────────────────
