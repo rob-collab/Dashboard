@@ -2,8 +2,10 @@
 
 import "./globals.css";
 import { useState, useCallback, useEffect } from "react";
+import { Toaster } from "sonner";
 import { AuthContext, DEMO_USERS } from "@/lib/auth";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useAppStore } from "@/lib/store";
 import type { User } from "@/lib/types";
 
@@ -53,6 +55,7 @@ export default function RootLayout({
       </head>
       <body className="font-inter antialiased bg-bg-light text-fca-dark-gray">
         <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
+          <Toaster position="top-right" richColors closeButton />
           <div className="flex h-screen overflow-hidden">
             <Sidebar
               currentUser={user}
@@ -65,7 +68,9 @@ export default function RootLayout({
                 sidebarOpen ? "ml-64" : "ml-16"
               }`}
             >
-              <div className="p-6 max-w-[1400px] mx-auto">{children}</div>
+              <ErrorBoundary>
+                <div className="p-6 max-w-[1400px] mx-auto">{children}</div>
+              </ErrorBoundary>
             </main>
           </div>
         </AuthContext.Provider>

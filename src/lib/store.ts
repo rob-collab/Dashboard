@@ -110,7 +110,15 @@ function sync(fn: () => Promise<unknown>, options?: { maxRetries?: number }): vo
         setTimeout(() => execute(), delay);
       } else {
         console.error("[store sync] Max retries exceeded:", err);
-        // TODO: Add toast notification for user visibility
+        // Dynamic import to avoid circular dependency
+        if (typeof window !== "undefined") {
+          import("sonner").then(({ toast }) => {
+            toast.error("Failed to sync changes to server. Please refresh the page.", {
+              description: err instanceof Error ? err.message : "Network error",
+              duration: 5000,
+            });
+          });
+        }
       }
     }
   };

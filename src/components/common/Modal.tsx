@@ -72,7 +72,8 @@ export default function Modal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in"
       role="dialog"
       aria-modal="true"
-      aria-label={title}
+      aria-labelledby={title ? "modal-title" : undefined}
+      aria-label={title ? undefined : "Modal dialog"}
     >
       <div
         className={cn(
@@ -83,7 +84,7 @@ export default function Modal({
         {/* Header */}
         {title && (
           <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-            <h2 className="text-lg font-semibold text-gray-900 font-poppins">
+            <h2 id="modal-title" className="text-lg font-semibold text-gray-900 font-poppins">
               {title}
             </h2>
             <button

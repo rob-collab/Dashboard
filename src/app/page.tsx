@@ -22,6 +22,7 @@ function daysUntilDue(dueDate: string | null): number | null {
 }
 
 export default function DashboardHome() {
+  const hydrated = useAppStore((s) => s._hydrated);
   const currentUser = useAppStore((s) => s.currentUser);
   const reports = useAppStore((s) => s.reports);
   const outcomes = useAppStore((s) => s.outcomes);
@@ -49,6 +50,17 @@ export default function DashboardHome() {
     const completed = actions.filter((a) => a.status === "COMPLETED").length;
     return { open, overdue, dueThisMonth, completed };
   }, [actions]);
+
+  if (!hydrated) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-updraft-bright-purple border-t-transparent"></div>
+          <p className="text-sm text-gray-500">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

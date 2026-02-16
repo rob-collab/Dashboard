@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
+import { toast } from "sonner";
 import {
   Upload,
   FileSpreadsheet,
@@ -155,7 +156,14 @@ export default function CSVUploadDialog({
         };
       });
       await onImport(items, importMode, importMode === "replace" ? affectedOutcomeIds : undefined);
+      toast.success(`Successfully imported ${validRows.length} measure${validRows.length !== 1 ? "s" : ""}`, {
+        description: importMode === "replace" ? "Replaced existing measures" : "Added to existing measures",
+      });
       setStep("done");
+    } catch (error) {
+      toast.error("Import failed", {
+        description: error instanceof Error ? error.message : "An error occurred during import",
+      });
     } finally {
       setImporting(false);
     }

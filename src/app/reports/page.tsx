@@ -12,6 +12,7 @@ import type { Report, ReportStatus } from "@/lib/types";
 function ReportsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const hydrated = useAppStore((s) => s._hydrated);
   const reports = useAppStore((s) => s.reports);
   const sections = useAppStore((s) => s.sections);
   const outcomes = useAppStore((s) => s.outcomes);
@@ -22,6 +23,17 @@ function ReportsPageContent() {
     if (param === "DRAFT" || param === "PUBLISHED" || param === "ARCHIVED") return param;
     return "ALL";
   });
+
+  if (!hydrated) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-updraft-bright-purple border-t-transparent"></div>
+          <p className="text-sm text-gray-500">Loading reports...</p>
+        </div>
+      </div>
+    );
+  }
 
   const isCCROTeam = currentUser?.role === "CCRO_TEAM";
 

@@ -117,26 +117,24 @@ export default function MeasurePanel({
               {(onEditMeasure || onDeleteMeasure) && (
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   {onEditMeasure && (
-                    <span
-                      role="button"
-                      tabIndex={0}
+                    <button
+                      type="button"
                       onClick={(e) => { e.stopPropagation(); onEditMeasure(measure); }}
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); onEditMeasure(measure); } }}
                       className="text-[10px] font-medium text-updraft-bright-purple hover:underline cursor-pointer"
+                      aria-label={`Edit measure ${measure.measureId}`}
                     >
                       Edit
-                    </span>
+                    </button>
                   )}
                   {onDeleteMeasure && (
-                    <span
-                      role="button"
-                      tabIndex={0}
+                    <button
+                      type="button"
                       onClick={(e) => { e.stopPropagation(); onDeleteMeasure(measure); }}
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); onDeleteMeasure(measure); } }}
                       className="text-[10px] font-medium text-red-500 hover:underline cursor-pointer"
+                      aria-label={`Delete measure ${measure.measureId}`}
                     >
                       Delete
-                    </span>
+                    </button>
                   )}
                 </div>
               )}

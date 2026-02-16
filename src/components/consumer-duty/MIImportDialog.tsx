@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { toast } from "sonner";
 import {
   Upload,
   FileSpreadsheet,
@@ -184,7 +185,15 @@ export default function MIImportDialog({
       });
 
       onImport(updates);
+      const totalMetrics = updates.reduce((sum, u) => sum + u.metrics.length, 0);
+      toast.success(`Successfully imported ${totalMetrics} metric${totalMetrics !== 1 ? "s" : ""}`, {
+        description: `Updated ${updates.length} measure${updates.length !== 1 ? "s" : ""}`,
+      });
       setStep("done");
+    } catch (error) {
+      toast.error("Import failed", {
+        description: error instanceof Error ? error.message : "An error occurred during import",
+      });
     } finally {
       setImporting(false);
     }
