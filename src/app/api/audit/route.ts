@@ -1,15 +1,24 @@
 import { NextRequest } from "next/server";
 import { prisma, jsonResponse, errorResponse } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
+import { getPaginationParams, paginatedResponse } from "@/lib/schemas/pagination";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const logs = await prisma.auditLog.findMany({
-      include: { user: true },
-      orderBy: { timestamp: "desc" },
-      take: 500,
-    });
-    return jsonResponse(serialiseDates(logs));
+    const { searchParams } = new URL(request.url);
+    const { skip, take, page, limit } = getPaginationParams(searchParams);
+
+    const [logs, total] = await Promise.all([
+      prisma.auditLog.findMany({
+        include: { user: true },
+        orderBy: { timestamp: "desc" },
+        skip,
+        take,
+      }),
+      prisma.auditLog.count(),
+    ]);
+
+    return jsonResponse(paginatedResponse(serialiseDates(logs), total, page, limit));
   } catch (error) {
     console.error('[API Error]', error);
     return errorResponse(error instanceof Error ? error.message : 'Operation failed', 500);

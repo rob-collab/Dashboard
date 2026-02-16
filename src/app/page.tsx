@@ -26,9 +26,8 @@ export default function DashboardHome() {
   const reports = useAppStore((s) => s.reports);
   const outcomes = useAppStore((s) => s.outcomes);
   const actions = useAppStore((s) => s.actions);
-  const allAuditLogs = useAppStore((s) => s.auditLogs);
+  const auditLogs = useAppStore((s) => s.auditLogs);
   const users = useAppStore((s) => s.users);
-  const auditLogs = useMemo(() => allAuditLogs.slice(0, 5), [allAuditLogs]);
 
   const draftCount = reports.filter((r) => r.status === "DRAFT").length;
   const publishedCount = reports.filter((r) => r.status === "PUBLISHED").length;

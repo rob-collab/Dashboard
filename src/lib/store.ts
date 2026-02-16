@@ -129,7 +129,7 @@ export const useAppStore = create<AppState>((set) => ({
         api<ConsumerDutyOutcome[]>("/api/consumer-duty"),
         api<Template[]>("/api/templates"),
         api<ImportedComponent[]>("/api/components"),
-        api<AuditLogEntry[]>("/api/audit"),
+        api<{ data: AuditLogEntry[] }>("/api/audit?limit=50").then((r) => r.data),
         api<Action[]>("/api/actions"),
       ]);
       set({ users, reports, outcomes, templates, components, auditLogs, actions, _hydrated: true });
