@@ -47,6 +47,7 @@ const config: Config = {
         "fade-in": "fadeIn 0.3s ease forwards",
         highlight: "highlight 1.5s ease-out forwards",
         "slide-in-right": "slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+        "draw-arrow": "drawArrow 0.6s ease-out forwards",
       },
       keyframes: {
         slideUpFade: {
@@ -64,6 +65,10 @@ const config: Config = {
         slideInRight: {
           from: { transform: "translateX(100%)" },
           to: { transform: "translateX(0)" },
+        },
+        drawArrow: {
+          from: { strokeDashoffset: "var(--length)" },
+          to: { strokeDashoffset: "0" },
         },
       },
     },

@@ -464,6 +464,98 @@ async function main() {
     },
   ];
 
+  // Risk Snapshots — 12 months of history (Mar 2025 → Feb 2026)
+  type SnapshotMonth = {
+    month: string; rL: number; rI: number; iL: number; iI: number;
+    direction: DirectionOfTravel;
+  };
+  const RISK_SNAPSHOT_DATA: { riskId: string; months: SnapshotMonth[] }[] = [
+    { riskId: "risk-001", months: [ // Consumer Duty — improving over time
+      { month: "2025-03-01", rL: 3, rI: 5, iL: 3, iI: 5, direction: "STABLE" },
+      { month: "2025-04-01", rL: 3, rI: 5, iL: 3, iI: 5, direction: "STABLE" },
+      { month: "2025-05-01", rL: 3, rI: 4, iL: 3, iI: 5, direction: "IMPROVING" },
+      { month: "2025-06-01", rL: 3, rI: 4, iL: 3, iI: 5, direction: "IMPROVING" },
+      { month: "2025-07-01", rL: 2, rI: 4, iL: 3, iI: 5, direction: "IMPROVING" },
+      { month: "2025-08-01", rL: 2, rI: 4, iL: 3, iI: 5, direction: "IMPROVING" },
+      { month: "2025-09-01", rL: 2, rI: 4, iL: 3, iI: 5, direction: "IMPROVING" },
+      { month: "2025-10-01", rL: 2, rI: 4, iL: 3, iI: 5, direction: "IMPROVING" },
+      { month: "2025-11-01", rL: 2, rI: 4, iL: 3, iI: 5, direction: "IMPROVING" },
+      { month: "2025-12-01", rL: 2, rI: 4, iL: 3, iI: 5, direction: "IMPROVING" },
+      { month: "2026-01-01", rL: 2, rI: 4, iL: 3, iI: 5, direction: "IMPROVING" },
+      { month: "2026-02-01", rL: 2, rI: 4, iL: 3, iI: 5, direction: "IMPROVING" },
+    ]},
+    { riskId: "risk-002", months: [ // Credit Model — stable throughout
+      { month: "2025-03-01", rL: 2, rI: 3, iL: 3, iI: 4, direction: "STABLE" },
+      { month: "2025-04-01", rL: 2, rI: 3, iL: 3, iI: 4, direction: "STABLE" },
+      { month: "2025-05-01", rL: 2, rI: 3, iL: 3, iI: 4, direction: "STABLE" },
+      { month: "2025-06-01", rL: 2, rI: 3, iL: 3, iI: 4, direction: "STABLE" },
+      { month: "2025-07-01", rL: 2, rI: 3, iL: 3, iI: 4, direction: "STABLE" },
+      { month: "2025-08-01", rL: 2, rI: 3, iL: 3, iI: 4, direction: "STABLE" },
+      { month: "2025-09-01", rL: 2, rI: 3, iL: 3, iI: 4, direction: "STABLE" },
+      { month: "2025-10-01", rL: 2, rI: 3, iL: 3, iI: 4, direction: "STABLE" },
+      { month: "2025-11-01", rL: 2, rI: 3, iL: 3, iI: 4, direction: "STABLE" },
+      { month: "2025-12-01", rL: 2, rI: 3, iL: 3, iI: 4, direction: "STABLE" },
+      { month: "2026-01-01", rL: 2, rI: 3, iL: 3, iI: 4, direction: "STABLE" },
+      { month: "2026-02-01", rL: 2, rI: 3, iL: 3, iI: 4, direction: "STABLE" },
+    ]},
+    { riskId: "risk-003", months: [ // Cyber Security — stable
+      { month: "2025-03-01", rL: 2, rI: 4, iL: 4, iI: 5, direction: "STABLE" },
+      { month: "2025-04-01", rL: 2, rI: 4, iL: 4, iI: 5, direction: "STABLE" },
+      { month: "2025-05-01", rL: 2, rI: 4, iL: 4, iI: 5, direction: "STABLE" },
+      { month: "2025-06-01", rL: 2, rI: 4, iL: 4, iI: 5, direction: "STABLE" },
+      { month: "2025-07-01", rL: 2, rI: 4, iL: 4, iI: 5, direction: "STABLE" },
+      { month: "2025-08-01", rL: 2, rI: 4, iL: 4, iI: 5, direction: "STABLE" },
+      { month: "2025-09-01", rL: 2, rI: 4, iL: 4, iI: 5, direction: "STABLE" },
+      { month: "2025-10-01", rL: 2, rI: 4, iL: 4, iI: 5, direction: "STABLE" },
+      { month: "2025-11-01", rL: 2, rI: 4, iL: 4, iI: 5, direction: "STABLE" },
+      { month: "2025-12-01", rL: 2, rI: 4, iL: 4, iI: 5, direction: "STABLE" },
+      { month: "2026-01-01", rL: 2, rI: 4, iL: 4, iI: 5, direction: "STABLE" },
+      { month: "2026-02-01", rL: 2, rI: 4, iL: 4, iI: 5, direction: "STABLE" },
+    ]},
+    { riskId: "risk-004", months: [ // Liquidity — improving
+      { month: "2025-03-01", rL: 3, rI: 5, iL: 3, iI: 5, direction: "STABLE" },
+      { month: "2025-04-01", rL: 3, rI: 5, iL: 3, iI: 5, direction: "STABLE" },
+      { month: "2025-05-01", rL: 3, rI: 4, iL: 3, iI: 5, direction: "IMPROVING" },
+      { month: "2025-06-01", rL: 2, rI: 4, iL: 3, iI: 5, direction: "IMPROVING" },
+      { month: "2025-07-01", rL: 2, rI: 4, iL: 3, iI: 5, direction: "IMPROVING" },
+      { month: "2025-08-01", rL: 2, rI: 4, iL: 3, iI: 5, direction: "IMPROVING" },
+      { month: "2025-09-01", rL: 2, rI: 4, iL: 3, iI: 5, direction: "IMPROVING" },
+      { month: "2025-10-01", rL: 2, rI: 4, iL: 3, iI: 5, direction: "IMPROVING" },
+      { month: "2025-11-01", rL: 2, rI: 4, iL: 3, iI: 5, direction: "IMPROVING" },
+      { month: "2025-12-01", rL: 2, rI: 4, iL: 3, iI: 5, direction: "IMPROVING" },
+      { month: "2026-01-01", rL: 2, rI: 4, iL: 3, iI: 5, direction: "IMPROVING" },
+      { month: "2026-02-01", rL: 2, rI: 4, iL: 3, iI: 5, direction: "IMPROVING" },
+    ]},
+    { riskId: "risk-005", months: [ // Key Person — partially improving
+      { month: "2025-03-01", rL: 4, rI: 3, iL: 4, iI: 3, direction: "STABLE" },
+      { month: "2025-04-01", rL: 4, rI: 3, iL: 4, iI: 3, direction: "STABLE" },
+      { month: "2025-05-01", rL: 4, rI: 3, iL: 4, iI: 3, direction: "STABLE" },
+      { month: "2025-06-01", rL: 3, rI: 3, iL: 4, iI: 3, direction: "IMPROVING" },
+      { month: "2025-07-01", rL: 3, rI: 3, iL: 4, iI: 3, direction: "IMPROVING" },
+      { month: "2025-08-01", rL: 3, rI: 3, iL: 4, iI: 3, direction: "IMPROVING" },
+      { month: "2025-09-01", rL: 3, rI: 2, iL: 4, iI: 3, direction: "IMPROVING" },
+      { month: "2025-10-01", rL: 3, rI: 2, iL: 4, iI: 3, direction: "IMPROVING" },
+      { month: "2025-11-01", rL: 3, rI: 2, iL: 4, iI: 3, direction: "IMPROVING" },
+      { month: "2025-12-01", rL: 3, rI: 2, iL: 4, iI: 3, direction: "IMPROVING" },
+      { month: "2026-01-01", rL: 3, rI: 2, iL: 4, iI: 3, direction: "IMPROVING" },
+      { month: "2026-02-01", rL: 3, rI: 2, iL: 4, iI: 3, direction: "IMPROVING" },
+    ]},
+    { riskId: "risk-006", months: [ // Regulatory Change — stable
+      { month: "2025-03-01", rL: 3, rI: 3, iL: 4, iI: 4, direction: "STABLE" },
+      { month: "2025-04-01", rL: 3, rI: 3, iL: 4, iI: 4, direction: "STABLE" },
+      { month: "2025-05-01", rL: 3, rI: 3, iL: 4, iI: 4, direction: "STABLE" },
+      { month: "2025-06-01", rL: 3, rI: 3, iL: 4, iI: 4, direction: "STABLE" },
+      { month: "2025-07-01", rL: 3, rI: 3, iL: 4, iI: 4, direction: "STABLE" },
+      { month: "2025-08-01", rL: 3, rI: 3, iL: 4, iI: 4, direction: "STABLE" },
+      { month: "2025-09-01", rL: 3, rI: 3, iL: 4, iI: 4, direction: "STABLE" },
+      { month: "2025-10-01", rL: 3, rI: 3, iL: 4, iI: 4, direction: "STABLE" },
+      { month: "2025-11-01", rL: 3, rI: 3, iL: 4, iI: 4, direction: "STABLE" },
+      { month: "2025-12-01", rL: 3, rI: 3, iL: 4, iI: 4, direction: "STABLE" },
+      { month: "2026-01-01", rL: 3, rI: 3, iL: 4, iI: 4, direction: "STABLE" },
+      { month: "2026-02-01", rL: 3, rI: 3, iL: 4, iI: 4, direction: "STABLE" },
+    ]},
+  ];
+
   let controlCount = 0, mitigationCount = 0;
   for (const r of DEMO_RISKS) {
     const { controls, mitigations, ...riskData } = r;
@@ -478,6 +570,30 @@ async function main() {
     }
   }
   console.log(`  ✓ ${DEMO_RISKS.length} risks, ${controlCount} controls, ${mitigationCount} mitigations`);
+
+  // Risk Snapshots
+  let riskSnapshotCount = 0;
+  for (const s of RISK_SNAPSHOT_DATA) {
+    for (const m of s.months) {
+      const monthDate = new Date(m.month);
+      await prisma.riskSnapshot.upsert({
+        where: { riskId_month: { riskId: s.riskId, month: monthDate } },
+        update: {
+          residualLikelihood: m.rL, residualImpact: m.rI,
+          inherentLikelihood: m.iL, inherentImpact: m.iI,
+          directionOfTravel: m.direction,
+        },
+        create: {
+          riskId: s.riskId, month: monthDate,
+          residualLikelihood: m.rL, residualImpact: m.rI,
+          inherentLikelihood: m.iL, inherentImpact: m.iI,
+          directionOfTravel: m.direction,
+        },
+      });
+      riskSnapshotCount++;
+    }
+  }
+  console.log(`  ✓ ${riskSnapshotCount} risk snapshots`);
 
   console.log("Seed complete!");
 }

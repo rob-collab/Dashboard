@@ -292,6 +292,17 @@ export interface RiskAuditEntry {
   changedAt: string;
 }
 
+export interface RiskSnapshot {
+  id: string;
+  riskId: string;
+  month: string;
+  residualLikelihood: number;
+  residualImpact: number;
+  inherentLikelihood: number;
+  inherentImpact: number;
+  directionOfTravel: DirectionOfTravel;
+}
+
 export interface Risk {
   id: string;
   reference: string;
@@ -315,6 +326,7 @@ export interface Risk {
   controls?: RiskControl[];
   mitigations?: RiskMitigation[];
   auditTrail?: RiskAuditEntry[];
+  snapshots?: RiskSnapshot[];
 }
 
 export interface RiskCategoryDef {

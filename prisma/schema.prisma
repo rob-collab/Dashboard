@@ -380,6 +380,7 @@ model Risk {
   controls    RiskControl[]
   mitigations RiskMitigation[]
   auditTrail  RiskAuditLog[]
+  snapshots   RiskSnapshot[]
 
   @@index([categoryL1])
   @@index([owner])
@@ -411,6 +412,22 @@ model RiskMitigation {
 
   @@index([riskId])
   @@map("risk_mitigations")
+}
+
+model RiskSnapshot {
+  id                  String            @id @default(cuid())
+  riskId              String
+  risk                Risk              @relation(fields: [riskId], references: [id], onDelete: Cascade)
+  month               DateTime
+  residualLikelihood  Int
+  residualImpact      Int
+  inherentLikelihood  Int
+  inherentImpact      Int
+  directionOfTravel   DirectionOfTravel @default(STABLE)
+
+  @@unique([riskId, month])
+  @@index([riskId])
+  @@map("risk_snapshots")
 }
 
 model RiskAuditLog {

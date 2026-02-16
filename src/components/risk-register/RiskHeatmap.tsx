@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import type { Risk } from "@/lib/types";
 import {
   getCellRiskLevel,
@@ -10,18 +10,31 @@ import {
   IMPACT_SCALE,
   L1_CATEGORY_COLOURS,
 } from "@/lib/risk-categories";
+import RiskHeatmapOverlay from "./RiskHeatmapOverlay";
 
 type ViewMode = "inherent" | "residual" | "overlay";
 
 interface RiskHeatmapProps {
   risks: Risk[];
+  allRisks?: Risk[];
   onRiskClick?: (risk: Risk) => void;
+  viewMode: ViewMode;
+  onViewModeChange: (mode: ViewMode) => void;
+  activeCategoryL1: string | null;
+  onCategoryClick: (category: string) => void;
 }
 
-export default function RiskHeatmap({ risks, onRiskClick }: RiskHeatmapProps) {
-  const [viewMode, setViewMode] = useState<ViewMode>("residual");
+export default function RiskHeatmap({
+  risks,
+  onRiskClick,
+  viewMode,
+  onViewModeChange,
+  activeCategoryL1,
+  onCategoryClick,
+}: RiskHeatmapProps) {
   const [hoveredRisk, setHoveredRisk] = useState<string | null>(null);
   const [selectedCell, setSelectedCell] = useState<{ l: number; i: number } | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   // Build a map of risks by cell position
   const risksByCell = useMemo(() => {
@@ -57,7 +70,7 @@ export default function RiskHeatmap({ risks, onRiskClick }: RiskHeatmapProps) {
           {(["inherent", "residual", "overlay"] as const).map((mode) => (
             <button
               key={mode}
-              onClick={() => setViewMode(mode)}
+              onClick={() => onViewModeChange(mode)}
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 viewMode === mode
                   ? "bg-white text-updraft-deep shadow-sm"
@@ -79,7 +92,7 @@ export default function RiskHeatmap({ risks, onRiskClick }: RiskHeatmapProps) {
               LIKELIHOOD
             </div>
 
-            <div className="ml-16">
+            <div className="ml-16" ref={gridRef}>
               {/* Grid rows — likelihood 5 at top, 1 at bottom */}
               {[5, 4, 3, 2, 1].map((likelihood) => (
                 <div key={likelihood} className="flex items-stretch">
@@ -121,6 +134,7 @@ export default function RiskHeatmap({ risks, onRiskClick }: RiskHeatmapProps) {
                             {cellRisks.map(({ risk, type }) => {
                               const catColour = L1_CATEGORY_COLOURS[risk.categoryL1];
                               const isHovered = hoveredRisk === risk.id;
+                              const isInherentInOverlay = type === "inherent" && viewMode === "overlay";
                               return (
                                 <div
                                   key={`${risk.id}-${type}`}
@@ -132,14 +146,17 @@ export default function RiskHeatmap({ risks, onRiskClick }: RiskHeatmapProps) {
                                   }}
                                   className={`relative w-5 h-5 rounded-full border-2 cursor-pointer transition-transform ${
                                     isHovered ? "scale-125 z-10" : ""
-                                  } ${type === "inherent" && viewMode === "overlay" ? "opacity-50" : ""}`}
+                                  }`}
                                   style={{
-                                    backgroundColor: catColour?.fill ?? "#888",
+                                    backgroundColor: isInherentInOverlay ? "transparent" : (catColour?.fill ?? "#888"),
                                     borderColor: catColour?.stroke ?? "#666",
+                                    borderWidth: isInherentInOverlay ? 2 : 2,
                                   }}
                                   title={`${risk.reference}: ${risk.name} (${type})`}
                                 >
-                                  <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-white">
+                                  <span className={`absolute inset-0 flex items-center justify-center text-[8px] font-bold ${
+                                    isInherentInOverlay ? "text-gray-600" : "text-white"
+                                  }`}>
                                     {risk.reference.replace("R00", "").replace("R0", "")}
                                   </span>
 
@@ -164,6 +181,11 @@ export default function RiskHeatmap({ risks, onRiskClick }: RiskHeatmapProps) {
                   })}
                 </div>
               ))}
+
+              {/* Overlay arrows in overlay mode */}
+              {viewMode === "overlay" && (
+                <RiskHeatmapOverlay risks={risks} gridRef={gridRef} />
+              )}
 
               {/* X-axis labels */}
               <div className="flex ml-0">
@@ -201,15 +223,25 @@ export default function RiskHeatmap({ risks, onRiskClick }: RiskHeatmapProps) {
             ))}
           </div>
 
-          {/* Category Legend */}
+          {/* Category Legend — clickable */}
           <div className="space-y-1.5">
             <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Category</h4>
-            {Object.entries(L1_CATEGORY_COLOURS).map(([name, { fill, label }]) => (
-              <div key={name} className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: fill }} />
-                <span className="text-xs text-gray-600">{label}</span>
-              </div>
-            ))}
+            {Object.entries(L1_CATEGORY_COLOURS).map(([name, { fill, label }]) => {
+              const isActive = activeCategoryL1 === name;
+              const isDimmed = activeCategoryL1 !== null && !isActive;
+              return (
+                <button
+                  key={name}
+                  onClick={() => onCategoryClick(name)}
+                  className={`flex items-center gap-2 w-full text-left rounded-md px-1 py-0.5 transition-all ${
+                    isActive ? "ring-2 ring-updraft-bright-purple/30 bg-updraft-pale-purple/10" : ""
+                  } ${isDimmed ? "opacity-40" : ""} hover:bg-gray-50`}
+                >
+                  <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: fill }} />
+                  <span className="text-xs text-gray-600">{label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Overlay legend */}
@@ -217,12 +249,19 @@ export default function RiskHeatmap({ risks, onRiskClick }: RiskHeatmapProps) {
             <div className="space-y-1">
               <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Overlay</h4>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-gray-400 opacity-50" />
+                <div className="w-4 h-4 rounded-full border-2 border-gray-500 bg-transparent" />
                 <span className="text-xs text-gray-600">Inherent position</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded-full bg-gray-600" />
                 <span className="text-xs text-gray-600">Residual position</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4" viewBox="0 0 16 16">
+                  <path d="M2 14 L14 2" stroke="#7B1FA2" strokeWidth="2" fill="none" markerEnd="url(#arrow)" />
+                  <defs><marker id="arrow" viewBox="0 0 6 6" refX="5" refY="3" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#7B1FA2" /></marker></defs>
+                </svg>
+                <span className="text-xs text-gray-600">Movement arrow</span>
               </div>
             </div>
           )}

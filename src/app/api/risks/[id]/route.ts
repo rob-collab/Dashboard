@@ -131,6 +131,32 @@ export async function PATCH(
       }).catch((e) => console.error("[risk audit]", e));
     }
 
+    // Auto-upsert snapshot if score fields changed
+    const scoreFields = ["inherentLikelihood", "inherentImpact", "residualLikelihood", "residualImpact", "directionOfTravel"];
+    const scoreChanged = auditEntries.some((e) => scoreFields.includes(e.field));
+    if (scoreChanged) {
+      const now = new Date();
+      const monthStart = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
+      await prisma.riskSnapshot.upsert({
+        where: { riskId_month: { riskId: id, month: monthStart } },
+        update: {
+          residualLikelihood: risk.residualLikelihood,
+          residualImpact: risk.residualImpact,
+          inherentLikelihood: risk.inherentLikelihood,
+          inherentImpact: risk.inherentImpact,
+          directionOfTravel: risk.directionOfTravel,
+        },
+        create: {
+          riskId: id, month: monthStart,
+          residualLikelihood: risk.residualLikelihood,
+          residualImpact: risk.residualImpact,
+          inherentLikelihood: risk.inherentLikelihood,
+          inherentImpact: risk.inherentImpact,
+          directionOfTravel: risk.directionOfTravel,
+        },
+      }).catch((e) => console.error("[risk snapshot]", e));
+    }
+
     return jsonResponse(serialiseDates(risk));
   } catch (err) {
     console.error("[PATCH /api/risks/:id]", err);

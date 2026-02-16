@@ -112,6 +112,28 @@ export async function POST(request: NextRequest) {
       data: { riskId: risk.id, userId, action: "created", fieldChanged: null, oldValue: null, newValue: risk.name },
     }).catch((e) => console.error("[risk audit]", e));
 
+    // Auto-create snapshot for the current month
+    const now = new Date();
+    const monthStart = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
+    await prisma.riskSnapshot.upsert({
+      where: { riskId_month: { riskId: risk.id, month: monthStart } },
+      update: {
+        residualLikelihood: risk.residualLikelihood,
+        residualImpact: risk.residualImpact,
+        inherentLikelihood: risk.inherentLikelihood,
+        inherentImpact: risk.inherentImpact,
+        directionOfTravel: risk.directionOfTravel,
+      },
+      create: {
+        riskId: risk.id, month: monthStart,
+        residualLikelihood: risk.residualLikelihood,
+        residualImpact: risk.residualImpact,
+        inherentLikelihood: risk.inherentLikelihood,
+        inherentImpact: risk.inherentImpact,
+        directionOfTravel: risk.directionOfTravel,
+      },
+    }).catch((e) => console.error("[risk snapshot]", e));
+
     return jsonResponse(serialiseDates(risk), 201);
   } catch (err) {
     console.error("[POST /api/risks]", err);

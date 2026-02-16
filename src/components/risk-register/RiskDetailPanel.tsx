@@ -12,7 +12,7 @@ import {
   DIRECTION_DISPLAY,
 } from "@/lib/risk-categories";
 import ScoreBadge from "./ScoreBadge";
-import { X, Plus, Trash2, AlertTriangle, ChevronRight } from "lucide-react";
+import { X, Plus, Trash2, AlertTriangle, ChevronRight, History } from "lucide-react";
 
 interface RiskDetailPanelProps {
   risk: Risk | null;
@@ -20,6 +20,7 @@ interface RiskDetailPanelProps {
   onSave: (data: Partial<Risk> & { controls?: Partial<RiskControl>[]; mitigations?: Partial<RiskMitigation>[] }) => void;
   onClose: () => void;
   onDelete?: (id: string) => void;
+  onViewHistory?: (risk: Risk) => void;
 }
 
 interface FormControl {
@@ -36,7 +37,7 @@ interface FormMitigation {
   status: MitigationStatus;
 }
 
-export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete }: RiskDetailPanelProps) {
+export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete, onViewHistory }: RiskDetailPanelProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [categoryL1, setCategoryL1] = useState("");
@@ -119,9 +120,21 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
               </p>
             )}
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-            <X className="w-5 h-5 text-gray-500" />
-          </button>
+          <div className="flex items-center gap-1">
+            {risk && !isNew && onViewHistory && (
+              <button
+                onClick={() => onViewHistory(risk)}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-updraft-bright-purple hover:bg-updraft-pale-purple/20 rounded-lg transition-colors"
+                title="View 12-month history"
+              >
+                <History className="w-4 h-4" />
+                History
+              </button>
+            )}
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
         </div>
 
         <div className="p-6 space-y-6">

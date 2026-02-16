@@ -135,3 +135,13 @@ body {
   50% { opacity: 0.7; }
 }
 .rag-pulse { animation: ragPulse 2s ease-in-out infinite; }
+
+/* SVG Arrow Animations (Risk Heatmap Overlay) */
+@keyframes draw-arrow {
+  from { stroke-dashoffset: inherit; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes fade-in-svg {
+  from { opacity: 0; }
+  to { opacity: 0.9; }
+}
