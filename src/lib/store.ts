@@ -91,9 +91,31 @@ interface AppState {
   setPropertiesPanelOpen: (open: boolean) => void;
 }
 
-/** Fire-and-forget API call — logs errors but doesn't throw */
-function sync(fn: () => Promise<unknown>): void {
-  fn().catch((err) => console.warn("[store sync]", err));
+/**
+ * Fire-and-forget API call with retry logic
+ * Logs errors and attempts retry with exponential backoff
+ */
+function sync(fn: () => Promise<unknown>, options?: { maxRetries?: number }): void {
+  const maxRetries = options?.maxRetries ?? 2;
+  let attempt = 0;
+
+  const execute = async (): Promise<void> => {
+    try {
+      await fn();
+    } catch (err) {
+      attempt++;
+      if (attempt <= maxRetries) {
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+        console.warn(`[store sync] Attempt ${attempt} failed, retrying in ${delay}ms...`, err);
+        setTimeout(() => execute(), delay);
+      } else {
+        console.error("[store sync] Max retries exceeded:", err);
+        // TODO: Add toast notification for user visibility
+      }
+    }
+  };
+
+  execute();
 }
 
 export const useAppStore = create<AppState>((set) => ({

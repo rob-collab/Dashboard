@@ -20,6 +20,12 @@ export async function POST(request: NextRequest) {
     if ('error' in validation) return validation.error;
     const data = validation.data;
 
+    // Check for duplicate email
+    const existing = await prisma.user.findUnique({ where: { email: data.email } });
+    if (existing) {
+      return errorResponse(`A user with email ${data.email} already exists`, 409);
+    }
+
     const user = await prisma.user.create({
       data: {
         id: data.id,
