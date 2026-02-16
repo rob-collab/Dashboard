@@ -196,6 +196,77 @@ export default function BrandingSettings() {
           </div>
         </label>
       </div>
+
+      {/* Dashboard Icon */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Dashboard Welcome Icon
+        </label>
+        <p className="text-xs text-gray-500 mb-3">
+          Upload an icon to display on the dashboard welcome section (recommended: 100x100px, transparent PNG)
+        </p>
+
+        {branding.dashboardIconSrc ? (
+          <div className="relative inline-block">
+            <img
+              src={branding.dashboardIconSrc}
+              alt={branding.dashboardIconAlt}
+              className="h-20 w-20 object-contain rounded-lg border border-gray-200 bg-white p-2"
+            />
+            <button
+              onClick={() => updateBranding({ dashboardIconSrc: null })}
+              className="absolute -top-2 -right-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600 transition-colors"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={async (e) => {
+              e.preventDefault();
+              setDragOver(false);
+              const file = e.dataTransfer.files[0];
+              if (file) {
+                try {
+                  const dataUrl = await fileToBase64(file);
+                  updateBranding({ dashboardIconSrc: dataUrl });
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : "Failed to load image");
+                }
+              }
+            }}
+            onClick={() => {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = ACCEPTED_IMAGE_TYPES.join(',');
+              input.onchange = async (e) => {
+                const file = (e.target as HTMLInputElement).files?.[0];
+                if (file) {
+                  try {
+                    const dataUrl = await fileToBase64(file);
+                    updateBranding({ dashboardIconSrc: dataUrl });
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : "Failed to load image");
+                  }
+                }
+              };
+              input.click();
+            }}
+            className={cn(
+              "flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 transition-colors",
+              dragOver
+                ? "border-updraft-bright-purple bg-updraft-pale-purple/20"
+                : "border-gray-300 hover:border-updraft-light-purple hover:bg-gray-50"
+            )}
+          >
+            <Upload className="h-8 w-8 text-gray-400 mb-2" />
+            <p className="text-sm text-gray-600">Drop icon here or click to browse</p>
+            <p className="text-xs text-gray-400 mt-1">PNG, JPG, SVG up to 5MB</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

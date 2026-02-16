@@ -363,6 +363,8 @@ export const useAppStore = create<AppState>((set) => ({
     companyName: "Updraft",
     showInHeader: true,
     showInFooter: true,
+    dashboardIconSrc: null,
+    dashboardIconAlt: "Dashboard",
   },
   updateBranding: (data) =>
     set((state) => ({ branding: { ...state.branding, ...data } })),

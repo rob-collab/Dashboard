@@ -31,6 +31,8 @@ export interface BrandingConfig {
   companyName: string;
   showInHeader: boolean;
   showInFooter: boolean;
+  dashboardIconSrc: string | null;
+  dashboardIconAlt: string;
 }
 
 export interface User {

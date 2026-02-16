@@ -24,6 +24,7 @@ function daysUntilDue(dueDate: string | null): number | null {
 export default function DashboardHome() {
   const hydrated = useAppStore((s) => s._hydrated);
   const currentUser = useAppStore((s) => s.currentUser);
+  const branding = useAppStore((s) => s.branding);
   const reports = useAppStore((s) => s.reports);
   const outcomes = useAppStore((s) => s.outcomes);
   const actions = useAppStore((s) => s.actions);
@@ -74,14 +75,24 @@ export default function DashboardHome() {
             <circle cx="180" cy="150" r="60" fill="#BA68C8" />
           </svg>
         </div>
-        <div className="relative">
-          <h1 className="text-2xl font-bold">
-            Welcome back, {currentUser?.name || "User"}
-          </h1>
-          <p className="mt-1 text-white/80">
-            Updraft CCRO Report Management Dashboard
-          </p>
-          <div className="mt-4 flex gap-3">
+        <div className="relative flex items-center gap-4">
+          {branding.dashboardIconSrc && (
+            <div className="flex-shrink-0">
+              <img
+                src={branding.dashboardIconSrc}
+                alt={branding.dashboardIconAlt}
+                className="h-16 w-16 object-contain"
+              />
+            </div>
+          )}
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold">
+              Welcome back, {currentUser?.name || "User"}
+            </h1>
+            <p className="mt-1 text-white/80">
+              Updraft CCRO Report Management Dashboard
+            </p>
+            <div className="mt-4 flex gap-3">
             <Link
               href="/reports/new"
               className="inline-flex items-center gap-2 rounded-lg bg-white/20 px-4 py-2 text-sm font-medium hover:bg-white/30 transition-colors"
@@ -96,6 +107,7 @@ export default function DashboardHome() {
               <FileText className="h-4 w-4" />
               View Reports
             </Link>
+            </div>
           </div>
         </div>
       </div>
