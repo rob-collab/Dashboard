@@ -34,6 +34,7 @@ enum SectionType {
   IMPORTED_COMPONENT
   TEMPLATE_INSTANCE
   ACCORDION
+  IMAGE_BLOCK
 }
 
 model User {
@@ -94,8 +95,8 @@ model Section {
 
 model ConsumerDutyOutcome {
   id        String    @id @default(cuid())
-  reportId  String
-  report    Report    @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  reportId  String?
+  report    Report?   @relation(fields: [reportId], references: [id], onDelete: Cascade)
   outcomeId String
   name      String
   shortDesc String
@@ -112,17 +113,18 @@ model ConsumerDutyOutcome {
 }
 
 model ConsumerDutyMeasure {
-  id         String    @id @default(cuid())
-  outcomeId  String
-  outcome    ConsumerDutyOutcome @relation(fields: [outcomeId], references: [id], onDelete: Cascade)
-  measureId  String
-  name       String
-  owner      String?
-  summary    String    @default("")
-  ragStatus  RAGStatus @default(GOOD)
-  position   Int       @default(0)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  outcomeId     String
+  outcome       ConsumerDutyOutcome @relation(fields: [outcomeId], references: [id], onDelete: Cascade)
+  measureId     String
+  name          String
+  owner         String?
+  summary       String    @default("")
+  ragStatus     RAGStatus @default(GOOD)
+  position      Int       @default(0)
+  lastUpdatedAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   metrics ConsumerDutyMI[]
 

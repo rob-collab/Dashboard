@@ -12,7 +12,6 @@ import {
   CheckCircle,
   AlertTriangle,
 } from "lucide-react";
-import { getDemoUser } from "@/lib/demo-data";
 import { useAppStore } from "@/lib/store";
 import { sanitizeHTML } from "@/lib/sanitize";
 import RoleGuard from "@/components/common/RoleGuard";
@@ -23,6 +22,7 @@ import { logAuditEvent } from "@/lib/audit";
 
 export default function ComponentsLibPage() {
   const components = useAppStore((s) => s.components);
+  const users = useAppStore((s) => s.users);
   const addComponent = useAppStore((s) => s.addComponent);
   const deleteComponent = useAppStore((s) => s.deleteComponent);
 
@@ -162,7 +162,7 @@ export default function ComponentsLibPage() {
         {/* Component list */}
         <div className="flex-1 space-y-3">
           {filteredComponents.map((component) => {
-            const creator = getDemoUser(component.createdBy);
+            const creator = users.find((u) => u.id === component.createdBy);
             return (
               <div
                 key={component.id}

@@ -10,7 +10,6 @@ import {
   ArrowRight,
   Plus,
 } from "lucide-react";
-import { getDemoUser } from "@/lib/demo-data";
 import { useAppStore } from "@/lib/store";
 import { formatDate, ragBgColor } from "@/lib/utils";
 import { getActionLabel } from "@/lib/audit";
@@ -20,6 +19,7 @@ export default function DashboardHome() {
   const reports = useAppStore((s) => s.reports);
   const outcomes = useAppStore((s) => s.outcomes);
   const allAuditLogs = useAppStore((s) => s.auditLogs);
+  const users = useAppStore((s) => s.users);
   const auditLogs = useMemo(() => allAuditLogs.slice(0, 5), [allAuditLogs]);
 
   const draftCount = reports.filter((r) => r.status === "DRAFT").length;
@@ -176,7 +176,7 @@ export default function DashboardHome() {
           </div>
           <div className="space-y-3">
             {auditLogs.map((log) => {
-              const logUser = getDemoUser(log.userId);
+              const logUser = users.find((u) => u.id === log.userId);
               return (
                 <div key={log.id} className="flex gap-3">
                   <div className="flex-shrink-0 mt-1">

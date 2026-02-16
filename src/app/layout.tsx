@@ -17,10 +17,17 @@ export default function RootLayout({
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const setStoreUser = useAppStore((s) => s.setCurrentUser);
 
+  const hydrate = useAppStore((s) => s.hydrate);
+
   // Keep Zustand store in sync with local user state
   useEffect(() => {
     setStoreUser(user);
   }, [user, setStoreUser]);
+
+  // Hydrate store from API on mount
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
 
   const signIn = useCallback(async () => {
     setLoading(true);

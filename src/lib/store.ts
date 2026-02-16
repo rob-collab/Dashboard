@@ -2,8 +2,13 @@ import { create } from "zustand";
 import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig } from "./types";
 import { demoReports, demoSections, demoOutcomes, demoTemplates, demoComponents, demoAuditLogs, demoVersions } from "./demo-data";
 import { DEMO_USERS } from "./auth";
+import { api } from "./api-client";
 
 interface AppState {
+  // Hydration
+  _hydrated: boolean;
+  hydrate: () => Promise<void>;
+
   // Auth
   currentUser: User | null;
   setCurrentUser: (user: User | null) => void;
@@ -79,33 +84,72 @@ interface AppState {
   setPropertiesPanelOpen: (open: boolean) => void;
 }
 
+/** Fire-and-forget API call — logs errors but doesn't throw */
+function sync(fn: () => Promise<unknown>): void {
+  fn().catch((err) => console.warn("[store sync]", err));
+}
+
 export const useAppStore = create<AppState>((set) => ({
+  // ── Hydration ──────────────────────────────────────────────
+  _hydrated: false,
+  hydrate: async () => {
+    try {
+      const [users, reports, outcomes, templates, components, auditLogs] = await Promise.all([
+        api<User[]>("/api/users"),
+        api<Report[]>("/api/reports"),
+        api<ConsumerDutyOutcome[]>("/api/consumer-duty"),
+        api<Template[]>("/api/templates"),
+        api<ImportedComponent[]>("/api/components"),
+        api<AuditLogEntry[]>("/api/audit"),
+      ]);
+      set({ users, reports, outcomes, templates, components, auditLogs, _hydrated: true });
+    } catch (err) {
+      console.warn("[hydrate] API unreachable, using demo data:", err);
+      set({ _hydrated: true });
+    }
+  },
+
+  // ── Auth ───────────────────────────────────────────────────
   currentUser: null,
   setCurrentUser: (user) => set({ currentUser: user }),
 
+  // ── Reports ────────────────────────────────────────────────
   reports: demoReports,
   setReports: (reports) => set({ reports }),
-  addReport: (report) =>
-    set((state) => ({ reports: [report, ...state.reports] })),
-  updateReport: (id, data) =>
+  addReport: (report) => {
+    set((state) => ({ reports: [report, ...state.reports] }));
+    sync(() => api("/api/reports", { method: "POST", body: report }));
+  },
+  updateReport: (id, data) => {
     set((state) => ({
       reports: state.reports.map((r) => (r.id === id ? { ...r, ...data } : r)),
-    })),
-  deleteReport: (id) =>
-    set((state) => ({ reports: state.reports.filter((r) => r.id !== id) })),
+    }));
+    sync(() => api(`/api/reports/${id}`, { method: "PATCH", body: data }));
+  },
+  deleteReport: (id) => {
+    set((state) => ({ reports: state.reports.filter((r) => r.id !== id) }));
+    sync(() => api(`/api/reports/${id}`, { method: "DELETE" }));
+  },
   currentReport: null,
   setCurrentReport: (report) => set({ currentReport: report }),
 
+  // ── Sections ───────────────────────────────────────────────
   sections: demoSections,
   setSections: (sections) => set({ sections }),
-  updateSection: (id, data) =>
+  updateSection: (id, data) => {
     set((state) => ({
       sections: state.sections.map((s) => (s.id === id ? { ...s, ...data } : s)),
-    })),
-  addSection: (section) =>
-    set((state) => ({ sections: [...state.sections, section] })),
-  removeSection: (id) =>
-    set((state) => ({ sections: state.sections.filter((s) => s.id !== id) })),
+    }));
+    sync(() => api(`/api/sections/${id}`, { method: "PATCH", body: data }));
+  },
+  addSection: (section) => {
+    set((state) => ({ sections: [...state.sections, section] }));
+    // Section persistence is handled via bulk PUT on save
+  },
+  removeSection: (id) => {
+    set((state) => ({ sections: state.sections.filter((s) => s.id !== id) }));
+    sync(() => api(`/api/sections/${id}`, { method: "DELETE" }));
+  },
   reorderSections: (startIndex, endIndex) =>
     set((state) => {
       const result = Array.from(state.sections);
@@ -116,29 +160,39 @@ export const useAppStore = create<AppState>((set) => ({
       };
     }),
 
+  // ── Versions ───────────────────────────────────────────────
   versions: demoVersions,
   addVersion: (version) =>
     set((state) => ({ versions: [version, ...state.versions] })),
 
+  // ── Consumer Duty Outcomes ─────────────────────────────────
   outcomes: demoOutcomes,
   setOutcomes: (outcomes) => set({ outcomes }),
-  addOutcome: (outcome) =>
-    set((state) => ({ outcomes: [...state.outcomes, outcome] })),
-  updateOutcome: (id, data) =>
+  addOutcome: (outcome) => {
+    set((state) => ({ outcomes: [...state.outcomes, outcome] }));
+    sync(() => api("/api/consumer-duty", { method: "POST", body: outcome }));
+  },
+  updateOutcome: (id, data) => {
     set((state) => ({
       outcomes: state.outcomes.map((o) => (o.id === id ? { ...o, ...data } : o)),
-    })),
-  deleteOutcome: (id) =>
-    set((state) => ({ outcomes: state.outcomes.filter((o) => o.id !== id) })),
-  addMeasure: (outcomeId, measure) =>
+    }));
+    // Outcome update — no dedicated PATCH route; use consumer-duty measures individually
+  },
+  deleteOutcome: (id) => {
+    set((state) => ({ outcomes: state.outcomes.filter((o) => o.id !== id) }));
+    // Outcome deletion would need a route; for now rely on cascade from report
+  },
+  addMeasure: (outcomeId, measure) => {
     set((state) => ({
       outcomes: state.outcomes.map((o) =>
         o.id === outcomeId
           ? { ...o, measures: [...(o.measures ?? []), measure] }
           : o
       ),
-    })),
-  updateMeasure: (measureId, data) =>
+    }));
+    sync(() => api("/api/consumer-duty/measures", { method: "POST", body: { ...measure, outcomeId } }));
+  },
+  updateMeasure: (measureId, data) => {
     set((state) => ({
       outcomes: state.outcomes.map((o) => ({
         ...o,
@@ -146,15 +200,19 @@ export const useAppStore = create<AppState>((set) => ({
           m.id === measureId ? { ...m, ...data } : m
         ),
       })),
-    })),
-  deleteMeasure: (measureId) =>
+    }));
+    sync(() => api(`/api/consumer-duty/measures/${measureId}`, { method: "PATCH", body: data }));
+  },
+  deleteMeasure: (measureId) => {
     set((state) => ({
       outcomes: state.outcomes.map((o) => ({
         ...o,
         measures: o.measures?.filter((m) => m.id !== measureId),
       })),
-    })),
-  bulkAddMeasures: (items) =>
+    }));
+    sync(() => api(`/api/consumer-duty/measures/${measureId}`, { method: "DELETE" }));
+  },
+  bulkAddMeasures: (items) => {
     set((state) => {
       const outcomeMap = new Map<string, ConsumerDutyMeasure[]>();
       for (const { outcomeId, measure } of items) {
@@ -169,8 +227,11 @@ export const useAppStore = create<AppState>((set) => ({
           return { ...o, measures: [...(o.measures ?? []), ...newMeasures] };
         }),
       };
-    }),
-  updateMeasureMetrics: (measureId, metrics) =>
+    });
+    const measures = items.map((i) => ({ ...i.measure, outcomeId: i.outcomeId }));
+    sync(() => api("/api/consumer-duty/measures", { method: "POST", body: measures }));
+  },
+  updateMeasureMetrics: (measureId, metrics) => {
     set((state) => ({
       outcomes: state.outcomes.map((o) => ({
         ...o,
@@ -178,42 +239,67 @@ export const useAppStore = create<AppState>((set) => ({
           m.id === measureId ? { ...m, metrics, lastUpdatedAt: new Date().toISOString() } : m
         ),
       })),
-    })),
+    }));
+    sync(() => api("/api/consumer-duty/mi", { method: "PUT", body: { measureId, metrics } }));
+  },
 
+  // ── Templates ──────────────────────────────────────────────
   templates: demoTemplates,
   setTemplates: (templates) => set({ templates }),
-  addTemplate: (template) =>
-    set((state) => ({ templates: [template, ...state.templates] })),
-  updateTemplate: (id, data) =>
+  addTemplate: (template) => {
+    set((state) => ({ templates: [template, ...state.templates] }));
+    sync(() => api("/api/templates", { method: "POST", body: template }));
+  },
+  updateTemplate: (id, data) => {
     set((state) => ({
       templates: state.templates.map((t) => (t.id === id ? { ...t, ...data } : t)),
-    })),
-  deleteTemplate: (id) =>
-    set((state) => ({ templates: state.templates.filter((t) => t.id !== id) })),
+    }));
+    sync(() => api(`/api/templates/${id}`, { method: "PATCH", body: data }));
+  },
+  deleteTemplate: (id) => {
+    set((state) => ({ templates: state.templates.filter((t) => t.id !== id) }));
+    sync(() => api(`/api/templates/${id}`, { method: "DELETE" }));
+  },
 
+  // ── Components ─────────────────────────────────────────────
   components: demoComponents,
   setComponents: (components) => set({ components }),
-  addComponent: (component) =>
-    set((state) => ({ components: [component, ...state.components] })),
-  deleteComponent: (id) =>
-    set((state) => ({ components: state.components.filter((c) => c.id !== id) })),
+  addComponent: (component) => {
+    set((state) => ({ components: [component, ...state.components] }));
+    sync(() => api("/api/components", { method: "POST", body: component }));
+  },
+  deleteComponent: (id) => {
+    set((state) => ({ components: state.components.filter((c) => c.id !== id) }));
+    sync(() => api(`/api/components/${id}`, { method: "DELETE" }));
+  },
 
+  // ── Audit ──────────────────────────────────────────────────
   auditLogs: demoAuditLogs,
   setAuditLogs: (logs) => set({ auditLogs: logs }),
-  addAuditLog: (entry) =>
-    set((state) => ({ auditLogs: [entry, ...state.auditLogs] })),
+  addAuditLog: (entry) => {
+    set((state) => ({ auditLogs: [entry, ...state.auditLogs] }));
+    sync(() => api("/api/audit", { method: "POST", body: entry }));
+  },
 
+  // ── Users ──────────────────────────────────────────────────
   users: DEMO_USERS,
   setUsers: (users) => set({ users }),
-  addUser: (user) =>
-    set((state) => ({ users: [...state.users, user] })),
-  updateUser: (id, data) =>
+  addUser: (user) => {
+    set((state) => ({ users: [...state.users, user] }));
+    sync(() => api("/api/users", { method: "POST", body: user }));
+  },
+  updateUser: (id, data) => {
     set((state) => ({
       users: state.users.map((u) => (u.id === id ? { ...u, ...data } : u)),
-    })),
-  deleteUser: (id) =>
-    set((state) => ({ users: state.users.filter((u) => u.id !== id) })),
+    }));
+    sync(() => api(`/api/users/${id}`, { method: "PATCH", body: data }));
+  },
+  deleteUser: (id) => {
+    set((state) => ({ users: state.users.filter((u) => u.id !== id) }));
+    sync(() => api(`/api/users/${id}`, { method: "DELETE" }));
+  },
 
+  // ── Branding ───────────────────────────────────────────────
   branding: {
     logoSrc: null,
     logoAlt: "Team Logo",
@@ -225,6 +311,7 @@ export const useAppStore = create<AppState>((set) => ({
   updateBranding: (data) =>
     set((state) => ({ branding: { ...state.branding, ...data } })),
 
+  // ── UI State ───────────────────────────────────────────────
   sidebarOpen: true,
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
   selectedSectionId: null,

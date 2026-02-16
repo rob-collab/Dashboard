@@ -10,7 +10,6 @@ import {
   User,
   ChevronDown,
 } from "lucide-react";
-import { getDemoUser } from "@/lib/demo-data";
 import { useAppStore } from "@/lib/store";
 import RoleGuard from "@/components/common/RoleGuard";
 import { cn, formatDate } from "@/lib/utils";
@@ -51,6 +50,7 @@ function actionBadge(action: string) {
 export default function AuditPage() {
   const auditLogs = useAppStore((s) => s.auditLogs);
   const reports = useAppStore((s) => s.reports);
+  const users = useAppStore((s) => s.users);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [actionFilter, setActionFilter] = useState<string>("ALL");
@@ -74,7 +74,7 @@ export default function AuditPage() {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       logs = logs.filter((l) => {
-        const user = getDemoUser(l.userId);
+        const user = users.find((u) => u.id === l.userId);
         return (
           (user?.name ?? "").toLowerCase().includes(q) ||
           l.action.toLowerCase().includes(q) ||
@@ -85,7 +85,7 @@ export default function AuditPage() {
     }
 
     return logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  }, [actionFilter, roleFilter, searchQuery]);
+  }, [auditLogs, users, actionFilter, roleFilter, searchQuery]);
 
   return (
     <RoleGuard allowedRoles={["CCRO_TEAM"]}>
@@ -215,7 +215,7 @@ export default function AuditPage() {
             </thead>
             <tbody>
               {filteredLogs.map((log) => {
-                const user = getDemoUser(log.userId);
+                const user = users.find((u) => u.id === log.userId);
                 const report = log.reportId ? reports.find((r) => r.id === log.reportId) : null;
                 const badge = actionBadge(log.action);
                 return (
