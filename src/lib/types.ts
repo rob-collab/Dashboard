@@ -198,8 +198,9 @@ export interface ImportedComponent {
 
 export interface Action {
   id: string;
-  reportId: string;
-  reportPeriod: string;
+  reportId: string | null;
+  reportPeriod: string | null;
+  source: string | null;
   sectionId: string | null;
   sectionTitle: string | null;
   title: string;

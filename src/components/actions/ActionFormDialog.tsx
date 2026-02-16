@@ -36,6 +36,7 @@ export default function ActionFormDialog({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [reportId, setReportId] = useState("");
+  const [source, setSource] = useState("");
   const [sectionId, setSectionId] = useState("");
   const [sectionTitle, setSectionTitle] = useState("");
   const [assignedTo, setAssignedTo] = useState("");
@@ -48,7 +49,8 @@ export default function ActionFormDialog({
       if (action) {
         setTitle(action.title);
         setDescription(action.description);
-        setReportId(action.reportId);
+        setReportId(action.reportId || "");
+        setSource(action.source || "");
         setSectionId(action.sectionId || "");
         setSectionTitle(action.sectionTitle || "");
         setAssignedTo(action.assignedTo);
@@ -57,7 +59,8 @@ export default function ActionFormDialog({
       } else {
         setTitle("");
         setDescription("");
-        setReportId(reports[0]?.id || "");
+        setReportId("");
+        setSource("");
         setSectionId("");
         setSectionTitle("");
         setAssignedTo("");
@@ -71,7 +74,10 @@ export default function ActionFormDialog({
   function validate(): boolean {
     const newErrors: Record<string, string> = {};
     if (!title.trim()) newErrors.title = "Title is required";
-    if (!reportId) newErrors.reportId = "Report is required";
+    // Report is now optional - either reportId or source must be provided
+    if (!reportId && !source.trim()) {
+      newErrors.source = "Either select a report or provide a source";
+    }
     if (!assignedTo) newErrors.assignedTo = "Owner is required";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -85,8 +91,9 @@ export default function ActionFormDialog({
 
     const saved: Action = {
       id: action?.id ?? `action-${generateId()}`,
-      reportId,
-      reportPeriod: selectedReport ? `${selectedReport.title} — ${selectedReport.period}` : "",
+      reportId: reportId || null,
+      reportPeriod: selectedReport ? `${selectedReport.title} — ${selectedReport.period}` : null,
+      source: source.trim() || null,
       sectionId: sectionId || null,
       sectionTitle: sectionTitle || null,
       title: title.trim(),
@@ -163,21 +170,40 @@ export default function ActionFormDialog({
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          {/* Report */}
+          {/* Report (optional) */}
           <div>
-            <label htmlFor="action-report" className={labelClasses}>Report</label>
+            <label htmlFor="action-report" className={labelClasses}>Report (optional)</label>
             <select
               id="action-report"
               value={reportId}
               onChange={(e) => setReportId(e.target.value)}
               className={inputClasses}
             >
-              <option value="">Select report...</option>
+              <option value="">— Not linked to report —</option>
               {reports.map((r) => (
                 <option key={r.id} value={r.id}>{r.title} — {r.period}</option>
               ))}
             </select>
             {errors.reportId && <p className={errorClasses}>{errors.reportId}</p>}
+          </div>
+
+          {/* Source (alternative to report) */}
+          <div>
+            <label htmlFor="action-source" className={labelClasses}>
+              Source {!reportId && <span className="text-risk-red">*</span>}
+            </label>
+            <input
+              id="action-source"
+              type="text"
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+              placeholder="e.g., Board meeting, External audit, Customer feedback"
+              className={inputClasses}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              {reportId ? "Optional context about where this action originated" : "Required if not linked to a report"}
+            </p>
+            {errors.source && <p className={errorClasses}>{errors.source}</p>}
           </div>
 
           {/* Section title */}

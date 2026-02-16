@@ -33,9 +33,12 @@ export async function POST(request: NextRequest) {
   if ('error' in validation) return validation.error;
   const data = validation.data;
 
-  // Snapshot report period
-  const report = await prisma.report.findUnique({ where: { id: data.reportId } });
-  if (!report) return errorResponse(`Report not found: ${data.reportId}`, 404);
+  // Snapshot report period if linked to report
+  let report = null;
+  if (data.reportId) {
+    report = await prisma.report.findUnique({ where: { id: data.reportId } });
+    if (!report) return errorResponse(`Report not found: ${data.reportId}`, 404);
+  }
 
   // Verify assignee exists
   const assignee = await prisma.user.findUnique({ where: { id: data.assignedTo } });
@@ -48,21 +51,22 @@ export async function POST(request: NextRequest) {
   const action = await prisma.action.create({
     data: {
       id: data.id,
-      reportId: data.reportId,
-      reportPeriod: `${report.title} — ${report.period}`,
-      sectionId: data.sectionId,
-      sectionTitle: data.sectionTitle,
+      ...(data.reportId && { reportId: data.reportId }),
+      ...(report && { reportPeriod: `${report.title} — ${report.period}` }),
+      ...(data.source && { source: data.source }),
+      ...(data.sectionId && { sectionId: data.sectionId }),
+      ...(data.sectionTitle && { sectionTitle: data.sectionTitle }),
       title: data.title,
       description: data.description,
       assignedTo: data.assignedTo,
       createdBy: userId,
-      dueDate: data.dueDate ? new Date(data.dueDate) : null,
+      ...(data.dueDate && { dueDate: new Date(data.dueDate) }),
     },
     include: { assignee: true, creator: true },
   });
 
   // Send assignment email (fire-and-forget)
-  if (action.assignee) {
+  if (action.assignee && report) {
     sendActionAssigned(
       {
         actionTitle: action.title,

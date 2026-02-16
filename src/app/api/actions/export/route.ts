@@ -53,7 +53,8 @@ interface ActionRow {
   id: string;
   title: string;
   description: string;
-  reportPeriod: string;
+  reportPeriod: string | null;
+  source: string | null;
   sectionTitle: string | null;
   assignee: { name: string } | null;
   dueDate: Date | null;
@@ -68,6 +69,7 @@ function buildCSVExport(actions: ActionRow[]): string {
     "Title",
     "Description",
     "Report / Period",
+    "Source",
     "Section",
     "Owner",
     "Due Date",
@@ -79,7 +81,8 @@ function buildCSVExport(actions: ActionRow[]): string {
     a.id,
     a.title,
     a.description,
-    a.reportPeriod,
+    a.reportPeriod || "",
+    a.source || "",
     a.sectionTitle || "",
     a.assignee?.name || "",
     formatDate(a.dueDate),

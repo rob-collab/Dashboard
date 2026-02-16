@@ -30,6 +30,8 @@ export default function DashboardHome() {
   const auditLogs = useAppStore((s) => s.auditLogs);
   const users = useAppStore((s) => s.users);
 
+  const isCCROTeam = currentUser?.role === "CCRO_TEAM";
+
   const draftCount = reports.filter((r) => r.status === "DRAFT").length;
   const publishedCount = reports.filter((r) => r.status === "PUBLISHED").length;
   const warningCount = outcomes.filter((o) => o.ragStatus === "WARNING").length;
@@ -99,18 +101,20 @@ export default function DashboardHome() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Link href="/reports?status=DRAFT" className="bento-card cursor-pointer">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-updraft-pale-purple/50 p-2.5">
-              <FileText className="h-5 w-5 text-updraft-bright-purple" />
+      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${isCCROTeam ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
+        {isCCROTeam && (
+          <Link href="/reports?status=DRAFT" className="bento-card cursor-pointer">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-updraft-pale-purple/50 p-2.5">
+                <FileText className="h-5 w-5 text-updraft-bright-purple" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-updraft-deep">{draftCount}</p>
+                <p className="text-sm text-fca-gray">Draft Reports</p>
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-bold text-updraft-deep">{draftCount}</p>
-              <p className="text-sm text-fca-gray">Draft Reports</p>
-            </div>
-          </div>
-        </Link>
+          </Link>
+        )}
         <Link href="/reports?status=PUBLISHED" className="bento-card cursor-pointer">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-green-50 p-2.5">
@@ -177,9 +181,9 @@ export default function DashboardHome() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className={`grid grid-cols-1 gap-6 ${isCCROTeam ? 'lg:grid-cols-3' : ''}`}>
         {/* Consumer Duty Overview */}
-        <div className="lg:col-span-2 bento-card">
+        <div className={isCCROTeam ? "lg:col-span-2 bento-card" : "bento-card"}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-updraft-deep">Consumer Duty Overview</h2>
             <Link
@@ -229,10 +233,11 @@ export default function DashboardHome() {
           </div>
         </div>
 
-        {/* Recent Activity */}
-        <div className="bento-card">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-updraft-deep">Recent Activity</h2>
+        {/* Recent Activity - CCRO Team only */}
+        {isCCROTeam && (
+          <div className="bento-card">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-updraft-deep">Recent Activity</h2>
             <Link
               href="/audit"
               className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1"
@@ -269,6 +274,7 @@ export default function DashboardHome() {
             })}
           </div>
         </div>
+        )}
       </div>
 
       {/* Recent Reports */}

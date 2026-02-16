@@ -354,6 +354,7 @@ export function buildActionCSV(actions: Action[], users: { id: string; name: str
     "Title",
     "Description",
     "Report / Period",
+    "Source",
     "Section",
     "Owner",
     "Due Date",
@@ -362,7 +363,8 @@ export function buildActionCSV(actions: Action[], users: { id: string; name: str
     "Completed Date",
   ];
 
-  function escapeField(val: string): string {
+  function escapeField(val: string | null): string {
+    if (!val) return "";
     if (val.includes(",") || val.includes('"') || val.includes("\n")) {
       return `"${val.replace(/"/g, '""')}"`;
     }
@@ -379,7 +381,8 @@ export function buildActionCSV(actions: Action[], users: { id: string; name: str
     a.title,
     a.description,
     a.reportPeriod,
-    a.sectionTitle || "",
+    a.source,
+    a.sectionTitle,
     userMap.get(a.assignedTo) || a.assignedTo,
     fmtDate(a.dueDate),
     a.status,

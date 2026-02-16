@@ -4,7 +4,8 @@ export const ActionStatus = z.enum(["OPEN", "IN_PROGRESS", "COMPLETED", "OVERDUE
 
 export const CreateActionSchema = z.object({
   id: z.string().optional(),
-  reportId: z.string().min(1, "Report ID is required"),
+  reportId: z.string().nullable().optional(),
+  source: z.string().nullable().optional(),
   sectionId: z.string().nullable().optional(),
   sectionTitle: z.string().nullable().optional(),
   title: z.string().min(1, "Title is required"),

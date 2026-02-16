@@ -37,8 +37,8 @@ export async function POST(request: NextRequest) {
       {
         actionTitle: action.title,
         actionDescription: action.description,
-        reportTitle: action.report.title,
-        reportPeriod: action.report.period,
+        reportTitle: action.report?.title ?? null,
+        reportPeriod: action.report?.period ?? null,
         sectionTitle: action.sectionTitle,
         dueDate: action.dueDate?.toISOString() ?? null,
         actionId: action.id,

@@ -9,8 +9,8 @@ const FROM_ADDRESS = process.env.EMAIL_FROM || "CCRO Dashboard <noreply@updraft.
 interface ActionEmailData {
   actionTitle: string;
   actionDescription: string;
-  reportTitle: string;
-  reportPeriod: string;
+  reportTitle: string | null;
+  reportPeriod: string | null;
   sectionTitle: string | null;
   dueDate: string | null;
   actionId: string;
@@ -71,7 +71,7 @@ export async function sendActionAssigned(
               <h2 style="color: #1a1060; font-size: 16px; margin: 0 0 8px 0;">${data.actionTitle}</h2>
               <p style="color: #6b7280; font-size: 13px; margin: 0 0 8px 0;">${data.actionDescription || "No description provided."}</p>
               <table style="font-size: 13px; color: #374151;">
-                <tr><td style="padding: 2px 12px 2px 0; font-weight: 600;">Report:</td><td>${data.reportTitle} — ${data.reportPeriod}</td></tr>
+                ${data.reportTitle && data.reportPeriod ? `<tr><td style="padding: 2px 12px 2px 0; font-weight: 600;">Report:</td><td>${data.reportTitle} — ${data.reportPeriod}</td></tr>` : ''}
                 ${data.sectionTitle ? `<tr><td style="padding: 2px 12px 2px 0; font-weight: 600;">Section:</td><td>${data.sectionTitle}</td></tr>` : ""}
                 <tr><td style="padding: 2px 12px 2px 0; font-weight: 600;">Due Date:</td><td>${formatDueDate(data.dueDate)}</td></tr>
               </table>
@@ -126,7 +126,7 @@ export async function sendActionReminder(
             <div style="background: #f9fafb; border-left: 4px solid ${days !== null && days <= 0 ? "#dc2626" : days !== null && days <= 7 ? "#f59e0b" : "#4f46e5"}; padding: 16px; margin: 16px 0; border-radius: 0 8px 8px 0;">
               <h2 style="color: #1a1060; font-size: 16px; margin: 0 0 8px 0;">${data.actionTitle}</h2>
               <table style="font-size: 13px; color: #374151;">
-                <tr><td style="padding: 2px 12px 2px 0; font-weight: 600;">Report:</td><td>${data.reportTitle} — ${data.reportPeriod}</td></tr>
+                ${data.reportTitle && data.reportPeriod ? `<tr><td style="padding: 2px 12px 2px 0; font-weight: 600;">Report:</td><td>${data.reportTitle} — ${data.reportPeriod}</td></tr>` : ''}
                 <tr><td style="padding: 2px 12px 2px 0; font-weight: 600;">Due Date:</td><td style="color: ${days !== null && days <= 0 ? "#dc2626" : "inherit"}; font-weight: ${days !== null && days <= 0 ? "600" : "400"};">${formatDueDate(data.dueDate)}</td></tr>
               </table>
             </div>

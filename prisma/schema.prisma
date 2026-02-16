@@ -260,9 +260,10 @@ model AuditLog {
 
 model Action {
   id            String       @id @default(cuid())
-  reportId      String
-  report        Report       @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  reportPeriod  String
+  reportId      String?
+  report        Report?      @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  reportPeriod  String?
+  source        String?      @db.Text
   sectionId     String?
   sectionTitle  String?
   title         String
@@ -283,6 +284,7 @@ model Action {
   @@index([assignedTo])
   @@index([status])
   @@index([dueDate])
+  @@index([source])
   @@map("actions")
 }
 

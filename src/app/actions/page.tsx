@@ -142,7 +142,8 @@ function ActionsPageContent() {
         const matchesSearch =
           a.title.toLowerCase().includes(q) ||
           a.description.toLowerCase().includes(q) ||
-          a.reportPeriod.toLowerCase().includes(q) ||
+          (a.reportPeriod?.toLowerCase().includes(q) ?? false) ||
+          (a.source?.toLowerCase().includes(q) ?? false) ||
           (a.sectionTitle?.toLowerCase().includes(q) ?? false) ||
           (owner?.name.toLowerCase().includes(q) ?? false);
         if (!matchesSearch) return false;
