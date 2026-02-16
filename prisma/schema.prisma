@@ -112,17 +112,21 @@ model Section {
 }
 
 model ConsumerDutyOutcome {
-  id        String    @id @default(cuid())
-  reportId  String?
-  report    Report?   @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  outcomeId String
-  name      String
-  shortDesc String
-  icon      String?
-  ragStatus RAGStatus @default(GOOD)
-  position  Int       @default(0)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id                   String    @id @default(cuid())
+  reportId             String?
+  report               Report?   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  outcomeId            String
+  name                 String
+  shortDesc            String
+  detailedDescription  String?   @db.Text
+  riskOwner            String?
+  previousRAG          RAGStatus?
+  mitigatingActions    String?   @db.Text
+  icon                 String?
+  ragStatus            RAGStatus @default(GOOD)
+  position             Int       @default(0)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   measures ConsumerDutyMeasure[]
 

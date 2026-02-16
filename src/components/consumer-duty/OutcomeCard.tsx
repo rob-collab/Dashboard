@@ -38,6 +38,7 @@ interface OutcomeCardProps {
   outcome: ConsumerDutyOutcome;
   selected: boolean;
   onClick: () => void;
+  onViewDetails?: (outcome: ConsumerDutyOutcome) => void;
   hasStaleData?: boolean;
 }
 
@@ -48,6 +49,7 @@ export default function OutcomeCard({
   outcome,
   selected,
   onClick,
+  onViewDetails,
   hasStaleData,
 }: OutcomeCardProps) {
   const Icon = useMemo(() => resolveIcon(outcome.icon), [outcome.icon]);
@@ -115,8 +117,8 @@ export default function OutcomeCard({
         {outcome.shortDesc}
       </p>
 
-      {/* Measure count badge */}
-      <div className="mt-auto flex items-center gap-2">
+      {/* Measure count badge and details button */}
+      <div className="mt-auto flex items-center justify-between gap-2">
         <span
           className={cn(
             "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
@@ -127,6 +129,17 @@ export default function OutcomeCard({
         >
           {measureCount} {measureCount === 1 ? "measure" : "measures"}
         </span>
+        {onViewDetails && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewDetails(outcome);
+            }}
+            className="text-xs text-updraft-bright-purple hover:text-updraft-deep font-medium opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            View Details
+          </button>
+        )}
       </div>
 
       {/* Bottom accent bar */}

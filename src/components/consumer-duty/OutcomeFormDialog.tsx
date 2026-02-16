@@ -40,6 +40,10 @@ export default function OutcomeFormDialog({
   const [name, setName] = useState("");
   const [outcomeId, setOutcomeId] = useState("");
   const [shortDesc, setShortDesc] = useState("");
+  const [detailedDescription, setDetailedDescription] = useState("");
+  const [riskOwner, setRiskOwner] = useState("");
+  const [previousRAG, setPreviousRAG] = useState<RAGStatus | "">("");
+  const [mitigatingActions, setMitigatingActions] = useState("");
   const [icon, setIcon] = useState("ShieldCheck");
   const [ragStatus, setRagStatus] = useState<RAGStatus>("GOOD");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -50,12 +54,20 @@ export default function OutcomeFormDialog({
         setName(outcome.name);
         setOutcomeId(outcome.outcomeId);
         setShortDesc(outcome.shortDesc);
+        setDetailedDescription(outcome.detailedDescription || "");
+        setRiskOwner(outcome.riskOwner || "");
+        setPreviousRAG(outcome.previousRAG || "");
+        setMitigatingActions(outcome.mitigatingActions || "");
         setIcon(outcome.icon ?? "ShieldCheck");
         setRagStatus(outcome.ragStatus);
       } else {
         setName("");
         setOutcomeId("");
         setShortDesc("");
+        setDetailedDescription("");
+        setRiskOwner("");
+        setPreviousRAG("");
+        setMitigatingActions("");
         setIcon("ShieldCheck");
         setRagStatus("GOOD");
       }
@@ -80,6 +92,10 @@ export default function OutcomeFormDialog({
       outcomeId: outcomeId.trim(),
       name: name.trim(),
       shortDesc: shortDesc.trim(),
+      detailedDescription: detailedDescription.trim() || null,
+      riskOwner: riskOwner.trim() || null,
+      previousRAG: previousRAG || null,
+      mitigatingActions: mitigatingActions.trim() || null,
       icon,
       ragStatus,
       position: outcome?.position ?? nextPosition,
@@ -171,6 +187,65 @@ export default function OutcomeFormDialog({
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
+        </div>
+
+        <div className="border-t border-gray-200 pt-4">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">Risk Details (Optional)</h3>
+
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="outcome-detailed-desc" className={labelClasses}>Detailed Description</label>
+              <textarea
+                id="outcome-detailed-desc"
+                rows={4}
+                value={detailedDescription}
+                onChange={(e) => setDetailedDescription(e.target.value)}
+                placeholder="Comprehensive explanation of this risk area and its implications..."
+                className={inputClasses}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="outcome-owner" className={labelClasses}>Risk Owner</label>
+                <input
+                  id="outcome-owner"
+                  type="text"
+                  value={riskOwner}
+                  onChange={(e) => setRiskOwner(e.target.value)}
+                  placeholder="e.g., cath@updraft.com"
+                  className={inputClasses}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="outcome-previous-rag" className={labelClasses}>Previous Period RAG</label>
+                <select
+                  id="outcome-previous-rag"
+                  value={previousRAG}
+                  onChange={(e) => setPreviousRAG(e.target.value as RAGStatus | "")}
+                  className={inputClasses}
+                >
+                  <option value="">— Not set —</option>
+                  {RAG_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="outcome-mitigating" className={labelClasses}>Mitigating Actions & Controls</label>
+              <textarea
+                id="outcome-mitigating"
+                rows={4}
+                value={mitigatingActions}
+                onChange={(e) => setMitigatingActions(e.target.value)}
+                placeholder="List key actions and controls in place to mitigate this risk..."
+                className={inputClasses}
+              />
+            </div>
+          </div>
         </div>
 
         <div>

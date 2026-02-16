@@ -105,6 +105,10 @@ export interface ConsumerDutyOutcome {
   outcomeId: string;
   name: string;
   shortDesc: string;
+  detailedDescription?: string | null;
+  riskOwner?: string | null;
+  previousRAG?: RAGStatus | null;
+  mitigatingActions?: string | null;
   icon: string | null;
   ragStatus: RAGStatus;
   position: number;

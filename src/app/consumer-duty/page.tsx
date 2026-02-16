@@ -13,6 +13,7 @@ import MeasureFormDialog from "@/components/consumer-duty/MeasureFormDialog";
 import CSVUploadDialog from "@/components/consumer-duty/CSVUploadDialog";
 import MIImportDialog from "@/components/consumer-duty/MIImportDialog";
 import AdminRAGPanel from "@/components/consumer-duty/AdminRAGPanel";
+import RiskDetailModal from "@/components/consumer-duty/RiskDetailModal";
 import { cn, ragBgColor, ragLabelShort } from "@/lib/utils";
 import type { ConsumerDutyMeasure, ConsumerDutyOutcome, ConsumerDutyMI, RAGStatus } from "@/lib/types";
 
@@ -61,6 +62,7 @@ function ConsumerDutyContent() {
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
   const [miImportDialogOpen, setMiImportDialogOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [riskDetailOutcome, setRiskDetailOutcome] = useState<ConsumerDutyOutcome | null>(null);
 
   const selectedOutcome = outcomes.find((o) => o.id === selectedOutcomeId);
 
@@ -493,6 +495,7 @@ function ConsumerDutyContent() {
                   onClick={() =>
                     setSelectedOutcomeId(outcome.id === selectedOutcomeId ? null : outcome.id)
                   }
+                  onViewDetails={setRiskDetailOutcome}
                 />
                 {isCCROTeam && (
                   <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover/outcome:opacity-100 transition-opacity z-10">
@@ -669,6 +672,13 @@ function ConsumerDutyContent() {
         onClose={() => setMiImportDialogOpen(false)}
         onImport={handleMIImport}
         measures={outcomes.flatMap((o) => o.measures ?? [])}
+      />
+
+      {/* Risk Detail Modal */}
+      <RiskDetailModal
+        outcome={riskDetailOutcome}
+        open={!!riskDetailOutcome}
+        onClose={() => setRiskDetailOutcome(null)}
       />
     </div>
   );
