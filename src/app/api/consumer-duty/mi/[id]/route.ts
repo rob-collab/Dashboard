@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse } from "@/lib/api-helpers";
+import { prisma, jsonResponse, errorResponse, requireCCRORole } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 type Params = { params: Promise<{ id: string }> };
@@ -7,6 +7,8 @@ type Params = { params: Promise<{ id: string }> };
 export async function PATCH(request: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
+    const authResult = await requireCCRORole(request);
+    if ('error' in authResult) return authResult.error;
     const body = await request.json();
     const mi = await prisma.consumerDutyMI.update({ where: { id }, data: body });
     return jsonResponse(serialiseDates(mi));
@@ -19,6 +21,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 export async function DELETE(_req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
+    const authResult = await requireCCRORole(_req);
+    if ('error' in authResult) return authResult.error;
     await prisma.consumerDutyMI.delete({ where: { id } });
     return jsonResponse({ deleted: true });
   } catch (error) {

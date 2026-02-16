@@ -1,20 +1,14 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse, getUserId } from "@/lib/api-helpers";
+import { prisma, jsonResponse, errorResponse, getUserId, validateQuery, validateBody } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 import { sendActionAssigned } from "@/lib/email";
-
-const VALID_ACTION_STATUSES = ["OPEN", "IN_PROGRESS", "COMPLETED", "OVERDUE"];
+import { ActionQuerySchema, CreateActionSchema } from "@/lib/schemas/actions";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const reportId = searchParams.get("reportId");
-  const assignedTo = searchParams.get("assignedTo");
-  const status = searchParams.get("status");
-
-  // Validate status enum
-  if (status && !VALID_ACTION_STATUSES.includes(status)) {
-    return errorResponse(`Invalid status. Must be one of: ${VALID_ACTION_STATUSES.join(", ")}`, 400);
-  }
+  const validation = validateQuery(ActionQuerySchema, searchParams);
+  if ('error' in validation) return validation.error;
+  const { reportId, assignedTo, status } = validation.data;
 
   const where: Record<string, unknown> = {};
   if (reportId) where.reportId = reportId;
@@ -35,19 +29,17 @@ export async function POST(request: NextRequest) {
   if (!userId) return errorResponse("Unauthorised", 401);
 
   const body = await request.json();
-  const { reportId, sectionId, sectionTitle, title, description, assignedTo, dueDate } = body;
-
-  if (!reportId || !title || !assignedTo) {
-    return errorResponse("reportId, title, and assignedTo are required");
-  }
+  const validation = validateBody(CreateActionSchema, body);
+  if ('error' in validation) return validation.error;
+  const data = validation.data;
 
   // Snapshot report period
-  const report = await prisma.report.findUnique({ where: { id: reportId } });
-  if (!report) return errorResponse(`Report not found: ${reportId}`, 404);
+  const report = await prisma.report.findUnique({ where: { id: data.reportId } });
+  if (!report) return errorResponse(`Report not found: ${data.reportId}`, 404);
 
   // Verify assignee exists
-  const assignee = await prisma.user.findUnique({ where: { id: assignedTo } });
-  if (!assignee) return errorResponse(`Assigned user not found: ${assignedTo}`, 404);
+  const assignee = await prisma.user.findUnique({ where: { id: data.assignedTo } });
+  if (!assignee) return errorResponse(`Assigned user not found: ${data.assignedTo}`, 404);
 
   // Verify creator exists
   const creator = await prisma.user.findUnique({ where: { id: userId } });
@@ -55,16 +47,16 @@ export async function POST(request: NextRequest) {
 
   const action = await prisma.action.create({
     data: {
-      id: body.id || undefined,
-      reportId,
+      id: data.id,
+      reportId: data.reportId,
       reportPeriod: `${report.title} — ${report.period}`,
-      sectionId: sectionId || null,
-      sectionTitle: sectionTitle || null,
-      title,
-      description: description || "",
-      assignedTo,
+      sectionId: data.sectionId,
+      sectionTitle: data.sectionTitle,
+      title: data.title,
+      description: data.description,
+      assignedTo: data.assignedTo,
       createdBy: userId,
-      dueDate: dueDate ? new Date(dueDate) : null,
+      dueDate: data.dueDate ? new Date(data.dueDate) : null,
     },
     include: { assignee: true, creator: true },
   });
@@ -93,8 +85,8 @@ export async function POST(request: NextRequest) {
       action: "create_action",
       entityType: "action",
       entityId: action.id,
-      reportId,
-      changes: { title, assignedTo, dueDate },
+      reportId: data.reportId,
+      changes: { title: data.title, assignedTo: data.assignedTo, dueDate: data.dueDate },
     },
   }).catch((err) => console.warn("[audit] create_action failed:", err));
 

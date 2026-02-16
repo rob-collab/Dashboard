@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse } from "@/lib/api-helpers";
+import { prisma, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
+import { UpdateUserSchema } from "@/lib/schemas/users";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -20,7 +21,11 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
     const body = await request.json();
-    const user = await prisma.user.update({ where: { id }, data: body });
+    const validation = validateBody(UpdateUserSchema, body);
+    if ('error' in validation) return validation.error;
+    const data = validation.data;
+
+    const user = await prisma.user.update({ where: { id }, data });
     return jsonResponse(serialiseDates(user));
   } catch (error) {
     console.error('[API Error]', error);

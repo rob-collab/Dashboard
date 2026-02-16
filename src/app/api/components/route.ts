@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse, getUserId } from "@/lib/api-helpers";
+import { prisma, jsonResponse, errorResponse, requireCCRORole } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 export async function GET() {
@@ -17,11 +17,13 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = getUserId(request);
-    if (!userId) return errorResponse("Unauthorised", 401);
+    const authResult = await requireCCRORole(request);
+    if ('error' in authResult) return authResult.error;
+    const userId = authResult.userId;
     const body = await request.json();
     const { name, htmlContent } = body;
     if (!name || !htmlContent) return errorResponse("name and htmlContent are required");
+    if (!userId) return errorResponse("Unauthorised", 401);
 
     const component = await prisma.component.create({
       data: {

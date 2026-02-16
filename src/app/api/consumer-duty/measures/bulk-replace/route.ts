@@ -1,9 +1,11 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse } from "@/lib/api-helpers";
+import { prisma, jsonResponse, errorResponse, requireCCRORole } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 export async function POST(request: NextRequest) {
   try {
+    const authResult = await requireCCRORole(request);
+    if ('error' in authResult) return authResult.error;
     const body = await request.json();
     const { outcomeIds, measures } = body;
 

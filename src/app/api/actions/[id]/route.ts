@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse, getUserId } from "@/lib/api-helpers";
+import { prisma, jsonResponse, errorResponse, getUserId, validateBody } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
+import { UpdateActionSchema } from "@/lib/schemas/actions";
 
 export async function GET(
   _request: NextRequest,
@@ -41,19 +42,21 @@ export async function PATCH(
     if (!existing) return errorResponse("Action not found", 404);
 
     const body = await request.json();
-    const { title, description, status, assignedTo, dueDate, sectionId, sectionTitle } = body;
+    const validation = validateBody(UpdateActionSchema, body);
+    if ('error' in validation) return validation.error;
+    const validatedData = validation.data;
 
     const data: Record<string, unknown> = {};
-    if (title !== undefined) data.title = title;
-    if (description !== undefined) data.description = description;
-    if (status !== undefined) {
-      data.status = status;
-      if (status === "COMPLETED") data.completedAt = new Date();
+    if (validatedData.title !== undefined) data.title = validatedData.title;
+    if (validatedData.description !== undefined) data.description = validatedData.description;
+    if (validatedData.status !== undefined) {
+      data.status = validatedData.status;
+      if (validatedData.status === "COMPLETED") data.completedAt = new Date();
     }
-    if (assignedTo !== undefined) data.assignedTo = assignedTo;
-    if (dueDate !== undefined) data.dueDate = dueDate ? new Date(dueDate) : null;
-    if (sectionId !== undefined) data.sectionId = sectionId;
-    if (sectionTitle !== undefined) data.sectionTitle = sectionTitle;
+    if (validatedData.assignedTo !== undefined) data.assignedTo = validatedData.assignedTo;
+    if (validatedData.dueDate !== undefined) data.dueDate = validatedData.dueDate ? new Date(validatedData.dueDate) : null;
+    if (validatedData.sectionId !== undefined) data.sectionId = validatedData.sectionId;
+    if (validatedData.sectionTitle !== undefined) data.sectionTitle = validatedData.sectionTitle;
 
     const updated = await prisma.action.update({
       where: { id },
@@ -67,11 +70,11 @@ export async function PATCH(
       data: {
         userId,
         userRole: user?.role ?? "VIEWER",
-        action: status === "COMPLETED" ? "complete_action" : "update_action",
+        action: validatedData.status === "COMPLETED" ? "complete_action" : "update_action",
         entityType: "action",
         entityId: id,
         reportId: existing.reportId,
-        changes: body,
+        changes: validatedData,
       },
     }).catch((err) => console.warn("[audit] update_action failed:", err));
 

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse, getUserId } from "@/lib/api-helpers";
+import { prisma, jsonResponse, errorResponse, requireCCRORole, validateBody } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
+import { CreateTemplateSchema } from "@/lib/schemas/templates";
 
 export async function GET() {
   try {
@@ -17,26 +18,30 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = getUserId(request);
+    const authResult = await requireCCRORole(request);
+    if ('error' in authResult) return authResult.error;
+    const userId = authResult.userId;
     if (!userId) return errorResponse("Unauthorised", 401);
+
     const body = await request.json();
-    const { name } = body;
-    if (!name) return errorResponse("name is required");
+    const validation = validateBody(CreateTemplateSchema, body);
+    if ('error' in validation) return validation.error;
+    const data = validation.data;
 
     const template = await prisma.template.create({
       data: {
-        id: body.id || undefined,
-        name,
-        description: body.description ?? "",
-        category: body.category ?? "General",
-        thumbnailUrl: body.thumbnailUrl ?? null,
-        layoutConfig: body.layoutConfig ?? {},
-        styleConfig: body.styleConfig ?? {},
-        contentSchema: body.contentSchema ?? [],
-        sectionType: body.sectionType || "TEXT_BLOCK",
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        category: data.category,
+        thumbnailUrl: data.thumbnailUrl,
+        layoutConfig: data.layoutConfig,
+        styleConfig: data.styleConfig,
+        contentSchema: data.contentSchema,
+        sectionType: data.sectionType,
         createdBy: userId,
-        isGlobal: body.isGlobal ?? false,
-        version: body.version ?? 1,
+        isGlobal: data.isGlobal,
+        version: data.version,
       },
       include: { creator: true },
     });

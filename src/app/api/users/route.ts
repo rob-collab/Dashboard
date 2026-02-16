@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse } from "@/lib/api-helpers";
+import { prisma, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
+import { CreateUserSchema } from "@/lib/schemas/users";
 
 export async function GET() {
   try {
@@ -15,17 +16,18 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, name, role, assignedMeasures, isActive } = body;
-    if (!email || !name) return errorResponse("email and name are required");
+    const validation = validateBody(CreateUserSchema, body);
+    if ('error' in validation) return validation.error;
+    const data = validation.data;
 
     const user = await prisma.user.create({
       data: {
-        id: body.id || undefined,
-        email,
-        name,
-        role: role || "VIEWER",
-        assignedMeasures: assignedMeasures || [],
-        isActive: isActive ?? true,
+        id: data.id,
+        email: data.email,
+        name: data.name,
+        role: data.role,
+        assignedMeasures: data.assignedMeasures,
+        isActive: data.isActive,
       },
     });
     return jsonResponse(serialiseDates(user), 201);
