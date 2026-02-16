@@ -11,6 +11,7 @@ import MIModal from "@/components/consumer-duty/MIModal";
 import OutcomeFormDialog from "@/components/consumer-duty/OutcomeFormDialog";
 import MeasureFormDialog from "@/components/consumer-duty/MeasureFormDialog";
 import CSVUploadDialog from "@/components/consumer-duty/CSVUploadDialog";
+import MIImportDialog from "@/components/consumer-duty/MIImportDialog";
 import AdminRAGPanel from "@/components/consumer-duty/AdminRAGPanel";
 import { cn, ragBgColor, ragLabelShort } from "@/lib/utils";
 import type { ConsumerDutyMeasure, ConsumerDutyOutcome, ConsumerDutyMI, RAGStatus } from "@/lib/types";
@@ -58,6 +59,7 @@ function ConsumerDutyContent() {
   const [measureDialogOpen, setMeasureDialogOpen] = useState(false);
   const [editingMeasure, setEditingMeasure] = useState<ConsumerDutyMeasure | undefined>(undefined);
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
+  const [miImportDialogOpen, setMiImportDialogOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const selectedOutcome = outcomes.find((o) => o.id === selectedOutcomeId);
@@ -199,6 +201,13 @@ function ConsumerDutyContent() {
     }
   };
 
+  const handleMIImport = (updates: { measureId: string; metrics: ConsumerDutyMI[] }[]) => {
+    for (const { measureId, metrics } of updates) {
+      updateMeasureMetrics(measureId, metrics);
+    }
+    logAuditEvent({ action: "bulk_import_mi", entityType: "consumer_duty_mi", changes: { count: updates.reduce((sum, u) => sum + u.metrics.length, 0) } });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -234,10 +243,17 @@ function ConsumerDutyContent() {
               </button>
               <button
                 onClick={() => setCsvDialogOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <Upload size={14} />
+                Import Measures
+              </button>
+              <button
+                onClick={() => setMiImportDialogOpen(true)}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-bright-purple px-3 py-2 text-xs font-medium text-white hover:bg-updraft-deep transition-colors"
               >
                 <Upload size={14} />
-                CSV Import
+                Import MI
               </button>
             </>
           )}
@@ -642,6 +658,14 @@ function ConsumerDutyContent() {
         onClose={() => setCsvDialogOpen(false)}
         onImport={handleCSVImport}
         outcomes={outcomes}
+      />
+
+      {/* MI Import Dialog */}
+      <MIImportDialog
+        open={miImportDialogOpen}
+        onClose={() => setMiImportDialogOpen(false)}
+        onImport={handleMIImport}
+        measures={outcomes.flatMap((o) => o.measures ?? [])}
       />
     </div>
   );
