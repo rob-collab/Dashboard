@@ -183,17 +183,20 @@ function ConsumerDutyContent() {
   ) => {
     if (mode === "replace" && affectedOutcomeIds?.length) {
       // Call bulk-replace API — transactionally delete existing then insert
+      const measures = items.map((item) => ({ ...item.measure, outcomeId: item.outcomeId }));
       try {
         await fetch("/api/consumer-duty/measures/bulk-replace", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ outcomeIds: affectedOutcomeIds, measures: items }),
+          body: JSON.stringify({ outcomeIds: affectedOutcomeIds, measures }),
         });
-      } catch {
+        // Refresh store from API
+        await useAppStore.getState().hydrate();
+      } catch (error) {
+        console.error("Bulk replace failed:", error);
         // Fallback to local-only if API unreachable
+        bulkAddMeasures(items);
       }
-      // Refresh store from API
-      useAppStore.getState().hydrate();
       logAuditEvent({ action: "bulk_replace_measures", entityType: "consumer_duty_measure", changes: { count: items.length, mode: "replace", outcomeIds: affectedOutcomeIds } });
     } else {
       bulkAddMeasures(items);
