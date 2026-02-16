@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ShieldCheck, Search, Filter, ClipboardEdit, Plus, Upload, Pencil, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { logAuditEvent } from "@/lib/audit";
@@ -13,6 +14,8 @@ import CSVUploadDialog from "@/components/consumer-duty/CSVUploadDialog";
 import { cn, ragBgColor, ragLabel } from "@/lib/utils";
 import type { ConsumerDutyMeasure, ConsumerDutyOutcome, ConsumerDutyMI, RAGStatus } from "@/lib/types";
 
+type RagFilterValue = RAGStatus | "ALL" | "ATTENTION";
+
 const RAG_FILTERS: { value: RAGStatus | "ALL"; label: string }[] = [
   { value: "ALL", label: "All" },
   { value: "GOOD", label: "Good" },
@@ -20,7 +23,9 @@ const RAG_FILTERS: { value: RAGStatus | "ALL"; label: string }[] = [
   { value: "HARM", label: "Harm" },
 ];
 
-export default function ConsumerDutyPage() {
+function ConsumerDutyContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const outcomes = useAppStore((s) => s.outcomes);
   const currentUser = useAppStore((s) => s.currentUser);
   const updateMeasureMetrics = useAppStore((s) => s.updateMeasureMetrics);
@@ -38,7 +43,11 @@ export default function ConsumerDutyPage() {
 
   const [selectedOutcomeId, setSelectedOutcomeId] = useState<string | null>(null);
   const [selectedMeasure, setSelectedMeasure] = useState<ConsumerDutyMeasure | null>(null);
-  const [ragFilter, setRagFilter] = useState<RAGStatus | "ALL">("ALL");
+  const [ragFilter, setRagFilter] = useState<RagFilterValue>(() => {
+    const param = searchParams.get("rag");
+    if (param === "GOOD" || param === "WARNING" || param === "HARM" || param === "ATTENTION") return param;
+    return "ALL";
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"all" | "my">("all");
 
@@ -52,6 +61,17 @@ export default function ConsumerDutyPage() {
 
   const selectedOutcome = outcomes.find((o) => o.id === selectedOutcomeId);
 
+  // URL-synced RAG filter (for filter bar)
+  const handleRagFilter = useCallback((value: RagFilterValue) => {
+    setRagFilter(value);
+    router.replace(value === "ALL" ? "/consumer-duty" : `/consumer-duty?rag=${value}`, { scroll: false });
+  }, [router]);
+
+  // Stat card click — toggle (click active card resets to ALL)
+  const handleStatRagClick = useCallback((value: RAGStatus | "ALL") => {
+    handleRagFilter(ragFilter === value ? "ALL" : value);
+  }, [ragFilter, handleRagFilter]);
+
   // Measures assigned to the current user
   const myMeasures = useMemo(() => {
     if (!currentUser) return [];
@@ -63,7 +83,9 @@ export default function ConsumerDutyPage() {
 
   const filteredOutcomes = useMemo(() => {
     let filtered = outcomes;
-    if (ragFilter !== "ALL") {
+    if (ragFilter === "ATTENTION") {
+      filtered = filtered.filter((o) => o.ragStatus === "WARNING" || o.ragStatus === "HARM");
+    } else if (ragFilter !== "ALL") {
       filtered = filtered.filter((o) => o.ragStatus === ragFilter);
     }
     if (searchQuery) {
@@ -230,37 +252,61 @@ export default function ConsumerDutyPage() {
         </div>
       </div>
 
-      {/* Summary cards */}
+      {/* Summary cards — clickable with active highlight */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bento-card">
+        <button
+          onClick={() => handleStatRagClick("ALL")}
+          className={cn(
+            "bento-card cursor-pointer text-left",
+            ragFilter === "ALL" && "ring-2 ring-updraft-bright-purple/30"
+          )}
+        >
           <p className="text-xs text-fca-gray">Total Outcomes</p>
           <p className="text-2xl font-bold text-updraft-deep mt-1">{outcomes.length}</p>
           <p className="text-xs text-fca-gray mt-1">{totalMeasures} measures tracked</p>
-        </div>
-        <div className="bento-card">
+        </button>
+        <button
+          onClick={() => handleStatRagClick("GOOD")}
+          className={cn(
+            "bento-card cursor-pointer text-left",
+            ragFilter === "GOOD" && "ring-2 ring-updraft-bright-purple/30"
+          )}
+        >
           <div className="flex items-center gap-2">
             <span className={cn("h-2.5 w-2.5 rounded-full", ragBgColor("GOOD"))} />
             <p className="text-xs text-fca-gray">Good</p>
           </div>
           <p className="text-2xl font-bold text-risk-green mt-1">{goodCount}</p>
           <p className="text-xs text-fca-gray mt-1">outcomes on track</p>
-        </div>
-        <div className="bento-card">
+        </button>
+        <button
+          onClick={() => handleStatRagClick("WARNING")}
+          className={cn(
+            "bento-card cursor-pointer text-left",
+            (ragFilter === "WARNING" || ragFilter === "ATTENTION") && "ring-2 ring-updraft-bright-purple/30"
+          )}
+        >
           <div className="flex items-center gap-2">
             <span className={cn("h-2.5 w-2.5 rounded-full", ragBgColor("WARNING"))} />
             <p className="text-xs text-fca-gray">Warning</p>
           </div>
           <p className="text-2xl font-bold text-risk-amber mt-1">{warningCount}</p>
           <p className="text-xs text-fca-gray mt-1">need attention</p>
-        </div>
-        <div className="bento-card">
+        </button>
+        <button
+          onClick={() => handleStatRagClick("HARM")}
+          className={cn(
+            "bento-card cursor-pointer text-left",
+            (ragFilter === "HARM" || ragFilter === "ATTENTION") && "ring-2 ring-updraft-bright-purple/30"
+          )}
+        >
           <div className="flex items-center gap-2">
             <span className={cn("h-2.5 w-2.5 rounded-full", ragBgColor("HARM"))} />
             <p className="text-xs text-fca-gray">Harm</p>
           </div>
           <p className="text-2xl font-bold text-risk-red mt-1">{harmCount}</p>
           <p className="text-xs text-fca-gray mt-1">require action</p>
-        </div>
+        </button>
       </div>
 
       {/* MY MEASURES VIEW */}
@@ -358,7 +404,7 @@ export default function ConsumerDutyPage() {
               {RAG_FILTERS.map((f) => (
                 <button
                   key={f.value}
-                  onClick={() => setRagFilter(f.value)}
+                  onClick={() => handleRagFilter(f.value)}
                   className={cn(
                     "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
                     ragFilter === f.value
@@ -544,5 +590,13 @@ export default function ConsumerDutyPage() {
         outcomes={outcomes}
       />
     </div>
+  );
+}
+
+export default function ConsumerDutyPage() {
+  return (
+    <Suspense>
+      <ConsumerDutyContent />
+    </Suspense>
   );
 }

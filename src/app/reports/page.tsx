@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Plus, Search, FileText } from "lucide-react";
 import { useAppStore } from "@/lib/store";
@@ -9,13 +9,18 @@ import { generateHTMLExport } from "@/lib/export-html";
 import { ReportCard } from "@/components/reports/ReportCard";
 import type { Report, ReportStatus } from "@/lib/types";
 
-export default function ReportsPage() {
+function ReportsPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const reports = useAppStore((s) => s.reports);
   const sections = useAppStore((s) => s.sections);
   const outcomes = useAppStore((s) => s.outcomes);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ReportStatus | "ALL">("ALL");
+  const [statusFilter, setStatusFilter] = useState<ReportStatus | "ALL">(() => {
+    const param = searchParams.get("status");
+    if (param === "DRAFT" || param === "PUBLISHED" || param === "ARCHIVED") return param;
+    return "ALL";
+  });
 
   const filteredReports = reports.filter((r) => {
     const matchesSearch =
@@ -116,5 +121,13 @@ export default function ReportsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ReportsPage() {
+  return (
+    <Suspense>
+      <ReportsPageContent />
+    </Suspense>
   );
 }

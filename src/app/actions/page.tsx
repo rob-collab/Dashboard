@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, Suspense } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ListChecks,
   Plus,
@@ -61,7 +62,9 @@ function rowBorderColor(action: Action): string {
   return "border-l-gray-200";
 }
 
-export default function ActionsPage() {
+function ActionsPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const currentUser = useAppStore((s) => s.currentUser);
   const actions = useAppStore((s) => s.actions);
   const reports = useAppStore((s) => s.reports);
@@ -73,9 +76,13 @@ export default function ActionsPage() {
 
   const isCCRO = currentUser?.role === "CCRO_TEAM";
 
-  // Filters
+  // Filters — initialise status from URL param
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [statusFilter, setStatusFilter] = useState<string>(() => {
+    const param = searchParams.get("status");
+    if (param === "OPEN" || param === "IN_PROGRESS" || param === "OVERDUE" || param === "COMPLETED" || param === "DUE_THIS_MONTH") return param;
+    return "ALL";
+  });
   const [ownerFilter, setOwnerFilter] = useState<string>("ALL");
   const [reportFilter, setReportFilter] = useState<string>("ALL");
 
@@ -85,6 +92,16 @@ export default function ActionsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showCSVImport, setShowCSVImport] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+
+  // URL-synced status change
+  const handleStatusChange = useCallback((value: string) => {
+    setStatusFilter(value);
+    router.replace(value === "ALL" ? "/actions" : `/actions?status=${value}`, { scroll: false });
+  }, [router]);
+
+  const handleStatClick = useCallback((filterKey: string) => {
+    handleStatusChange(statusFilter === filterKey ? "ALL" : filterKey);
+  }, [statusFilter, handleStatusChange]);
 
   // Stats
   const stats = useMemo(() => {
@@ -100,10 +117,23 @@ export default function ActionsPage() {
     return { total, open, overdue, dueThisMonth, completed };
   }, [actions]);
 
-  // Filtered actions
+  // Filtered actions — handles virtual filter values (OPEN, DUE_THIS_MONTH, OVERDUE)
   const filteredActions = useMemo(() => {
     return actions.filter((a) => {
-      if (statusFilter !== "ALL" && a.status !== statusFilter) return false;
+      if (statusFilter !== "ALL") {
+        if (statusFilter === "OPEN") {
+          if (a.status !== "OPEN" && a.status !== "IN_PROGRESS") return false;
+        } else if (statusFilter === "DUE_THIS_MONTH") {
+          if (a.status === "COMPLETED") return false;
+          const days = daysUntilDue(a.dueDate);
+          if (days === null || days <= 0 || days > 30) return false;
+        } else if (statusFilter === "OVERDUE") {
+          const isOverdue = a.status === "OVERDUE" || (a.status !== "COMPLETED" && daysUntilDue(a.dueDate) !== null && daysUntilDue(a.dueDate)! <= 0);
+          if (!isOverdue) return false;
+        } else {
+          if (a.status !== statusFilter) return false;
+        }
+      }
       if (ownerFilter !== "ALL" && a.assignedTo !== ownerFilter) return false;
       if (reportFilter !== "ALL" && a.reportId !== reportFilter) return false;
       if (search) {
@@ -192,6 +222,14 @@ export default function ActionsPage() {
 
   const expandedAction = expandedId ? actions.find((a) => a.id === expandedId) : null;
 
+  const statCards = [
+    { label: "Total", value: stats.total, color: "text-gray-700", bg: "bg-gray-50", filterKey: "ALL" },
+    { label: "Open", value: stats.open, color: "text-blue-700", bg: "bg-blue-50", filterKey: "OPEN" },
+    { label: "Overdue", value: stats.overdue, color: "text-red-700", bg: "bg-red-50", filterKey: "OVERDUE" },
+    { label: "Due This Month", value: stats.dueThisMonth, color: "text-amber-700", bg: "bg-amber-50", filterKey: "DUE_THIS_MONTH" },
+    { label: "Completed", value: stats.completed, color: "text-blue-700", bg: "bg-blue-50", filterKey: "COMPLETED" },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -227,19 +265,23 @@ export default function ActionsPage() {
         )}
       </div>
 
-      {/* Stats */}
+      {/* Stats — clickable with active highlight */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        {[
-          { label: "Total", value: stats.total, color: "text-gray-700", bg: "bg-gray-50" },
-          { label: "Open", value: stats.open, color: "text-blue-700", bg: "bg-blue-50" },
-          { label: "Overdue", value: stats.overdue, color: "text-red-700", bg: "bg-red-50" },
-          { label: "Due This Month", value: stats.dueThisMonth, color: "text-amber-700", bg: "bg-amber-50" },
-          { label: "Completed", value: stats.completed, color: "text-blue-700", bg: "bg-blue-50" },
-        ].map((s) => (
-          <div key={s.label} className={cn("rounded-xl border border-gray-200 p-3", s.bg)}>
+        {statCards.map((s) => (
+          <button
+            key={s.label}
+            onClick={() => handleStatClick(s.filterKey)}
+            className={cn(
+              "rounded-xl border p-3 text-left transition-all cursor-pointer",
+              s.bg,
+              statusFilter === s.filterKey
+                ? "border-updraft-bright-purple ring-2 ring-updraft-bright-purple/30"
+                : "border-gray-200 hover:border-gray-300"
+            )}
+          >
             <p className="text-xs text-gray-500">{s.label}</p>
             <p className={cn("text-2xl font-bold font-poppins", s.color)}>{s.value}</p>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -273,13 +315,14 @@ export default function ActionsPage() {
             <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => handleStatusChange(e.target.value)}
               className="w-full rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm outline-none focus:border-updraft-light-purple"
             >
               <option value="ALL">All Statuses</option>
               <option value="OPEN">Open</option>
               <option value="IN_PROGRESS">In Progress</option>
               <option value="OVERDUE">Overdue</option>
+              <option value="DUE_THIS_MONTH">Due This Month</option>
               <option value="COMPLETED">Completed</option>
             </select>
           </div>
@@ -506,5 +549,13 @@ export default function ActionsPage() {
         onImportComplete={handleImportComplete}
       />
     </div>
+  );
+}
+
+export default function ActionsPage() {
+  return (
+    <Suspense>
+      <ActionsPageContent />
+    </Suspense>
   );
 }

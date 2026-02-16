@@ -14,10 +14,18 @@ import { useAppStore } from "@/lib/store";
 import { formatDate, ragBgColor } from "@/lib/utils";
 import { getActionLabel } from "@/lib/audit";
 
+function daysUntilDue(dueDate: string | null): number | null {
+  if (!dueDate) return null;
+  const now = new Date();
+  const due = new Date(dueDate);
+  return Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+}
+
 export default function DashboardHome() {
   const currentUser = useAppStore((s) => s.currentUser);
   const reports = useAppStore((s) => s.reports);
   const outcomes = useAppStore((s) => s.outcomes);
+  const actions = useAppStore((s) => s.actions);
   const allAuditLogs = useAppStore((s) => s.auditLogs);
   const users = useAppStore((s) => s.users);
   const auditLogs = useMemo(() => allAuditLogs.slice(0, 5), [allAuditLogs]);
@@ -26,6 +34,22 @@ export default function DashboardHome() {
   const publishedCount = reports.filter((r) => r.status === "PUBLISHED").length;
   const warningCount = outcomes.filter((o) => o.ragStatus === "WARNING").length;
   const harmCount = outcomes.filter((o) => o.ragStatus === "HARM").length;
+
+  const actionStats = useMemo(() => {
+    const open = actions.filter((a) => a.status === "OPEN" || a.status === "IN_PROGRESS").length;
+    const overdue = actions.filter(
+      (a) =>
+        a.status === "OVERDUE" ||
+        (a.status !== "COMPLETED" && daysUntilDue(a.dueDate) !== null && daysUntilDue(a.dueDate)! <= 0)
+    ).length;
+    const dueThisMonth = actions.filter((a) => {
+      if (a.status === "COMPLETED") return false;
+      const days = daysUntilDue(a.dueDate);
+      return days !== null && days > 0 && days <= 30;
+    }).length;
+    const completed = actions.filter((a) => a.status === "COMPLETED").length;
+    return { open, overdue, dueThisMonth, completed };
+  }, [actions]);
 
   return (
     <div className="space-y-6">
@@ -65,7 +89,7 @@ export default function DashboardHome() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bento-card">
+        <Link href="/reports?status=DRAFT" className="bento-card cursor-pointer">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-updraft-pale-purple/50 p-2.5">
               <FileText className="h-5 w-5 text-updraft-bright-purple" />
@@ -75,8 +99,8 @@ export default function DashboardHome() {
               <p className="text-sm text-fca-gray">Draft Reports</p>
             </div>
           </div>
-        </div>
-        <div className="bento-card">
+        </Link>
+        <Link href="/reports?status=PUBLISHED" className="bento-card cursor-pointer">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-green-50 p-2.5">
               <CheckCircle className="h-5 w-5 text-risk-green" />
@@ -86,8 +110,8 @@ export default function DashboardHome() {
               <p className="text-sm text-fca-gray">Published</p>
             </div>
           </div>
-        </div>
-        <div className="bento-card">
+        </Link>
+        <Link href="/consumer-duty" className="bento-card cursor-pointer">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-updraft-pale-purple/50 p-2.5">
               <Shield className="h-5 w-5 text-updraft-bright-purple" />
@@ -97,8 +121,8 @@ export default function DashboardHome() {
               <p className="text-sm text-fca-gray">CD Outcomes</p>
             </div>
           </div>
-        </div>
-        <div className="bento-card">
+        </Link>
+        <Link href="/consumer-duty?rag=ATTENTION" className="bento-card cursor-pointer">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-amber-50 p-2.5">
               <AlertTriangle className="h-5 w-5 text-risk-amber" />
@@ -108,6 +132,37 @@ export default function DashboardHome() {
               <p className="text-sm text-fca-gray">Attention Needed</p>
             </div>
           </div>
+        </Link>
+      </div>
+
+      {/* Action Tracking */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-bold text-updraft-deep font-poppins">Action Tracking</h2>
+          <Link
+            href="/actions"
+            className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1"
+          >
+            View All <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Link href="/actions?status=OPEN" className="rounded-xl border border-gray-200 bg-blue-50 p-3 cursor-pointer hover:border-blue-300 transition-colors">
+            <p className="text-xs text-gray-500">Open</p>
+            <p className="text-2xl font-bold font-poppins text-blue-700">{actionStats.open}</p>
+          </Link>
+          <Link href="/actions?status=OVERDUE" className="rounded-xl border border-gray-200 bg-red-50 p-3 cursor-pointer hover:border-red-300 transition-colors">
+            <p className="text-xs text-gray-500">Overdue</p>
+            <p className="text-2xl font-bold font-poppins text-red-700">{actionStats.overdue}</p>
+          </Link>
+          <Link href="/actions?status=DUE_THIS_MONTH" className="rounded-xl border border-gray-200 bg-amber-50 p-3 cursor-pointer hover:border-amber-300 transition-colors">
+            <p className="text-xs text-gray-500">Due This Month</p>
+            <p className="text-2xl font-bold font-poppins text-amber-700">{actionStats.dueThisMonth}</p>
+          </Link>
+          <Link href="/actions?status=COMPLETED" className="rounded-xl border border-gray-200 bg-blue-50 p-3 cursor-pointer hover:border-blue-300 transition-colors">
+            <p className="text-xs text-gray-500">Completed</p>
+            <p className="text-2xl font-bold font-poppins text-blue-700">{actionStats.completed}</p>
+          </Link>
         </div>
       </div>
 
