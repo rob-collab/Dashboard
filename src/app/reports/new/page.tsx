@@ -11,9 +11,11 @@ import { generateId } from "@/lib/utils";
 export default function NewReportPage() {
   const router = useRouter();
   const addReport = useAppStore((s) => s.addReport);
+  const addSection = useAppStore((s) => s.addSection);
   const currentUser = useAppStore((s) => s.currentUser);
   const [title, setTitle] = useState("CCRO Monthly Report");
   const [period, setPeriod] = useState("");
+  const [selectedTemplate, setSelectedTemplate] = useState<"standard" | "blank">("standard");
 
   const months = [
     "January", "February", "March", "April", "May", "June",
@@ -35,11 +37,39 @@ export default function NewReportPage() {
       createdAt: now,
       updatedAt: now,
     });
+
+    // Add default sections if using standard template
+    if (selectedTemplate === "standard") {
+      const sections = [
+        { type: "TEXT_BLOCK" as const, title: "Executive Summary", position: 0 },
+        { type: "CONSUMER_DUTY_DASHBOARD" as const, title: "Consumer Duty Dashboard", position: 1 },
+        { type: "DATA_TABLE" as const, title: "Key Metrics", position: 2 },
+        { type: "TEXT_BLOCK" as const, title: "Detailed Analysis", position: 3 },
+      ];
+
+      sections.forEach((s) => {
+        addSection({
+          id: `section-${generateId()}`,
+          reportId,
+          type: s.type,
+          title: s.title,
+          position: s.position,
+          content: s.type === "TEXT_BLOCK" ? { html: "<p>Add content here...</p>" } : {},
+          layoutConfig: {},
+          styleConfig: {},
+          templateId: null,
+          componentId: null,
+          createdAt: now,
+          updatedAt: now,
+        });
+      });
+    }
+
     logAuditEvent({
       action: "create_report",
       entityType: "report",
       entityId: reportId,
-      changes: { title: title.trim(), period: period.trim() },
+      changes: { title: title.trim(), period: period.trim(), template: selectedTemplate },
       reportId,
     });
     router.push(`/reports/${reportId}/edit`);
@@ -131,13 +161,27 @@ export default function NewReportPage() {
               Initial Template
             </label>
             <div className="grid grid-cols-2 gap-3">
-              <button className="rounded-lg border-2 border-updraft-light-purple bg-updraft-pale-purple/20 p-4 text-left hover:bg-updraft-pale-purple/40 transition-colors">
+              <button
+                type="button"
+                onClick={() => setSelectedTemplate("standard")}
+                className={selectedTemplate === "standard"
+                  ? "rounded-lg border-2 border-updraft-bright-purple bg-updraft-pale-purple/40 p-4 text-left transition-colors ring-2 ring-updraft-bright-purple/30"
+                  : "rounded-lg border-2 border-gray-200 bg-white p-4 text-left hover:border-updraft-light-purple transition-colors"
+                }
+              >
                 <p className="font-medium text-sm text-updraft-deep">Standard CCRO Report</p>
                 <p className="text-xs text-fca-gray mt-1">
-                  Executive Summary, Consumer Duty, Risk Profile, Detailed Analysis
+                  Executive Summary, Consumer Duty, Key Metrics, Detailed Analysis
                 </p>
               </button>
-              <button className="rounded-lg border border-gray-200 p-4 text-left hover:border-updraft-light-purple transition-colors">
+              <button
+                type="button"
+                onClick={() => setSelectedTemplate("blank")}
+                className={selectedTemplate === "blank"
+                  ? "rounded-lg border-2 border-updraft-bright-purple bg-updraft-pale-purple/40 p-4 text-left transition-colors ring-2 ring-updraft-bright-purple/30"
+                  : "rounded-lg border-2 border-gray-200 bg-white p-4 text-left hover:border-updraft-light-purple transition-colors"
+                }
+              >
                 <p className="font-medium text-sm text-fca-dark-gray">Blank Report</p>
                 <p className="text-xs text-fca-gray mt-1">
                   Start from scratch with an empty report

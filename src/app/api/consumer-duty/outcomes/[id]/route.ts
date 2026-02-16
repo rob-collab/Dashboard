@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma, jsonResponse, errorResponse, requireCCRORole, validateBody } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 import { UpdateOutcomeSchema } from "@/lib/schemas/consumer-duty";
@@ -35,6 +35,28 @@ export async function PATCH(
     });
 
     return jsonResponse(serialiseDates(updated));
+  } catch (error) {
+    console.error('[API Error]', error);
+    return errorResponse(error instanceof Error ? error.message : 'Operation failed', 500);
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const authResult = await requireCCRORole(request);
+    if ('error' in authResult) return authResult.error;
+
+    const { id } = await params;
+
+    const existing = await prisma.consumerDutyOutcome.findUnique({ where: { id } });
+    if (!existing) return errorResponse("Outcome not found", 404);
+
+    await prisma.consumerDutyOutcome.delete({ where: { id } });
+
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error('[API Error]', error);
     return errorResponse(error instanceof Error ? error.message : 'Operation failed', 500);

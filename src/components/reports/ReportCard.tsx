@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Pencil,
   Eye,
@@ -8,6 +9,7 @@ import {
   Calendar,
   User,
   Clock,
+  Trash2,
 } from "lucide-react";
 import type { Report } from "@/lib/types";
 import { cn, formatDate, statusColor, statusLabel } from "@/lib/utils";
@@ -18,6 +20,7 @@ interface ReportCardProps {
   onView: (report: Report) => void;
   onPublish: (report: Report) => void;
   onExport: (report: Report) => void;
+  onDelete?: (report: Report) => void;
 }
 
 export function ReportCard({
@@ -26,7 +29,20 @@ export function ReportCard({
   onView,
   onPublish,
   onExport,
+  onDelete,
 }: ReportCardProps) {
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+
+  const handleDeleteClick = () => {
+    if (!onDelete) return;
+    if (deleteConfirm) {
+      onDelete(report);
+    } else {
+      setDeleteConfirm(true);
+      setTimeout(() => setDeleteConfirm(false), 3000);
+    }
+  };
+
   return (
     <div
       className={cn(
@@ -113,6 +129,21 @@ export function ReportCard({
             <Download size={14} />
             Export
           </button>
+          {onDelete && (
+            <button
+              onClick={handleDeleteClick}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                deleteConfirm
+                  ? "bg-red-600 text-white border border-red-600 hover:bg-red-700"
+                  : "border border-red-200 text-red-600 hover:bg-red-50"
+              )}
+              title={deleteConfirm ? "Click again to confirm" : "Delete report"}
+            >
+              <Trash2 size={14} />
+              {deleteConfirm ? "Confirm Delete?" : "Delete"}
+            </button>
+          )}
         </div>
 
         {/* Last updated */}

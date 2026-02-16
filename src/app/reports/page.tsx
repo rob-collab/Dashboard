@@ -16,6 +16,7 @@ function ReportsPageContent() {
   const reports = useAppStore((s) => s.reports);
   const sections = useAppStore((s) => s.sections);
   const outcomes = useAppStore((s) => s.outcomes);
+  const deleteReport = useAppStore((s) => s.deleteReport);
   const currentUser = useAppStore((s) => s.currentUser);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<ReportStatus | "ALL">(() => {
@@ -75,6 +76,10 @@ function ReportsPageContent() {
     URL.revokeObjectURL(url);
   };
 
+  const handleDelete = (report: Report) => {
+    deleteReport(report.id);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -130,6 +135,7 @@ function ReportsPageContent() {
               onView={handleView}
               onPublish={handlePublish}
               onExport={handleExport}
+              onDelete={isCCROTeam ? handleDelete : undefined}
             />
           ))}
         </div>

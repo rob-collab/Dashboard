@@ -174,7 +174,7 @@ export default function ReportEditorPage() {
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over || active.id === over.id) return;
+    if (!over || active.id === over.id || !report) return;
 
     setSections((prev) => {
       const oldIndex = prev.findIndex((s) => s.id === active.id);
@@ -182,9 +182,18 @@ export default function ReportEditorPage() {
       const result = [...prev];
       const [moved] = result.splice(oldIndex, 1);
       result.splice(newIndex, 0, moved);
-      return result.map((s, i) => ({ ...s, position: i }));
+      const reordered = result.map((s, i) => ({ ...s, position: i }));
+
+      // Persist to API
+      fetch(`/api/reports/${report.id}/sections`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sections: reordered }),
+      }).catch((err) => console.error("Failed to persist section order:", err));
+
+      return reordered;
     });
-  }, []);
+  }, [report]);
 
   const updateSection = useCallback((id: string, data: Partial<Section>) => {
     setSections((prev) =>
