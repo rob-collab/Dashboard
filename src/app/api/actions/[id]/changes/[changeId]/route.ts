@@ -6,9 +6,10 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; changeId: string }> }
 ) {
-  const { id, changeId } = await params;
-  const userId = getUserId(request);
-  if (!userId) return errorResponse("Unauthorised", 401);
+  try {
+    const { id, changeId } = await params;
+    const userId = getUserId(request);
+    if (!userId) return errorResponse("Unauthorised", 401);
 
   // Only CCRO_TEAM can approve/reject
   const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -76,4 +77,8 @@ export async function PATCH(
   });
 
   return jsonResponse(serialiseDates(updated));
+  } catch (error) {
+    console.error('[API Error]', error);
+    return errorResponse(error instanceof Error ? error.message : 'Operation failed', 500);
+  }
 }

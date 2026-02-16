@@ -3,9 +3,15 @@ import { prisma, jsonResponse, errorResponse, validateBody } from "@/lib/api-hel
 import { serialiseDates } from "@/lib/serialise";
 import { CreateUserSchema } from "@/lib/schemas/users";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const users = await prisma.user.findMany({ orderBy: { name: "asc" } });
+    const { searchParams } = new URL(request.url);
+    const includeInactive = searchParams.get("includeInactive") === "true";
+
+    const users = await prisma.user.findMany({
+      where: includeInactive ? undefined : { isActive: true },
+      orderBy: { name: "asc" },
+    });
     return jsonResponse(serialiseDates(users));
   } catch (error) {
     console.error('[API Error]', error);

@@ -44,6 +44,7 @@ export default function UsersPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<Role | "ALL">("ALL");
+  const [showInactive, setShowInactive] = useState(false);
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -51,6 +52,9 @@ export default function UsersPage() {
 
   const filteredUsers = useMemo(() => {
     let filtered = users;
+    if (!showInactive) {
+      filtered = filtered.filter((u) => u.isActive);
+    }
     if (roleFilter !== "ALL") {
       filtered = filtered.filter((u) => u.role === roleFilter);
     }
@@ -63,7 +67,7 @@ export default function UsersPage() {
       );
     }
     return filtered;
-  }, [users, roleFilter, searchQuery]);
+  }, [users, roleFilter, searchQuery, showInactive]);
 
   const roleCounts = useMemo(() => ({
     CCRO_TEAM: users.filter((u) => u.role === "CCRO_TEAM").length,
@@ -154,16 +158,27 @@ export default function UsersPage() {
         })}
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Search users..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple transition-colors"
-        />
+      {/* Search and filters */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search users..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple transition-colors"
+          />
+        </div>
+        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showInactive}
+            onChange={(e) => setShowInactive(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-updraft-bright-purple focus:ring-updraft-bar"
+          />
+          Show inactive users
+        </label>
       </div>
 
       {/* Users table */}
