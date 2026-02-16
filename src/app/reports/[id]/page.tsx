@@ -79,8 +79,11 @@ export default function ReportViewPage() {
   const storeVersions = useAppStore((s) => s.versions);
   const storeActions = useAppStore((s) => s.actions);
   const storeUsers = useAppStore((s) => s.users);
+  const currentUser = useAppStore((s) => s.currentUser);
   const branding = useAppStore((s) => s.branding);
   const report = useMemo(() => storeReports.find((r) => r.id === reportId) ?? null, [storeReports, reportId]);
+
+  const isCCROTeam = currentUser?.role === "CCRO_TEAM";
   const sections = useMemo(() => report ? storeSections.filter((s) => s.reportId === report.id).sort((a, b) => a.position - b.position) : [], [storeSections, report]);
   const versions = useMemo(() => report ? storeVersions.filter((v) => v.reportId === report.id) : [], [storeVersions, report]);
   const outcomes = useMemo(() => [...storeOutcomes].sort((a, b) => a.position - b.position), [storeOutcomes]);
@@ -95,6 +98,26 @@ export default function ReportViewPage() {
   const [openAccordions, setOpenAccordions] = useState<Record<string, number | null>>({});
 
   const selectedOutcome = outcomes.find((o) => o.id === selectedOutcomeId);
+
+  // Check access permissions
+  if (report && !isCCROTeam && report.status === "DRAFT") {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <Shield size={48} className="mb-4 text-gray-300" />
+        <h2 className="text-xl font-semibold text-fca-dark-gray">Access Restricted</h2>
+        <p className="text-fca-gray mt-2">
+          This report is in draft status and only accessible to CCRO team members.
+        </p>
+        <Link
+          href="/reports"
+          className="mt-4 inline-flex items-center gap-2 text-sm text-updraft-bright-purple hover:text-updraft-deep"
+        >
+          <ArrowLeft size={16} />
+          Back to Reports
+        </Link>
+      </div>
+    );
+  }
 
   if (!report) {
     return (

@@ -15,6 +15,7 @@ function ReportsPageContent() {
   const reports = useAppStore((s) => s.reports);
   const sections = useAppStore((s) => s.sections);
   const outcomes = useAppStore((s) => s.outcomes);
+  const currentUser = useAppStore((s) => s.currentUser);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<ReportStatus | "ALL">(() => {
     const param = searchParams.get("status");
@@ -22,7 +23,14 @@ function ReportsPageContent() {
     return "ALL";
   });
 
+  const isCCROTeam = currentUser?.role === "CCRO_TEAM";
+
   const filteredReports = reports.filter((r) => {
+    // Non-CCRO users can only see published or archived reports
+    if (!isCCROTeam && r.status === "DRAFT") {
+      return false;
+    }
+
     const matchesSearch =
       r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.period.toLowerCase().includes(searchQuery.toLowerCase());
@@ -61,16 +69,18 @@ function ReportsPageContent() {
         <div>
           <h1 className="text-2xl font-bold text-updraft-deep">Reports</h1>
           <p className="text-sm text-fca-gray mt-1">
-            Manage CCRO compliance reports
+            {isCCROTeam ? "Manage CCRO compliance reports" : "View published CCRO reports"}
           </p>
         </div>
-        <Link
-          href="/reports/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-updraft-bright-purple px-4 py-2.5 text-sm font-medium text-white hover:bg-updraft-deep transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          New Report
-        </Link>
+        {isCCROTeam && (
+          <Link
+            href="/reports/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-updraft-bright-purple px-4 py-2.5 text-sm font-medium text-white hover:bg-updraft-deep transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            New Report
+          </Link>
+        )}
       </div>
 
       {/* Filters */}
@@ -91,7 +101,7 @@ function ReportsPageContent() {
           className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-updraft-light-purple focus:outline-none focus:ring-1 focus:ring-updraft-light-purple"
         >
           <option value="ALL">All Status</option>
-          <option value="DRAFT">Draft</option>
+          {isCCROTeam && <option value="DRAFT">Draft</option>}
           <option value="PUBLISHED">Published</option>
           <option value="ARCHIVED">Archived</option>
         </select>
