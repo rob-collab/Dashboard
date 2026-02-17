@@ -32,7 +32,10 @@ import {
   MinusCircle,
   CalendarClock,
   ChevronDown,
+  ChevronRight,
 } from "lucide-react";
+import BusinessAreaDrillDown from "./BusinessAreaDrillDown";
+import ControlDetailView from "./ControlDetailView";
 
 // ── Chart colours ─────────────────────────────────────────────────────────────
 
@@ -120,6 +123,13 @@ function StatCard({ icon, value, label, percentage, accentClass }: StatCardProps
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
+// ── Drill-down state types ────────────────────────────────────────────────────
+
+type DrillDownView =
+  | { type: "overview" }
+  | { type: "business-area"; areaId: string; areaName: string }
+  | { type: "control"; entryId: string; backLabel: string; backAreaId?: string; backAreaName?: string };
+
 export default function ControlsDashboardTab() {
   const testingSchedule = useAppStore((s) => s.testingSchedule);
   const controlBusinessAreas = useAppStore((s) => s.controlBusinessAreas);
@@ -129,6 +139,9 @@ export default function ControlsDashboardTab() {
 
   const [selectedYear, setSelectedYear] = useState(currentOption.year);
   const [selectedMonth, setSelectedMonth] = useState(currentOption.month);
+
+  // Drill-down navigation
+  const [drillDown, setDrillDown] = useState<DrillDownView>({ type: "overview" });
 
   const selectedLabel = useMemo(() => {
     const opt = monthOptions.find(
@@ -310,7 +323,48 @@ export default function ControlsDashboardTab() {
     });
   }, [periodResults, selectedYear, selectedMonth, selectedLabel]);
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Drill-down renders ───────────────────────────────────────────────────
+
+  if (drillDown.type === "business-area") {
+    return (
+      <BusinessAreaDrillDown
+        areaId={drillDown.areaId}
+        areaName={drillDown.areaName}
+        selectedYear={selectedYear}
+        selectedMonth={selectedMonth}
+        onBack={() => setDrillDown({ type: "overview" })}
+        onSelectControl={(entryId) =>
+          setDrillDown({
+            type: "control",
+            entryId,
+            backLabel: drillDown.areaName,
+            backAreaId: drillDown.areaId,
+            backAreaName: drillDown.areaName,
+          })
+        }
+      />
+    );
+  }
+
+  if (drillDown.type === "control") {
+    return (
+      <ControlDetailView
+        scheduleEntryId={drillDown.entryId}
+        selectedYear={selectedYear}
+        selectedMonth={selectedMonth}
+        backLabel={drillDown.backLabel}
+        onBack={() => {
+          if (drillDown.backAreaId && drillDown.backAreaName) {
+            setDrillDown({ type: "business-area", areaId: drillDown.backAreaId, areaName: drillDown.backAreaName });
+          } else {
+            setDrillDown({ type: "overview" });
+          }
+        }}
+      />
+    );
+  }
+
+  // ── Overview Render ────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-6">
@@ -479,6 +533,60 @@ export default function ControlsDashboardTab() {
         </div>
       </div>
 
+      {/* Business areas — clickable list for drill-down */}
+      <div className="bento-card p-5">
+        <h3 className="text-sm font-poppins font-semibold text-gray-800 mb-4">
+          Business Areas
+        </h3>
+        {businessAreaChartData.length === 0 ? (
+          <div className="flex items-center justify-center py-8 text-sm text-gray-400">
+            No business areas with controls on the testing schedule.
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {businessAreaChartData.map((area) => {
+              const total = Object.values(area).reduce<number>(
+                (sum, v) => (typeof v === "number" ? sum + v : sum),
+                0
+              );
+              const pass = (area as Record<string, unknown>)[TEST_RESULT_LABELS.PASS] as number;
+              const fail = (area as Record<string, unknown>)[TEST_RESULT_LABELS.FAIL] as number;
+              const partial = (area as Record<string, unknown>)[TEST_RESULT_LABELS.PARTIALLY] as number;
+              const areaObj = controlBusinessAreas.find((ba) => ba.name === area.name);
+              return (
+                <button
+                  key={area.name}
+                  onClick={() => {
+                    if (areaObj) {
+                      setDrillDown({ type: "business-area", areaId: areaObj.id, areaName: area.name });
+                    }
+                  }}
+                  className="w-full flex items-center gap-4 py-3 first:pt-0 last:pb-0 text-left hover:bg-gray-50 transition-colors rounded-lg px-2 -mx-2"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium text-gray-800">{area.name}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      {total} control{total !== 1 ? "s" : ""} · {pass} passed · {fail} failed · {partial} partial
+                    </div>
+                  </div>
+                  {/* Mini pass rate bar */}
+                  <div className="w-24 h-2 rounded-full bg-gray-100 overflow-hidden flex shrink-0">
+                    {total > 0 && (
+                      <>
+                        <div className="bg-green-500 h-full" style={{ width: `${(pass / total) * 100}%` }} />
+                        <div className="bg-amber-500 h-full" style={{ width: `${(partial / total) * 100}%` }} />
+                        <div className="bg-red-500 h-full" style={{ width: `${(fail / total) * 100}%` }} />
+                      </>
+                    )}
+                  </div>
+                  <ChevronRight size={16} className="text-gray-400 shrink-0" />
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* Attention required panel */}
       <div className="bento-card p-5">
         <h3 className="text-sm font-poppins font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -492,9 +600,24 @@ export default function ControlsDashboardTab() {
         ) : (
           <div className="divide-y divide-gray-100">
             {attentionItems.map((item) => (
-              <div
+              <button
                 key={item.id}
-                className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+                onClick={() => {
+                  // Find the schedule entry for this control
+                  const entry = activeEntries.find((e) => e.control?.controlRef === item.controlRef);
+                  if (entry) {
+                    const areaName = entry.control?.businessArea?.name ?? "Dashboard";
+                    const areaId = entry.control?.businessAreaId;
+                    setDrillDown({
+                      type: "control",
+                      entryId: entry.id,
+                      backLabel: "Dashboard",
+                      backAreaId: areaId,
+                      backAreaName: areaName,
+                    });
+                  }
+                }}
+                className="w-full flex items-center gap-3 py-3 first:pt-0 last:pb-0 text-left hover:bg-gray-50 transition-colors rounded-lg px-2 -mx-2"
               >
                 <div
                   className={`w-2 h-2 rounded-full shrink-0 ${
@@ -521,7 +644,8 @@ export default function ControlsDashboardTab() {
                 >
                   {item.severity === "high" ? "High" : "Medium"}
                 </span>
-              </div>
+                <ChevronRight size={14} className="text-gray-400 shrink-0" />
+              </button>
             ))}
           </div>
         )}
