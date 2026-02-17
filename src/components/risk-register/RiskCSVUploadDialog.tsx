@@ -208,8 +208,16 @@ export default function RiskCSVUploadDialog({
           </div>
 
           {previewErrors > 0 && (
-            <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
-              {previewErrors} row{previewErrors !== 1 ? "s" : ""} had errors and will be skipped.
+            <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700 space-y-1">
+              <p className="font-semibold">{previewErrors} row{previewErrors !== 1 ? "s" : ""} had errors and will be skipped:</p>
+              {previewData.results
+                .filter((r) => r.errors.length > 0)
+                .map((r) => (
+                  <div key={r.rowIndex} className="pl-2 border-l-2 border-red-300">
+                    <span className="font-medium">Row {r.rowIndex + 1}:</span>{" "}
+                    {r.errors.join(" | ")}
+                  </div>
+                ))}
             </div>
           )}
 
