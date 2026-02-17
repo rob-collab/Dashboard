@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse } from "@/lib/api-helpers";
+import { prisma, getAuthUserId, jsonResponse, errorResponse } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 function monthStart(): Date {
@@ -9,12 +9,15 @@ function monthStart(): Date {
 
 export async function PUT(request: NextRequest) {
   const body = await request.json();
-  const { measureId, metrics } = body;
+  const { measureId, metrics, month: monthParam } = body;
   if (!measureId || !Array.isArray(metrics)) {
     return errorResponse("measureId and metrics[] are required");
   }
 
-  const month = monthStart();
+  const userId = getAuthUserId(request);
+
+  // Allow optional month override for historical imports
+  const month = monthParam ? new Date(monthParam) : monthStart();
 
   await prisma.$transaction(async (tx) => {
     await tx.consumerDutyMI.deleteMany({ where: { measureId } });
@@ -43,7 +46,10 @@ export async function PUT(request: NextRequest) {
     }
     await tx.consumerDutyMeasure.update({
       where: { id: measureId },
-      data: { lastUpdatedAt: new Date() },
+      data: {
+        lastUpdatedAt: new Date(),
+        ...(userId && { updatedById: userId }),
+      },
     });
   });
 

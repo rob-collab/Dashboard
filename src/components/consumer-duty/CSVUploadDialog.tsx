@@ -151,6 +151,7 @@ export default function CSVUploadDialog({
             ragStatus: m.ragStatus,
             position: 0,
             lastUpdatedAt: new Date().toISOString(),
+            updatedById: null,
             metrics: [],
           } as ConsumerDutyMeasure,
         };

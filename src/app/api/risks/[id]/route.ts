@@ -177,7 +177,7 @@ export async function PATCH(
       },
     });
 
-    // Write audit entries
+    // Write audit entries to risk-specific log
     if (auditEntries.length > 0) {
       await prisma.riskAuditLog.createMany({
         data: auditEntries.map((e) => ({
@@ -185,6 +185,19 @@ export async function PATCH(
           fieldChanged: e.field, oldValue: e.old, newValue: e.new_,
         })),
       }).catch((e) => console.error("[risk audit]", e));
+
+      // Also write to the general AuditLog so changes appear on the Audit Trail page
+      const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+      await prisma.auditLog.create({
+        data: {
+          userId,
+          userRole: user?.role ?? "VIEWER",
+          action: "update_risk",
+          entityType: "risk",
+          entityId: id,
+          changes: Object.fromEntries(auditEntries.map((e) => [e.field, { old: e.old, new: e.new_ }])),
+        },
+      }).catch((e) => console.error("[general audit for risk]", e));
     }
 
     // Auto-upsert snapshot if score fields changed

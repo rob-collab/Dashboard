@@ -26,6 +26,12 @@ export async function PUT(request: NextRequest) {
       return errorResponse("code is required", 400);
     }
 
+    // Check record exists before attempting update
+    const existing = await prisma.priorityDefinition.findUnique({ where: { code } });
+    if (!existing) {
+      return errorResponse(`Priority definition '${code}' not found`, 404);
+    }
+
     const updated = await prisma.priorityDefinition.update({
       where: { code },
       data: {

@@ -127,6 +127,7 @@ export interface ConsumerDutyMeasure {
   ragStatus: RAGStatus;
   position: number;
   lastUpdatedAt: string | null;
+  updatedById: string | null;
   metrics?: ConsumerDutyMI[];
 }
 

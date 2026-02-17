@@ -3,7 +3,21 @@
 import type { ConsumerDutyMeasure } from "@/lib/types";
 import { cn, ragBgColor, ragLabelShort } from "@/lib/utils";
 import { isMeasureStale } from "@/lib/stale-utils";
-import { Activity, AlertTriangle } from "lucide-react";
+import { useAppStore } from "@/lib/store";
+import { Activity, AlertTriangle, BarChart3 } from "lucide-react";
+
+function isMeasureOverdue(measure: ConsumerDutyMeasure): boolean {
+  if (!measure.lastUpdatedAt) return true;
+  const lastUpdate = new Date(measure.lastUpdatedAt);
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  return lastUpdate < thirtyDaysAgo;
+}
+
+function daysAgo(dateStr: string): number {
+  const d = new Date(dateStr);
+  return Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24));
+}
 
 /* ------------------------------------------------------------------ */
 /* Props                                                               */
@@ -26,6 +40,19 @@ export default function MeasurePanel({
   onEditMeasure,
   onDeleteMeasure,
 }: MeasurePanelProps) {
+  const users = useAppStore((s) => s.users);
+
+  // Natural sort by measureId (1.1 < 1.2 < 1.10 < 2.1)
+  const sortedMeasures = [...measures].sort((a, b) => {
+    const aParts = a.measureId.split(".").map(Number);
+    const bParts = b.measureId.split(".").map(Number);
+    for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+      const diff = (aParts[i] ?? 0) - (bParts[i] ?? 0);
+      if (diff !== 0) return diff;
+    }
+    return 0;
+  });
+
   if (measures.length === 0) {
     return (
       <div className="animate-slide-up rounded-2xl border border-dashed border-updraft-pale-purple/60 bg-white/30 backdrop-blur-md p-8 text-center text-sm text-gray-400">
@@ -49,7 +76,7 @@ export default function MeasurePanel({
 
       {/* Grid of measure cards */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {measures.map((measure) => (
+        {sortedMeasures.map((measure) => (
           <button
             key={measure.id}
             type="button"
@@ -79,6 +106,12 @@ export default function MeasurePanel({
                   Not Updated
                 </span>
               )}
+              {isMeasureOverdue(measure) && (
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-red-100 px-1.5 py-0.5 text-[9px] font-semibold text-red-700">
+                  <AlertTriangle size={9} />
+                  Overdue
+                </span>
+              )}
               <span
                 className={cn(
                   "ml-auto inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight",
@@ -104,16 +137,35 @@ export default function MeasurePanel({
               {measure.summary}
             </p>
 
-            {/* Metrics count + edit/delete */}
+            {/* Last updated info */}
+            {measure.lastUpdatedAt && (
+              <p className="text-[10px] text-gray-400 mt-1">
+                Updated {daysAgo(measure.lastUpdatedAt)}d ago
+                {measure.updatedById && (() => {
+                  const updater = users.find((u) => u.id === measure.updatedById);
+                  return updater ? ` by ${updater.name}` : "";
+                })()}
+              </p>
+            )}
+
+            {/* Metrics count + 12-month history + edit/delete */}
             <div className="mt-auto pt-2 border-t border-gray-100 flex items-center justify-between">
-              {measure.metrics && measure.metrics.length > 0 ? (
-                <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
-                  {measure.metrics.length}{" "}
-                  {measure.metrics.length === 1 ? "metric" : "metrics"}
-                </span>
-              ) : (
-                <span />
-              )}
+              <div className="flex items-center gap-2">
+                {measure.metrics && measure.metrics.length > 0 ? (
+                  <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
+                    {measure.metrics.length}{" "}
+                    {measure.metrics.length === 1 ? "metric" : "metrics"}
+                  </span>
+                ) : (
+                  <span />
+                )}
+                {measure.metrics && measure.metrics.length > 0 && (
+                  <span className="inline-flex items-center gap-0.5 text-[9px] text-updraft-bar/60">
+                    <BarChart3 size={9} />
+                    12-month history
+                  </span>
+                )}
+              </div>
               {(onEditMeasure || onDeleteMeasure) && (
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   {onEditMeasure && (

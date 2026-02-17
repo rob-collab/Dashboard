@@ -19,6 +19,12 @@ import {
   AlertTriangle,
   Circle,
   ArrowUpRight,
+  CalendarClock,
+  UserRoundPen,
+  ShieldAlert,
+  History,
+  MessageSquare,
+  Info,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 // Audit logging is handled server-side by the API routes
@@ -96,17 +102,28 @@ function ActionsPageContent() {
     if (param === "P1" || param === "P2" || param === "P3") return param;
     return "ALL";
   });
-  const [ownerFilter, setOwnerFilter] = useState<string>("ALL");
+  const [ownerFilter, setOwnerFilter] = useState<string>(() => {
+    // If deep-linking to a specific action via ?edit=, show all so it's not filtered out
+    if (searchParams.get("edit")) return "ALL";
+    // Non-CCRO users see their own actions by default
+    if (!isCCRO && currentUser?.id) return currentUser.id;
+    return "ALL";
+  });
   const [reportFilter, setReportFilter] = useState<string>("ALL");
   const [sourceFilter, setSourceFilter] = useState<string>("ALL");
 
   // UI State
   const [showForm, setShowForm] = useState(false);
   const [editAction, setEditAction] = useState<Action | undefined>(undefined);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(() => searchParams.get("edit"));
   const [showCSVImport, setShowCSVImport] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showUpdateForm, setShowUpdateForm] = useState<string | null>(null);
+  const [showDateProposal, setShowDateProposal] = useState<string | null>(null);
+  const [showReassignProposal, setShowReassignProposal] = useState<string | null>(null);
+  const [proposedDate, setProposedDate] = useState("");
+  const [proposedOwner, setProposedOwner] = useState("");
+  const [proposalReason, setProposalReason] = useState("");
 
   // URL-synced status/priority change
   const buildUrl = useCallback((status: string, priority: string) => {
@@ -278,6 +295,60 @@ function ActionsPageContent() {
       // Fallback: keep current state
     }
   }, [setActions]);
+
+  const handleProposeDateChange = useCallback(async (actionId: string) => {
+    if (!proposedDate || !proposalReason.trim()) return;
+    const action = actions.find((a) => a.id === actionId);
+    if (!action) return;
+    await handleProposeChange(actionId, "dueDate", action.dueDate || "", new Date(proposedDate).toISOString());
+    // Also submit the reason as a progress update
+    await handleSubmitUpdate(actionId, {
+      updateText: `Date change requested: ${proposalReason.trim()}`,
+      evidenceUrl: null,
+      evidenceName: null,
+    });
+    setShowDateProposal(null);
+    setProposedDate("");
+    setProposalReason("");
+  }, [actions, proposedDate, proposalReason, handleProposeChange, handleSubmitUpdate]);
+
+  const handleProposeReassign = useCallback(async (actionId: string) => {
+    if (!proposedOwner || !proposalReason.trim()) return;
+    const action = actions.find((a) => a.id === actionId);
+    if (!action) return;
+    await handleProposeChange(actionId, "assignedTo", action.assignedTo, proposedOwner);
+    await handleSubmitUpdate(actionId, {
+      updateText: `Ownership reassignment requested: ${proposalReason.trim()}`,
+      evidenceUrl: null,
+      evidenceName: null,
+    });
+    setShowReassignProposal(null);
+    setProposedOwner("");
+    setProposalReason("");
+  }, [actions, proposedOwner, proposalReason, handleProposeChange, handleSubmitUpdate]);
+
+  // Derive original values from change history
+  function getOriginalValue(action: Action, field: string): string | null {
+    if (!action.changes || action.changes.length === 0) return null;
+    const sorted = [...action.changes]
+      .filter((c) => c.fieldChanged === field && !c.isUpdate)
+      .sort((a, b) => new Date(a.proposedAt).getTime() - new Date(b.proposedAt).getTime());
+    return sorted.length > 0 ? sorted[0].oldValue : null;
+  }
+
+  // Count total delays in days from date changes
+  function getTotalDelayDays(action: Action): number {
+    if (!action.changes) return 0;
+    const dateChanges = action.changes
+      .filter((c) => c.fieldChanged === "dueDate" && c.status === "APPROVED")
+      .sort((a, b) => new Date(a.proposedAt).getTime() - new Date(b.proposedAt).getTime());
+    if (dateChanges.length === 0) return 0;
+    const originalDate = dateChanges[0].oldValue;
+    const latestDate = dateChanges[dateChanges.length - 1].newValue;
+    if (!originalDate || !latestDate) return 0;
+    const diffMs = new Date(latestDate).getTime() - new Date(originalDate).getTime();
+    return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  }
 
   const expandedAction = expandedId ? actions.find((a) => a.id === expandedId) : null;
 
@@ -555,111 +626,350 @@ function ActionsPageContent() {
                     )}
                   </button>
 
-                  {/* Expanded Detail */}
-                  {isExpanded && expandedAction && (
-                    <div className="border-t border-gray-100 bg-gray-50/50 px-6 py-4 animate-slide-up">
-                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* Left: Details */}
-                        <div className="lg:col-span-2 space-y-4">
+                  {/* Expanded Detail Card */}
+                  {isExpanded && expandedAction && (() => {
+                    const creator = users.find((u) => u.id === expandedAction.createdBy);
+                    const originalOwnerVal = getOriginalValue(expandedAction, "assignedTo");
+                    const originalOwnerUser = originalOwnerVal ? users.find((u) => u.id === originalOwnerVal) : null;
+                    const originalDueDateVal = getOriginalValue(expandedAction, "dueDate");
+                    const totalDelay = getTotalDelayDays(expandedAction);
+                    const dateChangeCount = (expandedAction.changes || []).filter((c) => c.fieldChanged === "dueDate").length;
+                    const isMyAction = expandedAction.assignedTo === currentUser?.id;
+                    const isActive = expandedAction.status !== "COMPLETED";
+
+                    return (
+                      <div className="border-t border-updraft-pale-purple/40 bg-white px-6 py-5 animate-slide-up">
+                        {/* Issue Reference / Reason */}
+                        <div className="mb-4 rounded-lg bg-updraft-pale-purple/15 border border-updraft-pale-purple/30 px-4 py-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Info size={14} className="text-updraft-bar shrink-0" />
+                            <span className="text-xs font-semibold text-updraft-bar uppercase tracking-wider">Reason for Action</span>
+                          </div>
+                          {expandedAction.source === "Risk Register" && expandedAction.linkedMitigation ? (
+                            <Link
+                              href={`/risk-register?risk=${expandedAction.linkedMitigation.riskId}`}
+                              className="text-sm text-updraft-bright-purple hover:underline flex items-center gap-1"
+                            >
+                              <ShieldAlert size={13} />
+                              Linked to risk: {expandedAction.linkedMitigation.riskId}
+                              <ArrowUpRight size={11} />
+                            </Link>
+                          ) : expandedAction.reportId ? (
+                            <Link
+                              href={`/reports/${expandedAction.reportId}`}
+                              className="text-sm text-updraft-bright-purple hover:underline flex items-center gap-1"
+                            >
+                              {expandedAction.reportPeriod || "Linked report"}
+                              <ArrowUpRight size={11} />
+                            </Link>
+                          ) : expandedAction.source ? (
+                            <p className="text-sm text-gray-700">{expandedAction.source}</p>
+                          ) : (
+                            <p className="text-sm text-gray-400 italic">No reason specified</p>
+                          )}
+                        </div>
+
+                        {/* Title + Status + Priority */}
+                        <div className="flex items-start justify-between gap-4 mb-4">
                           <div>
-                            <h3 className="font-poppins text-base font-semibold text-gray-900">{expandedAction.title}</h3>
-                            <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">
-                              {expandedAction.description || "No description provided."}
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs font-bold font-mono text-updraft-deep">
+                                {expandedAction.reference}
+                              </span>
+                              {expandedAction.priority && (
+                                <span className={cn("inline-flex items-center rounded px-2 py-0.5 text-xs font-bold", PRIORITY_CONFIG[expandedAction.priority].bgColor)}>
+                                  {PRIORITY_CONFIG[expandedAction.priority].label}
+                                </span>
+                              )}
+                              <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold", STATUS_CONFIG[expandedAction.status].bgColor)}>
+                                {(() => { const SI = STATUS_CONFIG[expandedAction.status].icon; return <SI size={11} />; })()}
+                                {STATUS_CONFIG[expandedAction.status].label}
+                              </span>
+                            </div>
+                            <h3 className="font-poppins text-lg font-semibold text-gray-900">{expandedAction.title}</h3>
+                          </div>
+                        </div>
+
+                        {/* Description — greyed out for non-CCRO */}
+                        <div className={cn(
+                          "rounded-lg border p-4 mb-4",
+                          isCCRO ? "border-gray-200 bg-white" : "border-gray-100 bg-gray-50"
+                        )}>
+                          <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Description</label>
+                          <p className={cn(
+                            "text-sm whitespace-pre-wrap leading-relaxed",
+                            isCCRO ? "text-gray-700" : "text-gray-400"
+                          )}>
+                            {expandedAction.description || "No description provided."}
+                          </p>
+                          {!isCCRO && (
+                            <p className="text-[10px] text-gray-300 mt-2 italic">Only the CCRO team can edit the description</p>
+                          )}
+                        </div>
+
+                        {/* Key Details Grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                          <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
+                            <span className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Current Owner</span>
+                            <p className="text-sm font-medium text-gray-800">{owner?.name || "Unassigned"}</p>
+                            {originalOwnerUser && originalOwnerUser.id !== expandedAction.assignedTo && (
+                              <p className="text-[10px] text-gray-400 mt-0.5">Originally: {originalOwnerUser.name}</p>
+                            )}
+                          </div>
+                          <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
+                            <span className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Due Date</span>
+                            <p className={cn("text-sm font-medium", dueDateColor(expandedAction))}>
+                              {expandedAction.dueDate ? formatDateShort(expandedAction.dueDate) : "No date"}
+                              {days !== null && days > 0 && isActive && (
+                                <span className="text-gray-400 font-normal ml-1">({days}d)</span>
+                              )}
                             </p>
-                          </div>
-
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                            <div>
-                              <span className="text-gray-400 font-medium">Report</span>
-                              <Link
-                                href={`/reports/${expandedAction.reportId}`}
-                                className="flex items-center gap-1 text-updraft-bright-purple hover:underline mt-0.5"
-                              >
-                                {expandedAction.reportPeriod} <ArrowUpRight size={11} />
-                              </Link>
-                            </div>
-                            {expandedAction.sectionTitle && (
-                              <div>
-                                <span className="text-gray-400 font-medium">Section</span>
-                                <p className="text-gray-700 mt-0.5">{expandedAction.sectionTitle}</p>
-                              </div>
+                            {originalDueDateVal && originalDueDateVal !== expandedAction.dueDate && (
+                              <p className="text-[10px] text-gray-400 mt-0.5">Originally: {formatDateShort(originalDueDateVal)}</p>
                             )}
-                            <div>
-                              <span className="text-gray-400 font-medium">Owner</span>
-                              <p className="text-gray-700 mt-0.5">{owner?.name || "Unassigned"}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-400 font-medium">Due</span>
-                              <p className={cn("mt-0.5", dueDateColor(expandedAction))}>
-                                {expandedAction.dueDate ? formatDateShort(expandedAction.dueDate) : "No date"}
-                                {days !== null && days > 0 && expandedAction.status !== "COMPLETED" && (
-                                  <span className="text-gray-400 ml-1">({days}d)</span>
-                                )}
-                              </p>
-                            </div>
                           </div>
-
-                          {/* Action buttons */}
-                          <div className="flex items-center gap-2 pt-2">
-                            {isCCRO && (
+                          <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
+                            <span className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Created</span>
+                            <p className="text-sm font-medium text-gray-800">{formatDateShort(expandedAction.createdAt)}</p>
+                            <p className="text-[10px] text-gray-400 mt-0.5">by {creator?.name || "Unknown"}</p>
+                          </div>
+                          <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
+                            <span className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Delay Summary</span>
+                            {totalDelay > 0 ? (
                               <>
-                                <button
-                                  onClick={() => { setEditAction(expandedAction); setShowForm(true); }}
-                                  className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 transition-colors"
-                                >
-                                  Edit
-                                </button>
-                                {expandedAction.status !== "COMPLETED" && (
-                                  <button
-                                    onClick={() => {
-                                      updateAction(expandedAction.id, { status: "COMPLETED", completedAt: new Date().toISOString() });
-                                    }}
-                                    className="rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100 transition-colors"
-                                  >
-                                    Mark Complete
-                                  </button>
-                                )}
-                                <button
-                                  onClick={() => handleDeleteAction(expandedAction.id)}
-                                  className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
-                                >
-                                  Delete
-                                </button>
+                                <p className="text-sm font-medium text-red-600">{totalDelay} days delayed</p>
+                                <p className="text-[10px] text-gray-400 mt-0.5">{dateChangeCount} date {dateChangeCount === 1 ? "change" : "changes"}</p>
                               </>
-                            )}
-                            {!isCCRO && expandedAction.assignedTo === currentUser?.id && expandedAction.status !== "COMPLETED" && (
-                              <>
-                                <button
-                                  onClick={() => setShowUpdateForm(showUpdateForm === expandedAction.id ? null : expandedAction.id)}
-                                  className="rounded-lg border border-updraft-light-purple bg-updraft-pale-purple/20 px-3 py-1.5 text-xs font-medium text-updraft-deep hover:bg-updraft-pale-purple/40 transition-colors"
-                                >
-                                  Add Update
-                                </button>
-                                <button
-                                  onClick={() => handleProposeChange(expandedAction.id, "status", expandedAction.status, "PROPOSED_CLOSED")}
-                                  className="rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100 transition-colors"
-                                >
-                                  Propose Closed
-                                </button>
-                              </>
+                            ) : dateChangeCount > 0 ? (
+                              <p className="text-sm font-medium text-gray-600">{dateChangeCount} date {dateChangeCount === 1 ? "change" : "changes"}</p>
+                            ) : (
+                              <p className="text-sm text-gray-400">On track</p>
                             )}
                           </div>
                         </div>
 
-                        {/* Update Form (non-CCRO) */}
-                        {showUpdateForm === expandedAction.id && (
-                          <div className="lg:col-span-2">
+                        {/* Action Buttons */}
+                        <div className="flex flex-wrap items-center gap-2 mb-5 pb-4 border-b border-gray-100">
+                          {isCCRO && (
+                            <>
+                              <button
+                                onClick={() => { setEditAction(expandedAction); setShowForm(true); }}
+                                className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                              >
+                                Edit
+                              </button>
+                              {isActive && (
+                                <button
+                                  onClick={() => updateAction(expandedAction.id, { status: "COMPLETED", completedAt: new Date().toISOString() })}
+                                  className="rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100 transition-colors"
+                                >
+                                  Mark Complete
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleDeleteAction(expandedAction.id)}
+                                className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
+                              >
+                                Delete
+                              </button>
+                            </>
+                          )}
+                          {isActive && (isMyAction || isCCRO) && (
+                            <>
+                              <button
+                                onClick={() => setShowUpdateForm(showUpdateForm === expandedAction.id ? null : expandedAction.id)}
+                                className={cn(
+                                  "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
+                                  showUpdateForm === expandedAction.id
+                                    ? "border-updraft-bright-purple bg-updraft-pale-purple/30 text-updraft-deep"
+                                    : "border-updraft-light-purple bg-updraft-pale-purple/20 text-updraft-deep hover:bg-updraft-pale-purple/40"
+                                )}
+                              >
+                                <MessageSquare size={12} /> Add Update
+                              </button>
+                              {!isCCRO && (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setShowDateProposal(showDateProposal === expandedAction.id ? null : expandedAction.id);
+                                      setShowReassignProposal(null);
+                                    }}
+                                    className={cn(
+                                      "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
+                                      showDateProposal === expandedAction.id
+                                        ? "border-amber-400 bg-amber-50 text-amber-700"
+                                        : "border-amber-200 text-amber-700 hover:bg-amber-50"
+                                    )}
+                                  >
+                                    <CalendarClock size={12} /> Request Date Change
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setShowReassignProposal(showReassignProposal === expandedAction.id ? null : expandedAction.id);
+                                      setShowDateProposal(null);
+                                    }}
+                                    className={cn(
+                                      "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
+                                      showReassignProposal === expandedAction.id
+                                        ? "border-blue-400 bg-blue-50 text-blue-700"
+                                        : "border-blue-200 text-blue-700 hover:bg-blue-50"
+                                    )}
+                                  >
+                                    <UserRoundPen size={12} /> Request Reassignment
+                                  </button>
+                                  <button
+                                    onClick={() => handleProposeChange(expandedAction.id, "status", expandedAction.status, "PROPOSED_CLOSED")}
+                                    className="rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100 transition-colors"
+                                  >
+                                    Propose Closed
+                                  </button>
+                                </>
+                              )}
+                            </>
+                          )}
+                        </div>
+
+                        {/* Inline Forms */}
+                        <div className="space-y-3 mb-5">
+                          {/* Progress Update Form */}
+                          {showUpdateForm === expandedAction.id && (
                             <ActionUpdateForm
                               actionId={expandedAction.id}
                               onSubmit={(data) => handleSubmitUpdate(expandedAction.id, data)}
                               onCancel={() => setShowUpdateForm(null)}
                             />
-                          </div>
-                        )}
+                          )}
 
-                        {/* Right: Change History */}
-                        <div className="lg:col-span-1">
-                          <h4 className="text-sm font-semibold text-gray-700 mb-2">Change History</h4>
+                          {/* Date Change Proposal Form */}
+                          {showDateProposal === expandedAction.id && (
+                            <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4 space-y-3">
+                              <div className="flex items-center gap-2 mb-1">
+                                <CalendarClock size={14} className="text-amber-600" />
+                                <span className="text-xs font-semibold text-amber-700">Request Due Date Change</span>
+                              </div>
+                              <div className="rounded-md bg-amber-100/60 border border-amber-200 px-3 py-2">
+                                <p className="text-xs text-amber-800">
+                                  Date changes require approval from the CCRO team. Your request will be reviewed and you will be notified of the outcome.
+                                </p>
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">Current Due Date</label>
+                                  <p className="text-sm text-gray-500 px-3 py-2 rounded-lg bg-gray-100 border border-gray-200">
+                                    {expandedAction.dueDate ? formatDateShort(expandedAction.dueDate) : "Not set"}
+                                  </p>
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">Proposed New Date</label>
+                                  <input
+                                    type="date"
+                                    value={proposedDate}
+                                    onChange={(e) => setProposedDate(e.target.value)}
+                                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple"
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Reason for Change</label>
+                                <textarea
+                                  rows={2}
+                                  value={proposalReason}
+                                  onChange={(e) => setProposalReason(e.target.value)}
+                                  placeholder="Explain why the due date needs to change..."
+                                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple resize-none"
+                                />
+                              </div>
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => { setShowDateProposal(null); setProposedDate(""); setProposalReason(""); }}
+                                  className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={() => handleProposeDateChange(expandedAction.id)}
+                                  disabled={!proposedDate || !proposalReason.trim()}
+                                  className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Submit for Approval
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Reassignment Proposal Form */}
+                          {showReassignProposal === expandedAction.id && (
+                            <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4 space-y-3">
+                              <div className="flex items-center gap-2 mb-1">
+                                <UserRoundPen size={14} className="text-blue-600" />
+                                <span className="text-xs font-semibold text-blue-700">Request Ownership Reassignment</span>
+                              </div>
+                              <div className="rounded-md bg-blue-100/60 border border-blue-200 px-3 py-2">
+                                <p className="text-xs text-blue-800">
+                                  Reassignment requests are reviewed by the CCRO team before taking effect.
+                                </p>
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">Current Owner</label>
+                                  <p className="text-sm text-gray-500 px-3 py-2 rounded-lg bg-gray-100 border border-gray-200">
+                                    {owner?.name || "Unassigned"}
+                                  </p>
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">Proposed New Owner</label>
+                                  <select
+                                    value={proposedOwner}
+                                    onChange={(e) => setProposedOwner(e.target.value)}
+                                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple"
+                                  >
+                                    <option value="">Select...</option>
+                                    {users.filter((u) => u.isActive && u.id !== expandedAction.assignedTo).map((u) => (
+                                      <option key={u.id} value={u.id}>{u.name}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Reason for Reassignment</label>
+                                <textarea
+                                  rows={2}
+                                  value={proposalReason}
+                                  onChange={(e) => setProposalReason(e.target.value)}
+                                  placeholder="Explain why this action should be reassigned..."
+                                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple resize-none"
+                                />
+                              </div>
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => { setShowReassignProposal(null); setProposedOwner(""); setProposalReason(""); }}
+                                  className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={() => handleProposeReassign(expandedAction.id)}
+                                  disabled={!proposedOwner || !proposalReason.trim()}
+                                  className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Submit for Approval
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Change History Timeline */}
+                        <div>
+                          <div className="flex items-center gap-2 mb-3">
+                            <History size={14} className="text-gray-500" />
+                            <h4 className="text-sm font-semibold text-gray-700">Change History</h4>
+                            {(expandedAction.changes || []).length > 0 && (
+                              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500">
+                                {(expandedAction.changes || []).length}
+                              </span>
+                            )}
+                          </div>
                           <ActionChangePanel
                             changes={expandedAction.changes || []}
                             isCCRO={isCCRO}
@@ -668,8 +978,8 @@ function ActionsPageContent() {
                           />
                         </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               );
             })}

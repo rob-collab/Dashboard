@@ -106,6 +106,8 @@ model User {
   updatedRisks    Risk[]          @relation("UpdatedRisks")
   ownedRisks      Risk[]          @relation("OwnedRisks")
 
+  updatedMeasures ConsumerDutyMeasure[]  @relation("MeasureUpdater")
+
   // Controls Testing Module
   ownedControls       Control[]              @relation("ControlOwner")
   createdControls     Control[]              @relation("ControlCreatedBy")
@@ -193,6 +195,8 @@ model ConsumerDutyMeasure {
   ragStatus     RAGStatus @default(GOOD)
   position      Int       @default(0)
   lastUpdatedAt DateTime?
+  updatedById   String?
+  updatedByUser User?     @relation("MeasureUpdater", fields: [updatedById], references: [id])
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

@@ -16,6 +16,7 @@ import {
 } from "@/lib/utils";
 import Modal from "@/components/common/Modal";
 import MetricDrillDown from "@/components/consumer-duty/MetricDrillDown";
+import { useAppStore } from "@/lib/store";
 import { TrendingUp, TrendingDown, Minus, Save } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -74,6 +75,7 @@ export default function MIModal({
   onSave,
   onSaveAppetite,
 }: MIModalProps) {
+  const users = useAppStore((s) => s.users);
   const [editedMetrics, setEditedMetrics] = useState<ConsumerDutyMI[]>([]);
   const [dirty, setDirty] = useState(false);
   const [drillDownMetric, setDrillDownMetric] = useState<ConsumerDutyMI | null>(null);
@@ -188,6 +190,18 @@ export default function MIModal({
               <span className="text-gray-300">|</span>
               <span className="text-xs text-gray-500">
                 Owner: {measure.owner}
+              </span>
+            </>
+          )}
+          {measure.lastUpdatedAt && (
+            <>
+              <span className="text-gray-300">|</span>
+              <span className="text-xs text-gray-500">
+                Last updated: {new Date(measure.lastUpdatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                {measure.updatedById && (() => {
+                  const updater = users.find((u) => u.id === measure.updatedById);
+                  return updater ? ` by ${updater.name}` : "";
+                })()}
               </span>
             </>
           )}

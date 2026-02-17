@@ -111,6 +111,7 @@ export default function MeasureFormDialog({
       ragStatus,
       position: measure?.position ?? nextPos,
       lastUpdatedAt: new Date().toISOString(),
+      updatedById: null,
       metrics: validMetrics,
     };
 
@@ -222,7 +223,7 @@ export default function MeasureFormDialog({
             {storeUsers
               .filter((u) => u.isActive !== false)
               .map((u) => (
-                <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
+                <option key={u.id} value={u.id}>{u.name}</option>
               ))}
           </select>
         </div>

@@ -86,7 +86,7 @@ export default function RiskHeatmap({
         <div className="flex-1">
           <div className="relative">
             {/* Y-axis label */}
-            <div className="absolute -left-8 top-1/2 -translate-y-1/2 -rotate-90 text-[8px] font-semibold text-gray-500 whitespace-nowrap">
+            <div className="absolute -left-8 top-1/2 -translate-y-1/2 -rotate-90 text-xs font-poppins font-semibold text-gray-500 whitespace-nowrap">
               LIKELIHOOD
             </div>
 
@@ -97,8 +97,8 @@ export default function RiskHeatmap({
                   {/* Y-axis tick */}
                   <div className="w-16 -ml-16 flex items-center justify-end pr-2">
                     <div className="text-right">
-                      <div className="text-xs font-bold text-gray-700">{likelihood}</div>
-                      <div className="text-[8px] text-gray-400 leading-tight">
+                      <div className="text-sm font-poppins font-bold text-gray-700">{likelihood}</div>
+                      <div className="text-[10px] font-poppins text-gray-400 leading-tight">
                         {LIKELIHOOD_SCALE[likelihood - 1].label}
                       </div>
                     </div>
@@ -185,15 +185,15 @@ export default function RiskHeatmap({
               <div className="flex ml-0">
                 {[1, 2, 3, 4, 5].map((impact) => (
                   <div key={impact} className="flex-1 text-center pt-1">
-                    <div className="text-xs font-bold text-gray-700">{impact}</div>
-                    <div className="text-[8px] text-gray-400">{IMPACT_SCALE[impact - 1].label}</div>
+                    <div className="text-sm font-poppins font-bold text-gray-700">{impact}</div>
+                    <div className="text-[10px] font-poppins text-gray-400">{IMPACT_SCALE[impact - 1].label}</div>
                   </div>
                 ))}
               </div>
 
               {/* X-axis title */}
               <div className="text-center mt-1">
-                <span className="text-[8px] font-semibold text-gray-500">IMPACT</span>
+                <span className="text-xs font-poppins font-semibold text-gray-500">IMPACT</span>
               </div>
             </div>
           </div>
@@ -203,7 +203,7 @@ export default function RiskHeatmap({
         <div className="w-56 space-y-4">
           {/* Risk Level Legend */}
           <div className="space-y-1.5">
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Risk Level</h4>
+            <h4 className="text-xs font-poppins font-semibold text-gray-500 uppercase tracking-wide">Risk Level</h4>
             {[
               { label: "Very High (20–25)", colour: "#dc2626" },
               { label: "High (10–16)", colour: "#ea580c" },
@@ -219,7 +219,7 @@ export default function RiskHeatmap({
 
           {/* Category Legend — clickable */}
           <div className="space-y-1.5">
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Category</h4>
+            <h4 className="text-xs font-poppins font-semibold text-gray-500 uppercase tracking-wide">Category</h4>
             {Object.entries(L1_CATEGORY_COLOURS).map(([name, { fill, label }]) => {
               const isActive = activeCategoryL1 === name;
               const isDimmed = activeCategoryL1 !== null && !isActive;
@@ -241,7 +241,7 @@ export default function RiskHeatmap({
           {/* Overlay legend */}
           {viewMode === "overlay" && (
             <div className="space-y-1">
-              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Overlay</h4>
+              <h4 className="text-xs font-poppins font-semibold text-gray-500 uppercase tracking-wide">Overlay</h4>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full border-2 border-gray-500 bg-transparent" />
                 <span className="text-xs text-gray-600">Inherent position</span>

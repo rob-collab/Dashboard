@@ -21,7 +21,7 @@ type WizardStep = "upload" | "preview" | "done";
 interface MIImportDialogProps {
   open: boolean;
   onClose: () => void;
-  onImport: (updates: { measureId: string; metrics: ConsumerDutyMI[] }[]) => void;
+  onImport: (updates: { measureId: string; metrics: ConsumerDutyMI[] }[], month?: string) => void;
   measures: ConsumerDutyMeasure[];
 }
 
@@ -45,6 +45,18 @@ interface RowValidation {
   parsed: ParsedMIRow | null;
 }
 
+function getMonthOptions(): { value: string; label: string }[] {
+  const options: { value: string; label: string }[] = [];
+  const now = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const value = d.toISOString();
+    const label = d.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+    options.push({ value, label });
+  }
+  return options;
+}
+
 export default function MIImportDialog({
   open,
   onClose,
@@ -55,6 +67,7 @@ export default function MIImportDialog({
   const [rawText, setRawText] = useState("");
   const [validated, setValidated] = useState<RowValidation[]>([]);
   const [importing, setImporting] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
 
   const validCount = validated.filter((v) => v.errors.length === 0).length;
   const errorCount = validated.filter((v) => v.errors.length > 0).length;
@@ -184,7 +197,7 @@ export default function MIImportDialog({
         return { measureId: measure.id, metrics };
       });
 
-      onImport(updates);
+      onImport(updates, selectedMonth || undefined);
       const totalMetrics = updates.reduce((sum, u) => sum + u.metrics.length, 0);
       toast.success(`Successfully imported ${totalMetrics} metric${totalMetrics !== 1 ? "s" : ""}`, {
         description: `Updated ${updates.length} measure${updates.length !== 1 ? "s" : ""}`,
@@ -202,6 +215,7 @@ export default function MIImportDialog({
   function handleClose() {
     setRawText("");
     setValidated([]);
+    setSelectedMonth("");
     setStep("upload");
     onClose();
   }
@@ -209,8 +223,27 @@ export default function MIImportDialog({
   /* ─────────────────── Step rendering ─────────────────── */
 
   function renderUpload() {
+    const monthOptions = getMonthOptions();
     return (
       <div className="space-y-4">
+        {/* Month selector for historical imports */}
+        <div>
+          <label htmlFor="mi-month" className="block text-sm font-medium text-gray-700 mb-1">
+            Import data for month
+          </label>
+          <select
+            id="mi-month"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple transition-colors"
+          >
+            <option value="">Current month (default)</option>
+            {monthOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
+
         <div
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleFileDrop}

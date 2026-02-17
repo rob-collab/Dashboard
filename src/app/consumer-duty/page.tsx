@@ -134,11 +134,19 @@ function ConsumerDutyContent() {
     return filtered;
   }, [outcomes, ragFilter, searchQuery, users]);
 
-  // All measures flattened
-  const allMeasures = useMemo(() =>
-    outcomes.flatMap((o) => (o.measures ?? []).map((m) => ({ ...m, outcomeName: o.name }))),
-    [outcomes]
-  );
+  // All measures flattened — sorted by measureId using natural sort (1.1 < 1.2 < 1.10 < 2.1)
+  const allMeasures = useMemo(() => {
+    const flat = outcomes.flatMap((o) => (o.measures ?? []).map((m) => ({ ...m, outcomeName: o.name })));
+    return flat.sort((a, b) => {
+      const aParts = a.measureId.split(".").map(Number);
+      const bParts = b.measureId.split(".").map(Number);
+      for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+        const diff = (aParts[i] ?? 0) - (bParts[i] ?? 0);
+        if (diff !== 0) return diff;
+      }
+      return 0;
+    });
+  }, [outcomes]);
   const totalMeasures = allMeasures.length;
 
   // Filtered measures (for measure-level RAG filter)
@@ -253,11 +261,29 @@ function ConsumerDutyContent() {
     }
   };
 
-  const handleMIImport = (updates: { measureId: string; metrics: ConsumerDutyMI[] }[]) => {
-    for (const { measureId, metrics } of updates) {
-      updateMeasureMetrics(measureId, metrics);
+  const handleMIImport = async (updates: { measureId: string; metrics: ConsumerDutyMI[] }[], month?: string) => {
+    if (month) {
+      // Historical import — call API directly with month param
+      for (const { measureId, metrics } of updates) {
+        try {
+          await fetch("/api/consumer-duty/mi", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ measureId, metrics, month }),
+          });
+        } catch (err) {
+          console.error("Historical MI import failed:", err);
+        }
+      }
+      // Refresh store from API
+      await useAppStore.getState().hydrate();
+    } else {
+      // Current month — use normal store sync
+      for (const { measureId, metrics } of updates) {
+        updateMeasureMetrics(measureId, metrics);
+      }
     }
-    logAuditEvent({ action: "bulk_import_mi", entityType: "consumer_duty_mi", changes: { count: updates.reduce((sum, u) => sum + u.metrics.length, 0) } });
+    logAuditEvent({ action: "bulk_import_mi", entityType: "consumer_duty_mi", changes: { count: updates.reduce((sum, u) => sum + u.metrics.length, 0), month: month ?? "current" } });
   };
 
   return (
@@ -668,7 +694,16 @@ function ConsumerDutyContent() {
                 </thead>
                 <tbody>
                   {outcomes.flatMap((outcome) =>
-                    (outcome.measures ?? []).map((measure) => (
+                    (outcome.measures ?? []).map((measure) => ({ measure, outcome }))
+                  ).sort((a, b) => {
+                    const aParts = a.measure.measureId.split(".").map(Number);
+                    const bParts = b.measure.measureId.split(".").map(Number);
+                    for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+                      const diff = (aParts[i] ?? 0) - (bParts[i] ?? 0);
+                      if (diff !== 0) return diff;
+                    }
+                    return 0;
+                  }).map(({ measure, outcome }) => (
                       <tr
                         key={measure.id}
                         className="hover:bg-gray-50/50 cursor-pointer group"
@@ -718,8 +753,7 @@ function ConsumerDutyContent() {
                           </td>
                         )}
                       </tr>
-                    ))
-                  )}
+                    ))}
                 </tbody>
               </table>
             </div>

@@ -143,6 +143,19 @@ export default function DashboardHome() {
     return risksNeedingReview.filter((r) => r.ownerId === currentUser?.id);
   }, [risksNeedingReview, currentUser?.id]);
 
+  // Overdue metrics (not updated in 30+ days)
+  const overdueMetrics = useMemo(() => {
+    return outcomes.flatMap((o) =>
+      (o.measures ?? []).filter((m) => {
+        if (!m.lastUpdatedAt) return true;
+        const lastUpdate = new Date(m.lastUpdatedAt);
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        return lastUpdate < thirtyDaysAgo;
+      })
+    );
+  }, [outcomes]);
+
   // Published reports for non-CCRO users
   const publishedReports = useMemo(() => reports.filter((r) => r.status === "PUBLISHED"), [reports]);
 
@@ -177,8 +190,14 @@ export default function DashboardHome() {
             </p>
 
             {/* Notification pills — role-specific */}
-            {isCCRO && (myOverdueActions.length > 0 || myDueThisMonthActions.length > 0 || risksNeedingReview.length > 0 || pendingChanges.length > 0) && (
+            {isCCRO && (myOverdueActions.length > 0 || myDueThisMonthActions.length > 0 || risksNeedingReview.length > 0 || pendingChanges.length > 0 || overdueMetrics.length > 0) && (
               <div className="mt-3 flex flex-wrap gap-2">
+                {overdueMetrics.length > 0 && (
+                  <Link href="/consumer-duty?rag=ATTENTION" className="inline-flex items-center gap-1.5 rounded-full bg-red-500/90 px-3 py-1 text-xs font-semibold text-white hover:bg-red-600 transition-colors">
+                    <BarChart3 className="h-3 w-3" />
+                    {overdueMetrics.length} overdue metric{overdueMetrics.length > 1 ? "s" : ""}
+                  </Link>
+                )}
                 {myOverdueActions.length > 0 && (
                   <Link href="/actions?status=OVERDUE" className="inline-flex items-center gap-1.5 rounded-full bg-red-500/90 px-3 py-1 text-xs font-semibold text-white hover:bg-red-600 transition-colors">
                     <AlertTriangle className="h-3 w-3" />
@@ -290,10 +309,15 @@ export default function DashboardHome() {
                   {items.slice(0, 3).map((a) => {
                     const owner = users.find((u) => u.id === a.assignedTo);
                     return (
-                      <div key={a.id} className="flex items-center justify-between text-xs">
+                      <Link
+                        key={a.id}
+                        href={`/actions?edit=${a.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center justify-between text-xs hover:text-updraft-bright-purple transition-colors"
+                      >
                         <span className="text-gray-700 truncate flex-1 min-w-0">{a.title}</span>
                         <span className="text-gray-400 shrink-0 ml-2">{owner?.name ?? "—"}</span>
-                      </div>
+                      </Link>
                     );
                   })}
                   {items.length > 3 && (
@@ -328,7 +352,7 @@ export default function DashboardHome() {
                 {pendingChanges.slice(0, 5).map((c) => {
                   const action = actions.find((a) => a.id === c.actionId);
                   return (
-                    <Link key={c.id} href="/actions" className="flex items-center justify-between p-2.5 rounded-lg bg-amber-50/50 hover:bg-amber-100/50 transition-colors">
+                    <Link key={c.id} href={`/actions?edit=${c.actionId}`} className="flex items-center justify-between p-2.5 rounded-lg bg-amber-50/50 hover:bg-amber-100/50 transition-colors">
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium text-gray-800 truncate">{action?.title ?? "Unknown action"}</p>
                         <p className="text-[10px] text-gray-500">
@@ -473,7 +497,7 @@ export default function DashboardHome() {
                   ) : (
                     <div className="space-y-2">
                       {myOverdueActions.slice(0, 5).map((a) => (
-                        <Link key={a.id} href="/actions?status=OVERDUE" className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <Link key={a.id} href={`/actions?edit=${a.id}`} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
                           <p className="text-xs font-medium text-gray-800 truncate flex-1 min-w-0">{a.title}</p>
                           <span className="text-[10px] font-semibold text-red-600 shrink-0 ml-2">
                             {a.dueDate ? `${Math.abs(daysUntilDue(a.dueDate) ?? 0)}d overdue` : "Overdue"}
@@ -617,7 +641,7 @@ export default function DashboardHome() {
                   const days = daysUntilDue(a.dueDate);
                   const isOverdue = days !== null && days <= 0;
                   return (
-                    <Link key={a.id} href="/actions" className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <Link key={a.id} href={`/actions?edit=${a.id}`} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
                       {a.priority && (
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
                           a.priority === "P1" ? "bg-red-100 text-red-700" :
@@ -657,28 +681,37 @@ export default function DashboardHome() {
                 </Link>
               </div>
               <div className="space-y-2">
-                {myMetrics.map((m) => (
-                  <Link
-                    key={m.id}
-                    href={`/consumer-duty?measure=${m.id}`}
-                    className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-800 truncate">{m.name}</p>
-                      <p className="text-xs text-gray-500">{m.measureId}</p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0 ml-2">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                        m.ragStatus === "GOOD" ? "bg-green-100 text-risk-green" :
-                        m.ragStatus === "WARNING" ? "bg-amber-100 text-risk-amber" :
-                        "bg-red-100 text-risk-red"
-                      }`}>
-                        {m.ragStatus === "GOOD" ? "Green" : m.ragStatus === "WARNING" ? "Amber" : "Red"}
-                      </span>
-                      <ArrowRight className="h-3.5 w-3.5 text-gray-400" />
-                    </div>
-                  </Link>
-                ))}
+                {myMetrics.map((m) => {
+                  const isOverdue = !m.lastUpdatedAt || new Date(m.lastUpdatedAt) < new Date(Date.now() - 30 * 86400000);
+                  return (
+                    <Link
+                      key={m.id}
+                      href={`/consumer-duty?measure=${m.id}`}
+                      className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-800 truncate">{m.name}</p>
+                        <p className="text-xs text-gray-500">{m.measureId}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 ml-2">
+                        {isOverdue && (
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">
+                            <AlertTriangle className="h-2.5 w-2.5" />
+                            Overdue
+                          </span>
+                        )}
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                          m.ragStatus === "GOOD" ? "bg-green-100 text-risk-green" :
+                          m.ragStatus === "WARNING" ? "bg-amber-100 text-risk-amber" :
+                          "bg-red-100 text-risk-red"
+                        }`}>
+                          {m.ragStatus === "GOOD" ? "Green" : m.ragStatus === "WARNING" ? "Amber" : "Red"}
+                        </span>
+                        <ArrowRight className="h-3.5 w-3.5 text-gray-400" />
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -778,6 +811,48 @@ export default function DashboardHome() {
       {/* ═══════════════ VIEWER Dashboard ═══════════════ */}
       {!isCCRO && !isOwner && (
         <>
+          {/* Overdue Metrics Alert */}
+          {overdueMetrics.length > 0 && (
+            <div className="bento-card border-2 border-red-200 bg-red-50/30">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-red-500" />
+                  <h2 className="text-lg font-bold text-red-700 font-poppins">Overdue Metrics</h2>
+                  <span className="rounded-full bg-red-100 text-red-700 px-2 py-0.5 text-xs font-bold">{overdueMetrics.length}</span>
+                </div>
+                <Link href="/consumer-duty" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
+                  View All <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+              <p className="text-xs text-red-600/70 mb-3">These metrics have not been updated in over 30 days and require attention.</p>
+              <div className="space-y-2">
+                {overdueMetrics.slice(0, 8).map((m) => (
+                  <Link
+                    key={m.id}
+                    href={`/consumer-duty?measure=${m.id}`}
+                    className="flex items-center justify-between p-2.5 rounded-lg bg-white/80 hover:bg-white transition-colors"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-800 truncate">{m.measureId} — {m.name}</p>
+                      <p className="text-[10px] text-gray-400">
+                        {m.lastUpdatedAt
+                          ? `Last updated ${Math.floor((Date.now() - new Date(m.lastUpdatedAt).getTime()) / 86400000)}d ago`
+                          : "Never updated"}
+                      </p>
+                    </div>
+                    <span className="inline-flex items-center gap-0.5 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700 shrink-0 ml-2">
+                      <AlertTriangle className="h-2.5 w-2.5" />
+                      Overdue
+                    </span>
+                  </Link>
+                ))}
+                {overdueMetrics.length > 8 && (
+                  <p className="text-[10px] text-red-500 text-center">+{overdueMetrics.length - 8} more overdue metrics</p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* My Risks (items VIEWER owns) */}
           {myRisks.length > 0 && (
             <div className="bento-card">
@@ -822,7 +897,7 @@ export default function DashboardHome() {
                   const days = daysUntilDue(a.dueDate);
                   const isOverdue = days !== null && days <= 0;
                   return (
-                    <Link key={a.id} href="/actions" className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <Link key={a.id} href={`/actions?edit=${a.id}`} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
                       {a.priority && (
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
                           a.priority === "P1" ? "bg-red-100 text-red-700" :

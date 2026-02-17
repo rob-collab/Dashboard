@@ -52,17 +52,6 @@ const NAV_ITEMS: { label: string; href: string; icon: typeof LayoutDashboard; ro
   { label: "Settings", href: "/settings", icon: Settings, roles: ["CCRO_TEAM"] },
 ];
 
-const ROLE_LABELS: Record<string, string> = {
-  CCRO_TEAM: "CCRO Team",
-  OWNER: "Owner",
-  VIEWER: "Viewer",
-};
-
-const ROLE_COLORS: Record<string, string> = {
-  CCRO_TEAM: "bg-updraft-bright-purple text-white",
-  OWNER: "bg-updraft-pale-purple text-updraft-deep",
-  VIEWER: "bg-gray-200 text-gray-700",
-};
 
 export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwitchUser }: SidebarProps) {
   const [collapsedInternal, setCollapsedInternal] = useState(false);
@@ -144,7 +133,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
           <Eye size={14} className="shrink-0 text-amber-600" />
           <div className="flex-1 min-w-0">
             <p className="text-[10px] font-semibold text-amber-700 uppercase tracking-wider">Viewing as</p>
-            <p className="text-xs font-medium text-amber-800 truncate">{currentUser.name} ({ROLE_LABELS[currentUser.role]})</p>
+            <p className="text-xs font-medium text-amber-800 truncate">{currentUser.name}</p>
           </div>
           <button
             onClick={() => authUser && onSwitchUser?.(authUser)}
@@ -243,7 +232,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
           <button
             onClick={() => setUserMenuOpen(!userMenuOpen)}
             className="flex h-8 w-8 items-center justify-center rounded-full bg-updraft-bar text-xs font-semibold text-white hover:ring-2 hover:ring-updraft-light-purple transition-all"
-            title={`${currentUser.name} (${ROLE_LABELS[currentUser.role]}) — Click to switch`}
+            title={`${currentUser.name} — Click to switch`}
           >
             {currentUser.name.charAt(0).toUpperCase()}
           </button>
@@ -259,14 +248,6 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
               <p className="text-sm font-medium text-gray-800 truncate">
                 {currentUser.name}
               </p>
-              <span
-                className={cn(
-                  "inline-block mt-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight",
-                  ROLE_COLORS[currentUser.role]
-                )}
-              >
-                {ROLE_LABELS[currentUser.role]}
-              </span>
             </div>
             <ChevronDown
               size={14}
@@ -319,9 +300,6 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
                       <p className="font-medium truncate text-xs">
                         {u.name}
                         {isSelf && <span className="ml-1 text-[10px] text-gray-400">(My Account)</span>}
-                      </p>
-                      <p className="text-[10px] text-gray-500 truncate">
-                        {ROLE_LABELS[u.role]}
                       </p>
                     </div>
                     {isSelected && (

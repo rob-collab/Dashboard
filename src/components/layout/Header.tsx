@@ -42,11 +42,6 @@ const STATUS_DOT_STYLES: Record<StatusIndicator["variant"], string> = {
   info: "bg-blue-500",
 };
 
-const ROLE_LABELS: Record<string, string> = {
-  CCRO_TEAM: "CCRO Team",
-  OWNER: "Owner",
-  VIEWER: "Viewer",
-};
 
 export default function Header({
   title,
@@ -222,7 +217,7 @@ export default function Header({
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{user.name}</p>
                           <p className="text-xs text-gray-500 truncate">
-                            {ROLE_LABELS[user.role]} &middot; {user.email}
+                            {user.email}
                           </p>
                         </div>
                         {isSelected && (

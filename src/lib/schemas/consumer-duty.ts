@@ -34,6 +34,8 @@ export const CreateMeasureSchema = z.object({
 });
 
 export const UpdateMeasureSchema = z.object({
+  measureId: z.string().min(1).optional(),
+  outcomeId: z.string().min(1).optional(),
   name: z.string().min(1).optional(),
   owner: z.string().nullable().optional(),
   summary: z.string().optional(),
