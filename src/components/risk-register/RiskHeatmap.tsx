@@ -83,7 +83,7 @@ export default function RiskHeatmap({
 
       {/* Heatmap Grid */}
       <div className="flex gap-6">
-        <div className="flex-1">
+        <div className="max-w-[360px]">
           <div className="relative">
             {/* Y-axis label */}
             <div className="absolute -left-8 top-1/2 -translate-y-1/2 -rotate-90 text-[8px] font-semibold text-gray-500 whitespace-nowrap">
@@ -116,7 +116,7 @@ export default function RiskHeatmap({
                       <button
                         key={impact}
                         onClick={() => setSelectedCell(isSelected ? null : { l: likelihood, i: impact })}
-                        className={`relative flex-1 aspect-square min-h-[35px] border border-white/50 flex flex-col items-center justify-center transition-all ${
+                        className={`relative flex-1 aspect-square min-h-[56px] border border-white/50 flex flex-col items-center justify-center transition-all ${
                           isSelected ? "ring-2 ring-updraft-deep ring-offset-1" : ""
                         }`}
                         style={{ backgroundColor: cellLevel.colour + "30" }}
@@ -128,7 +128,7 @@ export default function RiskHeatmap({
 
                         {/* Risk markers */}
                         {cellRisks.length > 0 && (
-                          <div className="flex flex-wrap gap-0.5 justify-center mt-0.5 max-w-[90%]">
+                          <div className="flex flex-wrap gap-1 justify-center mt-0.5 max-w-[95%]">
                             {cellRisks.map(({ risk, type }) => {
                               const catColour = L1_CATEGORY_COLOURS[risk.categoryL1];
                               const isHovered = hoveredRisk === risk.id;
@@ -142,7 +142,7 @@ export default function RiskHeatmap({
                                     e.stopPropagation();
                                     onRiskClick?.(risk);
                                   }}
-                                  className={`relative w-3 h-3 rounded-full border-2 cursor-pointer transition-transform ${
+                                  className={`relative w-6 h-6 rounded-full border-2 cursor-pointer transition-transform ${
                                     isHovered ? "scale-125 z-10" : ""
                                   }`}
                                   style={{
@@ -152,7 +152,7 @@ export default function RiskHeatmap({
                                   }}
                                   title={`${risk.reference}: ${risk.name} (${type})`}
                                 >
-                                  <span className={`absolute inset-0 flex items-center justify-center text-[5px] font-bold ${
+                                  <span className={`absolute inset-0 flex items-center justify-center text-[7px] font-bold ${
                                     isInherentInOverlay ? "text-gray-600" : "text-white"
                                   }`}>
                                     {risk.reference.replace("R00", "").replace("R0", "")}
