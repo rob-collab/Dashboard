@@ -1,6 +1,8 @@
-import { auth } from "@/lib/auth-config";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
 
-export default auth((req) => {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Allow auth endpoints, login, unauthorised, and static assets
@@ -12,16 +14,19 @@ export default auth((req) => {
     pathname.startsWith("/favicon") ||
     pathname.match(/\.(png|jpg|jpeg|svg|ico|css|js|woff2?)$/)
   ) {
-    return;
+    return NextResponse.next();
   }
 
-  // If not authenticated, redirect to login
-  if (!req.auth) {
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+
+  if (!token) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
-    return Response.redirect(loginUrl);
+    return NextResponse.redirect(loginUrl);
   }
-});
+
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image).*)"],
