@@ -27,6 +27,7 @@ export async function PATCH(
         ...(data.shortDesc !== undefined && { shortDesc: data.shortDesc }),
         ...(data.detailedDescription !== undefined && { detailedDescription: data.detailedDescription }),
         ...(data.previousRAG !== undefined && { previousRAG: data.previousRAG }),
+        ...(data.monthlySummary !== undefined && { monthlySummary: data.monthlySummary }),
         ...(data.icon !== undefined && { icon: data.icon }),
         ...(data.ragStatus !== undefined && { ragStatus: data.ragStatus }),
         ...(data.position !== undefined && { position: data.position }),

@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
       shortDesc,
       detailedDescription: body.detailedDescription ?? null,
       previousRAG: body.previousRAG ?? null,
+      monthlySummary: body.monthlySummary ?? null,
       icon: body.icon ?? null,
       ragStatus: body.ragStatus || "GOOD",
       position: body.position ?? 0,

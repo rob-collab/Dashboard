@@ -157,6 +157,7 @@ model ConsumerDutyOutcome {
   riskOwner            String?
   previousRAG          RAGStatus?
   mitigatingActions    String?   @db.Text
+  monthlySummary       String?   @db.Text
   icon                 String?
   ragStatus            RAGStatus @default(GOOD)
   position             Int       @default(0)

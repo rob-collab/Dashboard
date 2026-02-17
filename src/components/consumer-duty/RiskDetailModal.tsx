@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Modal from "@/components/common/Modal";
 import type { ConsumerDutyOutcome, RAGStatus } from "@/lib/types";
 import { cn, ragBgColor, ragLabel, ragLabelShort } from "@/lib/utils";
-import { TrendingUp, TrendingDown, Minus, Shield } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Shield, Pencil, Check, X } from "lucide-react";
+import { useAppStore } from "@/lib/store";
 
 interface RiskDetailModalProps {
   outcome: ConsumerDutyOutcome | null;
@@ -44,6 +45,20 @@ export default function RiskDetailModal({
   open,
   onClose,
 }: RiskDetailModalProps) {
+  const currentUser = useAppStore((s) => s.currentUser);
+  const updateOutcome = useAppStore((s) => s.updateOutcome);
+  const isCCRO = currentUser?.role === "CCRO_TEAM";
+
+  const [editingSummary, setEditingSummary] = useState(false);
+  const [summaryDraft, setSummaryDraft] = useState("");
+
+  useEffect(() => {
+    if (open && outcome) {
+      setSummaryDraft(outcome.monthlySummary ?? "");
+      setEditingSummary(false);
+    }
+  }, [open, outcome]);
+
   const movementIcon = useMemo(() =>
     outcome ? getRagMovementIcon(outcome.ragStatus, outcome.previousRAG) : null,
     [outcome]
@@ -53,6 +68,17 @@ export default function RiskDetailModal({
     outcome ? getRagMovementLabel(outcome.ragStatus, outcome.previousRAG) : "",
     [outcome]
   );
+
+  function handleSaveSummary() {
+    if (!outcome) return;
+    updateOutcome(outcome.id, { monthlySummary: summaryDraft.trim() || null });
+    setEditingSummary(false);
+  }
+
+  function handleCancelSummary() {
+    setSummaryDraft(outcome?.monthlySummary ?? "");
+    setEditingSummary(false);
+  }
 
   if (!outcome) return null;
 
@@ -65,7 +91,7 @@ export default function RiskDetailModal({
     >
       {/* Current RAG Status */}
       <div className="mb-6 rounded-xl bg-updraft-pale-purple/10 border border-updraft-pale-purple/30 p-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-3">
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Current Status</p>
             <div className="flex items-center gap-2">
@@ -89,6 +115,58 @@ export default function RiskDetailModal({
               <span>{movementLabel}</span>
             </div>
           </div>
+        </div>
+
+        {/* Monthly Summary — editable by CCRO */}
+        <div className="border-t border-updraft-pale-purple/30 pt-3 mt-1">
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-xs text-gray-500 uppercase tracking-wide">Monthly Summary</p>
+            {isCCRO && !editingSummary && (
+              <button
+                onClick={() => setEditingSummary(true)}
+                className="inline-flex items-center gap-1 text-xs text-updraft-bright-purple hover:text-updraft-deep transition-colors"
+              >
+                <Pencil size={11} />
+                {outcome.monthlySummary ? "Edit" : "Add Summary"}
+              </button>
+            )}
+          </div>
+          {editingSummary ? (
+            <div className="space-y-2">
+              <textarea
+                value={summaryDraft}
+                onChange={(e) => setSummaryDraft(e.target.value)}
+                rows={3}
+                placeholder="Write a summary of this outcome for the current month..."
+                className="w-full rounded-lg border border-updraft-light-purple bg-white px-3 py-2 text-sm outline-none focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple transition-colors"
+                autoFocus
+              />
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  onClick={handleCancelSummary}
+                  className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  <X size={12} />
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveSummary}
+                  className="inline-flex items-center gap-1 rounded-md bg-updraft-bright-purple px-2.5 py-1.5 text-xs font-medium text-white hover:bg-updraft-deep transition-colors"
+                >
+                  <Check size={12} />
+                  Save
+                </button>
+              </div>
+            </div>
+          ) : outcome.monthlySummary ? (
+            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+              {outcome.monthlySummary}
+            </p>
+          ) : (
+            <p className="text-xs text-gray-400 italic">
+              {isCCRO ? "No summary yet — click Edit to add one" : "No summary available for this period"}
+            </p>
+          )}
         </div>
       </div>
 
@@ -139,7 +217,7 @@ export default function RiskDetailModal({
       )}
 
       {/* Placeholder message if no additional details */}
-      {!outcome.detailedDescription && (!outcome.measures || outcome.measures.length === 0) && (
+      {!outcome.detailedDescription && !outcome.monthlySummary && (!outcome.measures || outcome.measures.length === 0) && (
         <div className="text-center py-8">
           <Shield size={48} className="mx-auto mb-3 text-gray-300" />
           <p className="text-sm text-gray-500">No additional outcome details available</p>

@@ -110,6 +110,7 @@ export interface ConsumerDutyOutcome {
   riskOwner?: string | null;
   previousRAG?: RAGStatus | null;
   mitigatingActions?: string | null;
+  monthlySummary?: string | null;
   icon: string | null;
   ragStatus: RAGStatus;
   position: number;

@@ -40,6 +40,7 @@ function ConsumerDutyContent() {
   const deleteMeasure = useAppStore((s) => s.deleteMeasure);
   const bulkAddMeasures = useAppStore((s) => s.bulkAddMeasures);
 
+  const users = useAppStore((s) => s.users);
   const isOwner = currentUser?.role === "OWNER";
   const isCCROTeam = currentUser?.role === "CCRO_TEAM";
   const canEdit = isOwner || isCCROTeam;
@@ -329,7 +330,7 @@ function ConsumerDutyContent() {
           onClick={() => handleStatRagClick("GOOD")}
           className={cn(
             "bento-card cursor-pointer text-left",
-            ragFilter === "GOOD" && "ring-2 ring-updraft-bright-purple/30"
+            ragFilter === "GOOD" && "ring-2 ring-risk-green/40 bg-risk-green/5"
           )}
         >
           <div className="flex items-center gap-2">
@@ -343,7 +344,7 @@ function ConsumerDutyContent() {
           onClick={() => handleStatRagClick("WARNING")}
           className={cn(
             "bento-card cursor-pointer text-left",
-            (ragFilter === "WARNING" || ragFilter === "ATTENTION") && "ring-2 ring-updraft-bright-purple/30"
+            (ragFilter === "WARNING" || ragFilter === "ATTENTION") && "ring-2 ring-risk-amber/40 bg-risk-amber/5"
           )}
         >
           <div className="flex items-center gap-2">
@@ -357,7 +358,7 @@ function ConsumerDutyContent() {
           onClick={() => handleStatRagClick("HARM")}
           className={cn(
             "bento-card cursor-pointer text-left",
-            (ragFilter === "HARM" || ragFilter === "ATTENTION") && "ring-2 ring-updraft-bright-purple/30"
+            (ragFilter === "HARM" || ragFilter === "ATTENTION") && "ring-2 ring-risk-red/40 bg-risk-red/5"
           )}
         >
           <div className="flex items-center gap-2">
@@ -468,20 +469,27 @@ function ConsumerDutyContent() {
             </div>
             <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-1">
               <Filter size={14} className="ml-2 text-gray-400" />
-              {RAG_FILTERS.map((f) => (
-                <button
-                  key={f.value}
-                  onClick={() => handleRagFilter(f.value)}
-                  className={cn(
-                    "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                    ragFilter === f.value
-                      ? "bg-updraft-pale-purple/40 text-updraft-deep"
-                      : "text-gray-500 hover:text-gray-700"
-                  )}
-                >
-                  {f.label}
-                </button>
-              ))}
+              {RAG_FILTERS.map((f) => {
+                const isActive = ragFilter === f.value;
+                const colourClasses =
+                  f.value === "GOOD" ? (isActive ? "bg-risk-green/15 text-risk-green ring-1 ring-risk-green/30" : "text-risk-green hover:bg-risk-green/10") :
+                  f.value === "WARNING" ? (isActive ? "bg-risk-amber/15 text-risk-amber ring-1 ring-risk-amber/30" : "text-risk-amber hover:bg-risk-amber/10") :
+                  f.value === "HARM" ? (isActive ? "bg-risk-red/15 text-risk-red ring-1 ring-risk-red/30" : "text-risk-red hover:bg-risk-red/10") :
+                  (isActive ? "bg-updraft-pale-purple/40 text-updraft-deep" : "text-gray-500 hover:text-gray-700");
+                return (
+                  <button
+                    key={f.value}
+                    onClick={() => handleRagFilter(f.value)}
+                    className={cn(
+                      "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                      colourClasses
+                    )}
+                  >
+                    {f.value !== "ALL" && <span className={cn("inline-block h-1.5 w-1.5 rounded-full mr-1.5", ragBgColor(f.value as RAGStatus))} />}
+                    {f.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -574,7 +582,7 @@ function ConsumerDutyContent() {
                           <span className="font-medium text-gray-800">{measure.measureId}</span>
                           <span className="text-gray-500 ml-2">{measure.name}</span>
                         </td>
-                        <td className="border border-gray-200 px-3 py-2 text-gray-500">{measure.owner ?? "—"}</td>
+                        <td className="border border-gray-200 px-3 py-2 text-gray-500">{(measure.owner && users.find((u) => u.id === measure.owner)?.name) || measure.owner || "—"}</td>
                         <td className="border border-gray-200 px-3 py-2">
                           <span className={cn(
                             "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold",

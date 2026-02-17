@@ -17,6 +17,7 @@ export const UpdateOutcomeSchema = z.object({
   shortDesc: z.string().optional(),
   detailedDescription: z.string().nullable().optional(),
   previousRAG: RAGStatus.nullable().optional(),
+  monthlySummary: z.string().nullable().optional(),
   icon: z.string().optional(),
   ragStatus: RAGStatus.optional(),
   position: z.number().int().min(0).optional(),

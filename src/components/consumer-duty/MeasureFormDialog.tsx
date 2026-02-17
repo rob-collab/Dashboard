@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Modal from "@/components/common/Modal";
 import type { ConsumerDutyMeasure, ConsumerDutyOutcome, ConsumerDutyMI, RAGStatus } from "@/lib/types";
 import { generateId } from "@/lib/utils";
+import { useAppStore } from "@/lib/store";
 import { Plus, X } from "lucide-react";
 
 interface MeasureFormDialogProps {
@@ -44,6 +45,7 @@ export default function MeasureFormDialog({
   defaultOutcomeId,
 }: MeasureFormDialogProps) {
   const isEdit = Boolean(measure);
+  const storeUsers = useAppStore((s) => s.users);
 
   const [measureId, setMeasureId] = useState("");
   const [name, setName] = useState("");
@@ -210,14 +212,19 @@ export default function MeasureFormDialog({
 
         <div>
           <label htmlFor="measure-owner" className={labelClasses}>Owner</label>
-          <input
+          <select
             id="measure-owner"
-            type="text"
             value={owner}
             onChange={(e) => setOwner(e.target.value)}
-            placeholder="e.g. ash@updraft.com"
             className={inputClasses}
-          />
+          >
+            <option value="">— Unassigned —</option>
+            {storeUsers
+              .filter((u) => u.isActive !== false)
+              .map((u) => (
+                <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
+              ))}
+          </select>
         </div>
 
         <div>
