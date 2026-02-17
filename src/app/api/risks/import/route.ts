@@ -15,6 +15,19 @@ interface ImportRow {
   controlEffectiveness?: string;
   riskAppetite?: string;
   directionOfTravel?: string;
+  controls?: string[];
+  monthHistory?: { date: string; colour: string }[];
+}
+
+/** Map a residual RAG colour to representative likelihood × impact scores */
+function colourToScores(colour: string): { likelihood: number; impact: number } {
+  switch (colour) {
+    case "GREEN":  return { likelihood: 1, impact: 2 };  // score 2 (Low)
+    case "YELLOW": return { likelihood: 3, impact: 3 };  // score 9 (Medium)
+    case "AMBER":  return { likelihood: 4, impact: 4 };  // score 16 (High)
+    case "RED":    return { likelihood: 5, impact: 5 };  // score 25 (Very High)
+    default:       return { likelihood: 3, impact: 3 };
+  }
 }
 
 const VALID_CONTROL_EFFECTIVENESS = ["EFFECTIVE", "PARTIALLY_EFFECTIVE", "INEFFECTIVE"];
@@ -62,7 +75,7 @@ export async function POST(request: NextRequest) {
   const results: Array<{
     rowIndex: number;
     errors: string[];
-    risk?: { name: string; categoryL1: string; categoryL2: string; owner: string; inherentScore: number; residualScore: number };
+    risk?: { name: string; categoryL1: string; categoryL2: string; owner: string; inherentScore: number; residualScore: number; controlCount: number; monthCount: number };
   }> = [];
 
   for (let i = 0; i < rows.length; i++) {
@@ -138,6 +151,8 @@ export async function POST(request: NextRequest) {
         owner: resolvedOwner,
         inherentScore: row.inherentLikelihood * row.inherentImpact,
         residualScore: row.residualLikelihood * row.residualImpact,
+        controlCount: row.controls?.length ?? 0,
+        monthCount: row.monthHistory?.length ?? 0,
       } : undefined,
     });
   }
@@ -200,7 +215,49 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Create initial snapshot
+    // Create controls (pipe-separated from CSV)
+    if (row.controls && row.controls.length > 0) {
+      await Promise.all(
+        row.controls.map((desc, idx) =>
+          prisma.riskControl.create({
+            data: {
+              riskId: risk.id,
+              description: desc,
+              sortOrder: idx,
+            },
+          }).catch((e) => console.error("[risk control]", e))
+        )
+      );
+    }
+
+    // Create month history snapshots (12-month rolling RAG colours)
+    if (row.monthHistory && row.monthHistory.length > 0) {
+      for (const entry of row.monthHistory) {
+        const monthDate = new Date(entry.date);
+        const scores = colourToScores(entry.colour);
+        await prisma.riskSnapshot.upsert({
+          where: { riskId_month: { riskId: risk.id, month: monthDate } },
+          update: {
+            residualLikelihood: scores.likelihood,
+            residualImpact: scores.impact,
+            inherentLikelihood: risk.inherentLikelihood,
+            inherentImpact: risk.inherentImpact,
+            directionOfTravel: risk.directionOfTravel,
+          },
+          create: {
+            riskId: risk.id,
+            month: monthDate,
+            residualLikelihood: scores.likelihood,
+            residualImpact: scores.impact,
+            inherentLikelihood: risk.inherentLikelihood,
+            inherentImpact: risk.inherentImpact,
+            directionOfTravel: risk.directionOfTravel,
+          },
+        }).catch((e) => console.error("[risk snapshot history]", e));
+      }
+    }
+
+    // Create current-month snapshot
     await prisma.riskSnapshot.upsert({
       where: { riskId_month: { riskId: risk.id, month: monthStart } },
       update: {

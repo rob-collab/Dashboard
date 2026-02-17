@@ -23,7 +23,7 @@ export default function RiskCSVUploadDialog({
     results: Array<{
       rowIndex: number;
       errors: string[];
-      risk?: { name: string; categoryL1: string; categoryL2: string; owner: string; inherentScore: number; residualScore: number };
+      risk?: { name: string; categoryL1: string; categoryL2: string; owner: string; inherentScore: number; residualScore: number; controlCount?: number; monthCount?: number };
     }>;
   } | null>(null);
   const [importing, setImporting] = useState(false);
@@ -86,7 +86,7 @@ export default function RiskCSVUploadDialog({
         results: Array<{
           rowIndex: number;
           errors: string[];
-          risk?: { name: string; categoryL1: string; categoryL2: string; owner: string; inherentScore: number; residualScore: number };
+          risk?: { name: string; categoryL1: string; categoryL2: string; owner: string; inherentScore: number; residualScore: number; controlCount?: number; monthCount?: number };
         }>;
       }>("/api/risks/import", {
         method: "POST",
@@ -232,6 +232,8 @@ export default function RiskCSVUploadDialog({
                       <th className="border-b border-green-200 px-2 py-1.5 text-left font-semibold text-green-700">Owner</th>
                       <th className="border-b border-green-200 px-2 py-1.5 text-center font-semibold text-green-700">Inherent</th>
                       <th className="border-b border-green-200 px-2 py-1.5 text-center font-semibold text-green-700">Residual</th>
+                      <th className="border-b border-green-200 px-2 py-1.5 text-center font-semibold text-green-700">Controls</th>
+                      <th className="border-b border-green-200 px-2 py-1.5 text-center font-semibold text-green-700">History</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -246,6 +248,8 @@ export default function RiskCSVUploadDialog({
                         <td className="border-b border-green-100 px-2 py-1 text-gray-600">{r.risk!.owner}</td>
                         <td className="border-b border-green-100 px-2 py-1 text-center font-mono font-bold text-gray-700">{r.risk!.inherentScore}</td>
                         <td className="border-b border-green-100 px-2 py-1 text-center font-mono font-bold text-gray-700">{r.risk!.residualScore}</td>
+                        <td className="border-b border-green-100 px-2 py-1 text-center text-gray-600">{r.risk!.controlCount || "—"}</td>
+                        <td className="border-b border-green-100 px-2 py-1 text-center text-gray-600">{r.risk!.monthCount ? `${r.risk!.monthCount}mo` : "—"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -274,6 +278,12 @@ export default function RiskCSVUploadDialog({
             <p className="text-xs text-gray-400 mt-1">
               Required: Name, Description, Category L1, Category L2, Owner, Inherent L, Inherent I, Residual L, Residual I
             </p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Optional: Controls (pipe-separated), Control Effectiveness, Risk Appetite, Direction of Travel
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              12-month history: add columns like &quot;Jan 25&quot;, &quot;Feb 25&quot;, etc. with Green/Yellow/Amber/Red values
+            </p>
             <input
               id="risk-csv-input"
               type="file"
@@ -293,7 +303,7 @@ export default function RiskCSVUploadDialog({
               rows={5}
               value={rawText}
               onChange={(e) => { setRawText(e.target.value); setPreviewData(null); setImported(false); }}
-              placeholder={"Name,Description,Category L1,Category L2,Owner,Inherent L,Inherent I,Residual L,Residual I\nNew Risk,Description here,Operational Risk,People,Chris,4,3,2,2"}
+              placeholder={"Name,Description,Category L1,Category L2,Owner,Inherent L,Inherent I,Residual L,Residual I,Controls,Jan 25,Feb 25\nNew Risk,Description here,Operational Risk,People,Chris,4,3,2,2,\"Control A|Control B\",Green,Amber"}
               className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-mono text-gray-900 placeholder:text-gray-400 focus:border-updraft-bar focus:outline-none focus:ring-2 focus:ring-updraft-pale-purple/40 transition-colors"
             />
           </div>

@@ -441,7 +441,12 @@ export interface RiskColumnMapping {
   controlEffectiveness: string;
   riskAppetite: string;
   directionOfTravel: string;
+  controls: string;
+  /** Month columns mapped by header name → Date (first of month) */
+  monthColumns: { header: string; date: Date }[];
 }
+
+export type RiskRAGColour = "GREEN" | "YELLOW" | "AMBER" | "RED";
 
 export interface RiskRowValidation {
   row: ParsedRow;
@@ -460,17 +465,41 @@ export interface RiskRowValidation {
     controlEffectiveness?: string;
     riskAppetite?: string;
     directionOfTravel?: string;
+    controls?: string[];
+    /** 12-month history: month Date → RAG colour */
+    monthHistory?: { date: Date; colour: RiskRAGColour }[];
   } | null;
 }
 
 /**
  * Map common header variations to risk field names.
  */
+/** Try to parse a column header as a month (e.g. "Jan 25", "Feb 2025", "2025-03") */
+function parseMonthHeader(header: string): Date | null {
+  const trimmed = header.trim();
+  // Match "MMM YY" or "MMM YYYY" (e.g. "Jan 25", "Feb 2025")
+  const mmmYY = trimmed.match(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{2,4})$/i);
+  if (mmmYY) {
+    const months: Record<string, number> = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+    const m = months[mmmYY[1].toLowerCase()];
+    let y = parseInt(mmmYY[2], 10);
+    if (y < 100) y += 2000;
+    return new Date(Date.UTC(y, m, 1));
+  }
+  // Match "YYYY-MM" (e.g. "2025-03")
+  const isoM = trimmed.match(/^(\d{4})-(\d{2})$/);
+  if (isoM) {
+    return new Date(Date.UTC(parseInt(isoM[1], 10), parseInt(isoM[2], 10) - 1, 1));
+  }
+  return null;
+}
+
 export function autoMapRiskColumns(headers: string[]): Partial<RiskColumnMapping> {
   const mapping: Partial<RiskColumnMapping> = {};
   const normalise = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
 
-  const patterns: { field: keyof RiskColumnMapping; matches: string[] }[] = [
+  type StringField = Exclude<keyof RiskColumnMapping, "monthColumns">;
+  const patterns: { field: StringField; matches: string[] }[] = [
     { field: "name", matches: ["name", "riskname", "risk_name", "title", "risktitle"] },
     { field: "description", matches: ["description", "desc", "detail", "details", "riskdescription"] },
     { field: "categoryL1", matches: ["categoryl1", "category_l1", "l1category", "l1", "category", "riskcategory"] },
@@ -480,20 +509,36 @@ export function autoMapRiskColumns(headers: string[]): Partial<RiskColumnMapping
     { field: "inherentImpact", matches: ["inherentimpact", "inherent_impact", "inherenti", "ii"] },
     { field: "residualLikelihood", matches: ["residuallikelihood", "residual_likelihood", "residuall", "rl"] },
     { field: "residualImpact", matches: ["residualimpact", "residual_impact", "residuali", "ri"] },
-    { field: "controlEffectiveness", matches: ["controleffectiveness", "control_effectiveness", "controls", "effectiveness"] },
+    { field: "controlEffectiveness", matches: ["controleffectiveness", "control_effectiveness", "effectiveness"] },
+    { field: "controls", matches: ["controls", "control", "keycontrols", "key_controls", "riskcontrols"] },
     { field: "riskAppetite", matches: ["riskappetite", "risk_appetite", "appetite"] },
     { field: "directionOfTravel", matches: ["directionoftravel", "direction_of_travel", "direction", "trend", "dot"] },
   ];
 
+  const monthColumns: { header: string; date: Date }[] = [];
+
   for (const header of headers) {
     const norm = normalise(header);
+    let matched = false;
     for (const pattern of patterns) {
       if (pattern.matches.includes(norm) && !mapping[pattern.field]) {
         mapping[pattern.field] = header;
+        matched = true;
         break;
       }
     }
+    // If not a known field, check if it's a month column
+    if (!matched) {
+      const monthDate = parseMonthHeader(header);
+      if (monthDate) {
+        monthColumns.push({ header, date: monthDate });
+      }
+    }
   }
+
+  // Sort month columns chronologically
+  monthColumns.sort((a, b) => a.date.getTime() - b.date.getTime());
+  mapping.monthColumns = monthColumns;
 
   return mapping;
 }
@@ -501,6 +546,16 @@ export function autoMapRiskColumns(headers: string[]): Partial<RiskColumnMapping
 const VALID_CONTROL_EFFECTIVENESS = ["EFFECTIVE", "PARTIALLY_EFFECTIVE", "INEFFECTIVE"];
 const VALID_RISK_APPETITE = ["VERY_LOW", "LOW", "LOW_TO_MODERATE", "MODERATE"];
 const VALID_DIRECTION = ["IMPROVING", "STABLE", "DETERIORATING"];
+
+/** Normalise a RAG colour string from CSV (Green/Yellow/Amber/Red or Low/Medium/High/Very High) */
+function parseRAGColour(raw: string): RiskRAGColour | null {
+  const lower = raw.trim().toLowerCase();
+  if (["green", "low", "g"].includes(lower)) return "GREEN";
+  if (["yellow", "medium", "y"].includes(lower)) return "YELLOW";
+  if (["amber", "high", "orange", "a"].includes(lower)) return "AMBER";
+  if (["red", "very high", "veryhigh", "r", "critical"].includes(lower)) return "RED";
+  return null;
+}
 
 /**
  * Validate a single parsed row for risk import.
@@ -524,6 +579,7 @@ export function validateRiskRow(
   const ceRaw = row[columnMapping.controlEffectiveness ?? ""] ?? "";
   const raRaw = row[columnMapping.riskAppetite ?? ""] ?? "";
   const dotRaw = row[columnMapping.directionOfTravel ?? ""] ?? "";
+  const controlsRaw = row[columnMapping.controls ?? ""] ?? "";
 
   if (!name) errors.push("Missing Name");
   if (!description) errors.push("Missing Description");
@@ -573,6 +629,24 @@ export function validateRiskRow(
     }
   }
 
+  // Parse controls (pipe-separated)
+  const controls: string[] = controlsRaw
+    ? controlsRaw.split("|").map((c) => c.trim()).filter(Boolean)
+    : [];
+
+  // Parse month history columns
+  const monthHistory: { date: Date; colour: RiskRAGColour }[] = [];
+  for (const mc of columnMapping.monthColumns ?? []) {
+    const cellVal = row[mc.header] ?? "";
+    if (!cellVal.trim()) continue;
+    const colour = parseRAGColour(cellVal);
+    if (colour) {
+      monthHistory.push({ date: mc.date, colour });
+    } else {
+      errors.push(`Invalid RAG colour for ${mc.header}: "${cellVal}" (use Green/Yellow/Amber/Red)`);
+    }
+  }
+
   if (errors.length > 0) {
     return { row, rowIndex, errors, mapped: null };
   }
@@ -594,6 +668,8 @@ export function validateRiskRow(
       ...(controlEffectiveness && { controlEffectiveness }),
       ...(riskAppetite && { riskAppetite }),
       ...(directionOfTravel && { directionOfTravel }),
+      ...(controls.length > 0 && { controls }),
+      ...(monthHistory.length > 0 && { monthHistory }),
     },
   };
 }
