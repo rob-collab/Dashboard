@@ -19,7 +19,12 @@ import {
   ChevronDown,
   ChevronRight,
   Calendar,
+  LayoutGrid,
+  List,
+  Upload,
 } from "lucide-react";
+import CardViewTestEntry from "./CardViewTestEntry";
+import BulkHistoricalEntry from "./BulkHistoricalEntry";
 
 /* ── Constants ────────────────────────────────────────────────────────────── */
 
@@ -77,6 +82,12 @@ export default function TestResultsEntryTab() {
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(
     new Set(),
   );
+
+  /* View mode: grid (table) or card */
+  const [viewMode, setViewMode] = useState<"grid" | "card">("grid");
+
+  /* Bulk import dialog */
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
 
   /* Local edits map: scheduleEntryId -> { result, notes } */
   const [edits, setEdits] = useState<Map<string, EditEntry>>(new Map());
@@ -401,8 +412,46 @@ export default function TestResultsEntryTab() {
             ))}
           </select>
 
-          {/* Save button */}
-          <div className="ml-auto flex items-center gap-3">
+          {/* View toggle + Bulk import + Save */}
+          <div className="ml-auto flex items-center gap-2">
+            {/* View toggle */}
+            <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium transition-colors ${
+                  viewMode === "grid"
+                    ? "bg-updraft-deep text-white"
+                    : "bg-white text-gray-600 hover:bg-gray-50"
+                }`}
+                title="Grid view"
+              >
+                <List className="w-3.5 h-3.5" />
+                Grid
+              </button>
+              <button
+                onClick={() => setViewMode("card")}
+                className={`inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium transition-colors ${
+                  viewMode === "card"
+                    ? "bg-updraft-deep text-white"
+                    : "bg-white text-gray-600 hover:bg-gray-50"
+                }`}
+                title="Card view"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                Cards
+              </button>
+            </div>
+
+            {/* Bulk import */}
+            <button
+              onClick={() => setBulkImportOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              <Upload className="w-4 h-4" />
+              Bulk Import
+            </button>
+
+            {/* Save */}
             <button
               onClick={handleSaveAll}
               disabled={saving || recordedCount === 0}
@@ -480,7 +529,7 @@ export default function TestResultsEntryTab() {
         </div>
       )}
 
-      {/* Grid entry grouped by business area */}
+      {/* Entry area — Grid or Card view */}
       {totalEntries === 0 ? (
         <div className="bento-card p-8 text-center text-gray-500">
           <p>No controls are currently in the testing schedule.</p>
@@ -488,7 +537,22 @@ export default function TestResultsEntryTab() {
             Add controls to the testing schedule to begin recording results.
           </p>
         </div>
+      ) : viewMode === "card" ? (
+        /* ── Card view ─────────────────────────────────────────── */
+        <CardViewTestEntry
+          selectedYear={selectedYear}
+          selectedMonth={selectedMonth}
+          entries={Array.from(groupedByArea.values()).flat()}
+          edits={edits}
+          onEditResult={(entryId, result) =>
+            updateEdit(entryId, "result", result)
+          }
+          onEditNotes={(entryId, notes) =>
+            updateEdit(entryId, "notes", notes)
+          }
+        />
       ) : (
+        /* ── Grid view ─────────────────────────────────────────── */
         <div className="space-y-4">
           {Array.from(groupedByArea.entries()).map(([areaName, entries]) => {
             const isCollapsed = collapsedAreas.has(areaName);
@@ -681,6 +745,16 @@ export default function TestResultsEntryTab() {
           })}
         </div>
       )}
+
+      {/* Bulk Historical Entry dialog */}
+      <BulkHistoricalEntry
+        open={bulkImportOpen}
+        onClose={() => setBulkImportOpen(false)}
+        onSuccess={() => {
+          setBulkImportOpen(false);
+          setSaveSuccess(true);
+        }}
+      />
     </div>
   );
 }

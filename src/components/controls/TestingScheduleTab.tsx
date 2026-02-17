@@ -22,6 +22,7 @@ import {
   FlaskConical,
   AlertCircle,
 } from "lucide-react";
+import BulkScheduleActions from "./BulkScheduleActions";
 
 /* ─── Reusable style constants ────────────────────────────────────────────── */
 
@@ -68,6 +69,7 @@ export default function TestingScheduleTab() {
   const [search, setSearch] = useState("");
   const [showInactive, setShowInactive] = useState(false);
   const [collapsedAreas, setCollapsedAreas] = useState<Set<string>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Dialog states
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -110,6 +112,37 @@ export default function TestingScheduleTab() {
       return next;
     });
   }, []);
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectArea = useCallback((entries: TestingScheduleEntry[]) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      const areaIds = entries.filter((e) => e.isActive).map((e) => e.id);
+      const allSelected = areaIds.every((id) => next.has(id));
+      if (allSelected) {
+        areaIds.forEach((id) => next.delete(id));
+      } else {
+        areaIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds((prev) => {
+      const activeIds = filteredEntries.filter((e) => e.isActive).map((e) => e.id);
+      const allSelected = activeIds.every((id) => prev.has(id));
+      return allSelected ? new Set<string>() : new Set(activeIds);
+    });
+  }, [filteredEntries]);
 
   function handleEdit(entry: TestingScheduleEntry) {
     setEditingEntry(entry);
@@ -158,12 +191,33 @@ export default function TestingScheduleTab() {
       </div>
 
       {/* Summary */}
-      <div className="text-xs text-gray-500">
-        {activeCount} active entr{activeCount === 1 ? "y" : "ies"}
-        {showInactive && totalCount > activeCount && (
-          <> ({totalCount - activeCount} removed)</>
+      <div className="flex items-center gap-3 text-xs text-gray-500">
+        {currentUser?.role === "CCRO_TEAM" && filteredEntries.some((e) => e.isActive) && (
+          <label className="flex items-center gap-1.5 cursor-pointer select-none text-gray-600">
+            <input
+              type="checkbox"
+              checked={
+                filteredEntries.filter((e) => e.isActive).length > 0 &&
+                filteredEntries
+                  .filter((e) => e.isActive)
+                  .every((e) => selectedIds.has(e.id))
+              }
+              onChange={toggleSelectAll}
+              className="rounded border-gray-300 text-updraft-bright-purple focus:ring-updraft-bright-purple"
+            />
+            Select all
+          </label>
         )}
-        {search && <> &middot; {filteredEntries.length} matching</>}
+        <span>
+          {activeCount} active entr{activeCount === 1 ? "y" : "ies"}
+          {showInactive && totalCount > activeCount && (
+            <> ({totalCount - activeCount} removed)</>
+          )}
+          {search && <> &middot; {filteredEntries.length} matching</>}
+          {selectedIds.size > 0 && (
+            <> &middot; <strong className="text-updraft-deep">{selectedIds.size} selected</strong></>
+          )}
+        </span>
       </div>
 
       {/* Empty state */}
@@ -195,22 +249,33 @@ export default function TestingScheduleTab() {
             return (
               <div key={area} className="bento-card overflow-hidden">
                 {/* Group header */}
-                <button
-                  onClick={() => toggleArea(area)}
-                  className="flex items-center gap-2 w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
-                >
-                  {isCollapsed ? (
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                <div className="flex items-center gap-2 w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors">
+                  {currentUser?.role === "CCRO_TEAM" && (
+                    <input
+                      type="checkbox"
+                      checked={entries.filter((e) => e.isActive).every((e) => selectedIds.has(e.id)) && entries.some((e) => e.isActive)}
+                      onChange={() => toggleSelectArea(entries)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="rounded border-gray-300 text-updraft-bright-purple focus:ring-updraft-bright-purple"
+                    />
                   )}
-                  <span className="text-sm font-semibold font-poppins text-gray-800">
-                    {area}
-                  </span>
-                  <span className="text-xs text-gray-400 ml-1">
-                    ({entries.length})
-                  </span>
-                </button>
+                  <button
+                    onClick={() => toggleArea(area)}
+                    className="flex items-center gap-2 flex-1 text-left"
+                  >
+                    {isCollapsed ? (
+                      <ChevronRight className="w-4 h-4 text-gray-400" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-gray-400" />
+                    )}
+                    <span className="text-sm font-semibold font-poppins text-gray-800">
+                      {area}
+                    </span>
+                    <span className="text-xs text-gray-400 ml-1">
+                      ({entries.length})
+                    </span>
+                  </button>
+                </div>
 
                 {/* Table */}
                 {!isCollapsed && (
@@ -218,6 +283,9 @@ export default function TestingScheduleTab() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-gray-200 bg-gray-50/50">
+                          {currentUser?.role === "CCRO_TEAM" && (
+                            <th className="px-2 py-2.5 w-10" />
+                          )}
                           <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-24">
                             Ref
                           </th>
@@ -262,8 +330,20 @@ export default function TestingScheduleTab() {
                                 entry.isActive
                                   ? "hover:bg-updraft-pale-purple/10"
                                   : "opacity-50 bg-gray-50"
-                              }`}
+                              } ${selectedIds.has(entry.id) ? "bg-updraft-pale-purple/15" : ""}`}
                             >
+                              {currentUser?.role === "CCRO_TEAM" && (
+                                <td className="px-2 py-3">
+                                  {entry.isActive && (
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedIds.has(entry.id)}
+                                      onChange={() => toggleSelect(entry.id)}
+                                      className="rounded border-gray-300 text-updraft-bright-purple focus:ring-updraft-bright-purple"
+                                    />
+                                  )}
+                                </td>
+                              )}
                               <td className="px-4 py-3 font-mono font-bold text-updraft-deep text-xs">
                                 {entry.control?.controlRef ?? "-"}
                               </td>
@@ -332,6 +412,15 @@ export default function TestingScheduleTab() {
             );
           })}
         </div>
+      )}
+
+      {/* Bulk schedule actions (floating bar) */}
+      {currentUser?.role === "CCRO_TEAM" && (
+        <BulkScheduleActions
+          selectedIds={selectedIds}
+          onClearSelection={() => setSelectedIds(new Set())}
+          entries={filteredEntries}
+        />
       )}
 
       {/* ── Add to Schedule Dialog ──────────────────────────────────────────── */}
