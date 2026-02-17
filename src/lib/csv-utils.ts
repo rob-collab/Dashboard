@@ -591,19 +591,22 @@ export function validateRiskRow(
 ): RiskRowValidation {
   const errors: string[] = [];
 
-  const name = row[columnMapping.name ?? ""] ?? "";
-  const description = row[columnMapping.description ?? ""] ?? "";
-  const categoryL1 = row[columnMapping.categoryL1 ?? ""] ?? "";
-  const categoryL2 = row[columnMapping.categoryL2 ?? ""] ?? "";
-  const owner = row[columnMapping.owner ?? ""] ?? "";
-  const ilRaw = row[columnMapping.inherentLikelihood ?? ""] ?? "";
-  const iiRaw = row[columnMapping.inherentImpact ?? ""] ?? "";
-  const rlRaw = row[columnMapping.residualLikelihood ?? ""] ?? "";
-  const riRaw = row[columnMapping.residualImpact ?? ""] ?? "";
-  const ceRaw = row[columnMapping.controlEffectiveness ?? ""] ?? "";
-  const raRaw = row[columnMapping.riskAppetite ?? ""] ?? "";
-  const dotRaw = row[columnMapping.directionOfTravel ?? ""] ?? "";
-  const controlsRaw = row[columnMapping.controls ?? ""] ?? "";
+  const getField = (key: string | undefined): string =>
+    key ? (row[key] ?? "") : "";
+
+  const name = getField(columnMapping.name);
+  const description = getField(columnMapping.description);
+  const categoryL1 = getField(columnMapping.categoryL1);
+  const categoryL2 = getField(columnMapping.categoryL2);
+  const owner = getField(columnMapping.owner);
+  const ilRaw = getField(columnMapping.inherentLikelihood);
+  const iiRaw = getField(columnMapping.inherentImpact);
+  const rlRaw = getField(columnMapping.residualLikelihood);
+  const riRaw = getField(columnMapping.residualImpact);
+  const ceRaw = getField(columnMapping.controlEffectiveness);
+  const raRaw = getField(columnMapping.riskAppetite);
+  const dotRaw = getField(columnMapping.directionOfTravel);
+  const controlsRaw = getField(columnMapping.controls);
 
   if (!name) errors.push("Missing Name");
   if (!description) errors.push("Missing Description");
