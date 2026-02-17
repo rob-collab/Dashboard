@@ -2,17 +2,19 @@
 
 import { useState } from "react";
 import { useAppStore } from "@/lib/store";
-import { Library, FlaskConical, BarChart3, ClipboardCheck } from "lucide-react";
+import { Library, FlaskConical, BarChart3, ClipboardCheck, ShieldCheck } from "lucide-react";
 import ControlsLibraryTab from "@/components/controls/ControlsLibraryTab";
 import TestingScheduleTab from "@/components/controls/TestingScheduleTab";
 import TestResultsEntryTab from "@/components/controls/TestResultsEntryTab";
 import ControlsDashboardTab from "@/components/controls/ControlsDashboardTab";
+import AttestationTab from "@/components/controls/AttestationTab";
 
-type Tab = "library" | "testing" | "results" | "dashboard";
+type Tab = "library" | "testing" | "results" | "dashboard" | "attestation";
 
 const TABS: { id: Tab; label: string; icon: typeof Library; roles: string[] }[] = [
   { id: "dashboard", label: "Dashboard", icon: BarChart3, roles: ["CCRO_TEAM", "OWNER"] },
   { id: "library", label: "Controls Library", icon: Library, roles: ["CCRO_TEAM", "OWNER"] },
+  { id: "attestation", label: "Attestation", icon: ShieldCheck, roles: ["CCRO_TEAM", "OWNER"] },
   { id: "testing", label: "Testing Schedule", icon: FlaskConical, roles: ["CCRO_TEAM"] },
   { id: "results", label: "Record Results", icon: ClipboardCheck, roles: ["CCRO_TEAM"] },
 ];
@@ -63,6 +65,7 @@ export default function ControlsPage() {
       {/* Tab Content */}
       {activeTab === "dashboard" && <ControlsDashboardTab />}
       {activeTab === "library" && <ControlsLibraryTab />}
+      {activeTab === "attestation" && <AttestationTab />}
       {activeTab === "testing" && <TestingScheduleTab />}
       {activeTab === "results" && <TestResultsEntryTab />}
     </div>
