@@ -75,11 +75,11 @@ export const LIKELIHOOD_SCALE = [
 // ── Impact Scale ────────────────────────────────────────────────────────────
 
 export const IMPACT_SCALE = [
-  { score: 1, label: "Negligible", financial: "Less than £999", regulatory: "No regulatory issues", reputational: "No concern", operational: "Effects less than 10 customers" },
-  { score: 2, label: "Minor", financial: "£1,000 – £9,999", regulatory: "Minor breach (not systematic)", reputational: "Limited – social media", operational: "Effects less than 10% of customers" },
-  { score: 3, label: "Moderate", financial: "£10,000 – £99,999", regulatory: "Technical breach", reputational: "Local news / newspapers", operational: "Effects 25% of customers" },
-  { score: 4, label: "Major", financial: "£100,000 – £999,999", regulatory: "Systematic regulatory breach", reputational: "National newspapers", operational: "Effects 50% of customers" },
-  { score: 5, label: "Significant", financial: "£1,000,000+", regulatory: "Removal of permissions", reputational: "Headline news / national TV", operational: "Effects 100% of customers" },
+  { score: 1, label: "Negligible", description: "No regulatory issues, no concern", operational: "Effects less than 10 customers" },
+  { score: 2, label: "Minor", description: "Minor breach (not systematic), limited impact", operational: "Effects less than 10% of customers" },
+  { score: 3, label: "Moderate", description: "Technical breach, local news", operational: "Effects 25% of customers" },
+  { score: 4, label: "Major", description: "Systematic regulatory breach, national press", operational: "Effects 50% of customers" },
+  { score: 5, label: "Significant", description: "Removal of permissions, headline news", operational: "Effects 100% of customers" },
 ] as const;
 
 // ── Risk Score Helpers ──────────────────────────────────────────────────────

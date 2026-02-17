@@ -271,7 +271,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                 label="Impact"
                 value={inherentImpact}
                 onChange={setInherentImpact}
-                options={IMPACT_SCALE.map((s) => ({ value: s.score, label: s.label, description: s.financial }))}
+                options={IMPACT_SCALE.map((s) => ({ value: s.score, label: s.label, description: s.description }))}
               />
             </div>
             <div className="flex items-center gap-2">
@@ -370,7 +370,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                 label="Impact"
                 value={residualImpact}
                 onChange={setResidualImpact}
-                options={IMPACT_SCALE.map((s) => ({ value: s.score, label: s.label, description: s.financial }))}
+                options={IMPACT_SCALE.map((s) => ({ value: s.score, label: s.label, description: s.description }))}
               />
             </div>
             <div className="flex items-center gap-2">
@@ -648,8 +648,8 @@ function ScoreSelector({
                 {opt.value}
               </span>
               <div className="flex-1 min-w-0">
-                <span className="text-xs font-medium text-gray-800">{opt.label}</span>
-                <span className="text-[10px] text-gray-400 ml-1 truncate">{opt.description}</span>
+                <div className="text-xs font-medium text-gray-800">{opt.label}</div>
+                <div className="text-[10px] text-gray-400 leading-tight">{opt.description}</div>
               </div>
             </button>
           );
