@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   const actions = await prisma.action.findMany({
     where,
     include: { assignee: true, creator: true, changes: { orderBy: { proposedAt: "desc" } }, linkedMitigation: true },
-    orderBy: { createdAt: "desc" },
+    orderBy: { reference: "asc" },
   });
   return jsonResponse(serialiseDates(actions));
 }

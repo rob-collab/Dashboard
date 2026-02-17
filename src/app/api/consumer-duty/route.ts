@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
         orderBy: { position: "asc" },
         include: {
           metrics: {
+            orderBy: { metric: "asc" },
             include: includeSnapshots ? { snapshots: { orderBy: { month: "asc" } } } : undefined,
           },
         },

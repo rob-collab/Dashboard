@@ -30,8 +30,14 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
   });
 
   if (!res.ok) {
-    const text = await res.text().catch(() => res.statusText);
-    throw new ApiError(res.status, text);
+    let message = res.statusText;
+    try {
+      const body = await res.json();
+      message = body?.error ?? body?.message ?? JSON.stringify(body);
+    } catch {
+      message = await res.text().catch(() => res.statusText);
+    }
+    throw new ApiError(res.status, message);
   }
 
   if (res.status === 204) return undefined as T;

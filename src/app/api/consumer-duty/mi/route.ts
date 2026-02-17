@@ -47,6 +47,6 @@ export async function PUT(request: NextRequest) {
     });
   });
 
-  const updated = await prisma.consumerDutyMI.findMany({ where: { measureId } });
+  const updated = await prisma.consumerDutyMI.findMany({ where: { measureId }, orderBy: { metric: "asc" } });
   return jsonResponse(serialiseDates(updated));
 }
