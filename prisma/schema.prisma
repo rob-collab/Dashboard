@@ -10,6 +10,7 @@ datasource db {
 enum Role {
   CCRO_TEAM
   METRIC_OWNER
+  RISK_OWNER
   VIEWER
 }
 

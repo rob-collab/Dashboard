@@ -1,12 +1,11 @@
 import { create } from "zustand";
 import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk } from "./types";
-import { demoReports, demoSections, demoOutcomes, demoTemplates, demoComponents, demoAuditLogs, demoVersions, demoRisks } from "./demo-data";
-import { DEMO_USERS } from "./auth";
 import { api } from "./api-client";
 
 interface AppState {
   // Hydration
   _hydrated: boolean;
+  _hydrateError: string | null;
   hydrate: () => Promise<void>;
 
   // Auth
@@ -137,6 +136,7 @@ function sync(fn: () => Promise<unknown>, options?: { maxRetries?: number }): vo
 export const useAppStore = create<AppState>((set) => ({
   // ── Hydration ──────────────────────────────────────────────
   _hydrated: false,
+  _hydrateError: null,
   hydrate: async () => {
     try {
       const [users, reports, outcomes, templates, components, auditLogs, actions, risks] = await Promise.all([
@@ -149,10 +149,11 @@ export const useAppStore = create<AppState>((set) => ({
         api<Action[]>("/api/actions"),
         api<Risk[]>("/api/risks"),
       ]);
-      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, _hydrated: true });
+      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, _hydrated: true, _hydrateError: null });
     } catch (err) {
-      console.warn("[hydrate] API unreachable, using demo data:", err);
-      set({ _hydrated: true });
+      const message = err instanceof Error ? err.message : "Failed to connect to server";
+      console.error("[hydrate] API unreachable:", message);
+      set({ _hydrated: true, _hydrateError: message });
     }
   },
 
@@ -161,7 +162,7 @@ export const useAppStore = create<AppState>((set) => ({
   setCurrentUser: (user) => set({ currentUser: user }),
 
   // ── Reports ────────────────────────────────────────────────
-  reports: demoReports,
+  reports: [],
   setReports: (reports) => set({ reports }),
   addReport: (report) => {
     set((state) => ({ reports: [report, ...state.reports] }));
@@ -181,7 +182,7 @@ export const useAppStore = create<AppState>((set) => ({
   setCurrentReport: (report) => set({ currentReport: report }),
 
   // ── Sections ───────────────────────────────────────────────
-  sections: demoSections,
+  sections: [],
   setSections: (sections) => set({ sections }),
   updateSection: (id, data) => {
     set((state) => ({
@@ -208,12 +209,12 @@ export const useAppStore = create<AppState>((set) => ({
     }),
 
   // ── Versions ───────────────────────────────────────────────
-  versions: demoVersions,
+  versions: [],
   addVersion: (version) =>
     set((state) => ({ versions: [version, ...state.versions] })),
 
   // ── Consumer Duty Outcomes ─────────────────────────────────
-  outcomes: demoOutcomes,
+  outcomes: [],
   setOutcomes: (outcomes) => set({ outcomes }),
   addOutcome: (outcome) => {
     set((state) => ({ outcomes: [...state.outcomes, outcome] }));
@@ -291,7 +292,7 @@ export const useAppStore = create<AppState>((set) => ({
   },
 
   // ── Templates ──────────────────────────────────────────────
-  templates: demoTemplates,
+  templates: [],
   setTemplates: (templates) => set({ templates }),
   addTemplate: (template) => {
     set((state) => ({ templates: [template, ...state.templates] }));
@@ -309,7 +310,7 @@ export const useAppStore = create<AppState>((set) => ({
   },
 
   // ── Components ─────────────────────────────────────────────
-  components: demoComponents,
+  components: [],
   setComponents: (components) => set({ components }),
   addComponent: (component) => {
     set((state) => ({ components: [component, ...state.components] }));
@@ -321,7 +322,7 @@ export const useAppStore = create<AppState>((set) => ({
   },
 
   // ── Audit ──────────────────────────────────────────────────
-  auditLogs: demoAuditLogs,
+  auditLogs: [],
   setAuditLogs: (logs) => set({ auditLogs: logs }),
   addAuditLog: (entry) => {
     set((state) => ({ auditLogs: [entry, ...state.auditLogs] }));
@@ -354,7 +355,7 @@ export const useAppStore = create<AppState>((set) => ({
   },
 
   // ── Risks ──────────────────────────────────────────────────
-  risks: demoRisks,
+  risks: [],
   setRisks: (risks) => set({ risks }),
   addRisk: (risk) => {
     set((state) => ({ risks: [...state.risks, risk] }));
@@ -385,7 +386,7 @@ export const useAppStore = create<AppState>((set) => ({
   },
 
   // ── Users ──────────────────────────────────────────────────
-  users: DEMO_USERS,
+  users: [],
   setUsers: (users) => set({ users }),
   addUser: (user) => {
     set((state) => ({ users: [...state.users, user] }));

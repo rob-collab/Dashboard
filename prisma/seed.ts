@@ -7,8 +7,8 @@ import type { SectionType, RAGStatus, Role, ReportStatus, ControlEffectiveness, 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
 
-// ── Demo Users ──────────────────────────────────────────────────────────────────
-const DEMO_USERS: {
+// ── Users ──────────────────────────────────────────────────────────────────
+const SEED_USERS: {
   id: string; email: string; name: string; role: Role;
   assignedMeasures: string[]; isActive: boolean;
 }[] = [
@@ -18,11 +18,11 @@ const DEMO_USERS: {
   { id: "user-chris", email: "chris@updraft.com", name: "Chris", role: "METRIC_OWNER", assignedMeasures: ["1.5","1.8","3.3","3.4","3.5","4.2","4.3","4.4","4.5","4.6","4.7","4.8","4.9","4.10"], isActive: true },
   { id: "user-micha", email: "micha@updraft.com", name: "Micha", role: "METRIC_OWNER", assignedMeasures: ["1.2","1.6","1.7","2.1","2.2","2.3","2.4","2.5","2.6","2.7"], isActive: true },
   { id: "user-ceo", email: "ceo@updraft.com", name: "CEO", role: "VIEWER", assignedMeasures: [], isActive: true },
-  { id: "user-david", email: "david@updraft.com", name: "David", role: "METRIC_OWNER", assignedMeasures: [], isActive: true },
+  { id: "user-david", email: "david@updraft.com", name: "David", role: "RISK_OWNER", assignedMeasures: [], isActive: true },
 ];
 
-// ── Demo Reports ────────────────────────────────────────────────────────────────
-const DEMO_REPORTS: {
+// ── Reports ────────────────────────────────────────────────────────────────
+const SEED_REPORTS: {
   id: string; title: string; period: string; status: ReportStatus;
   createdBy: string; createdAt: Date; updatedAt: Date;
 }[] = [
@@ -31,8 +31,8 @@ const DEMO_REPORTS: {
   { id: "report-dec-2024", title: "CCRO Monthly Report", period: "December 2024", status: "ARCHIVED", createdBy: "user-rob", createdAt: new Date("2024-12-04T14:00:00Z"), updatedAt: new Date("2024-12-04T14:42:00Z") },
 ];
 
-// ── Demo Sections ───────────────────────────────────────────────────────────────
-const DEMO_SECTIONS: {
+// ── Sections ───────────────────────────────────────────────────────────────
+const SEED_SECTIONS: {
   id: string; reportId: string; type: SectionType; position: number;
   title: string | null; content: object; layoutConfig: object; styleConfig: object;
 }[] = [
@@ -70,12 +70,12 @@ const DEMO_SECTIONS: {
   },
 ];
 
-// ── Demo Outcomes & Measures ────────────────────────────────────────────────────
+// ── Outcomes & Measures ────────────────────────────────────────────────────
 interface SeedMI { id: string; measureId: string; metric: string; current: string; previous: string; change: string; ragStatus: RAGStatus; appetite: string | null; appetiteOperator: string | null }
 interface SeedMeasure { id: string; outcomeId: string; measureId: string; name: string; owner: string | null; summary: string; ragStatus: RAGStatus; position: number; lastUpdatedAt: Date | null; metrics: SeedMI[] }
 interface SeedOutcome { id: string; reportId: string | null; outcomeId: string; name: string; shortDesc: string; icon: string | null; ragStatus: RAGStatus; position: number; measures: SeedMeasure[] }
 
-const DEMO_OUTCOMES: SeedOutcome[] = [
+const SEED_OUTCOMES: SeedOutcome[] = [
   {
     id: "outcome-1", reportId: "report-feb-2025", outcomeId: "o1", name: "Products & Services", shortDesc: "Products designed to meet customer needs", icon: "Package", ragStatus: "GOOD", position: 0,
     measures: [
@@ -133,14 +133,14 @@ const DEMO_OUTCOMES: SeedOutcome[] = [
   },
 ];
 
-// ── Demo Versions ───────────────────────────────────────────────────────────────
-const DEMO_VERSIONS = [
+// ── Versions ───────────────────────────────────────────────────────────────
+const SEED_VERSIONS = [
   { id: "version-jan-1", reportId: "report-jan-2025", version: 1, snapshotData: {}, publishedBy: "user-cath", publishedAt: new Date("2025-01-02T09:15:00Z"), publishNote: "January monthly report" },
   { id: "version-dec-1", reportId: "report-dec-2024", version: 1, snapshotData: {}, publishedBy: "user-rob", publishedAt: new Date("2024-12-04T14:42:00Z"), publishNote: "Year-end comprehensive review" },
 ];
 
-// ── Demo Templates ──────────────────────────────────────────────────────────────
-const DEMO_TEMPLATES: {
+// ── Templates ──────────────────────────────────────────────────────────────
+const SEED_TEMPLATES: {
   id: string; name: string; description: string; category: string;
   layoutConfig: object; styleConfig: object; contentSchema: object[];
   sectionType: SectionType; createdBy: string; isGlobal: boolean; version: number;
@@ -149,13 +149,13 @@ const DEMO_TEMPLATES: {
   { id: "template-2", name: "3-Stat Cards", description: "Three statistic cards in a row", category: "Stats", layoutConfig: { layout: "card-grid" }, styleConfig: {}, contentSchema: [{ key: "card1_title", label: "Card 1 Title", type: "text", required: true }, { key: "card1_value", label: "Card 1 Value", type: "text", required: true }], sectionType: "CARD_GRID", createdBy: "user-rob", isGlobal: true, version: 1 },
 ];
 
-// ── Demo Components ─────────────────────────────────────────────────────────────
-const DEMO_COMPONENTS = [
+// ── Components ─────────────────────────────────────────────────────────────
+const SEED_COMPONENTS = [
   { id: "component-1", name: "DPO Deep Dive Q1 2025", description: "Data protection compliance review section", category: "Regulatory", htmlContent: `<div class="dpo-section"><h3>Data Protection Overview</h3><p>All data protection obligations met for the quarter.</p></div>`, cssContent: null, jsContent: null, version: "1.0", sanitized: true, createdBy: "user-rob" },
 ];
 
-// ── Demo Audit Logs ─────────────────────────────────────────────────────────────
-const DEMO_AUDIT_LOGS: {
+// ── Audit Logs ─────────────────────────────────────────────────────────────
+const SEED_AUDIT_LOGS: {
   id: string; timestamp: Date; userId: string; userRole: Role;
   action: string; entityType: string; entityId: string | null;
   changes: object | null; reportId: string | null; ipAddress: string | null; userAgent: string | null;
@@ -173,26 +173,26 @@ async function main() {
   console.log("Seeding database...");
 
   // Users
-  for (const u of DEMO_USERS) {
+  for (const u of SEED_USERS) {
     await prisma.user.upsert({ where: { id: u.id }, update: u, create: u });
   }
-  console.log(`  ✓ ${DEMO_USERS.length} users`);
+  console.log(`  ✓ ${SEED_USERS.length} users`);
 
   // Reports
-  for (const r of DEMO_REPORTS) {
+  for (const r of SEED_REPORTS) {
     await prisma.report.upsert({ where: { id: r.id }, update: r, create: r });
   }
-  console.log(`  ✓ ${DEMO_REPORTS.length} reports`);
+  console.log(`  ✓ ${SEED_REPORTS.length} reports`);
 
   // Sections
-  for (const s of DEMO_SECTIONS) {
+  for (const s of SEED_SECTIONS) {
     await prisma.section.upsert({ where: { id: s.id }, update: s, create: { ...s, templateId: null, componentId: null } });
   }
-  console.log(`  ✓ ${DEMO_SECTIONS.length} sections`);
+  console.log(`  ✓ ${SEED_SECTIONS.length} sections`);
 
   // Outcomes → Measures → MI
   let measureCount = 0, miCount = 0;
-  for (const o of DEMO_OUTCOMES) {
+  for (const o of SEED_OUTCOMES) {
     const { measures, ...outcomeData } = o;
     await prisma.consumerDutyOutcome.upsert({ where: { id: o.id }, update: outcomeData, create: outcomeData });
     for (const m of measures) {
@@ -205,7 +205,7 @@ async function main() {
       }
     }
   }
-  console.log(`  ✓ ${DEMO_OUTCOMES.length} outcomes, ${measureCount} measures, ${miCount} MI metrics`);
+  console.log(`  ✓ ${SEED_OUTCOMES.length} outcomes, ${measureCount} measures, ${miCount} MI metrics`);
 
   // Metric Snapshots — 12 months of history for key metrics
   const SNAPSHOT_DATA: { miId: string; months: { month: string; value: string; ragStatus: RAGStatus }[] }[] = [
@@ -282,32 +282,32 @@ async function main() {
   console.log(`  ✓ ${snapshotCount} metric snapshots`);
 
   // Versions
-  for (const v of DEMO_VERSIONS) {
+  for (const v of SEED_VERSIONS) {
     await prisma.reportVersion.upsert({ where: { id: v.id }, update: v, create: v });
   }
-  console.log(`  ✓ ${DEMO_VERSIONS.length} versions`);
+  console.log(`  ✓ ${SEED_VERSIONS.length} versions`);
 
   // Templates
-  for (const t of DEMO_TEMPLATES) {
+  for (const t of SEED_TEMPLATES) {
     await prisma.template.upsert({ where: { id: t.id }, update: t, create: t });
   }
-  console.log(`  ✓ ${DEMO_TEMPLATES.length} templates`);
+  console.log(`  ✓ ${SEED_TEMPLATES.length} templates`);
 
   // Components
-  for (const c of DEMO_COMPONENTS) {
+  for (const c of SEED_COMPONENTS) {
     await prisma.component.upsert({ where: { id: c.id }, update: c, create: c });
   }
-  console.log(`  ✓ ${DEMO_COMPONENTS.length} components`);
+  console.log(`  ✓ ${SEED_COMPONENTS.length} components`);
 
   // Audit Logs
-  for (const l of DEMO_AUDIT_LOGS) {
+  for (const l of SEED_AUDIT_LOGS) {
     const data = {
       ...l,
       changes: l.changes === null ? Prisma.JsonNull : l.changes,
     };
     await prisma.auditLog.upsert({ where: { id: l.id }, update: data, create: data });
   }
-  console.log(`  ✓ ${DEMO_AUDIT_LOGS.length} audit logs`);
+  console.log(`  ✓ ${SEED_AUDIT_LOGS.length} audit logs`);
 
   // ── Risk Register ──────────────────────────────────────────────────────────
 
@@ -372,7 +372,7 @@ async function main() {
     controls: SeedRiskControl[]; mitigations: SeedRiskMitigation[];
   }
 
-  const DEMO_RISKS: SeedRisk[] = [
+  const SEED_RISKS: SeedRisk[] = [
     {
       id: "risk-001", reference: "R001", name: "Consumer Duty Non-Compliance",
       description: "Risk that Updraft fails to meet FCA Consumer Duty requirements, resulting in poor customer outcomes, regulatory sanctions, and reputational damage.",
@@ -565,7 +565,7 @@ async function main() {
   ];
 
   let controlCount = 0, mitigationCount = 0;
-  for (const r of DEMO_RISKS) {
+  for (const r of SEED_RISKS) {
     const { controls, mitigations, ...riskData } = r;
     await prisma.risk.upsert({ where: { id: r.id }, update: riskData, create: riskData });
     for (const c of controls) {
@@ -577,7 +577,7 @@ async function main() {
       mitigationCount++;
     }
   }
-  console.log(`  ✓ ${DEMO_RISKS.length} risks, ${controlCount} controls, ${mitigationCount} mitigations`);
+  console.log(`  ✓ ${SEED_RISKS.length} risks, ${controlCount} controls, ${mitigationCount} mitigations`);
 
   // Risk Snapshots
   let riskSnapshotCount = 0;

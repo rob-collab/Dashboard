@@ -31,11 +31,11 @@ interface SidebarProps {
 }
 
 const NAV_ITEMS: { label: string; href: string; icon: typeof LayoutDashboard; roles: Role[] }[] = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard, roles: ["CCRO_TEAM", "METRIC_OWNER", "VIEWER"] },
-  { label: "Reports", href: "/reports", icon: FileText, roles: ["CCRO_TEAM", "METRIC_OWNER", "VIEWER"] },
+  { label: "Dashboard", href: "/", icon: LayoutDashboard, roles: ["CCRO_TEAM", "METRIC_OWNER", "RISK_OWNER", "VIEWER"] },
+  { label: "Reports", href: "/reports", icon: FileText, roles: ["CCRO_TEAM", "METRIC_OWNER", "RISK_OWNER", "VIEWER"] },
   { label: "Consumer Duty", href: "/consumer-duty", icon: ShieldCheck, roles: ["CCRO_TEAM", "METRIC_OWNER", "VIEWER"] },
-  { label: "Actions", href: "/actions", icon: ListChecks, roles: ["CCRO_TEAM", "METRIC_OWNER", "VIEWER"] },
-  { label: "Risk Register", href: "/risk-register", icon: ShieldAlert, roles: ["CCRO_TEAM", "METRIC_OWNER", "VIEWER"] },
+  { label: "Actions", href: "/actions", icon: ListChecks, roles: ["CCRO_TEAM", "METRIC_OWNER", "RISK_OWNER", "VIEWER"] },
+  { label: "Risk Register", href: "/risk-register", icon: ShieldAlert, roles: ["CCRO_TEAM", "METRIC_OWNER", "RISK_OWNER", "VIEWER"] },
   { label: "Templates", href: "/templates", icon: LayoutTemplate, roles: ["CCRO_TEAM"] },
   { label: "Components", href: "/components-lib", icon: Puzzle, roles: ["CCRO_TEAM"] },
   { label: "Audit Trail", href: "/audit", icon: ClipboardList, roles: ["CCRO_TEAM"] },
@@ -46,12 +46,14 @@ const NAV_ITEMS: { label: string; href: string; icon: typeof LayoutDashboard; ro
 const ROLE_LABELS: Record<string, string> = {
   CCRO_TEAM: "CCRO Team",
   METRIC_OWNER: "Metric Owner",
+  RISK_OWNER: "Risk Owner",
   VIEWER: "Viewer",
 };
 
 const ROLE_COLORS: Record<string, string> = {
   CCRO_TEAM: "bg-updraft-bright-purple text-white",
   METRIC_OWNER: "bg-updraft-pale-purple text-updraft-deep",
+  RISK_OWNER: "bg-orange-100 text-orange-700",
   VIEWER: "bg-gray-200 text-gray-700",
 };
 
@@ -207,7 +209,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
           )}>
             <div className="px-3 py-2 border-b border-gray-100">
               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                Switch Demo User
+                Switch User
               </p>
             </div>
             <div className="py-1 max-h-72 overflow-y-auto">

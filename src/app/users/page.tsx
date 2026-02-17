@@ -39,6 +39,11 @@ const ROLE_CONFIG: Record<Role, { label: string; color: string; description: str
     color: "bg-blue-100 text-blue-700",
     description: "Can update assigned Consumer Duty metrics",
   },
+  RISK_OWNER: {
+    label: "Risk Owner",
+    color: "bg-orange-100 text-orange-700",
+    description: "Manages assigned risks and actions",
+  },
   VIEWER: {
     label: "Viewer",
     color: "bg-gray-100 text-gray-600",
@@ -82,6 +87,7 @@ export default function UsersPage() {
   const roleCounts = useMemo(() => ({
     CCRO_TEAM: users.filter((u) => u.role === "CCRO_TEAM").length,
     METRIC_OWNER: users.filter((u) => u.role === "METRIC_OWNER").length,
+    RISK_OWNER: users.filter((u) => u.role === "RISK_OWNER").length,
     VIEWER: users.filter((u) => u.role === "VIEWER").length,
   }), [users]);
 
@@ -144,8 +150,8 @@ export default function UsersPage() {
       </div>
 
       {/* Role summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {(["CCRO_TEAM", "METRIC_OWNER", "VIEWER"] as Role[]).map((role) => {
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        {(["CCRO_TEAM", "METRIC_OWNER", "RISK_OWNER", "VIEWER"] as Role[]).map((role) => {
           const config = ROLE_CONFIG[role];
           return (
             <button

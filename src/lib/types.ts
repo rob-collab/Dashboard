@@ -1,4 +1,4 @@
-export type Role = "CCRO_TEAM" | "METRIC_OWNER" | "VIEWER";
+export type Role = "CCRO_TEAM" | "METRIC_OWNER" | "RISK_OWNER" | "VIEWER";
 export type ReportStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 export type RAGStatus = "GOOD" | "WARNING" | "HARM";
 export type SectionType =
