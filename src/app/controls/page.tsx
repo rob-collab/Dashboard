@@ -2,14 +2,37 @@
 
 import { useState } from "react";
 import { useAppStore } from "@/lib/store";
-import { Library, FlaskConical, BarChart3, ClipboardCheck, ShieldCheck } from "lucide-react";
+import {
+  Library,
+  FlaskConical,
+  BarChart3,
+  ClipboardCheck,
+  ShieldCheck,
+  FileText,
+  TrendingUp,
+  Settings,
+  Eye,
+} from "lucide-react";
 import ControlsLibraryTab from "@/components/controls/ControlsLibraryTab";
 import TestingScheduleTab from "@/components/controls/TestingScheduleTab";
 import TestResultsEntryTab from "@/components/controls/TestResultsEntryTab";
 import ControlsDashboardTab from "@/components/controls/ControlsDashboardTab";
 import AttestationTab from "@/components/controls/AttestationTab";
+import QuarterlySummaryTab from "@/components/controls/QuarterlySummaryTab";
+import TrendAnalysisTab from "@/components/controls/TrendAnalysisTab";
+import ExcoConfigTab from "@/components/controls/ExcoConfigTab";
+import ExcoDashboardTab from "@/components/controls/ExcoDashboardTab";
 
-type Tab = "library" | "testing" | "results" | "dashboard" | "attestation";
+type Tab =
+  | "library"
+  | "testing"
+  | "results"
+  | "dashboard"
+  | "attestation"
+  | "summaries"
+  | "trends"
+  | "exco-config"
+  | "exco-dashboard";
 
 const TABS: { id: Tab; label: string; icon: typeof Library; roles: string[] }[] = [
   { id: "dashboard", label: "Dashboard", icon: BarChart3, roles: ["CCRO_TEAM", "OWNER"] },
@@ -17,6 +40,10 @@ const TABS: { id: Tab; label: string; icon: typeof Library; roles: string[] }[] 
   { id: "attestation", label: "Attestation", icon: ShieldCheck, roles: ["CCRO_TEAM", "OWNER"] },
   { id: "testing", label: "Testing Schedule", icon: FlaskConical, roles: ["CCRO_TEAM"] },
   { id: "results", label: "Record Results", icon: ClipboardCheck, roles: ["CCRO_TEAM"] },
+  { id: "summaries", label: "Quarterly Summary", icon: FileText, roles: ["CCRO_TEAM"] },
+  { id: "trends", label: "Trend Analysis", icon: TrendingUp, roles: ["CCRO_TEAM"] },
+  { id: "exco-config", label: "ExCo Config", icon: Settings, roles: ["CCRO_TEAM"] },
+  { id: "exco-dashboard", label: "ExCo View", icon: Eye, roles: ["CCRO_TEAM", "VIEWER"] },
 ];
 
 export default function ControlsPage() {
@@ -26,6 +53,11 @@ export default function ControlsPage() {
   if (!currentUser) return null;
 
   const visibleTabs = TABS.filter((t) => t.roles.includes(currentUser.role));
+
+  // If current tab isn't visible for this role, default to first visible
+  if (!visibleTabs.find((t) => t.id === activeTab) && visibleTabs.length > 0) {
+    setActiveTab(visibleTabs[0].id);
+  }
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto">
@@ -40,7 +72,7 @@ export default function ControlsPage() {
 
       {/* Tab Navigation */}
       <div className="border-b border-gray-200 mb-6">
-        <nav className="-mb-px flex gap-4">
+        <nav className="-mb-px flex gap-4 overflow-x-auto">
           {visibleTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -48,7 +80,7 @@ export default function ControlsPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-1 pb-3 text-sm font-medium border-b-2 transition-colors ${
+                className={`flex items-center gap-2 px-1 pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                   isActive
                     ? "border-updraft-bright-purple text-updraft-deep"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -68,6 +100,10 @@ export default function ControlsPage() {
       {activeTab === "attestation" && <AttestationTab />}
       {activeTab === "testing" && <TestingScheduleTab />}
       {activeTab === "results" && <TestResultsEntryTab />}
+      {activeTab === "summaries" && <QuarterlySummaryTab />}
+      {activeTab === "trends" && <TrendAnalysisTab />}
+      {activeTab === "exco-config" && <ExcoConfigTab />}
+      {activeTab === "exco-dashboard" && <ExcoDashboardTab />}
     </div>
   );
 }

@@ -116,6 +116,7 @@ model User {
   updatedTestResults  ControlTestResult[]    @relation("TestResultUpdatedBy")
   authoredSummaries   QuarterlySummary[]     @relation("SummaryAuthor")
   approvedSummaries   QuarterlySummary[]     @relation("SummaryApprover")
+  configuredExcoViews ExcoViewConfig[]       @relation("ExcoConfiguredBy")
 
   @@map("users")
 }
@@ -678,4 +679,25 @@ model QuarterlySummary {
   @@unique([scheduleEntryId, quarter])
   @@index([scheduleEntryId])
   @@map("quarterly_summaries")
+}
+
+model ExcoViewConfig {
+  id                       String   @id @default(cuid())
+  periodYear               Int
+  periodMonth              Int
+  showDashboardSummary     Boolean  @default(true)
+  showPassRateByArea       Boolean  @default(true)
+  showPassRateByCDOutcome  Boolean  @default(true)
+  showAttestationOverview  Boolean  @default(true)
+  showAttentionRequired    Boolean  @default(true)
+  showTrendAnalysis        Boolean  @default(true)
+  showQuarterlySummaries   Boolean  @default(true)
+  controlVisibility        Json     @default("{}") // Record<controlId, "SHOW" | "SUMMARY_ONLY" | "HIDE">
+  configuredById           String
+  configuredBy             User     @relation("ExcoConfiguredBy", fields: [configuredById], references: [id])
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  @@unique([periodYear, periodMonth])
+  @@map("exco_view_configs")
 }

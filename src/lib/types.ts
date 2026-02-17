@@ -520,3 +520,23 @@ export interface QuarterlySummaryRecord {
   createdAt: string;
   updatedAt: string;
 }
+
+export type ExcoControlVisibility = "SHOW" | "SUMMARY_ONLY" | "HIDE";
+
+export interface ExcoViewConfig {
+  id: string;
+  periodYear: number;
+  periodMonth: number;
+  showDashboardSummary: boolean;
+  showPassRateByArea: boolean;
+  showPassRateByCDOutcome: boolean;
+  showAttestationOverview: boolean;
+  showAttentionRequired: boolean;
+  showTrendAnalysis: boolean;
+  showQuarterlySummaries: boolean;
+  controlVisibility: Record<string, ExcoControlVisibility>;
+  configuredById: string;
+  configuredBy?: User;
+  createdAt: string;
+  updatedAt: string;
+}
