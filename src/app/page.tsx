@@ -39,6 +39,7 @@ export default function DashboardHome() {
   const hydrated = useAppStore((s) => s._hydrated);
   const currentUser = useAppStore((s) => s.currentUser);
   const branding = useAppStore((s) => s.branding);
+  const siteSettings = useAppStore((s) => s.siteSettings);
   const reports = useAppStore((s) => s.reports);
   const outcomes = useAppStore((s) => s.outcomes);
   const actions = useAppStore((s) => s.actions);
@@ -167,15 +168,6 @@ export default function DashboardHome() {
           </svg>
         </div>
         <div className="relative flex items-center gap-4">
-          {branding.dashboardIconSrc && (
-            <div className="flex-shrink-0">
-              <img
-                src={branding.dashboardIconSrc}
-                alt={branding.dashboardIconAlt}
-                className="h-16 w-16 object-contain"
-              />
-            </div>
-          )}
           <div className="flex-1">
             <h1 className="text-2xl font-bold">
               Welcome back, {currentUser?.name || "User"}
@@ -259,6 +251,21 @@ export default function DashboardHome() {
               </Link>
             </div>
           </div>
+          {branding.dashboardIconSrc && (
+            <div className="flex-shrink-0 hidden sm:block">
+              <img
+                src={branding.dashboardIconSrc}
+                alt={branding.dashboardIconAlt}
+                className="object-contain"
+                style={{
+                  width: (siteSettings?.logoScale ?? 1) * 80,
+                  height: (siteSettings?.logoScale ?? 1) * 80,
+                  marginRight: siteSettings?.logoX ?? 0,
+                  marginTop: siteSettings?.logoY ?? 0,
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
 

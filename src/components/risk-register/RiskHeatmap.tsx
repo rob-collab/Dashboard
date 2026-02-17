@@ -86,7 +86,7 @@ export default function RiskHeatmap({
         <div className="flex-1">
           <div className="relative">
             {/* Y-axis label */}
-            <div className="absolute -left-8 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] font-semibold text-gray-500 whitespace-nowrap">
+            <div className="absolute -left-8 top-1/2 -translate-y-1/2 -rotate-90 text-[8px] font-semibold text-gray-500 whitespace-nowrap">
               LIKELIHOOD
             </div>
 
@@ -98,7 +98,7 @@ export default function RiskHeatmap({
                   <div className="w-16 -ml-16 flex items-center justify-end pr-2">
                     <div className="text-right">
                       <div className="text-xs font-bold text-gray-700">{likelihood}</div>
-                      <div className="text-[10px] text-gray-400 leading-tight">
+                      <div className="text-[8px] text-gray-400 leading-tight">
                         {LIKELIHOOD_SCALE[likelihood - 1].label}
                       </div>
                     </div>
@@ -116,7 +116,7 @@ export default function RiskHeatmap({
                       <button
                         key={impact}
                         onClick={() => setSelectedCell(isSelected ? null : { l: likelihood, i: impact })}
-                        className={`relative flex-1 aspect-square min-h-[50px] border border-white/50 flex flex-col items-center justify-center transition-all ${
+                        className={`relative flex-1 aspect-square min-h-[35px] border border-white/50 flex flex-col items-center justify-center transition-all ${
                           isSelected ? "ring-2 ring-updraft-deep ring-offset-1" : ""
                         }`}
                         style={{ backgroundColor: cellLevel.colour + "30" }}
@@ -142,7 +142,7 @@ export default function RiskHeatmap({
                                     e.stopPropagation();
                                     onRiskClick?.(risk);
                                   }}
-                                  className={`relative w-4 h-4 rounded-full border-2 cursor-pointer transition-transform ${
+                                  className={`relative w-3 h-3 rounded-full border-2 cursor-pointer transition-transform ${
                                     isHovered ? "scale-125 z-10" : ""
                                   }`}
                                   style={{
@@ -152,7 +152,7 @@ export default function RiskHeatmap({
                                   }}
                                   title={`${risk.reference}: ${risk.name} (${type})`}
                                 >
-                                  <span className={`absolute inset-0 flex items-center justify-center text-[7px] font-bold ${
+                                  <span className={`absolute inset-0 flex items-center justify-center text-[5px] font-bold ${
                                     isInherentInOverlay ? "text-gray-600" : "text-white"
                                   }`}>
                                     {risk.reference.replace("R00", "").replace("R0", "")}
@@ -186,14 +186,14 @@ export default function RiskHeatmap({
                 {[1, 2, 3, 4, 5].map((impact) => (
                   <div key={impact} className="flex-1 text-center pt-1">
                     <div className="text-xs font-bold text-gray-700">{impact}</div>
-                    <div className="text-[10px] text-gray-400">{IMPACT_SCALE[impact - 1].label}</div>
+                    <div className="text-[8px] text-gray-400">{IMPACT_SCALE[impact - 1].label}</div>
                   </div>
                 ))}
               </div>
 
               {/* X-axis title */}
               <div className="text-center mt-1">
-                <span className="text-[10px] font-semibold text-gray-500">IMPACT</span>
+                <span className="text-[8px] font-semibold text-gray-500">IMPACT</span>
               </div>
             </div>
           </div>
@@ -211,7 +211,7 @@ export default function RiskHeatmap({
               { label: "Low (1–4)", colour: "#22c55e" },
             ].map((item) => (
               <div key={item.label} className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: item.colour + "40", border: `2px solid ${item.colour}` }} />
+                <div className="w-3 h-3 rounded" style={{ backgroundColor: item.colour + "40", border: `2px solid ${item.colour}` }} />
                 <span className="text-xs text-gray-600">{item.label}</span>
               </div>
             ))}
@@ -231,7 +231,7 @@ export default function RiskHeatmap({
                     isActive ? "ring-2 ring-updraft-bright-purple/30 bg-updraft-pale-purple/10" : ""
                   } ${isDimmed ? "opacity-40" : ""} hover:bg-gray-50`}
                 >
-                  <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: fill }} />
+                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: fill }} />
                   <span className="text-xs text-gray-600">{label}</span>
                 </button>
               );
@@ -243,11 +243,11 @@ export default function RiskHeatmap({
             <div className="space-y-1">
               <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Overlay</h4>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full border-2 border-gray-500 bg-transparent" />
+                <div className="w-3 h-3 rounded-full border-2 border-gray-500 bg-transparent" />
                 <span className="text-xs text-gray-600">Inherent position</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-gray-600" />
+                <div className="w-3 h-3 rounded-full bg-gray-600" />
                 <span className="text-xs text-gray-600">Residual position</span>
               </div>
             </div>
@@ -271,11 +271,11 @@ export default function RiskHeatmap({
                     className="w-full text-left p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
                   >
                     <div className="flex items-center gap-1.5">
-                      <span className={`inline-block px-1.5 py-0.5 text-[10px] font-bold rounded ${level.bgClass} ${level.textClass}`}>
+                      <span className={`inline-block px-1.5 py-0.5 text-[8px] font-bold rounded ${level.bgClass} ${level.textClass}`}>
                         {score}
                       </span>
                       <span className="text-xs font-medium text-gray-800 truncate">{risk.reference}</span>
-                      <span className="text-[10px] text-gray-400 capitalize">({type})</span>
+                      <span className="text-[8px] text-gray-400 capitalize">({type})</span>
                     </div>
                     <div className="text-xs text-gray-600 mt-0.5 truncate">{risk.name}</div>
                   </button>

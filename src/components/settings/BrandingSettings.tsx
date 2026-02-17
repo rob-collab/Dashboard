@@ -70,12 +70,13 @@ export default function BrandingSettings() {
     [handleFile]
   );
 
-  // Drag-to-position handlers for logo preview
+  // Drag-to-position handlers for dashboard icon preview
+  // Icon uses `right` positioning, so dragging left increases the offset
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
       setIsDragging(true);
-      setDragStart({ x: e.clientX - logoX, y: e.clientY - logoY });
+      setDragStart({ x: e.clientX + logoX, y: e.clientY - logoY });
     },
     [logoX, logoY]
   );
@@ -83,7 +84,7 @@ export default function BrandingSettings() {
   useEffect(() => {
     if (!isDragging) return;
     const handleMouseMove = (e: MouseEvent) => {
-      const newX = Math.max(0, Math.min(200, e.clientX - dragStart.x));
+      const newX = Math.max(0, Math.min(300, dragStart.x - e.clientX));
       const newY = Math.max(0, Math.min(60, e.clientY - dragStart.y));
       setLogoX(newX);
       setLogoY(newY);
@@ -197,11 +198,11 @@ export default function BrandingSettings() {
         {error && <p className="text-xs text-red-500 font-medium">{error}</p>}
       </div>
 
-      {/* Logo Position Preview */}
-      {branding.logoSrc && (
+      {/* Dashboard Icon Position & Scale Preview */}
+      {branding.dashboardIconSrc && (
         <div className="bento-card space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-800">Logo Position & Scale</h3>
+            <h3 className="text-sm font-semibold text-gray-800">Dashboard Icon Position & Size</h3>
             <button
               type="button"
               onClick={resetPosition}
@@ -211,45 +212,56 @@ export default function BrandingSettings() {
             </button>
           </div>
 
-          {/* Preview panel — simulates sidebar header */}
+          <p className="text-xs text-gray-500">
+            Drag the icon to adjust its offset on the welcome banner. Use the slider to resize.
+          </p>
+
+          {/* Preview panel — simulates the dashboard welcome purple bar */}
           <div
             ref={previewRef}
-            className="relative overflow-hidden rounded-lg border border-gray-200 bg-gradient-to-br from-updraft-deep via-updraft-bar to-updraft-bright-purple"
-            style={{ height: 100 }}
+            className="relative overflow-hidden rounded-xl bg-gradient-to-r from-updraft-deep to-updraft-bar"
+            style={{ height: 120 }}
           >
-            <p className="absolute top-2 right-3 text-[9px] text-white/50 font-medium uppercase tracking-wider">
-              Preview — drag logo to reposition
-            </p>
-            {branding.logoSrc && (
-              <img
-                src={branding.logoSrc}
-                alt={branding.logoAlt}
-                onMouseDown={handleMouseDown}
-                className={cn(
-                  "absolute select-none",
-                  isDragging ? "cursor-grabbing" : "cursor-grab"
-                )}
-                style={{
-                  left: logoX,
-                  top: logoY,
-                  transform: `scale(${logoScale})`,
-                  transformOrigin: "top left",
-                  maxHeight: 60,
-                  maxWidth: 180,
-                }}
-                draggable={false}
-              />
-            )}
+            {/* Decorative circles like the real banner */}
+            <div className="absolute top-0 right-0 opacity-20">
+              <svg width="200" height="120" viewBox="0 0 200 120">
+                <circle cx="170" cy="20" r="60" fill="#E1BEE7" />
+                <circle cx="120" cy="100" r="35" fill="#BA68C8" />
+              </svg>
+            </div>
+            {/* Simulated text */}
+            <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white">
+              <div className="text-sm font-bold">Welcome back, User</div>
+              <div className="text-[10px] text-white/60 mt-0.5">Updraft CCRO Dashboard</div>
+            </div>
+            {/* Draggable icon on the right side */}
+            <img
+              src={branding.dashboardIconSrc}
+              alt={branding.dashboardIconAlt}
+              onMouseDown={handleMouseDown}
+              className={cn(
+                "absolute select-none",
+                isDragging ? "cursor-grabbing" : "cursor-grab"
+              )}
+              style={{
+                right: logoX,
+                top: logoY,
+                width: logoScale * 80,
+                height: logoScale * 80,
+                objectFit: "contain",
+              }}
+              draggable={false}
+            />
           </div>
 
-          {/* Scale slider */}
+          {/* Size slider */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
-              Scale: {(logoScale * 100).toFixed(0)}%
+              Icon Size: {Math.round(logoScale * 80)}px
             </label>
             <input
               type="range"
-              min={0.3}
+              min={0.4}
               max={2.5}
               step={0.05}
               value={logoScale}
@@ -257,15 +269,15 @@ export default function BrandingSettings() {
               className="w-full accent-updraft-bright-purple"
             />
             <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
-              <span>30%</span>
-              <span>250%</span>
+              <span>32px</span>
+              <span>200px</span>
             </div>
           </div>
 
-          {/* Position display */}
+          {/* Offset display */}
           <div className="flex gap-4 text-xs text-gray-500">
-            <span>X: {logoX}px</span>
-            <span>Y: {logoY}px</span>
+            <span>Right offset: {logoX}px</span>
+            <span>Top offset: {logoY}px</span>
           </div>
         </div>
       )}
