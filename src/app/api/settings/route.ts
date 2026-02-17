@@ -2,6 +2,10 @@ import { NextRequest } from "next/server";
 import { prisma, jsonResponse, errorResponse } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
+// Allow large payloads for base64 logo uploads
+export const runtime = "nodejs";
+export const maxDuration = 30;
+
 const DEFAULTS = {
   id: "default",
   logoBase64: null,
@@ -14,6 +18,11 @@ const DEFAULTS = {
   updatedAt: new Date().toISOString(),
   updatedBy: null,
 };
+
+/** Return value if key is in body, otherwise undefined (so Prisma skips it) */
+function pick<T>(body: Record<string, unknown>, key: string): T | undefined {
+  return key in body ? (body[key] as T) : undefined;
+}
 
 export async function GET() {
   try {
@@ -37,14 +46,14 @@ export async function PUT(request: NextRequest) {
     const settings = await prisma.siteSettings.upsert({
       where: { id: "default" },
       update: {
-        logoBase64: body.logoBase64 ?? undefined,
-        logoMarkBase64: body.logoMarkBase64 ?? undefined,
-        logoX: body.logoX ?? undefined,
-        logoY: body.logoY ?? undefined,
-        logoScale: body.logoScale ?? undefined,
-        primaryColour: body.primaryColour ?? undefined,
-        accentColour: body.accentColour ?? undefined,
-        updatedBy: body.updatedBy ?? undefined,
+        logoBase64: pick(body, "logoBase64"),
+        logoMarkBase64: pick(body, "logoMarkBase64"),
+        logoX: pick(body, "logoX"),
+        logoY: pick(body, "logoY"),
+        logoScale: pick(body, "logoScale"),
+        primaryColour: pick(body, "primaryColour"),
+        accentColour: pick(body, "accentColour"),
+        updatedBy: pick(body, "updatedBy"),
       },
       create: {
         id: "default",

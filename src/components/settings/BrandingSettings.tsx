@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { Upload, X, ImageIcon, Save, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
+import { api } from "@/lib/api-client";
 import { fileToBase64, ACCEPTED_IMAGE_TYPES, MAX_IMAGE_SIZE_MB } from "@/lib/image-utils";
 import { toast } from "sonner";
 
@@ -106,19 +107,30 @@ export default function BrandingSettings() {
 
   async function saveBrandingToDb() {
     try {
-      const data = {
-        logoBase64: branding.logoSrc ?? null,
-        logoMarkBase64: branding.dashboardIconSrc ?? null,
-        logoX,
-        logoY,
-        logoScale,
-        primaryColour: null as string | null,
-        accentColour: null as string | null,
-      };
-      updateSiteSettings(data);
+      // Save positioning & scale first (small payload, always succeeds)
+      const positionData = { logoX, logoY, logoScale };
+      await api("/api/settings", { method: "PUT", body: positionData });
+
+      // Then try saving images if present (may fail if too large)
+      const imageData: Record<string, unknown> = {};
+      if (branding.logoSrc) imageData.logoBase64 = branding.logoSrc;
+      else imageData.logoBase64 = null;
+      if (branding.dashboardIconSrc) imageData.logoMarkBase64 = branding.dashboardIconSrc;
+      else imageData.logoMarkBase64 = null;
+
+      try {
+        await api("/api/settings", { method: "PUT", body: imageData });
+      } catch {
+        toast.warning("Position saved but logo image is too large to persist to database. It will remain in your current session.", { duration: 6000 });
+        // Update local store with just the position data
+        updateSiteSettings(positionData);
+        return;
+      }
+
+      updateSiteSettings({ ...positionData, ...imageData });
       toast.success("Branding settings saved");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save branding");
+      toast.error(err instanceof Error ? err.message : "Failed to save branding settings");
     }
   }
 
