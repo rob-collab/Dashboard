@@ -83,7 +83,7 @@ export default function RiskHeatmap({
 
       {/* Heatmap Grid */}
       <div className="flex gap-6">
-        <div className="max-w-[360px]">
+        <div className="flex-1">
           <div className="relative">
             {/* Y-axis label */}
             <div className="absolute -left-8 top-1/2 -translate-y-1/2 -rotate-90 text-[8px] font-semibold text-gray-500 whitespace-nowrap">
@@ -116,7 +116,7 @@ export default function RiskHeatmap({
                       <button
                         key={impact}
                         onClick={() => setSelectedCell(isSelected ? null : { l: likelihood, i: impact })}
-                        className={`relative flex-1 aspect-square min-h-[56px] border border-white/50 flex flex-col items-center justify-center transition-all ${
+                        className={`relative flex-1 aspect-square min-h-[35px] border border-white/50 flex flex-col items-center justify-center transition-all ${
                           isSelected ? "ring-2 ring-updraft-deep ring-offset-1" : ""
                         }`}
                         style={{ backgroundColor: cellLevel.colour + "30" }}
