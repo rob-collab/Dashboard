@@ -17,7 +17,15 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET });
+  // NextAuth v5 uses "authjs" cookie prefix and reads AUTH_SECRET automatically
+  const token = await getToken({
+    req,
+    secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+    cookieName:
+      req.nextUrl.protocol === "https:"
+        ? "__Secure-authjs.session-token"
+        : "authjs.session-token",
+  });
 
   if (!token) {
     const loginUrl = new URL("/login", req.url);
