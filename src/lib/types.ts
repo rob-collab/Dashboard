@@ -205,6 +205,7 @@ export interface ImportedComponent {
 
 export interface Action {
   id: string;
+  reference: string;
   reportId: string | null;
   reportPeriod: string | null;
   source: string | null;

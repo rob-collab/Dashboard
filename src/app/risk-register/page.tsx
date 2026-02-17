@@ -8,8 +8,9 @@ import RiskHeatmap from "@/components/risk-register/RiskHeatmap";
 import RiskTable from "@/components/risk-register/RiskTable";
 import RiskDetailPanel from "@/components/risk-register/RiskDetailPanel";
 import RiskHistoryChart from "@/components/risk-register/RiskHistoryChart";
-import { Grid3X3, List, Plus, Download, ShieldAlert, TrendingDown, TrendingUp, FileText, Bell } from "lucide-react";
+import { Grid3X3, List, Plus, Download, Upload, ShieldAlert, TrendingDown, TrendingUp, FileText, Bell } from "lucide-react";
 import { api } from "@/lib/api-client";
+import RiskCSVUploadDialog from "@/components/risk-register/RiskCSVUploadDialog";
 
 type ViewTab = "heatmap" | "table";
 type ScoreMode = "inherent" | "residual" | "overlay";
@@ -21,7 +22,7 @@ function getScore(risk: Risk, mode: ScoreMode): number {
 }
 
 export default function RiskRegisterPage() {
-  const { risks, addRisk, updateRisk, deleteRisk, currentUser, users } = useAppStore();
+  const { risks, setRisks, addRisk, updateRisk, deleteRisk, currentUser, users } = useAppStore();
   const [viewTab, setViewTab] = useState<ViewTab>("heatmap");
   const [selectedRisk, setSelectedRisk] = useState<Risk | null>(null);
   const [isNewRisk, setIsNewRisk] = useState(false);
@@ -37,7 +38,11 @@ export default function RiskRegisterPage() {
   // History chart state
   const [historyRisk, setHistoryRisk] = useState<Risk | null>(null);
 
+  // CSV import state
+  const [showCSVImport, setShowCSVImport] = useState(false);
+
   const isCCROTeam = currentUser?.role === "CCRO_TEAM";
+  const isRiskOwner = currentUser?.role === "RISK_OWNER";
   const isReadOnly = currentUser?.role === "VIEWER";
 
   // Score helper for current mode (inherent/residual — overlay uses residual for cards)
@@ -412,6 +417,15 @@ export default function RiskRegisterPage() {
     URL.revokeObjectURL(url);
   }, [risks]);
 
+  const handleImportComplete = useCallback(async () => {
+    try {
+      const refreshed = await api<Risk[]>("/api/risks");
+      setRisks(refreshed);
+    } catch {
+      // Fallback: keep current state
+    }
+  }, [setRisks]);
+
   const scoreModeLabel = effectiveMode === "inherent" ? "Inherent" : "Residual";
 
   const cards: { key: CardFilter; value: number; label: string; colour: string }[] = [
@@ -444,6 +458,15 @@ export default function RiskRegisterPage() {
             <FileText className="w-4 h-4" />
             Export HTML
           </button>
+          {(isCCROTeam || isRiskOwner) && (
+            <button
+              onClick={() => setShowCSVImport(true)}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Upload className="w-4 h-4" />
+              Import CSV
+            </button>
+          )}
           <button
             onClick={handleExportCSV}
             className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -587,6 +610,13 @@ export default function RiskRegisterPage() {
           onClose={() => setHistoryRisk(null)}
         />
       )}
+
+      {/* CSV Import Dialog */}
+      <RiskCSVUploadDialog
+        open={showCSVImport}
+        onClose={() => setShowCSVImport(false)}
+        onImportComplete={handleImportComplete}
+      />
     </div>
   );
 }

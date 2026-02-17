@@ -236,9 +236,12 @@ export function validateRow(
 
 export interface ActionColumnMapping {
   actionId: string;
+  reference: string;
   title: string;
   description: string;
   status: string;
+  priority: string;
+  source: string;
   assignedTo: string;
   dueDate: string;
 }
@@ -247,11 +250,14 @@ export interface ActionRowValidation {
   row: ParsedRow;
   rowIndex: number;
   errors: string[];
+  isCreate: boolean;
   mapped: {
     actionId: string;
     title?: string;
     description?: string;
     status?: string;
+    priority?: string;
+    source?: string;
     assignedTo?: string;
     dueDate?: string;
   } | null;
@@ -266,9 +272,12 @@ export function autoMapActionColumns(headers: string[]): Partial<ActionColumnMap
 
   const patterns: { field: keyof ActionColumnMapping; matches: string[] }[] = [
     { field: "actionId", matches: ["actionid", "action_id", "id"] },
+    { field: "reference", matches: ["reference", "ref", "actionref", "action_ref"] },
     { field: "title", matches: ["title", "name", "actiontitle", "action_title"] },
     { field: "description", matches: ["description", "desc", "detail", "details"] },
     { field: "status", matches: ["status", "actionstatus", "action_status", "state"] },
+    { field: "priority", matches: ["priority", "prio", "p"] },
+    { field: "source", matches: ["source", "origin"] },
     { field: "assignedTo", matches: ["assignedto", "assigned_to", "owner", "assignee", "responsible"] },
     { field: "dueDate", matches: ["duedate", "due_date", "due", "deadline"] },
   ];
@@ -286,10 +295,12 @@ export function autoMapActionColumns(headers: string[]): Partial<ActionColumnMap
   return mapping;
 }
 
-const VALID_ACTION_STATUSES = ["OPEN", "IN_PROGRESS", "COMPLETED", "OVERDUE"];
+const VALID_ACTION_STATUSES = ["OPEN", "IN_PROGRESS", "COMPLETED", "OVERDUE", "PROPOSED_CLOSED"];
+const VALID_ACTION_PRIORITIES = ["P1", "P2", "P3"];
 
 /**
  * Validate a single parsed row for action import.
+ * Supports both UPDATE (has actionId) and CREATE (no actionId, has title + assignedTo) modes.
  */
 export function validateActionRow(
   row: ParsedRow,
@@ -302,18 +313,30 @@ export function validateActionRow(
   const title = row[columnMapping.title ?? ""] ?? "";
   const description = row[columnMapping.description ?? ""] ?? "";
   const statusRaw = row[columnMapping.status ?? ""] ?? "";
+  const priorityRaw = row[columnMapping.priority ?? ""] ?? "";
+  const source = row[columnMapping.source ?? ""] ?? "";
   const assignedTo = row[columnMapping.assignedTo ?? ""] ?? "";
   const dueDate = row[columnMapping.dueDate ?? ""] ?? "";
 
-  if (!actionId) {
-    errors.push("Missing Action ID");
-    return { row, rowIndex, errors, mapped: null };
+  const isCreate = !actionId;
+
+  // For CREATE rows, require title and assignedTo
+  if (isCreate) {
+    if (!title) errors.push("Missing Title (required for new actions)");
+    if (!assignedTo) errors.push("Missing Assigned To (required for new actions)");
   }
 
   if (statusRaw) {
     const upper = statusRaw.toUpperCase().replace(/ /g, "_");
     if (!VALID_ACTION_STATUSES.includes(upper)) {
       errors.push(`Invalid status: ${statusRaw}`);
+    }
+  }
+
+  if (priorityRaw) {
+    const upper = priorityRaw.toUpperCase();
+    if (!VALID_ACTION_PRIORITIES.includes(upper)) {
+      errors.push(`Invalid priority: ${priorityRaw}`);
     }
   }
 
@@ -325,18 +348,21 @@ export function validateActionRow(
   }
 
   if (errors.length > 0) {
-    return { row, rowIndex, errors, mapped: null };
+    return { row, rowIndex, errors, isCreate, mapped: null };
   }
 
   return {
     row,
     rowIndex,
     errors: [],
+    isCreate,
     mapped: {
       actionId,
       ...(title && { title }),
       ...(description && { description }),
       ...(statusRaw && { status: statusRaw.toUpperCase().replace(/ /g, "_") }),
+      ...(priorityRaw && { priority: priorityRaw.toUpperCase() }),
+      ...(source && { source }),
       ...(assignedTo && { assignedTo }),
       ...(dueDate && { dueDate }),
     },
@@ -350,6 +376,7 @@ export function buildActionCSV(actions: Action[], users: { id: string; name: str
   const userMap = new Map(users.map((u) => [u.id, u.name]));
 
   const headers = [
+    "Reference",
     "Action ID",
     "Title",
     "Description",
@@ -377,6 +404,7 @@ export function buildActionCSV(actions: Action[], users: { id: string; name: str
   }
 
   const rows = actions.map((a) => [
+    a.reference,
     a.id,
     a.title,
     a.description,
@@ -394,4 +422,178 @@ export function buildActionCSV(actions: Action[], users: { id: string; name: str
     headers.map(escapeField).join(","),
     ...rows.map((r) => r.map(escapeField).join(",")),
   ].join("\n");
+}
+
+// ──────────────────────────────────────────────────────────
+// Risk CSV utilities
+// ──────────────────────────────────────────────────────────
+
+export interface RiskColumnMapping {
+  name: string;
+  description: string;
+  categoryL1: string;
+  categoryL2: string;
+  owner: string;
+  inherentLikelihood: string;
+  inherentImpact: string;
+  residualLikelihood: string;
+  residualImpact: string;
+  controlEffectiveness: string;
+  riskAppetite: string;
+  directionOfTravel: string;
+}
+
+export interface RiskRowValidation {
+  row: ParsedRow;
+  rowIndex: number;
+  errors: string[];
+  mapped: {
+    name: string;
+    description: string;
+    categoryL1: string;
+    categoryL2: string;
+    owner: string;
+    inherentLikelihood: number;
+    inherentImpact: number;
+    residualLikelihood: number;
+    residualImpact: number;
+    controlEffectiveness?: string;
+    riskAppetite?: string;
+    directionOfTravel?: string;
+  } | null;
+}
+
+/**
+ * Map common header variations to risk field names.
+ */
+export function autoMapRiskColumns(headers: string[]): Partial<RiskColumnMapping> {
+  const mapping: Partial<RiskColumnMapping> = {};
+  const normalise = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  const patterns: { field: keyof RiskColumnMapping; matches: string[] }[] = [
+    { field: "name", matches: ["name", "riskname", "risk_name", "title", "risktitle"] },
+    { field: "description", matches: ["description", "desc", "detail", "details", "riskdescription"] },
+    { field: "categoryL1", matches: ["categoryl1", "category_l1", "l1category", "l1", "category", "riskcategory"] },
+    { field: "categoryL2", matches: ["categoryl2", "category_l2", "l2category", "l2", "subcategory"] },
+    { field: "owner", matches: ["owner", "riskowner", "risk_owner", "assignedto", "responsible"] },
+    { field: "inherentLikelihood", matches: ["inherentlikelihood", "inherent_likelihood", "inherentl", "il"] },
+    { field: "inherentImpact", matches: ["inherentimpact", "inherent_impact", "inherenti", "ii"] },
+    { field: "residualLikelihood", matches: ["residuallikelihood", "residual_likelihood", "residuall", "rl"] },
+    { field: "residualImpact", matches: ["residualimpact", "residual_impact", "residuali", "ri"] },
+    { field: "controlEffectiveness", matches: ["controleffectiveness", "control_effectiveness", "controls", "effectiveness"] },
+    { field: "riskAppetite", matches: ["riskappetite", "risk_appetite", "appetite"] },
+    { field: "directionOfTravel", matches: ["directionoftravel", "direction_of_travel", "direction", "trend", "dot"] },
+  ];
+
+  for (const header of headers) {
+    const norm = normalise(header);
+    for (const pattern of patterns) {
+      if (pattern.matches.includes(norm) && !mapping[pattern.field]) {
+        mapping[pattern.field] = header;
+        break;
+      }
+    }
+  }
+
+  return mapping;
+}
+
+const VALID_CONTROL_EFFECTIVENESS = ["EFFECTIVE", "PARTIALLY_EFFECTIVE", "INEFFECTIVE"];
+const VALID_RISK_APPETITE = ["VERY_LOW", "LOW", "LOW_TO_MODERATE", "MODERATE"];
+const VALID_DIRECTION = ["IMPROVING", "STABLE", "DETERIORATING"];
+
+/**
+ * Validate a single parsed row for risk import.
+ */
+export function validateRiskRow(
+  row: ParsedRow,
+  rowIndex: number,
+  columnMapping: Partial<RiskColumnMapping>
+): RiskRowValidation {
+  const errors: string[] = [];
+
+  const name = row[columnMapping.name ?? ""] ?? "";
+  const description = row[columnMapping.description ?? ""] ?? "";
+  const categoryL1 = row[columnMapping.categoryL1 ?? ""] ?? "";
+  const categoryL2 = row[columnMapping.categoryL2 ?? ""] ?? "";
+  const owner = row[columnMapping.owner ?? ""] ?? "";
+  const ilRaw = row[columnMapping.inherentLikelihood ?? ""] ?? "";
+  const iiRaw = row[columnMapping.inherentImpact ?? ""] ?? "";
+  const rlRaw = row[columnMapping.residualLikelihood ?? ""] ?? "";
+  const riRaw = row[columnMapping.residualImpact ?? ""] ?? "";
+  const ceRaw = row[columnMapping.controlEffectiveness ?? ""] ?? "";
+  const raRaw = row[columnMapping.riskAppetite ?? ""] ?? "";
+  const dotRaw = row[columnMapping.directionOfTravel ?? ""] ?? "";
+
+  if (!name) errors.push("Missing Name");
+  if (!description) errors.push("Missing Description");
+  if (!categoryL1) errors.push("Missing Category L1");
+  if (!categoryL2) errors.push("Missing Category L2");
+  if (!owner) errors.push("Missing Owner");
+
+  const parseScore = (raw: string, field: string): number => {
+    if (!raw) { errors.push(`Missing ${field}`); return 0; }
+    const num = parseInt(raw, 10);
+    if (isNaN(num) || num < 1 || num > 5) { errors.push(`${field} must be 1-5, got: ${raw}`); return 0; }
+    return num;
+  };
+
+  const inherentLikelihood = parseScore(ilRaw, "Inherent Likelihood");
+  const inherentImpact = parseScore(iiRaw, "Inherent Impact");
+  const residualLikelihood = parseScore(rlRaw, "Residual Likelihood");
+  const residualImpact = parseScore(riRaw, "Residual Impact");
+
+  let controlEffectiveness: string | undefined;
+  if (ceRaw) {
+    const upper = ceRaw.toUpperCase().replace(/ /g, "_");
+    if (!VALID_CONTROL_EFFECTIVENESS.includes(upper)) {
+      errors.push(`Invalid control effectiveness: ${ceRaw}`);
+    } else {
+      controlEffectiveness = upper;
+    }
+  }
+
+  let riskAppetite: string | undefined;
+  if (raRaw) {
+    const upper = raRaw.toUpperCase().replace(/ /g, "_");
+    if (!VALID_RISK_APPETITE.includes(upper)) {
+      errors.push(`Invalid risk appetite: ${raRaw}`);
+    } else {
+      riskAppetite = upper;
+    }
+  }
+
+  let directionOfTravel: string | undefined;
+  if (dotRaw) {
+    const upper = dotRaw.toUpperCase().replace(/ /g, "_");
+    if (!VALID_DIRECTION.includes(upper)) {
+      errors.push(`Invalid direction of travel: ${dotRaw}`);
+    } else {
+      directionOfTravel = upper;
+    }
+  }
+
+  if (errors.length > 0) {
+    return { row, rowIndex, errors, mapped: null };
+  }
+
+  return {
+    row,
+    rowIndex,
+    errors: [],
+    mapped: {
+      name,
+      description,
+      categoryL1,
+      categoryL2,
+      owner,
+      inherentLikelihood,
+      inherentImpact,
+      residualLikelihood,
+      residualImpact,
+      ...(controlEffectiveness && { controlEffectiveness }),
+      ...(riskAppetite && { riskAppetite }),
+      ...(directionOfTravel && { directionOfTravel }),
+    },
+  };
 }

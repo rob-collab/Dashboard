@@ -128,11 +128,20 @@ export async function PATCH(
         return "OPEN";
       };
 
+      // Get last action reference for generating new references
+      const lastAction = await prisma.action.findFirst({ orderBy: { reference: "desc" } });
+      let actionNum = lastAction?.reference
+        ? parseInt(lastAction.reference.replace("ACT-", ""), 10) + 1
+        : 1;
+
       // Create new mitigations with linked actions
       for (const m of mitigations) {
         const assigneeId = await resolveOwner(m.owner);
+        const actionRef = `ACT-${String(actionNum).padStart(3, "0")}`;
+        actionNum++;
         const linkedAction = await prisma.action.create({
           data: {
+            reference: actionRef,
             title: m.action,
             description: `Mitigation action from Risk ${existing.reference}: ${existing.name}`,
             source: "Risk Register",

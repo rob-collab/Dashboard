@@ -309,6 +309,44 @@ async function main() {
   }
   console.log(`  ✓ ${SEED_AUDIT_LOGS.length} audit logs`);
 
+  // ── Actions ──────────────────────────────────────────────────────────────────
+  const SEED_ACTIONS: {
+    id: string; reference: string; reportId: string | null; reportPeriod: string | null;
+    source: string | null; sectionId: string | null; sectionTitle: string | null;
+    title: string; description: string; status: "OPEN" | "IN_PROGRESS" | "COMPLETED" | "OVERDUE" | "PROPOSED_CLOSED";
+    priority: "P1" | "P2" | "P3" | null; assignedTo: string; createdBy: string;
+    dueDate: Date | null; completedAt: Date | null;
+  }[] = [
+    { id: "action-001", reference: "ACT-001", reportId: "report-feb-2025", reportPeriod: "CCRO Monthly Report — February 2025", source: null, sectionId: "section-3", sectionTitle: "Risk Profile", title: "Accelerate cyber patching schedule", description: "Patching is behind schedule by 2 weeks. Need to clear backlog and establish weekly patching cadence.", status: "IN_PROGRESS", priority: "P1", assignedTo: "user-chris", createdBy: "user-rob", dueDate: new Date("2026-03-15"), completedAt: null },
+    { id: "action-002", reference: "ACT-002", reportId: "report-feb-2025", reportPeriod: "CCRO Monthly Report — February 2025", source: null, sectionId: "section-3", sectionTitle: "Risk Profile", title: "Review operational risk controls", description: "New controls being implemented — review effectiveness after 30 days.", status: "OPEN", priority: "P2", assignedTo: "user-chris", createdBy: "user-cath", dueDate: new Date("2026-04-01"), completedAt: null },
+    { id: "action-003", reference: "ACT-003", reportId: "report-feb-2025", reportPeriod: "CCRO Monthly Report — February 2025", source: null, sectionId: null, sectionTitle: null, title: "Investigate pre-contract drop-off increase", description: "Pre-contract drop-off has risen from 40% to 45%. Investigate root cause and propose remediation.", status: "OPEN", priority: "P2", assignedTo: "user-micha", createdBy: "user-cath", dueDate: new Date("2026-03-31"), completedAt: null },
+    { id: "action-004", reference: "ACT-004", reportId: "report-feb-2025", reportPeriod: "CCRO Monthly Report — February 2025", source: null, sectionId: null, sectionTitle: null, title: "Reduce broken payment plan rate", description: "Broken plans rate has increased to 15% against 10% appetite. Review collection strategies.", status: "IN_PROGRESS", priority: "P1", assignedTo: "user-chris", createdBy: "user-rob", dueDate: new Date("2026-03-28"), completedAt: null },
+    { id: "action-005", reference: "ACT-005", reportId: "report-jan-2025", reportPeriod: "CCRO Monthly Report — January 2025", source: null, sectionId: null, sectionTitle: null, title: "Update consumer duty training materials", description: "Annual refresh of consumer duty training for all staff.", status: "COMPLETED", priority: "P3", assignedTo: "user-cath", createdBy: "user-rob", dueDate: new Date("2026-01-31"), completedAt: new Date("2026-01-28") },
+    { id: "action-006", reference: "ACT-006", reportId: null, reportPeriod: null, source: "Risk Register", sectionId: null, sectionTitle: null, title: "Implement automated customer outcome testing for all product changes", description: "Mitigation action from Risk R001: Consumer Duty Non-Compliance", status: "IN_PROGRESS", priority: "P1", assignedTo: "user-chris", createdBy: "user-rob", dueDate: new Date("2026-03-31"), completedAt: null },
+    { id: "action-007", reference: "ACT-007", reportId: null, reportPeriod: null, source: "Risk Register", sectionId: null, sectionTitle: null, title: "Implement zero-trust network architecture", description: "Mitigation action from Risk R003: Cyber Security Breach", status: "IN_PROGRESS", priority: "P2", assignedTo: "user-chris", createdBy: "user-rob", dueDate: new Date("2026-06-30"), completedAt: null },
+    { id: "action-008", reference: "ACT-008", reportId: null, reportPeriod: null, source: "Risk Register", sectionId: null, sectionTitle: null, title: "Complete succession plans for remaining 3 specialist roles", description: "Mitigation action from Risk R005: Key Person Dependency", status: "OPEN", priority: "P3", assignedTo: "user-chris", createdBy: "user-rob", dueDate: new Date("2026-04-30"), completedAt: null },
+    { id: "action-009", reference: "ACT-009", reportId: "report-feb-2025", reportPeriod: "CCRO Monthly Report — February 2025", source: null, sectionId: null, sectionTitle: null, title: "Board presentation on consumer duty outcomes", description: "Prepare and deliver quarterly board presentation on consumer duty metrics and trends.", status: "OVERDUE", priority: "P2", assignedTo: "user-cath", createdBy: "user-rob", dueDate: new Date("2026-02-10"), completedAt: null },
+  ];
+
+  for (const a of SEED_ACTIONS) {
+    await prisma.action.upsert({ where: { id: a.id }, update: a, create: a });
+  }
+  console.log(`  ✓ ${SEED_ACTIONS.length} actions`);
+
+  // Link mitigation actions to risk mitigations
+  const MITIGATION_LINKS: { mitigationId: string; actionId: string }[] = [
+    { mitigationId: "mit-001-1", actionId: "action-006" },
+    { mitigationId: "mit-003-1", actionId: "action-007" },
+    { mitigationId: "mit-005-1", actionId: "action-008" },
+  ];
+  for (const link of MITIGATION_LINKS) {
+    await prisma.riskMitigation.update({
+      where: { id: link.mitigationId },
+      data: { actionId: link.actionId },
+    }).catch(() => { /* mitigation may not exist yet on first seed */ });
+  }
+  console.log(`  ✓ ${MITIGATION_LINKS.length} mitigation-action links`);
+
   // ── Risk Register ──────────────────────────────────────────────────────────
 
   // Risk categories (L1 + L2)

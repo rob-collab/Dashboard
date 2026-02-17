@@ -101,6 +101,7 @@ export default function ActionFormDialog({
 
     const saved: Action = {
       id: action?.id ?? `action-${generateId()}`,
+      reference: action?.reference ?? "",
       reportId: reportId || null,
       reportPeriod: selectedReport ? `${selectedReport.title} — ${selectedReport.period}` : null,
       source: source.trim() || null,

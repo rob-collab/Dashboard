@@ -176,6 +176,7 @@ function ActionsPageContent() {
         const q = search.toLowerCase();
         const owner = users.find((u) => u.id === a.assignedTo);
         const matchesSearch =
+          a.reference.toLowerCase().includes(q) ||
           a.title.toLowerCase().includes(q) ||
           a.description.toLowerCase().includes(q) ||
           (a.reportPeriod?.toLowerCase().includes(q) ?? false) ||
@@ -506,6 +507,9 @@ function ActionsPageContent() {
                     {/* Title + Report */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
+                        <span className="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold font-mono text-updraft-deep shrink-0">
+                          {action.reference}
+                        </span>
                         {action.priority && (
                           <span className={cn("inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold shrink-0", PRIORITY_CONFIG[action.priority].bgColor)}>
                             {action.priority}

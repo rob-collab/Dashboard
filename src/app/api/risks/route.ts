@@ -118,17 +118,26 @@ export async function POST(request: NextRequest) {
 
     // Auto-create linked Actions for each mitigation
     if (risk.mitigations.length > 0) {
+      // Get the last action reference to continue the sequence
+      const lastAction = await prisma.action.findFirst({ orderBy: { reference: "desc" } });
+      let actionNum = lastAction?.reference
+        ? parseInt(lastAction.reference.replace("ACT-", ""), 10) + 1
+        : 1;
+
       for (const mit of risk.mitigations) {
         let assigneeId = userId;
         if (mit.owner) {
           const ownerUser = await prisma.user.findFirst({ where: { name: { equals: mit.owner, mode: "insensitive" } } });
           if (ownerUser) assigneeId = ownerUser.id;
         }
+        const actionRef = `ACT-${String(actionNum).padStart(3, "0")}`;
+        actionNum++;
         const linkedAction = await prisma.action.create({
           data: {
             title: mit.action,
             description: `Mitigation action from Risk ${reference}: ${risk.name}`,
             source: "Risk Register",
+            reference: actionRef,
             status: mitigationToActionStatus(mit.status),
             assignedTo: assigneeId,
             createdBy: userId,

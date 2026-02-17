@@ -300,6 +300,7 @@ model AuditLog {
 
 model Action {
   id            String       @id @default(cuid())
+  reference     String       @unique
   reportId      String?
   report        Report?      @relation(fields: [reportId], references: [id], onDelete: Cascade)
   reportPeriod  String?

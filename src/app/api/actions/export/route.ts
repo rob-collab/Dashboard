@@ -51,6 +51,7 @@ function formatDate(d: Date | null): string {
 
 interface ActionRow {
   id: string;
+  reference: string;
   title: string;
   description: string;
   reportPeriod: string | null;
@@ -65,6 +66,7 @@ interface ActionRow {
 
 function buildCSVExport(actions: ActionRow[]): string {
   const headers = [
+    "Reference",
     "Action ID",
     "Title",
     "Description",
@@ -78,6 +80,7 @@ function buildCSVExport(actions: ActionRow[]): string {
     "Completed Date",
   ];
   const rows = actions.map((a) => [
+    a.reference,
     a.id,
     a.title,
     a.description,
@@ -101,6 +104,7 @@ function buildHTMLExport(actions: ActionRow[]): string {
     .map(
       (a) => `
     <tr>
+      <td style="font-family:monospace;font-weight:600">${a.reference}</td>
       <td>${a.title}</td>
       <td>${a.reportPeriod}</td>
       <td>${a.sectionTitle || "—"}</td>
@@ -136,7 +140,7 @@ function buildHTMLExport(actions: ActionRow[]): string {
   <table>
     <thead>
       <tr>
-        <th>Title</th><th>Report / Period</th><th>Section</th><th>Owner</th>
+        <th>Ref</th><th>Title</th><th>Report / Period</th><th>Section</th><th>Owner</th>
         <th>Due Date</th><th>Status</th><th>Created</th><th>Completed</th>
       </tr>
     </thead>
