@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings } from "./types";
+import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry } from "./types";
 import { api } from "./api-client";
 
 interface AppState {
@@ -101,6 +101,18 @@ interface AppState {
   priorityDefinitions: PriorityDefinition[];
   setPriorityDefinitions: (defs: PriorityDefinition[]) => void;
 
+  // Controls Testing Module
+  controlBusinessAreas: ControlBusinessArea[];
+  setControlBusinessAreas: (areas: ControlBusinessArea[]) => void;
+  controls: ControlRecord[];
+  setControls: (controls: ControlRecord[]) => void;
+  addControl: (control: ControlRecord) => void;
+  updateControl: (id: string, data: Partial<ControlRecord>) => void;
+  testingSchedule: TestingScheduleEntry[];
+  setTestingSchedule: (entries: TestingScheduleEntry[]) => void;
+  addTestingScheduleEntries: (entries: TestingScheduleEntry[]) => void;
+  updateTestingScheduleEntry: (id: string, data: Partial<TestingScheduleEntry>) => void;
+
   // UI State
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
@@ -151,7 +163,7 @@ export const useAppStore = create<AppState>((set) => ({
   _hydrateError: null,
   hydrate: async () => {
     try {
-      const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions] = await Promise.all([
+      const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule] = await Promise.all([
         api<User[]>("/api/users"),
         api<Report[]>("/api/reports"),
         api<ConsumerDutyOutcome[]>("/api/consumer-duty"),
@@ -163,8 +175,11 @@ export const useAppStore = create<AppState>((set) => ({
         api<SiteSettings>("/api/settings").catch(() => null),
         api<RiskCategoryDB[]>("/api/risk-categories").catch(() => []),
         api<PriorityDefinition[]>("/api/priority-definitions").catch(() => []),
+        api<ControlBusinessArea[]>("/api/controls/business-areas").catch(() => []),
+        api<ControlRecord[]>("/api/controls/library?includeSchedule=true").catch(() => []),
+        api<TestingScheduleEntry[]>("/api/controls/testing-schedule?includeResults=true").catch(() => []),
       ]);
-      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, _hydrated: true, _hydrateError: null });
+      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, _hydrated: true, _hydrateError: null });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to connect to server";
       console.error("[hydrate] API unreachable:", message);
@@ -450,6 +465,30 @@ export const useAppStore = create<AppState>((set) => ({
   // ── Priority Definitions (DB-backed) ─────────────────────
   priorityDefinitions: [],
   setPriorityDefinitions: (defs) => set({ priorityDefinitions: defs }),
+
+  // ── Controls Testing Module ─────────────────────────────
+  controlBusinessAreas: [],
+  setControlBusinessAreas: (areas) => set({ controlBusinessAreas: areas }),
+  controls: [],
+  setControls: (controls) => set({ controls }),
+  addControl: (control) => {
+    set((state) => ({ controls: [...state.controls, control] }));
+  },
+  updateControl: (id, data) => {
+    set((state) => ({
+      controls: state.controls.map((c) => (c.id === id ? { ...c, ...data } : c)),
+    }));
+  },
+  testingSchedule: [],
+  setTestingSchedule: (entries) => set({ testingSchedule: entries }),
+  addTestingScheduleEntries: (entries) => {
+    set((state) => ({ testingSchedule: [...state.testingSchedule, ...entries] }));
+  },
+  updateTestingScheduleEntry: (id, data) => {
+    set((state) => ({
+      testingSchedule: state.testingSchedule.map((e) => (e.id === id ? { ...e, ...data } : e)),
+    }));
+  },
 
   // ── UI State ───────────────────────────────────────────────
   sidebarOpen: true,

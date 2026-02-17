@@ -377,3 +377,146 @@ export interface SiteSettings {
   updatedAt: string;
   updatedBy: string | null;
 }
+
+// ── Controls Testing Module ──────────────────────────────────────────────────
+
+export type ControlFrequency = "DAILY" | "WEEKLY" | "MONTHLY" | "QUARTERLY" | "BI_ANNUAL" | "ANNUAL" | "EVENT_DRIVEN";
+export type TestingFrequency = "MONTHLY" | "QUARTERLY" | "BI_ANNUAL" | "ANNUAL";
+export type TestResultValue = "PASS" | "FAIL" | "PARTIALLY" | "NOT_TESTED" | "NOT_DUE";
+export type QuarterlySummaryStatus = "DRAFT" | "SUBMITTED" | "APPROVED";
+export type ConsumerDutyOutcomeType = "PRODUCTS_AND_SERVICES" | "CONSUMER_UNDERSTANDING" | "CONSUMER_SUPPORT" | "GOVERNANCE_CULTURE_OVERSIGHT";
+export type InternalOrThirdParty = "INTERNAL" | "THIRD_PARTY";
+
+export const CD_OUTCOME_LABELS: Record<ConsumerDutyOutcomeType, string> = {
+  PRODUCTS_AND_SERVICES: "Products and Services",
+  CONSUMER_UNDERSTANDING: "Consumer Understanding",
+  CONSUMER_SUPPORT: "Consumer Support",
+  GOVERNANCE_CULTURE_OVERSIGHT: "Governance, Culture and Oversight",
+};
+
+export const CONTROL_FREQUENCY_LABELS: Record<ControlFrequency, string> = {
+  DAILY: "Daily",
+  WEEKLY: "Weekly",
+  MONTHLY: "Monthly",
+  QUARTERLY: "Quarterly",
+  BI_ANNUAL: "Bi-annual",
+  ANNUAL: "Annual",
+  EVENT_DRIVEN: "Event-driven",
+};
+
+export const TESTING_FREQUENCY_LABELS: Record<TestingFrequency, string> = {
+  MONTHLY: "Monthly",
+  QUARTERLY: "Quarterly",
+  BI_ANNUAL: "Bi-annual",
+  ANNUAL: "Annual",
+};
+
+export const TEST_RESULT_LABELS: Record<TestResultValue, string> = {
+  PASS: "Pass",
+  FAIL: "Fail",
+  PARTIALLY: "Partially",
+  NOT_TESTED: "Not Tested",
+  NOT_DUE: "Not Due",
+};
+
+export const TEST_RESULT_COLOURS: Record<TestResultValue, { bg: string; text: string; dot: string }> = {
+  PASS: { bg: "bg-green-100", text: "text-green-700", dot: "bg-green-500" },
+  FAIL: { bg: "bg-red-100", text: "text-red-700", dot: "bg-red-500" },
+  PARTIALLY: { bg: "bg-amber-100", text: "text-amber-700", dot: "bg-amber-500" },
+  NOT_TESTED: { bg: "bg-gray-100", text: "text-gray-600", dot: "bg-gray-400" },
+  NOT_DUE: { bg: "bg-gray-50", text: "text-gray-400", dot: "bg-gray-300" },
+};
+
+export interface ControlBusinessArea {
+  id: string;
+  name: string;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface ControlRecord {
+  id: string;
+  controlRef: string;
+  controlName: string;
+  controlDescription: string;
+  businessAreaId: string;
+  businessArea?: ControlBusinessArea;
+  controlOwnerId: string;
+  controlOwner?: User;
+  consumerDutyOutcome: ConsumerDutyOutcomeType;
+  controlFrequency: ControlFrequency;
+  internalOrThirdParty: InternalOrThirdParty;
+  isActive: boolean;
+  standingComments: string | null;
+  createdAt: string;
+  createdById: string;
+  archivedAt: string | null;
+  updatedAt: string;
+  testingSchedule?: TestingScheduleEntry | null;
+  attestations?: ControlAttestation[];
+}
+
+export interface ControlAttestation {
+  id: string;
+  controlId: string;
+  periodYear: number;
+  periodMonth: number;
+  attested: boolean;
+  attestedById: string;
+  attestedBy?: User;
+  attestedAt: string;
+  comments: string | null;
+  issuesFlagged: boolean;
+  issueDescription: string | null;
+}
+
+export interface TestingScheduleEntry {
+  id: string;
+  controlId: string;
+  control?: ControlRecord;
+  testingFrequency: TestingFrequency;
+  assignedTesterId: string;
+  assignedTester?: User;
+  summaryOfTest: string;
+  isActive: boolean;
+  standingComments: string | null;
+  addedAt: string;
+  addedById: string;
+  removedAt: string | null;
+  removedReason: string | null;
+  testResults?: ControlTestResult[];
+  quarterlySummaries?: QuarterlySummaryRecord[];
+}
+
+export interface ControlTestResult {
+  id: string;
+  scheduleEntryId: string;
+  periodYear: number;
+  periodMonth: number;
+  result: TestResultValue;
+  testedById: string;
+  testedBy?: User;
+  testedDate: string;
+  effectiveDate: string | null;
+  notes: string | null;
+  evidenceLinks: string[];
+  isBackdated: boolean;
+  updatedAt: string;
+  updatedById: string | null;
+}
+
+export interface QuarterlySummaryRecord {
+  id: string;
+  scheduleEntryId: string;
+  quarter: string;
+  narrative: string;
+  authorId: string;
+  author?: User;
+  status: QuarterlySummaryStatus;
+  approvedById: string | null;
+  approvedBy?: User;
+  approvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

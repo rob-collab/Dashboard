@@ -106,6 +106,17 @@ model User {
   updatedRisks    Risk[]          @relation("UpdatedRisks")
   ownedRisks      Risk[]          @relation("OwnedRisks")
 
+  // Controls Testing Module
+  ownedControls       Control[]              @relation("ControlOwner")
+  createdControls     Control[]              @relation("ControlCreatedBy")
+  attestations        ControlAttestation[]   @relation("AttestationBy")
+  assignedTests       TestingScheduleEntry[] @relation("AssignedTester")
+  addedSchedules      TestingScheduleEntry[] @relation("ScheduleAddedBy")
+  testResults         ControlTestResult[]    @relation("TestResultBy")
+  updatedTestResults  ControlTestResult[]    @relation("TestResultUpdatedBy")
+  authoredSummaries   QuarterlySummary[]     @relation("SummaryAuthor")
+  approvedSummaries   QuarterlySummary[]     @relation("SummaryApprover")
+
   @@map("users")
 }
 
@@ -495,4 +506,176 @@ model PriorityDefinition {
   updatedAt   DateTime @updatedAt
 
   @@map("priority_definitions")
+}
+
+// ── Controls Testing Module ──────────────────────────────────────────────────
+
+enum ControlFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  BI_ANNUAL
+  ANNUAL
+  EVENT_DRIVEN
+}
+
+enum TestingFrequency {
+  MONTHLY
+  QUARTERLY
+  BI_ANNUAL
+  ANNUAL
+}
+
+enum TestResult {
+  PASS
+  FAIL
+  PARTIALLY
+  NOT_TESTED
+  NOT_DUE
+}
+
+enum QuarterlySummaryStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+}
+
+enum ConsumerDutyOutcomeType {
+  PRODUCTS_AND_SERVICES
+  CONSUMER_UNDERSTANDING
+  CONSUMER_SUPPORT
+  GOVERNANCE_CULTURE_OVERSIGHT
+}
+
+enum InternalOrThirdParty {
+  INTERNAL
+  THIRD_PARTY
+}
+
+model ControlBusinessArea {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  controls Control[]
+
+  @@map("control_business_areas")
+}
+
+model Control {
+  id                  String                  @id @default(cuid())
+  controlRef          String                  @unique
+  controlName         String
+  controlDescription  String                  @db.Text
+  businessAreaId      String
+  businessArea        ControlBusinessArea     @relation(fields: [businessAreaId], references: [id])
+  controlOwnerId      String
+  controlOwner        User                    @relation("ControlOwner", fields: [controlOwnerId], references: [id])
+  consumerDutyOutcome ConsumerDutyOutcomeType
+  controlFrequency    ControlFrequency
+  internalOrThirdParty InternalOrThirdParty   @default(INTERNAL)
+  isActive            Boolean                 @default(true)
+  standingComments    String?                 @db.Text
+  createdAt           DateTime                @default(now())
+  createdById         String
+  createdBy           User                    @relation("ControlCreatedBy", fields: [createdById], references: [id])
+  archivedAt          DateTime?
+  updatedAt           DateTime                @updatedAt
+
+  attestations        ControlAttestation[]
+  testingSchedule     TestingScheduleEntry?
+
+  @@index([businessAreaId])
+  @@index([controlOwnerId])
+  @@map("controls_library")
+}
+
+model ControlAttestation {
+  id               String   @id @default(cuid())
+  controlId        String
+  control          Control  @relation(fields: [controlId], references: [id], onDelete: Cascade)
+  periodYear       Int
+  periodMonth      Int
+  attested         Boolean
+  attestedById     String
+  attestedBy       User     @relation("AttestationBy", fields: [attestedById], references: [id])
+  attestedAt       DateTime @default(now())
+  comments         String?  @db.Text
+  issuesFlagged    Boolean  @default(false)
+  issueDescription String?  @db.Text
+
+  @@unique([controlId, periodYear, periodMonth])
+  @@index([controlId])
+  @@index([attestedById])
+  @@map("control_attestations")
+}
+
+model TestingScheduleEntry {
+  id                String           @id @default(cuid())
+  controlId         String           @unique
+  control           Control          @relation(fields: [controlId], references: [id], onDelete: Cascade)
+  testingFrequency  TestingFrequency
+  assignedTesterId  String
+  assignedTester    User             @relation("AssignedTester", fields: [assignedTesterId], references: [id])
+  summaryOfTest     String           @db.Text
+  isActive          Boolean          @default(true)
+  standingComments  String?          @db.Text
+  addedAt           DateTime         @default(now())
+  addedById         String
+  addedBy           User             @relation("ScheduleAddedBy", fields: [addedById], references: [id])
+  removedAt         DateTime?
+  removedReason     String?
+
+  testResults       ControlTestResult[]
+  quarterlySummaries QuarterlySummary[]
+
+  @@index([assignedTesterId])
+  @@map("testing_schedule")
+}
+
+model ControlTestResult {
+  id               String               @id @default(cuid())
+  scheduleEntryId  String
+  scheduleEntry    TestingScheduleEntry @relation(fields: [scheduleEntryId], references: [id], onDelete: Cascade)
+  periodYear       Int
+  periodMonth      Int
+  result           TestResult
+  testedById       String
+  testedBy         User                 @relation("TestResultBy", fields: [testedById], references: [id])
+  testedDate       DateTime             @default(now())
+  effectiveDate    DateTime?            @db.Date
+  notes            String?              @db.Text
+  evidenceLinks    String[]
+  isBackdated      Boolean              @default(false)
+  updatedAt        DateTime             @updatedAt
+  updatedById      String?
+  updatedBy        User?                @relation("TestResultUpdatedBy", fields: [updatedById], references: [id])
+
+  @@unique([scheduleEntryId, periodYear, periodMonth])
+  @@index([scheduleEntryId])
+  @@index([testedById])
+  @@map("control_test_results")
+}
+
+model QuarterlySummary {
+  id               String                @id @default(cuid())
+  scheduleEntryId  String
+  scheduleEntry    TestingScheduleEntry  @relation(fields: [scheduleEntryId], references: [id], onDelete: Cascade)
+  quarter          String                // e.g. "Q1 2026"
+  narrative        String                @db.Text
+  authorId         String
+  author           User                  @relation("SummaryAuthor", fields: [authorId], references: [id])
+  status           QuarterlySummaryStatus @default(DRAFT)
+  approvedById     String?
+  approvedBy       User?                 @relation("SummaryApprover", fields: [approvedById], references: [id])
+  approvedAt       DateTime?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  @@unique([scheduleEntryId, quarter])
+  @@index([scheduleEntryId])
+  @@map("quarterly_summaries")
 }

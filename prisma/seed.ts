@@ -93,6 +93,27 @@ async function main() {
   }
   console.log(`  ✓ ${PRIORITY_DEFINITIONS.length} priority definitions`);
 
+  // Control Business Areas
+  const BUSINESS_AREAS = [
+    { id: "ba-website", name: "Website & App", sortOrder: 1 },
+    { id: "ba-underwriting", name: "Underwriting", sortOrder: 2 },
+    { id: "ba-customer-svc", name: "Customer Service", sortOrder: 3 },
+    { id: "ba-collections", name: "Collections", sortOrder: 4 },
+    { id: "ba-finance", name: "Finance", sortOrder: 5 },
+    { id: "ba-it", name: "IT", sortOrder: 6 },
+    { id: "ba-hr", name: "HR", sortOrder: 7 },
+    { id: "ba-marketing", name: "Marketing", sortOrder: 8 },
+    { id: "ba-compliance", name: "Compliance", sortOrder: 9 },
+  ];
+  for (const ba of BUSINESS_AREAS) {
+    await prisma.controlBusinessArea.upsert({
+      where: { id: ba.id },
+      update: { name: ba.name, sortOrder: ba.sortOrder },
+      create: ba,
+    });
+  }
+  console.log(`  ✓ ${BUSINESS_AREAS.length} control business areas`);
+
   console.log("Seed complete! Database is clean — ready for real data.");
 }
 
