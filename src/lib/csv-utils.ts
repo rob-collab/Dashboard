@@ -43,47 +43,60 @@ function detectDelimiter(text: string): string {
  */
 export function parseCSV(text: string): { headers: string[]; rows: ParsedRow[] } {
   const delimiter = detectDelimiter(text);
-  const lines = text.trim().split(/\r?\n/);
-  if (lines.length === 0) return { headers: [], rows: [] };
+  const trimmed = text.trim();
+  if (!trimmed) return { headers: [], rows: [] };
 
-  const parseLine = (line: string): string[] => {
-    const result: string[] = [];
-    let current = "";
-    let inQuotes = false;
+  // Parse the entire text character-by-character to handle multi-line quoted fields
+  const allRows: string[][] = [];
+  let currentRow: string[] = [];
+  let currentField = "";
+  let inQuotes = false;
 
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      if (inQuotes) {
-        if (char === '"' && line[i + 1] === '"') {
-          current += '"';
-          i++;
-        } else if (char === '"') {
-          inQuotes = false;
-        } else {
-          current += char;
-        }
+  for (let i = 0; i < trimmed.length; i++) {
+    const char = trimmed[i];
+
+    if (inQuotes) {
+      if (char === '"' && trimmed[i + 1] === '"') {
+        currentField += '"';
+        i++;
+      } else if (char === '"') {
+        inQuotes = false;
       } else {
-        if (char === '"') {
-          inQuotes = true;
-        } else if (char === delimiter) {
-          result.push(current.trim());
-          current = "";
-        } else {
-          current += char;
-        }
+        currentField += char;
+      }
+    } else {
+      if (char === '"') {
+        inQuotes = true;
+      } else if (char === delimiter) {
+        currentRow.push(currentField.trim());
+        currentField = "";
+      } else if (char === "\r") {
+        // skip CR
+      } else if (char === "\n") {
+        currentRow.push(currentField.trim());
+        currentField = "";
+        allRows.push(currentRow);
+        currentRow = [];
+      } else {
+        currentField += char;
       }
     }
-    result.push(current.trim());
-    return result;
-  };
+  }
+  // Push remaining field and row
+  currentRow.push(currentField.trim());
+  if (currentRow.length > 1 || currentRow[0] !== "") {
+    allRows.push(currentRow);
+  }
 
-  const headers = parseLine(lines[0]);
+  if (allRows.length === 0) return { headers: [], rows: [] };
+
+  const headers = allRows[0];
   const rows: ParsedRow[] = [];
 
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-    const values = parseLine(line);
+  for (let i = 1; i < allRows.length; i++) {
+    const values = allRows[i];
+    // Skip empty rows
+    if (values.length === 1 && values[0] === "") continue;
     const row: ParsedRow = {};
     headers.forEach((h, idx) => {
       row[h] = values[idx] ?? "";
@@ -474,18 +487,29 @@ export interface RiskRowValidation {
 /**
  * Map common header variations to risk field names.
  */
-/** Try to parse a column header as a month (e.g. "Jan 25", "Feb 2025", "2025-03") */
+/** Try to parse a column header as a month (e.g. "Jan 25", "Feb 2025", "June 24", "2025-03") */
 function parseMonthHeader(header: string): Date | null {
   const trimmed = header.trim();
-  // Match "MMM YY" or "MMM YYYY" (e.g. "Jan 25", "Feb 2025")
-  const mmmYY = trimmed.match(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{2,4})$/i);
-  if (mmmYY) {
-    const months: Record<string, number> = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
-    const m = months[mmmYY[1].toLowerCase()];
-    let y = parseInt(mmmYY[2], 10);
-    if (y < 100) y += 2000;
-    return new Date(Date.UTC(y, m, 1));
+
+  const months: Record<string, number> = {
+    jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2,
+    apr: 3, april: 3, may: 4, jun: 5, june: 5, jul: 6, july: 6,
+    aug: 7, august: 7, sep: 8, sept: 8, september: 8,
+    oct: 9, october: 9, nov: 10, november: 10, dec: 11, december: 11,
+  };
+
+  // Match abbreviated or full month name + 2/4-digit year (e.g. "Jan 25", "June 24", "February 2025")
+  const monthYear = trimmed.match(/^([A-Za-z]+)\s+(\d{2,4})$/);
+  if (monthYear) {
+    const mKey = monthYear[1].toLowerCase();
+    const m = months[mKey];
+    if (m !== undefined) {
+      let y = parseInt(monthYear[2], 10);
+      if (y < 100) y += 2000;
+      return new Date(Date.UTC(y, m, 1));
+    }
   }
+
   // Match "YYYY-MM" (e.g. "2025-03")
   const isoM = trimmed.match(/^(\d{4})-(\d{2})$/);
   if (isoM) {
