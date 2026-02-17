@@ -35,6 +35,8 @@ export async function POST(request: NextRequest) {
       outcomeId,
       name,
       shortDesc,
+      detailedDescription: body.detailedDescription ?? null,
+      previousRAG: body.previousRAG ?? null,
       icon: body.icon ?? null,
       ragStatus: body.ragStatus || "GOOD",
       position: body.position ?? 0,

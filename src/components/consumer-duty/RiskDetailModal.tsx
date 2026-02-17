@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import Modal from "@/components/common/Modal";
 import type { ConsumerDutyOutcome, RAGStatus } from "@/lib/types";
 import { cn, ragBgColor, ragLabel, ragLabelShort } from "@/lib/utils";
-import { TrendingUp, TrendingDown, Minus, Shield, User, ListChecks } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Shield } from "lucide-react";
 
 interface RiskDetailModalProps {
   outcome: ConsumerDutyOutcome | null;
@@ -92,39 +92,15 @@ export default function RiskDetailModal({
         </div>
       </div>
 
-      {/* Risk Owner */}
-      {outcome.riskOwner && (
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-2">
-            <User size={16} className="text-updraft-bar" />
-            <h4 className="text-sm font-semibold text-gray-700">Risk Owner</h4>
-          </div>
-          <p className="text-sm text-gray-600 pl-6">{outcome.riskOwner}</p>
-        </div>
-      )}
-
       {/* Detailed Description */}
       {outcome.detailedDescription && (
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-2">
             <Shield size={16} className="text-updraft-bar" />
-            <h4 className="text-sm font-semibold text-gray-700">Risk Description</h4>
+            <h4 className="text-sm font-semibold text-gray-700">Outcome Description</h4>
           </div>
           <p className="text-sm text-gray-600 leading-relaxed pl-6 whitespace-pre-line">
             {outcome.detailedDescription}
-          </p>
-        </div>
-      )}
-
-      {/* Mitigating Actions */}
-      {outcome.mitigatingActions && (
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-2">
-            <ListChecks size={16} className="text-updraft-bar" />
-            <h4 className="text-sm font-semibold text-gray-700">Mitigating Actions & Controls</h4>
-          </div>
-          <p className="text-sm text-gray-600 leading-relaxed pl-6 whitespace-pre-line">
-            {outcome.mitigatingActions}
           </p>
         </div>
       )}
@@ -163,12 +139,12 @@ export default function RiskDetailModal({
       )}
 
       {/* Placeholder message if no additional details */}
-      {!outcome.detailedDescription && !outcome.riskOwner && !outcome.mitigatingActions && (
+      {!outcome.detailedDescription && (!outcome.measures || outcome.measures.length === 0) && (
         <div className="text-center py-8">
           <Shield size={48} className="mx-auto mb-3 text-gray-300" />
-          <p className="text-sm text-gray-500">No additional risk details available</p>
+          <p className="text-sm text-gray-500">No additional outcome details available</p>
           <p className="text-xs text-gray-400 mt-1">
-            CCRO team can add detailed description, risk owner, and mitigating actions
+            CCRO team can add a detailed description and measures
           </p>
         </div>
       )}

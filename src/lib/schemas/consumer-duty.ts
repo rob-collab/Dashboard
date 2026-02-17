@@ -15,6 +15,8 @@ export const CreateOutcomeSchema = z.object({
 export const UpdateOutcomeSchema = z.object({
   name: z.string().min(1).optional(),
   shortDesc: z.string().optional(),
+  detailedDescription: z.string().nullable().optional(),
+  previousRAG: RAGStatus.nullable().optional(),
   icon: z.string().optional(),
   ragStatus: RAGStatus.optional(),
   position: z.number().int().min(0).optional(),
