@@ -50,6 +50,7 @@ export async function PATCH(
     const data: Record<string, unknown> = {};
     if (validatedData.title !== undefined) data.title = validatedData.title;
     if (validatedData.description !== undefined) data.description = validatedData.description;
+    if (validatedData.issueDescription !== undefined) data.issueDescription = validatedData.issueDescription;
     if (validatedData.status !== undefined) {
       data.status = validatedData.status;
       if (validatedData.status === "COMPLETED") data.completedAt = new Date();

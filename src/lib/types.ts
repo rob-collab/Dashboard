@@ -215,6 +215,7 @@ export interface Action {
   sectionTitle: string | null;
   title: string;
   description: string;
+  issueDescription: string | null;
   status: ActionStatus;
   priority: ActionPriority | null;
   assignedTo: string;

@@ -10,6 +10,7 @@ export const CreateActionSchema = z.object({
   sectionTitle: z.string().nullable().optional(),
   title: z.string().min(1, "Title is required"),
   description: z.string().default(""),
+  issueDescription: z.string().nullable().optional(),
   assignedTo: z.string().min(1, "Assignee is required"),
   dueDate: z.string().nullable().optional(),
   status: ActionStatus.optional().default("OPEN"),
@@ -19,6 +20,7 @@ export const CreateActionSchema = z.object({
 export const UpdateActionSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().optional(),
+  issueDescription: z.string().nullable().optional(),
   assignedTo: z.string().optional(),
   dueDate: z.string().nullable().optional(),
   status: ActionStatus.optional(),

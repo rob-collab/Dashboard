@@ -35,6 +35,9 @@ import ActionFormDialog from "@/components/actions/ActionFormDialog";
 import ActionChangePanel from "@/components/actions/ActionChangePanel";
 import ActionCSVUploadDialog from "@/components/actions/ActionCSVUploadDialog";
 import ActionUpdateForm from "@/components/actions/ActionUpdateForm";
+import dynamic from "next/dynamic";
+
+const RichTextEditor = dynamic(() => import("@/components/common/RichTextEditor"), { ssr: false });
 
 const STATUS_CONFIG: Record<ActionStatus, { label: string; color: string; bgColor: string; icon: typeof Circle }> = {
   OPEN: { label: "Open", color: "text-blue-600", bgColor: "bg-blue-100 text-blue-700", icon: Circle },
@@ -103,9 +106,7 @@ function ActionsPageContent() {
     return "ALL";
   });
   const [ownerFilter, setOwnerFilter] = useState<string>(() => {
-    // If deep-linking to a specific action via ?edit=, show all so it's not filtered out
-    if (searchParams.get("edit")) return "ALL";
-    // Non-CCRO users see their own actions by default
+    // Non-CCRO users always see their own actions (including when deep-linking via ?edit=)
     if (!isCCRO && currentUser?.id) return currentUser.id;
     return "ALL";
   });
@@ -124,6 +125,8 @@ function ActionsPageContent() {
   const [proposedDate, setProposedDate] = useState("");
   const [proposedOwner, setProposedOwner] = useState("");
   const [proposalReason, setProposalReason] = useState("");
+  const [editingIssue, setEditingIssue] = useState<string | null>(null);
+  const [issueEditorValue, setIssueEditorValue] = useState("");
 
   // URL-synced status/priority change
   const buildUrl = useCallback((status: string, priority: string) => {
@@ -326,6 +329,12 @@ function ActionsPageContent() {
     setProposedOwner("");
     setProposalReason("");
   }, [actions, proposedOwner, proposalReason, handleProposeChange, handleSubmitUpdate]);
+
+  const handleSaveIssueDescription = useCallback(async (actionId: string, html: string) => {
+    const clean = html === "<p></p>" ? "" : html;
+    updateAction(actionId, { issueDescription: clean || null });
+    setEditingIssue(null);
+  }, [updateAction]);
 
   // Derive original values from change history
   function getOriginalValue(action: Action, field: string): string | null {
@@ -639,34 +648,70 @@ function ActionsPageContent() {
 
                     return (
                       <div className="border-t border-updraft-pale-purple/40 bg-white px-6 py-5 animate-slide-up">
-                        {/* Issue Reference / Reason */}
+                        {/* Issue to be Addressed */}
                         <div className="mb-4 rounded-lg bg-updraft-pale-purple/15 border border-updraft-pale-purple/30 px-4 py-3">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Info size={14} className="text-updraft-bar shrink-0" />
-                            <span className="text-xs font-semibold text-updraft-bar uppercase tracking-wider">Reason for Action</span>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Info size={14} className="text-updraft-bar shrink-0" />
+                              <span className="text-xs font-semibold text-updraft-bar uppercase tracking-wider">Issue to be Addressed</span>
+                            </div>
+                            {isCCRO && editingIssue !== expandedAction.id && (
+                              <button
+                                type="button"
+                                onClick={() => { setEditingIssue(expandedAction.id); setIssueEditorValue(expandedAction.issueDescription || ""); }}
+                                className="text-[10px] font-medium text-updraft-bright-purple hover:underline"
+                              >
+                                Edit
+                              </button>
+                            )}
                           </div>
-                          {expandedAction.source === "Risk Register" && expandedAction.linkedMitigation ? (
+
+                          {/* Risk link (always shown if present) */}
+                          {expandedAction.linkedMitigation && (
                             <Link
                               href={`/risk-register?risk=${expandedAction.linkedMitigation.riskId}`}
-                              className="text-sm text-updraft-bright-purple hover:underline flex items-center gap-1"
+                              className="mb-2 text-sm text-updraft-bright-purple hover:underline inline-flex items-center gap-1"
                             >
                               <ShieldAlert size={13} />
                               Linked to risk: {expandedAction.linkedMitigation.riskId}
                               <ArrowUpRight size={11} />
                             </Link>
-                          ) : expandedAction.reportId ? (
-                            <Link
-                              href={`/reports/${expandedAction.reportId}`}
-                              className="text-sm text-updraft-bright-purple hover:underline flex items-center gap-1"
-                            >
-                              {expandedAction.reportPeriod || "Linked report"}
-                              <ArrowUpRight size={11} />
-                            </Link>
-                          ) : expandedAction.source ? (
-                            <p className="text-sm text-gray-700">{expandedAction.source}</p>
-                          ) : (
-                            <p className="text-sm text-gray-400 italic">No reason specified</p>
                           )}
+
+                          {/* Editable issue description (CCRO inline editor) */}
+                          {editingIssue === expandedAction.id ? (
+                            <div className="space-y-2">
+                              <RichTextEditor
+                                value={issueEditorValue}
+                                onChange={setIssueEditorValue}
+                                placeholder="Describe the issue this action addresses..."
+                                minHeight="80px"
+                              />
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingIssue(null)}
+                                  className="rounded-lg border border-gray-200 px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveIssueDescription(expandedAction.id, issueEditorValue)}
+                                  className="rounded-lg bg-updraft-bright-purple px-3 py-1 text-xs font-medium text-white hover:bg-updraft-deep transition-colors"
+                                >
+                                  Save
+                                </button>
+                              </div>
+                            </div>
+                          ) : expandedAction.issueDescription ? (
+                            <RichTextEditor
+                              value={expandedAction.issueDescription}
+                              readOnly
+                            />
+                          ) : !expandedAction.linkedMitigation ? (
+                            <p className="text-sm text-gray-400 italic">No issue description provided</p>
+                          ) : null}
                         </div>
 
                         {/* Title + Status + Priority */}
@@ -696,12 +741,13 @@ function ActionsPageContent() {
                           isCCRO ? "border-gray-200 bg-white" : "border-gray-100 bg-gray-50"
                         )}>
                           <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Description</label>
-                          <p className={cn(
-                            "text-sm whitespace-pre-wrap leading-relaxed",
-                            isCCRO ? "text-gray-700" : "text-gray-400"
-                          )}>
-                            {expandedAction.description || "No description provided."}
-                          </p>
+                          {expandedAction.description ? (
+                            <div className={cn(!isCCRO && "opacity-50")}>
+                              <RichTextEditor value={expandedAction.description} readOnly />
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-400 italic">No description provided.</p>
+                          )}
                           {!isCCRO && (
                             <p className="text-[10px] text-gray-300 mt-2 italic">Only the CCRO team can edit the description</p>
                           )}

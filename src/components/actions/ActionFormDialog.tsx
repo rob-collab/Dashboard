@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Modal from "@/components/common/Modal";
 import type { Action, ActionStatus, ActionPriority, Report, User } from "@/lib/types";
 import { generateId } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
+
+const RichTextEditor = dynamic(() => import("@/components/common/RichTextEditor"), { ssr: false });
 
 interface ActionFormDialogProps {
   open: boolean;
@@ -48,6 +51,7 @@ export default function ActionFormDialog({
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [issueDescription, setIssueDescription] = useState("");
   const [reportId, setReportId] = useState("");
   const [source, setSource] = useState("");
   const [sectionId, setSectionId] = useState("");
@@ -63,6 +67,7 @@ export default function ActionFormDialog({
       if (action) {
         setTitle(action.title);
         setDescription(action.description);
+        setIssueDescription(action.issueDescription || "");
         setReportId(action.reportId || "");
         setSource(action.source || "");
         setSectionId(action.sectionId || "");
@@ -74,6 +79,7 @@ export default function ActionFormDialog({
       } else {
         setTitle("");
         setDescription("");
+        setIssueDescription("");
         setReportId("");
         setSource("");
         setSectionId("");
@@ -101,6 +107,10 @@ export default function ActionFormDialog({
 
     const selectedReport = reports.find((r) => r.id === reportId);
 
+    // Strip empty rich text (just a <p></p> tag)
+    const cleanDesc = description === "<p></p>" ? "" : description;
+    const cleanIssue = issueDescription === "<p></p>" ? "" : issueDescription;
+
     const saved: Action = {
       id: action?.id ?? `action-${generateId()}`,
       reference: action?.reference ?? "",
@@ -110,7 +120,8 @@ export default function ActionFormDialog({
       sectionId: sectionId || null,
       sectionTitle: sectionTitle || null,
       title: title.trim(),
-      description: description.trim(),
+      description: cleanDesc,
+      issueDescription: cleanIssue || null,
       status,
       priority: priority || null,
       assignedTo,
@@ -170,16 +181,28 @@ export default function ActionFormDialog({
           {errors.title && <p className={errorClasses}>{errors.title}</p>}
         </div>
 
+        {/* Issue to be Addressed */}
+        <div>
+          <label className={labelClasses}>Issue to be Addressed</label>
+          <RichTextEditor
+            value={issueDescription}
+            onChange={setIssueDescription}
+            placeholder="Describe the issue this action is addressing..."
+            minHeight="80px"
+          />
+          <p className="text-[10px] text-gray-400 mt-1">
+            Explain why this action is needed. If linked to a risk, the risk reference will also be shown.
+          </p>
+        </div>
+
         {/* Description */}
         <div>
-          <label htmlFor="action-desc" className={labelClasses}>Description</label>
-          <textarea
-            id="action-desc"
-            rows={3}
+          <label className={labelClasses}>Description</label>
+          <RichTextEditor
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Detailed description of the action..."
-            className={inputClasses}
+            onChange={setDescription}
+            placeholder="Detailed description of what needs to be done..."
+            minHeight="100px"
           />
         </div>
 
@@ -211,7 +234,7 @@ export default function ActionFormDialog({
               type="text"
               value={source}
               onChange={(e) => setSource(e.target.value)}
-              placeholder="e.g., Board meeting, External audit, Customer feedback"
+              placeholder="e.g., Board meeting, External audit"
               className={inputClasses}
             />
           </div>

@@ -324,8 +324,9 @@ model Action {
   sectionId     String?
   sectionTitle  String?
   title         String
-  description   String       @default("") @db.Text
-  status        ActionStatus @default(OPEN)
+  description      String       @default("") @db.Text
+  issueDescription String?      @db.Text
+  status           ActionStatus @default(OPEN)
   priority      ActionPriority?
   assignedTo    String
   assignee      User         @relation("AssignedActions", fields: [assignedTo], references: [id])
