@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import BusinessAreaDrillDown from "./BusinessAreaDrillDown";
 import ControlDetailView from "./ControlDetailView";
+import ExportPanel from "./ExportPanel";
 
 // ── Chart colours ─────────────────────────────────────────────────────────────
 
@@ -650,6 +651,9 @@ export default function ControlsDashboardTab() {
           </div>
         )}
       </div>
+
+      {/* Export Panel */}
+      <ExportPanel selectedYear={selectedYear} selectedMonth={selectedMonth} />
     </div>
   );
 }
