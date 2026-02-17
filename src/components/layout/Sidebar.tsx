@@ -92,13 +92,13 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
       )}
     >
       {/* Branding Header */}
-      <div className="relative flex items-center justify-center overflow-hidden px-3 py-4 bg-gradient-to-br from-updraft-deep via-updraft-bar to-updraft-bright-purple transition-all duration-300 ease-in-out">
+      <div className="relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-updraft-deep via-updraft-bar to-updraft-bright-purple transition-all duration-300 ease-in-out p-2">
         <img
           src="/logo.png"
           alt="Updraft CCRO Dashboard"
           className={cn(
-            "object-contain transition-all duration-300 ease-in-out",
-            collapsed ? "h-0 w-0 opacity-0 absolute" : "h-10 max-w-[200px] opacity-100"
+            "w-full object-contain transition-all duration-300 ease-in-out",
+            collapsed ? "h-0 opacity-0 absolute" : "opacity-100"
           )}
         />
         <img
@@ -106,7 +106,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
           alt="Updraft"
           className={cn(
             "object-contain transition-all duration-300 ease-in-out",
-            collapsed ? "h-9 w-9 opacity-100" : "h-0 w-0 opacity-0 absolute"
+            collapsed ? "w-full p-1 opacity-100" : "h-0 w-0 opacity-0 absolute"
           )}
         />
       </div>
