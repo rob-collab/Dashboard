@@ -92,47 +92,23 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
       )}
     >
       {/* Branding Header */}
-      <div className="relative flex items-center gap-3 px-4 py-5 bg-gradient-to-br from-updraft-deep via-updraft-bar to-updraft-bright-purple">
-        {collapsed ? (
-          <img
-            src="/logo-mark.png"
-            alt="Updraft"
-            className="h-9 w-9 shrink-0 object-contain"
-            onError={(e) => {
-              // Fallback to text if image not found
-              const el = e.currentTarget;
-              el.style.display = "none";
-              el.parentElement!.querySelector("[data-fallback]")!.removeAttribute("hidden");
-            }}
-          />
-        ) : (
-          <img
-            src="/logo.png"
-            alt="Updraft CCRO Dashboard"
-            className="h-10 max-w-[180px] object-contain"
-            onError={(e) => {
-              const el = e.currentTarget;
-              el.style.display = "none";
-              el.parentElement!.querySelector("[data-fallback]")!.removeAttribute("hidden");
-            }}
-          />
-        )}
-        {/* Fallback if logo files not yet added */}
-        <div data-fallback hidden className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/20 font-poppins text-sm font-bold text-white">
-            U
-          </div>
-          {!collapsed && (
-            <div className="overflow-hidden">
-              <h1 className="font-poppins text-base font-semibold leading-tight text-white truncate">
-                Updraft
-              </h1>
-              <p className="text-[11px] leading-tight text-updraft-pale-purple/80 truncate">
-                CCRO Dashboard
-              </p>
-            </div>
+      <div className="relative flex items-center justify-center overflow-hidden px-3 py-4 bg-gradient-to-br from-updraft-deep via-updraft-bar to-updraft-bright-purple transition-all duration-300 ease-in-out">
+        <img
+          src="/logo.png"
+          alt="Updraft CCRO Dashboard"
+          className={cn(
+            "object-contain transition-all duration-300 ease-in-out",
+            collapsed ? "h-0 w-0 opacity-0 absolute" : "h-10 max-w-[200px] opacity-100"
           )}
-        </div>
+        />
+        <img
+          src="/logo-mark.png"
+          alt="Updraft"
+          className={cn(
+            "object-contain transition-all duration-300 ease-in-out",
+            collapsed ? "h-9 w-9 opacity-100" : "h-0 w-0 opacity-0 absolute"
+          )}
+        />
       </div>
 
       {/* Navigation */}
