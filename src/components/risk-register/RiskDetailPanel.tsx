@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { Risk, RiskControl, RiskMitigation, ControlEffectiveness, RiskAppetite, DirectionOfTravel, MitigationStatus } from "@/lib/types";
+import { useAppStore } from "@/lib/store";
 import {
   RISK_CATEGORIES,
   getL2Categories,
@@ -39,11 +40,12 @@ interface FormMitigation {
 }
 
 export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete, onViewHistory }: RiskDetailPanelProps) {
+  const users = useAppStore((s) => s.users);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [categoryL1, setCategoryL1] = useState("");
   const [categoryL2, setCategoryL2] = useState("");
-  const [owner, setOwner] = useState("");
+  const [ownerId, setOwnerId] = useState("");
   const [inherentLikelihood, setInherentLikelihood] = useState(3);
   const [inherentImpact, setInherentImpact] = useState(3);
   const [residualLikelihood, setResidualLikelihood] = useState(2);
@@ -63,7 +65,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
       setDescription(risk.description);
       setCategoryL1(risk.categoryL1);
       setCategoryL2(risk.categoryL2);
-      setOwner(risk.owner);
+      setOwnerId(risk.ownerId);
       setInherentLikelihood(risk.inherentLikelihood);
       setInherentImpact(risk.inherentImpact);
       setResidualLikelihood(risk.residualLikelihood);
@@ -87,7 +89,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
 
   function handleSave() {
     const data: Record<string, unknown> = {
-      name, description, categoryL1, categoryL2, owner,
+      name, description, categoryL1, categoryL2, ownerId,
       inherentLikelihood, inherentImpact, residualLikelihood, residualImpact,
       directionOfTravel, reviewFrequencyDays, lastReviewed,
       controlEffectiveness: controlEffectiveness || null,
@@ -103,7 +105,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
     onSave(data as Partial<Risk> & { controls?: Partial<RiskControl>[]; mitigations?: Partial<RiskMitigation>[] });
   }
 
-  const canSave = name.trim() && description.trim() && categoryL1 && categoryL2 && owner.trim();
+  const canSave = name.trim() && description.trim() && categoryL1 && categoryL2 && ownerId;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -199,12 +201,16 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">Risk Owner *</label>
-                <input
-                  value={owner}
-                  onChange={(e) => setOwner(e.target.value)}
-                  placeholder="Name or role"
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
-                />
+                <select
+                  value={ownerId}
+                  onChange={(e) => setOwnerId(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
+                >
+                  <option value="">Select owner...</option>
+                  {users.filter((u) => u.isActive).map((u) => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">Last Reviewed</label>

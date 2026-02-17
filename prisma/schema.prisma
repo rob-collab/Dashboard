@@ -42,6 +42,13 @@ enum ActionStatus {
   IN_PROGRESS
   COMPLETED
   OVERDUE
+  PROPOSED_CLOSED
+}
+
+enum ActionPriority {
+  P1
+  P2
+  P3
 }
 
 enum ChangeStatus {
@@ -81,7 +88,6 @@ model User {
   name                String
   role                Role      @default(VIEWER)
   assignedMeasures    String[]
-  riskOwnerCategories String[]
   isActive            Boolean   @default(true)
   createdAt           DateTime  @default(now())
   lastLoginAt         DateTime?
@@ -98,6 +104,7 @@ model User {
   reviewedChanges ActionChange[]  @relation("ReviewedChanges")
   createdRisks    Risk[]          @relation("CreatedRisks")
   updatedRisks    Risk[]          @relation("UpdatedRisks")
+  ownedRisks      Risk[]          @relation("OwnedRisks")
 
   @@map("users")
 }
@@ -301,6 +308,7 @@ model Action {
   title         String
   description   String       @default("") @db.Text
   status        ActionStatus @default(OPEN)
+  priority      ActionPriority?
   assignedTo    String
   assignee      User         @relation("AssignedActions", fields: [assignedTo], references: [id])
   createdBy     String
@@ -336,6 +344,9 @@ model ActionChange {
   reviewer     User?        @relation("ReviewedChanges", fields: [reviewedBy], references: [id])
   reviewedAt   DateTime?
   reviewNote   String?
+  evidenceUrl  String?      @db.Text
+  evidenceName String?
+  isUpdate     Boolean      @default(false)
 
   @@index([actionId])
   @@index([status])
@@ -363,7 +374,8 @@ model Risk {
   description          String               @db.Text
   categoryL1           String
   categoryL2           String
-  owner                String
+  ownerId              String
+  riskOwner            User                 @relation("OwnedRisks", fields: [ownerId], references: [id])
   inherentLikelihood   Int
   inherentImpact       Int
   residualLikelihood   Int
@@ -387,7 +399,7 @@ model Risk {
   snapshots   RiskSnapshot[]
 
   @@index([categoryL1])
-  @@index([owner])
+  @@index([ownerId])
   @@map("risks")
 }
 
@@ -413,7 +425,7 @@ model RiskMitigation {
   deadline     DateTime?        @db.Date
   status       MitigationStatus @default(OPEN)
   actionId     String?          @unique
-  linkedAction Action?          @relation("MitigationAction", fields: [actionId], references: [id], onDelete: SetNull)
+  linkedAction Action?          @relation("MitigationAction", fields: [actionId], references: [id], onDelete: Cascade)
   createdAt    DateTime         @default(now())
 
   @@index([riskId])

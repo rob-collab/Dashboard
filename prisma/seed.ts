@@ -10,14 +10,15 @@ const prisma = new PrismaClient({ adapter });
 // ── Demo Users ──────────────────────────────────────────────────────────────────
 const DEMO_USERS: {
   id: string; email: string; name: string; role: Role;
-  assignedMeasures: string[]; riskOwnerCategories: string[]; isActive: boolean;
+  assignedMeasures: string[]; isActive: boolean;
 }[] = [
-  { id: "user-rob", email: "rob@updraft.com", name: "Rob", role: "CCRO_TEAM", assignedMeasures: [], riskOwnerCategories: [], isActive: true },
-  { id: "user-cath", email: "cath@updraft.com", name: "Cath", role: "CCRO_TEAM", assignedMeasures: ["1.9","4.1","5.1","5.2","5.5","5.8"], riskOwnerCategories: ["Conduct & Compliance Risk"], isActive: true },
-  { id: "user-ash", email: "ash@updraft.com", name: "Ash", role: "METRIC_OWNER", assignedMeasures: ["1.1","1.3","1.4","3.1","3.6","3.7"], riskOwnerCategories: ["Credit Risk"], isActive: true },
-  { id: "user-chris", email: "chris@updraft.com", name: "Chris", role: "METRIC_OWNER", assignedMeasures: ["1.5","1.8","3.3","3.4","3.5","4.2","4.3","4.4","4.5","4.6","4.7","4.8","4.9","4.10"], riskOwnerCategories: ["Operational Risk"], isActive: true },
-  { id: "user-micha", email: "micha@updraft.com", name: "Micha", role: "METRIC_OWNER", assignedMeasures: ["1.2","1.6","1.7","2.1","2.2","2.3","2.4","2.5","2.6","2.7"], riskOwnerCategories: [], isActive: true },
-  { id: "user-ceo", email: "ceo@updraft.com", name: "CEO", role: "VIEWER", assignedMeasures: [], riskOwnerCategories: [], isActive: true },
+  { id: "user-rob", email: "rob@updraft.com", name: "Rob", role: "CCRO_TEAM", assignedMeasures: [], isActive: true },
+  { id: "user-cath", email: "cath@updraft.com", name: "Cath", role: "CCRO_TEAM", assignedMeasures: ["1.9","4.1","5.1","5.2","5.5","5.8"], isActive: true },
+  { id: "user-ash", email: "ash@updraft.com", name: "Ash", role: "METRIC_OWNER", assignedMeasures: ["1.1","1.3","1.4","3.1","3.6","3.7"], isActive: true },
+  { id: "user-chris", email: "chris@updraft.com", name: "Chris", role: "METRIC_OWNER", assignedMeasures: ["1.5","1.8","3.3","3.4","3.5","4.2","4.3","4.4","4.5","4.6","4.7","4.8","4.9","4.10"], isActive: true },
+  { id: "user-micha", email: "micha@updraft.com", name: "Micha", role: "METRIC_OWNER", assignedMeasures: ["1.2","1.6","1.7","2.1","2.2","2.3","2.4","2.5","2.6","2.7"], isActive: true },
+  { id: "user-ceo", email: "ceo@updraft.com", name: "CEO", role: "VIEWER", assignedMeasures: [], isActive: true },
+  { id: "user-david", email: "david@updraft.com", name: "David", role: "METRIC_OWNER", assignedMeasures: [], isActive: true },
 ];
 
 // ── Demo Reports ────────────────────────────────────────────────────────────────
@@ -360,7 +361,7 @@ async function main() {
   interface SeedRiskMitigation { id: string; riskId: string; action: string; owner: string | null; deadline: Date | null; status: MitigationStatus }
   interface SeedRisk {
     id: string; reference: string; name: string; description: string;
-    categoryL1: string; categoryL2: string; owner: string;
+    categoryL1: string; categoryL2: string; ownerId: string;
     inherentLikelihood: number; inherentImpact: number;
     residualLikelihood: number; residualImpact: number;
     controlEffectiveness: ControlEffectiveness | null;
@@ -375,7 +376,7 @@ async function main() {
     {
       id: "risk-001", reference: "R001", name: "Consumer Duty Non-Compliance",
       description: "Risk that Updraft fails to meet FCA Consumer Duty requirements, resulting in poor customer outcomes, regulatory sanctions, and reputational damage.",
-      categoryL1: "Conduct & Compliance Risk", categoryL2: "Products", owner: "Cath",
+      categoryL1: "Conduct & Compliance Risk", categoryL2: "Products", ownerId: "user-cath",
       inherentLikelihood: 3, inherentImpact: 5, residualLikelihood: 2, residualImpact: 4,
       controlEffectiveness: "EFFECTIVE", riskAppetite: "VERY_LOW", directionOfTravel: "IMPROVING",
       reviewFrequencyDays: 90,
@@ -392,7 +393,7 @@ async function main() {
     {
       id: "risk-002", reference: "R002", name: "Credit Model Failure",
       description: "Risk that Updraft's credit decisioning models produce inaccurate risk assessments, leading to unexpected losses or inappropriate lending decisions.",
-      categoryL1: "Credit Risk", categoryL2: "Credit Models", owner: "Ash",
+      categoryL1: "Credit Risk", categoryL2: "Credit Models", ownerId: "user-ash",
       inherentLikelihood: 3, inherentImpact: 4, residualLikelihood: 2, residualImpact: 3,
       controlEffectiveness: "EFFECTIVE", riskAppetite: "LOW", directionOfTravel: "STABLE",
       reviewFrequencyDays: 90,
@@ -407,7 +408,7 @@ async function main() {
     {
       id: "risk-003", reference: "R003", name: "Cyber Security Breach",
       description: "Risk of unauthorised access to systems or data resulting from cyber attack, social engineering, or insider threat.",
-      categoryL1: "Operational Risk", categoryL2: "Information Management & Data Security", owner: "Chris",
+      categoryL1: "Operational Risk", categoryL2: "Information Management & Data Security", ownerId: "user-chris",
       inherentLikelihood: 4, inherentImpact: 5, residualLikelihood: 2, residualImpact: 4,
       controlEffectiveness: "EFFECTIVE", riskAppetite: "VERY_LOW", directionOfTravel: "STABLE",
       reviewFrequencyDays: 90,
@@ -425,39 +426,39 @@ async function main() {
     {
       id: "risk-004", reference: "R004", name: "Liquidity & Funding Concentration",
       description: "Risk that Updraft is unable to meet its financial obligations as they fall due, or that funding sources become overly concentrated.",
-      categoryL1: "Financial Risk", categoryL2: "Liquidity & Funding", owner: "CFO",
+      categoryL1: "Financial Risk", categoryL2: "Liquidity & Funding", ownerId: "user-david",
       inherentLikelihood: 3, inherentImpact: 5, residualLikelihood: 2, residualImpact: 4,
       controlEffectiveness: "EFFECTIVE", riskAppetite: "LOW", directionOfTravel: "IMPROVING",
       reviewFrequencyDays: 90,
       lastReviewed: new Date("2026-01-31"), createdBy: "user-rob", updatedBy: "user-rob",
       controls: [
-        { id: "ctrl-004-1", riskId: "risk-004", description: "Monthly cash flow forecasting with 13-week rolling window and stress scenarios", controlOwner: "CFO", sortOrder: 0 },
-        { id: "ctrl-004-2", riskId: "risk-004", description: "Board-approved liquidity buffer of 120% of 90-day outflows", controlOwner: "CFO", sortOrder: 1 },
-        { id: "ctrl-004-3", riskId: "risk-004", description: "Funding diversification strategy with maximum single-source limit of 40%", controlOwner: "CFO", sortOrder: 2 },
+        { id: "ctrl-004-1", riskId: "risk-004", description: "Monthly cash flow forecasting with 13-week rolling window and stress scenarios", controlOwner: "David", sortOrder: 0 },
+        { id: "ctrl-004-2", riskId: "risk-004", description: "Board-approved liquidity buffer of 120% of 90-day outflows", controlOwner: "David", sortOrder: 1 },
+        { id: "ctrl-004-3", riskId: "risk-004", description: "Funding diversification strategy with maximum single-source limit of 40%", controlOwner: "David", sortOrder: 2 },
       ],
       mitigations: [],
     },
     {
       id: "risk-005", reference: "R005", name: "Key Person Dependency",
       description: "Risk that critical business knowledge and capability is concentrated in a small number of individuals, creating single points of failure.",
-      categoryL1: "Operational Risk", categoryL2: "People", owner: "COO",
+      categoryL1: "Operational Risk", categoryL2: "People", ownerId: "user-chris",
       inherentLikelihood: 4, inherentImpact: 3, residualLikelihood: 3, residualImpact: 2,
       controlEffectiveness: "PARTIALLY_EFFECTIVE", riskAppetite: "LOW_TO_MODERATE", directionOfTravel: "IMPROVING",
       reviewFrequencyDays: 90,
       lastReviewed: new Date("2026-01-20"), createdBy: "user-rob", updatedBy: "user-rob",
       controls: [
-        { id: "ctrl-005-1", riskId: "risk-005", description: "Cross-training programme for all critical roles", controlOwner: "COO", sortOrder: 0 },
-        { id: "ctrl-005-2", riskId: "risk-005", description: "Comprehensive process documentation and knowledge base", controlOwner: "COO", sortOrder: 1 },
-        { id: "ctrl-005-3", riskId: "risk-005", description: "Succession planning for all senior and specialist roles", controlOwner: "COO", sortOrder: 2 },
+        { id: "ctrl-005-1", riskId: "risk-005", description: "Cross-training programme for all critical roles", controlOwner: "Chris", sortOrder: 0 },
+        { id: "ctrl-005-2", riskId: "risk-005", description: "Comprehensive process documentation and knowledge base", controlOwner: "Chris", sortOrder: 1 },
+        { id: "ctrl-005-3", riskId: "risk-005", description: "Succession planning for all senior and specialist roles", controlOwner: "Chris", sortOrder: 2 },
       ],
       mitigations: [
-        { id: "mit-005-1", riskId: "risk-005", action: "Complete succession plans for remaining 3 specialist roles", owner: "COO", deadline: new Date("2026-04-30"), status: "OPEN" },
+        { id: "mit-005-1", riskId: "risk-005", action: "Complete succession plans for remaining 3 specialist roles", owner: "Chris", deadline: new Date("2026-04-30"), status: "OPEN" },
       ],
     },
     {
       id: "risk-006", reference: "R006", name: "Regulatory Change (FCA)",
       description: "Risk that changes in FCA regulations or supervisory expectations require significant operational or strategic adjustment that Updraft is slow to identify or implement.",
-      categoryL1: "Conduct & Compliance Risk", categoryL2: "Regulations", owner: "Cath",
+      categoryL1: "Conduct & Compliance Risk", categoryL2: "Regulations", ownerId: "user-cath",
       inherentLikelihood: 4, inherentImpact: 4, residualLikelihood: 3, residualImpact: 3,
       controlEffectiveness: "EFFECTIVE", riskAppetite: "VERY_LOW", directionOfTravel: "STABLE",
       reviewFrequencyDays: 90,

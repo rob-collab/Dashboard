@@ -21,7 +21,7 @@ function getScore(risk: Risk, mode: ScoreMode): number {
 }
 
 export default function RiskRegisterPage() {
-  const { risks, addRisk, updateRisk, deleteRisk, currentUser } = useAppStore();
+  const { risks, addRisk, updateRisk, deleteRisk, currentUser, users } = useAppStore();
   const [viewTab, setViewTab] = useState<ViewTab>("heatmap");
   const [selectedRisk, setSelectedRisk] = useState<Risk | null>(null);
   const [isNewRisk, setIsNewRisk] = useState(false);
@@ -124,7 +124,7 @@ export default function RiskRegisterPage() {
           description: data.description ?? "",
           categoryL1: data.categoryL1 ?? "",
           categoryL2: data.categoryL2 ?? "",
-          owner: data.owner ?? "",
+          ownerId: data.ownerId ?? "",
           inherentLikelihood: data.inherentLikelihood ?? 3,
           inherentImpact: data.inherentImpact ?? 3,
           residualLikelihood: data.residualLikelihood ?? 2,
@@ -360,7 +360,7 @@ export default function RiskRegisterPage() {
             <div class="risk-desc">${risk.description}</div>
             <div class="risk-meta">
               <span><strong>Category:</strong> ${risk.categoryL1} / ${risk.categoryL2}</span>
-              <span><strong>Owner:</strong> ${risk.owner}</span>
+              <span><strong>Owner:</strong> ${risk.riskOwner?.name ?? "Unknown"}</span>
               <span><strong>Inherent:</strong> ${iScore}</span>
               <span><strong>Residual:</strong> ${rScore}</span>
               <span><strong>Direction:</strong> ${risk.directionOfTravel}</span>
@@ -397,7 +397,7 @@ export default function RiskRegisterPage() {
   const handleExportCSV = useCallback(() => {
     const headers = ["Reference", "Name", "Description", "Category L1", "Category L2", "Owner", "Inherent L", "Inherent I", "Inherent Score", "Residual L", "Residual I", "Residual Score", "Direction", "Last Reviewed"];
     const rows = risks.map((r) => [
-      r.reference, r.name, r.description, r.categoryL1, r.categoryL2, r.owner,
+      r.reference, r.name, r.description, r.categoryL1, r.categoryL2, r.riskOwner?.name ?? users.find(u => u.id === r.ownerId)?.name ?? "Unknown",
       r.inherentLikelihood, r.inherentImpact, getRiskScore(r.inherentLikelihood, r.inherentImpact),
       r.residualLikelihood, r.residualImpact, getRiskScore(r.residualLikelihood, r.residualImpact),
       r.directionOfTravel, r.lastReviewed,

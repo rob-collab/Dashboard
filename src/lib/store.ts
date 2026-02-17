@@ -342,7 +342,14 @@ export const useAppStore = create<AppState>((set) => ({
     sync(() => api(`/api/actions/${id}`, { method: "PATCH", body: data }));
   },
   deleteAction: (id) => {
-    set((state) => ({ actions: state.actions.filter((a) => a.id !== id) }));
+    set((state) => ({
+      actions: state.actions.filter((a) => a.id !== id),
+      // Also remove linked mitigations from risks
+      risks: state.risks.map((r) => ({
+        ...r,
+        mitigations: r.mitigations?.filter((m) => m.actionId !== id),
+      })),
+    }));
     sync(() => api(`/api/actions/${id}`, { method: "DELETE" }));
   },
 
@@ -365,7 +372,7 @@ export const useAppStore = create<AppState>((set) => ({
   },
   // Cross-entity sync: when action status changes, update linked mitigation in local state
   syncMitigationStatus: (actionId: string, newActionStatus: string) => {
-    const mitStatusMap: Record<string, string> = { COMPLETED: "COMPLETE", IN_PROGRESS: "IN_PROGRESS", OPEN: "OPEN", OVERDUE: "OPEN" };
+    const mitStatusMap: Record<string, string> = { COMPLETED: "COMPLETE", IN_PROGRESS: "IN_PROGRESS", OPEN: "OPEN", OVERDUE: "OPEN", PROPOSED_CLOSED: "IN_PROGRESS" };
     const newMitStatus = mitStatusMap[newActionStatus] ?? "OPEN";
     set((state) => ({
       risks: state.risks.map((r) => ({

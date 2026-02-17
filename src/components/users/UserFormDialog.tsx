@@ -4,8 +4,6 @@ import { useState, useEffect } from "react";
 import Modal from "@/components/common/Modal";
 import type { User, Role } from "@/lib/types";
 import { generateId } from "@/lib/utils";
-import { RISK_CATEGORIES } from "@/lib/risk-categories";
-import { X } from "lucide-react";
 
 interface UserFormDialogProps {
   open: boolean;
@@ -32,7 +30,6 @@ export default function UserFormDialog({
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<Role>("VIEWER");
   const [measuresInput, setMeasuresInput] = useState("");
-  const [riskCategories, setRiskCategories] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Reset form whenever the dialog opens or the user prop changes
@@ -43,13 +40,11 @@ export default function UserFormDialog({
         setEmail(user.email);
         setRole(user.role);
         setMeasuresInput(user.assignedMeasures.join(", "));
-        setRiskCategories(user.riskOwnerCategories ?? []);
       } else {
         setName("");
         setEmail("");
         setRole("VIEWER");
         setMeasuresInput("");
-        setRiskCategories([]);
       }
       setErrors({});
     }
@@ -84,7 +79,6 @@ export default function UserFormDialog({
       email: email.trim(),
       role,
       assignedMeasures,
-      riskOwnerCategories: riskCategories,
       isActive: user?.isActive ?? true,
       createdAt: user?.createdAt ?? new Date().toISOString(),
       lastLoginAt: user?.lastLoginAt ?? null,
@@ -194,47 +188,6 @@ export default function UserFormDialog({
           </p>
         </div>
 
-        {/* Risk Owner Categories */}
-        <div>
-          <label className={labelClasses}>
-            Risk Owner Categories
-          </label>
-          {riskCategories.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {riskCategories.map((cat) => (
-                <span
-                  key={cat}
-                  className="inline-flex items-center gap-1 rounded-full bg-updraft-pale-purple/40 px-2.5 py-0.5 text-xs font-medium text-updraft-deep"
-                >
-                  {cat}
-                  <button
-                    type="button"
-                    onClick={() => setRiskCategories(riskCategories.filter((c) => c !== cat))}
-                    className="hover:text-red-500 transition-colors"
-                  >
-                    <X size={12} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-          <select
-            value=""
-            onChange={(e) => {
-              if (e.target.value && !riskCategories.includes(e.target.value)) {
-                setRiskCategories([...riskCategories, e.target.value]);
-              }
-            }}
-            className={inputClasses}
-          >
-            <option value="">Add a risk category...</option>
-            {RISK_CATEGORIES.map((c) => (
-              <option key={c.name} value={c.name} disabled={riskCategories.includes(c.name)}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
       </form>
     </Modal>
   );

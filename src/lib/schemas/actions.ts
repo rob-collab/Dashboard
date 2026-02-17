@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const ActionStatus = z.enum(["OPEN", "IN_PROGRESS", "COMPLETED", "OVERDUE"]);
+export const ActionStatus = z.enum(["OPEN", "IN_PROGRESS", "COMPLETED", "OVERDUE", "PROPOSED_CLOSED"]);
 
 export const CreateActionSchema = z.object({
   id: z.string().optional(),
@@ -13,6 +13,7 @@ export const CreateActionSchema = z.object({
   assignedTo: z.string().min(1, "Assignee is required"),
   dueDate: z.string().nullable().optional(),
   status: ActionStatus.optional().default("OPEN"),
+  priority: z.enum(["P1", "P2", "P3"]).nullable().optional(),
 });
 
 export const UpdateActionSchema = z.object({
@@ -24,12 +25,14 @@ export const UpdateActionSchema = z.object({
   completedAt: z.string().nullable().optional(),
   sectionId: z.string().nullable().optional(),
   sectionTitle: z.string().nullable().optional(),
+  priority: z.enum(["P1", "P2", "P3"]).nullable().optional(),
 });
 
 export const ActionQuerySchema = z.object({
   reportId: z.string().optional(),
   assignedTo: z.string().optional(),
   status: ActionStatus.optional(),
+  priority: z.enum(["P1", "P2", "P3"]).nullable().optional(),
 });
 
 export type CreateActionInput = z.infer<typeof CreateActionSchema>;

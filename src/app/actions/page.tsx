@@ -23,17 +23,25 @@ import {
 import { useAppStore } from "@/lib/store";
 // Audit logging is handled server-side by the API routes
 import { cn, formatDateShort } from "@/lib/utils";
-import type { Action, ActionStatus } from "@/lib/types";
+import type { Action, ActionStatus, ActionPriority } from "@/lib/types";
 import { api } from "@/lib/api-client";
 import ActionFormDialog from "@/components/actions/ActionFormDialog";
 import ActionChangePanel from "@/components/actions/ActionChangePanel";
 import ActionCSVUploadDialog from "@/components/actions/ActionCSVUploadDialog";
+import ActionUpdateForm from "@/components/actions/ActionUpdateForm";
 
 const STATUS_CONFIG: Record<ActionStatus, { label: string; color: string; bgColor: string; icon: typeof Circle }> = {
   OPEN: { label: "Open", color: "text-blue-600", bgColor: "bg-blue-100 text-blue-700", icon: Circle },
   IN_PROGRESS: { label: "In Progress", color: "text-amber-600", bgColor: "bg-amber-100 text-amber-700", icon: Clock },
   COMPLETED: { label: "Completed", color: "text-blue-600", bgColor: "bg-blue-100 text-blue-700", icon: CheckCircle2 },
   OVERDUE: { label: "Overdue", color: "text-red-600", bgColor: "bg-red-100 text-red-700", icon: AlertTriangle },
+  PROPOSED_CLOSED: { label: "Proposed Closed", color: "text-purple-600", bgColor: "bg-purple-100 text-purple-700", icon: CheckCircle2 },
+};
+
+const PRIORITY_CONFIG: Record<ActionPriority, { label: string; color: string; bgColor: string }> = {
+  P1: { label: "P1", color: "text-red-700", bgColor: "bg-red-100 text-red-700" },
+  P2: { label: "P2", color: "text-amber-700", bgColor: "bg-amber-100 text-amber-700" },
+  P3: { label: "P3", color: "text-slate-600", bgColor: "bg-slate-100 text-slate-600" },
 };
 
 function daysUntilDue(dueDate: string | null): number | null {
@@ -76,11 +84,16 @@ function ActionsPageContent() {
 
   const isCCRO = currentUser?.role === "CCRO_TEAM";
 
-  // Filters — initialise status from URL param
+  // Filters — initialise from URL params
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(() => {
     const param = searchParams.get("status");
-    if (param === "OPEN" || param === "IN_PROGRESS" || param === "OVERDUE" || param === "COMPLETED" || param === "DUE_THIS_MONTH") return param;
+    if (param === "OPEN" || param === "IN_PROGRESS" || param === "OVERDUE" || param === "COMPLETED" || param === "DUE_THIS_MONTH" || param === "PROPOSED_CLOSED") return param;
+    return "ALL";
+  });
+  const [priorityFilter, setPriorityFilter] = useState<string>(() => {
+    const param = searchParams.get("priority");
+    if (param === "P1" || param === "P2" || param === "P3") return param;
     return "ALL";
   });
   const [ownerFilter, setOwnerFilter] = useState<string>("ALL");
@@ -93,12 +106,26 @@ function ActionsPageContent() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showCSVImport, setShowCSVImport] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [showUpdateForm, setShowUpdateForm] = useState<string | null>(null);
 
-  // URL-synced status change
+  // URL-synced status/priority change
+  const buildUrl = useCallback((status: string, priority: string) => {
+    const params = new URLSearchParams();
+    if (status !== "ALL") params.set("status", status);
+    if (priority !== "ALL") params.set("priority", priority);
+    const qs = params.toString();
+    return qs ? `/actions?${qs}` : "/actions";
+  }, []);
+
   const handleStatusChange = useCallback((value: string) => {
     setStatusFilter(value);
-    router.replace(value === "ALL" ? "/actions" : `/actions?status=${value}`, { scroll: false });
-  }, [router]);
+    router.replace(buildUrl(value, priorityFilter), { scroll: false });
+  }, [router, buildUrl, priorityFilter]);
+
+  const handlePriorityChange = useCallback((value: string) => {
+    setPriorityFilter(value);
+    router.replace(buildUrl(statusFilter, value), { scroll: false });
+  }, [router, buildUrl, statusFilter]);
 
   const handleStatClick = useCallback((filterKey: string) => {
     handleStatusChange(statusFilter === filterKey ? "ALL" : filterKey);
@@ -115,7 +142,10 @@ function ActionsPageContent() {
       return days !== null && days > 0 && days <= 30;
     }).length;
     const completed = actions.filter((a) => a.status === "COMPLETED").length;
-    return { total, open, overdue, dueThisMonth, completed };
+    const p1 = actions.filter((a) => a.priority === "P1" && a.status !== "COMPLETED").length;
+    const p2 = actions.filter((a) => a.priority === "P2" && a.status !== "COMPLETED").length;
+    const p3 = actions.filter((a) => a.priority === "P3" && a.status !== "COMPLETED").length;
+    return { total, open, overdue, dueThisMonth, completed, p1, p2, p3 };
   }, [actions]);
 
   // Filtered actions — handles virtual filter values (OPEN, DUE_THIS_MONTH, OVERDUE)
@@ -135,6 +165,7 @@ function ActionsPageContent() {
           if (a.status !== statusFilter) return false;
         }
       }
+      if (priorityFilter !== "ALL" && a.priority !== priorityFilter) return false;
       if (ownerFilter !== "ALL" && a.assignedTo !== ownerFilter) return false;
       if (reportFilter !== "ALL" && a.reportId !== reportFilter) return false;
       if (sourceFilter !== "ALL") {
@@ -155,7 +186,7 @@ function ActionsPageContent() {
       }
       return true;
     });
-  }, [actions, statusFilter, ownerFilter, reportFilter, sourceFilter, search, users]);
+  }, [actions, statusFilter, priorityFilter, ownerFilter, reportFilter, sourceFilter, search, users]);
 
   const handleCreateAction = useCallback((action: Action) => {
     addAction(action);
@@ -210,6 +241,27 @@ function ActionsPageContent() {
     }
   }, [updateAction]);
 
+  const handleSubmitUpdate = useCallback(async (actionId: string, data: { updateText: string; evidenceUrl: string | null; evidenceName: string | null }) => {
+    try {
+      await api(`/api/actions/${actionId}/changes`, {
+        method: "POST",
+        body: {
+          fieldChanged: "update",
+          oldValue: null,
+          newValue: data.updateText,
+          isUpdate: true,
+          evidenceUrl: data.evidenceUrl,
+          evidenceName: data.evidenceName,
+        },
+      });
+      const updated = await api<Action>(`/api/actions/${actionId}`);
+      updateAction(actionId, updated);
+      setShowUpdateForm(null);
+    } catch (err) {
+      console.error("Failed to submit update:", err);
+    }
+  }, [updateAction]);
+
   const handleExport = useCallback(() => {
     const params = new URLSearchParams();
     if (statusFilter !== "ALL") params.set("status", statusFilter);
@@ -229,11 +281,17 @@ function ActionsPageContent() {
   const expandedAction = expandedId ? actions.find((a) => a.id === expandedId) : null;
 
   const statCards = [
-    { label: "Total", value: stats.total, color: "text-gray-700", bg: "bg-gray-50", filterKey: "ALL" },
-    { label: "Open", value: stats.open, color: "text-blue-700", bg: "bg-blue-50", filterKey: "OPEN" },
-    { label: "Overdue", value: stats.overdue, color: "text-red-700", bg: "bg-red-50", filterKey: "OVERDUE" },
-    { label: "Due This Month", value: stats.dueThisMonth, color: "text-amber-700", bg: "bg-amber-50", filterKey: "DUE_THIS_MONTH" },
-    { label: "Completed", value: stats.completed, color: "text-blue-700", bg: "bg-blue-50", filterKey: "COMPLETED" },
+    { label: "Total", value: stats.total, color: "text-gray-700", bg: "bg-gray-50", filterKey: "ALL", type: "status" as const },
+    { label: "Open", value: stats.open, color: "text-blue-700", bg: "bg-blue-50", filterKey: "OPEN", type: "status" as const },
+    { label: "Overdue", value: stats.overdue, color: "text-red-700", bg: "bg-red-50", filterKey: "OVERDUE", type: "status" as const },
+    { label: "Due This Month", value: stats.dueThisMonth, color: "text-amber-700", bg: "bg-amber-50", filterKey: "DUE_THIS_MONTH", type: "status" as const },
+    { label: "Completed", value: stats.completed, color: "text-blue-700", bg: "bg-blue-50", filterKey: "COMPLETED", type: "status" as const },
+  ];
+
+  const priorityCards = [
+    { label: "P1 Critical", value: stats.p1, color: "text-red-700", bg: "bg-red-50", filterKey: "P1" },
+    { label: "P2 Important", value: stats.p2, color: "text-amber-700", bg: "bg-amber-50", filterKey: "P2" },
+    { label: "P3 Routine", value: stats.p3, color: "text-slate-600", bg: "bg-slate-50", filterKey: "P3" },
   ];
 
   return (
@@ -271,7 +329,28 @@ function ActionsPageContent() {
         )}
       </div>
 
-      {/* Stats — clickable with active highlight */}
+      {/* Priority cards */}
+      <div className="grid grid-cols-3 gap-3">
+        {priorityCards.map((p) => (
+          <button
+            key={p.filterKey}
+            onClick={() => handlePriorityChange(priorityFilter === p.filterKey ? "ALL" : p.filterKey)}
+            className={cn(
+              "rounded-xl border p-3 text-left transition-all cursor-pointer",
+              p.bg,
+              priorityFilter === p.filterKey
+                ? "border-updraft-bright-purple ring-2 ring-updraft-bright-purple/30"
+                : "border-gray-200 hover:border-gray-300"
+            )}
+          >
+            <p className="text-xs text-gray-500">{p.label}</p>
+            <p className={cn("text-2xl font-bold font-poppins", p.color)}>{p.value}</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">active actions</p>
+          </button>
+        ))}
+      </div>
+
+      {/* Status stats — clickable with active highlight */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {statCards.map((s) => (
           <button
@@ -316,7 +395,7 @@ function ActionsPageContent() {
       </div>
 
       {showFilters && (
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-4 rounded-lg border border-gray-200 bg-gray-50/50">
+        <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 p-4 rounded-lg border border-gray-200 bg-gray-50/50">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
             <select
@@ -330,6 +409,20 @@ function ActionsPageContent() {
               <option value="OVERDUE">Overdue</option>
               <option value="DUE_THIS_MONTH">Due This Month</option>
               <option value="COMPLETED">Completed</option>
+              <option value="PROPOSED_CLOSED">Proposed Closed</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Priority</label>
+            <select
+              value={priorityFilter}
+              onChange={(e) => handlePriorityChange(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm outline-none focus:border-updraft-light-purple"
+            >
+              <option value="ALL">All Priorities</option>
+              <option value="P1">P1 — Critical</option>
+              <option value="P2">P2 — Important</option>
+              <option value="P3">P3 — Routine</option>
             </select>
           </div>
           <div>
@@ -413,6 +506,11 @@ function ActionsPageContent() {
                     {/* Title + Report */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
+                        {action.priority && (
+                          <span className={cn("inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold shrink-0", PRIORITY_CONFIG[action.priority].bgColor)}>
+                            {action.priority}
+                          </span>
+                        )}
                         <p className="text-sm font-medium text-gray-900 truncate">{action.title}</p>
                         {action.source === "Risk Register" && (
                           <span className="inline-flex items-center gap-0.5 rounded-full bg-updraft-pale-purple/40 px-1.5 py-0.5 text-[9px] font-semibold text-updraft-deep shrink-0">
@@ -526,15 +624,34 @@ function ActionsPageContent() {
                               </>
                             )}
                             {!isCCRO && expandedAction.assignedTo === currentUser?.id && expandedAction.status !== "COMPLETED" && (
-                              <button
-                                onClick={() => handleProposeChange(expandedAction.id, "status", expandedAction.status, "COMPLETED")}
-                                className="rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100 transition-colors"
-                              >
-                                Propose Complete
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => setShowUpdateForm(showUpdateForm === expandedAction.id ? null : expandedAction.id)}
+                                  className="rounded-lg border border-updraft-light-purple bg-updraft-pale-purple/20 px-3 py-1.5 text-xs font-medium text-updraft-deep hover:bg-updraft-pale-purple/40 transition-colors"
+                                >
+                                  Add Update
+                                </button>
+                                <button
+                                  onClick={() => handleProposeChange(expandedAction.id, "status", expandedAction.status, "PROPOSED_CLOSED")}
+                                  className="rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100 transition-colors"
+                                >
+                                  Propose Closed
+                                </button>
+                              </>
                             )}
                           </div>
                         </div>
+
+                        {/* Update Form (non-CCRO) */}
+                        {showUpdateForm === expandedAction.id && (
+                          <div className="lg:col-span-2">
+                            <ActionUpdateForm
+                              actionId={expandedAction.id}
+                              onSubmit={(data) => handleSubmitUpdate(expandedAction.id, data)}
+                              onCancel={() => setShowUpdateForm(null)}
+                            />
+                          </div>
+                        )}
 
                         {/* Right: Change History */}
                         <div className="lg:col-span-1">

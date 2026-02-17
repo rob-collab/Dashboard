@@ -5,7 +5,7 @@ import { serialiseDates } from "@/lib/serialise";
 
 const querySchema = z.object({
   categoryL1: z.string().optional(),
-  owner: z.string().optional(),
+  ownerId: z.string().optional(),
   directionOfTravel: z.enum(["IMPROVING", "STABLE", "DETERIORATING"]).optional(),
 });
 
@@ -14,7 +14,7 @@ const createSchema = z.object({
   description: z.string().min(1),
   categoryL1: z.string().min(1),
   categoryL2: z.string().min(1),
-  owner: z.string().min(1),
+  ownerId: z.string().min(1),
   inherentLikelihood: z.number().int().min(1).max(5),
   inherentImpact: z.number().int().min(1).max(5),
   residualLikelihood: z.number().int().min(1).max(5),
@@ -40,17 +40,18 @@ export async function GET(request: NextRequest) {
   try {
     const result = validateQuery(querySchema, request.nextUrl.searchParams);
     if ("error" in result) return result.error;
-    const { categoryL1, owner, directionOfTravel } = result.data;
+    const { categoryL1, ownerId, directionOfTravel } = result.data;
 
     const risks = await prisma.risk.findMany({
       where: {
         ...(categoryL1 && { categoryL1 }),
-        ...(owner && { owner }),
+        ...(ownerId && { ownerId }),
         ...(directionOfTravel && { directionOfTravel }),
       },
       include: {
         controls: { orderBy: { sortOrder: "asc" } },
         mitigations: { orderBy: { createdAt: "asc" } },
+        riskOwner: true,
       },
       orderBy: { reference: "asc" },
     });
@@ -76,13 +77,6 @@ export async function POST(request: NextRequest) {
     const lastRisk = await prisma.risk.findFirst({ orderBy: { reference: "desc" } });
     const nextNum = lastRisk ? parseInt(lastRisk.reference.replace("R", ""), 10) + 1 : 1;
     const reference = `R${String(nextNum).padStart(3, "0")}`;
-
-    // Helper: resolve owner name to user ID (case-insensitive, fallback to createdBy)
-    const resolveOwnerToUserId = async (ownerName: string | null | undefined, fallback: string): Promise<string> => {
-      if (!ownerName) return fallback;
-      const user = await prisma.user.findFirst({ where: { name: { equals: ownerName, mode: "insensitive" } } });
-      return user?.id ?? fallback;
-    };
 
     // Map mitigation status to action status
     const mitigationToActionStatus = (ms: string): "OPEN" | "IN_PROGRESS" | "COMPLETED" => {
@@ -118,13 +112,18 @@ export async function POST(request: NextRequest) {
       include: {
         controls: { orderBy: { sortOrder: "asc" } },
         mitigations: { orderBy: { createdAt: "asc" } },
+        riskOwner: true,
       },
     });
 
     // Auto-create linked Actions for each mitigation
     if (risk.mitigations.length > 0) {
       for (const mit of risk.mitigations) {
-        const assigneeId = await resolveOwnerToUserId(mit.owner, userId);
+        let assigneeId = userId;
+        if (mit.owner) {
+          const ownerUser = await prisma.user.findFirst({ where: { name: { equals: mit.owner, mode: "insensitive" } } });
+          if (ownerUser) assigneeId = ownerUser.id;
+        }
         const linkedAction = await prisma.action.create({
           data: {
             title: mit.action,
@@ -149,6 +148,7 @@ export async function POST(request: NextRequest) {
       include: {
         controls: { orderBy: { sortOrder: "asc" } },
         mitigations: { orderBy: { createdAt: "asc" } },
+        riskOwner: true,
       },
     });
 

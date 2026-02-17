@@ -8,7 +8,7 @@ const updateSchema = z.object({
   description: z.string().min(1).optional(),
   categoryL1: z.string().min(1).optional(),
   categoryL2: z.string().min(1).optional(),
-  owner: z.string().min(1).optional(),
+  ownerId: z.string().min(1).optional(),
   inherentLikelihood: z.number().int().min(1).max(5).optional(),
   inherentImpact: z.number().int().min(1).max(5).optional(),
   residualLikelihood: z.number().int().min(1).max(5).optional(),
@@ -46,6 +46,7 @@ export async function GET(
         controls: { orderBy: { sortOrder: "asc" } },
         mitigations: { orderBy: { createdAt: "asc" } },
         auditTrail: { orderBy: { changedAt: "desc" }, take: 50 },
+        riskOwner: true,
       },
     });
 
@@ -105,10 +106,10 @@ export async function PATCH(
       // Fetch existing mitigations with their actionIds
       const existingMits = await prisma.riskMitigation.findMany({ where: { riskId: id } });
 
-      // Delete all existing mitigations (but unlink their actions first)
+      // Delete linked actions and then all existing mitigations
       for (const em of existingMits) {
         if (em.actionId) {
-          await prisma.riskMitigation.update({ where: { id: em.id }, data: { actionId: null } });
+          await prisma.action.delete({ where: { id: em.actionId } }).catch(() => {});
         }
       }
       await prisma.riskMitigation.deleteMany({ where: { riskId: id } });
@@ -160,6 +161,7 @@ export async function PATCH(
       include: {
         controls: { orderBy: { sortOrder: "asc" } },
         mitigations: { orderBy: { createdAt: "asc" } },
+        riskOwner: true,
       },
     });
 

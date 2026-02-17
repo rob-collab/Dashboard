@@ -33,7 +33,7 @@ export async function POST(
     if (!action) return errorResponse("Action not found", 404);
 
     const body = await request.json();
-    const { fieldChanged, oldValue, newValue } = body;
+    const { fieldChanged, oldValue, newValue, evidenceUrl, evidenceName, isUpdate } = body;
 
     if (!fieldChanged) return errorResponse("fieldChanged is required");
 
@@ -44,6 +44,9 @@ export async function POST(
         fieldChanged,
         oldValue: oldValue ?? null,
         newValue: newValue ?? null,
+        ...(evidenceUrl !== undefined && { evidenceUrl }),
+        ...(evidenceName !== undefined && { evidenceName }),
+        ...(isUpdate !== undefined && { isUpdate }),
       },
       include: { proposer: true },
     });

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Modal from "@/components/common/Modal";
-import type { Action, ActionStatus, Report, User } from "@/lib/types";
+import type { Action, ActionStatus, ActionPriority, Report, User } from "@/lib/types";
 import { generateId } from "@/lib/utils";
 
 interface ActionFormDialogProps {
@@ -20,6 +20,13 @@ const STATUS_OPTIONS: { value: ActionStatus; label: string }[] = [
   { value: "IN_PROGRESS", label: "In Progress" },
   { value: "COMPLETED", label: "Completed" },
   { value: "OVERDUE", label: "Overdue" },
+  { value: "PROPOSED_CLOSED", label: "Proposed Closed" },
+];
+
+const PRIORITY_OPTIONS: { value: ActionPriority; label: string }[] = [
+  { value: "P1", label: "P1 — Critical" },
+  { value: "P2", label: "P2 — Important" },
+  { value: "P3", label: "P3 — Routine" },
 ];
 
 export default function ActionFormDialog({
@@ -42,6 +49,7 @@ export default function ActionFormDialog({
   const [assignedTo, setAssignedTo] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [status, setStatus] = useState<ActionStatus>("OPEN");
+  const [priority, setPriority] = useState<ActionPriority | "">("P2");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -56,6 +64,7 @@ export default function ActionFormDialog({
         setAssignedTo(action.assignedTo);
         setDueDate(action.dueDate ? action.dueDate.split("T")[0] : "");
         setStatus(action.status);
+        setPriority(action.priority ?? "P2");
       } else {
         setTitle("");
         setDescription("");
@@ -66,6 +75,7 @@ export default function ActionFormDialog({
         setAssignedTo("");
         setDueDate("");
         setStatus("OPEN");
+        setPriority("P2");
       }
       setErrors({});
     }
@@ -99,6 +109,7 @@ export default function ActionFormDialog({
       title: title.trim(),
       description: description.trim(),
       status,
+      priority: priority || null,
       assignedTo,
       createdBy: action?.createdBy ?? currentUserId,
       dueDate: dueDate ? new Date(dueDate).toISOString() : null,
@@ -251,22 +262,40 @@ export default function ActionFormDialog({
           </div>
         </div>
 
-        {/* Status (only visible in edit mode) */}
-        {isEdit && (
+        <div className="grid grid-cols-2 gap-4">
+          {/* Priority */}
           <div>
-            <label htmlFor="action-status" className={labelClasses}>Status</label>
+            <label htmlFor="action-priority" className={labelClasses}>Priority</label>
             <select
-              id="action-status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value as ActionStatus)}
+              id="action-priority"
+              value={priority}
+              onChange={(e) => setPriority(e.target.value as ActionPriority | "")}
               className={inputClasses}
             >
-              {STATUS_OPTIONS.map((opt) => (
+              <option value="">No priority</option>
+              {PRIORITY_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
           </div>
-        )}
+
+          {/* Status (only visible in edit mode) */}
+          {isEdit && (
+            <div>
+              <label htmlFor="action-status" className={labelClasses}>Status</label>
+              <select
+                id="action-status"
+                value={status}
+                onChange={(e) => setStatus(e.target.value as ActionStatus)}
+                className={inputClasses}
+              >
+                {STATUS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
       </form>
     </Modal>
   );

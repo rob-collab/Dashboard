@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import type { Risk } from "@/lib/types";
+import { useAppStore } from "@/lib/store";
 import { L1_CATEGORY_COLOURS, L1_CATEGORIES, getRiskScore } from "@/lib/risk-categories";
 import ScoreBadge from "./ScoreBadge";
 import DirectionArrow from "./DirectionArrow";
@@ -16,6 +17,8 @@ interface RiskTableProps {
 }
 
 export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
+  const storeUsers = useAppStore((s) => s.users);
+  const getOwnerName = (risk: Risk) => risk.riskOwner?.name ?? storeUsers.find(u => u.id === risk.ownerId)?.name ?? "Unknown";
   const [sortField, setSortField] = useState<SortField>("reference");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [search, setSearch] = useState("");
@@ -23,18 +26,25 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
   const [filterOwner, setFilterOwner] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
 
-  const owners = useMemo(() => Array.from(new Set(risks.map((r) => r.owner))).sort(), [risks]);
+  const owners = useMemo(() => {
+    const ownerMap = new Map<string, string>();
+    risks.forEach((r) => {
+      const name = getOwnerName(r);
+      ownerMap.set(r.ownerId, name);
+    });
+    return Array.from(ownerMap.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+  }, [risks]);
 
   const filtered = useMemo(() => {
     let result = risks;
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(
-        (r) => r.reference.toLowerCase().includes(q) || r.name.toLowerCase().includes(q) || r.owner.toLowerCase().includes(q)
+        (r) => r.reference.toLowerCase().includes(q) || r.name.toLowerCase().includes(q) || getOwnerName(r).toLowerCase().includes(q)
       );
     }
     if (filterL1) result = result.filter((r) => r.categoryL1 === filterL1);
-    if (filterOwner) result = result.filter((r) => r.owner === filterOwner);
+    if (filterOwner) result = result.filter((r) => r.ownerId === filterOwner);
     return result;
   }, [risks, search, filterL1, filterOwner]);
 
@@ -45,7 +55,7 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
         case "reference": cmp = a.reference.localeCompare(b.reference); break;
         case "name": cmp = a.name.localeCompare(b.name); break;
         case "categoryL1": cmp = a.categoryL1.localeCompare(b.categoryL1); break;
-        case "owner": cmp = a.owner.localeCompare(b.owner); break;
+        case "owner": cmp = getOwnerName(a).localeCompare(getOwnerName(b)); break;
         case "inherent": cmp = getRiskScore(a.inherentLikelihood, a.inherentImpact) - getRiskScore(b.inherentLikelihood, b.inherentImpact); break;
         case "residual": cmp = getRiskScore(a.residualLikelihood, a.residualImpact) - getRiskScore(b.residualLikelihood, b.residualImpact); break;
         case "direction": cmp = a.directionOfTravel.localeCompare(b.directionOfTravel); break;
@@ -119,8 +129,8 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
             className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white"
           >
             <option value="">All Owners</option>
-            {owners.map((o) => (
-              <option key={o} value={o}>{o}</option>
+            {owners.map(([id, name]) => (
+              <option key={id} value={id}>{name}</option>
             ))}
           </select>
           {(filterL1 || filterOwner) && (
@@ -181,7 +191,7 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
                       {catColour?.label ?? risk.categoryL1}
                     </span>
                   </td>
-                  <td className="px-3 py-3 text-gray-600">{risk.owner}</td>
+                  <td className="px-3 py-3 text-gray-600">{getOwnerName(risk)}</td>
                   <td className="px-3 py-3">
                     <ScoreBadge likelihood={risk.inherentLikelihood} impact={risk.inherentImpact} size="sm" />
                   </td>

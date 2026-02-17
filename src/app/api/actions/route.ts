@@ -8,12 +8,13 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const validation = validateQuery(ActionQuerySchema, searchParams);
   if ('error' in validation) return validation.error;
-  const { reportId, assignedTo, status } = validation.data;
+  const { reportId, assignedTo, status, priority } = validation.data;
 
   const where: Record<string, unknown> = {};
   if (reportId) where.reportId = reportId;
   if (assignedTo) where.assignedTo = assignedTo;
   if (status) where.status = status;
+  if (priority) where.priority = priority;
 
   const actions = await prisma.action.findMany({
     where,

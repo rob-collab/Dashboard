@@ -19,6 +19,15 @@ import { cn, formatDate } from "@/lib/utils";
 import type { Role, User } from "@/lib/types";
 import { logAuditEvent } from "@/lib/audit";
 
+function useOwnedRiskCounts() {
+  const risks = useAppStore((s) => s.risks);
+  const counts = new Map<string, number>();
+  risks.forEach((r) => {
+    counts.set(r.ownerId, (counts.get(r.ownerId) ?? 0) + 1);
+  });
+  return counts;
+}
+
 const ROLE_CONFIG: Record<Role, { label: string; color: string; description: string }> = {
   CCRO_TEAM: {
     label: "CCRO Team",
@@ -41,6 +50,7 @@ export default function UsersPage() {
   const users = useAppStore((s) => s.users);
   const addUser = useAppStore((s) => s.addUser);
   const updateUser = useAppStore((s) => s.updateUser);
+  const ownedRiskCounts = useOwnedRiskCounts();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<Role | "ALL">("ALL");
@@ -191,7 +201,7 @@ export default function UsersPage() {
                 <th className="border-b border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Role</th>
                 <th className="border-b border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Status</th>
                 <th className="border-b border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Assigned Measures</th>
-                <th className="border-b border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Risk Categories</th>
+                <th className="border-b border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Owned Risks</th>
                 <th className="border-b border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Last Login</th>
                 <th className="border-b border-gray-200 px-4 py-3 text-right font-semibold text-gray-700">Actions</th>
               </tr>
@@ -255,14 +265,10 @@ export default function UsersPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {(user.riskOwnerCategories ?? []).length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {(user.riskOwnerCategories ?? []).map((cat) => (
-                            <span key={cat} className="inline-flex rounded-full bg-updraft-pale-purple/40 px-2 py-0.5 text-[10px] font-medium text-updraft-deep">
-                              {cat}
-                            </span>
-                          ))}
-                        </div>
+                      {(ownedRiskCounts.get(user.id) ?? 0) > 0 ? (
+                        <span className="inline-flex items-center justify-center rounded-full bg-updraft-pale-purple/40 px-2.5 py-0.5 text-xs font-semibold text-updraft-deep">
+                          {ownedRiskCounts.get(user.id)}
+                        </span>
                       ) : (
                         <span className="text-xs text-gray-400">&mdash;</span>
                       )}

@@ -53,7 +53,9 @@ export async function PATCH(
     if (validatedData.status !== undefined) {
       data.status = validatedData.status;
       if (validatedData.status === "COMPLETED") data.completedAt = new Date();
+      // PROPOSED_CLOSED should NOT set completedAt
     }
+    if (validatedData.priority !== undefined) data.priority = validatedData.priority;
     if (validatedData.assignedTo !== undefined) data.assignedTo = validatedData.assignedTo;
     if (validatedData.dueDate !== undefined) data.dueDate = validatedData.dueDate ? new Date(validatedData.dueDate) : null;
     if (validatedData.sectionId !== undefined) data.sectionId = validatedData.sectionId;

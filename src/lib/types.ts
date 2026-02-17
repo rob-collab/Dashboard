@@ -12,7 +12,8 @@ export type SectionType =
   | "ACCORDION"
   | "IMAGE_BLOCK";
 
-export type ActionStatus = "OPEN" | "IN_PROGRESS" | "COMPLETED" | "OVERDUE";
+export type ActionStatus = "OPEN" | "IN_PROGRESS" | "COMPLETED" | "OVERDUE" | "PROPOSED_CLOSED";
+export type ActionPriority = "P1" | "P2" | "P3";
 export type ChangeStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 export interface ImageBlockContent {
@@ -41,7 +42,6 @@ export interface User {
   name: string;
   role: Role;
   assignedMeasures: string[];
-  riskOwnerCategories: string[];
   isActive: boolean;
   createdAt: string;
   lastLoginAt: string | null;
@@ -213,6 +213,7 @@ export interface Action {
   title: string;
   description: string;
   status: ActionStatus;
+  priority: ActionPriority | null;
   assignedTo: string;
   assignee?: User;
   createdBy: string;
@@ -240,6 +241,9 @@ export interface ActionChange {
   reviewer?: User;
   reviewedAt: string | null;
   reviewNote: string | null;
+  evidenceUrl: string | null;
+  evidenceName: string | null;
+  isUpdate: boolean;
 }
 
 export interface AuditLogEntry {
@@ -313,7 +317,8 @@ export interface Risk {
   description: string;
   categoryL1: string;
   categoryL2: string;
-  owner: string;
+  ownerId: string;
+  riskOwner?: User;
   inherentLikelihood: number;
   inherentImpact: number;
   residualLikelihood: number;

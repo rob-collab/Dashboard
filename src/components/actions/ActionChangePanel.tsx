@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, X, Clock, MessageSquare } from "lucide-react";
+import { Check, X, Clock, MessageSquare, FileText, Paperclip } from "lucide-react";
 import type { ActionChange, ChangeStatus } from "@/lib/types";
 import { cn, formatDate } from "@/lib/utils";
 
@@ -64,19 +64,47 @@ export default function ActionChangePanel({
                     <Icon size={10} />
                     {config.label}
                   </span>
-                  <span className="text-xs text-gray-500">
-                    {FIELD_LABELS[change.fieldChanged] || change.fieldChanged}
-                  </span>
+                  {change.isUpdate ? (
+                    <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+                      <FileText size={10} /> Progress Update
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-500">
+                      {FIELD_LABELS[change.fieldChanged] || change.fieldChanged}
+                    </span>
+                  )}
                 </div>
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="text-gray-400 line-through truncate max-w-[200px]">
-                    {change.oldValue || "(empty)"}
-                  </span>
-                  <span className="text-gray-300">&rarr;</span>
-                  <span className="text-gray-700 font-medium truncate max-w-[200px]">
+
+                {change.isUpdate ? (
+                  <p className="text-xs text-gray-700 whitespace-pre-wrap mt-1">
                     {change.newValue || "(empty)"}
-                  </span>
-                </div>
+                  </p>
+                ) : (
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="text-gray-400 line-through truncate max-w-[200px]">
+                      {change.oldValue || "(empty)"}
+                    </span>
+                    <span className="text-gray-300">&rarr;</span>
+                    <span className="text-gray-700 font-medium truncate max-w-[200px]">
+                      {change.newValue || "(empty)"}
+                    </span>
+                  </div>
+                )}
+
+                {change.evidenceUrl && (
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <Paperclip size={11} className="text-updraft-bright-purple shrink-0" />
+                    <a
+                      href={change.evidenceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-updraft-bright-purple hover:underline truncate"
+                    >
+                      {change.evidenceName || "Evidence attachment"}
+                    </a>
+                  </div>
+                )}
+
                 <div className="flex items-center gap-2 mt-1 text-[11px] text-gray-400">
                   <span>by {change.proposer?.name || "Unknown"}</span>
                   <span>&middot;</span>
