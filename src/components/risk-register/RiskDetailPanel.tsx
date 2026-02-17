@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { Risk, RiskControl, RiskMitigation, ControlEffectiveness, RiskAppetite, DirectionOfTravel, MitigationStatus } from "@/lib/types";
+import type { Risk, RiskControl, RiskMitigation, ControlEffectiveness, RiskAppetite, DirectionOfTravel, MitigationStatus, ActionPriority } from "@/lib/types";
 import { useAppStore } from "@/lib/store";
 import {
   LIKELIHOOD_SCALE,
@@ -36,12 +36,24 @@ interface FormMitigation {
   owner: string;
   deadline: string;
   status: MitigationStatus;
+  priority: string;
   actionId?: string | null;
 }
 
 export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete, onViewHistory }: RiskDetailPanelProps) {
   const users = useAppStore((s) => s.users);
   const storeCategories = useAppStore((s) => s.riskCategories);
+  const priorityDefinitions = useAppStore((s) => s.priorityDefinitions);
+
+  const activeUsers = users.filter((u) => u.isActive !== false);
+  const PRIORITY_OPTIONS: { value: ActionPriority; label: string }[] =
+    priorityDefinitions.length > 0
+      ? priorityDefinitions.map((d) => ({ value: d.code as ActionPriority, label: `${d.code} — ${d.label}` }))
+      : [
+          { value: "P1", label: "P1 — Critical" },
+          { value: "P2", label: "P2 — Important" },
+          { value: "P3", label: "P3 — Routine" },
+        ];
 
   // Use DB categories if available, fallback to hardcoded
   const categorySource = storeCategories.length > 0
@@ -94,6 +106,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
       setMitigations(risk.mitigations?.map((m) => ({
         id: m.id, action: m.action, owner: m.owner ?? "",
         deadline: m.deadline ? m.deadline.split("T")[0] : "", status: m.status,
+        priority: m.priority ?? "",
         actionId: m.actionId,
       })) ?? []);
     }
@@ -115,6 +128,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
       mitigations: mitigations.filter((m) => m.action.trim()).map((m) => ({
         action: m.action, owner: m.owner || null,
         deadline: m.deadline || null, status: m.status,
+        priority: m.priority || null,
       })),
     };
     onSave(data as Partial<Risk> & { controls?: Partial<RiskControl>[]; mitigations?: Partial<RiskMitigation>[] });
@@ -294,16 +308,20 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                   placeholder="Control description"
                   className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
                 />
-                <input
+                <select
                   value={ctrl.controlOwner}
                   onChange={(e) => {
                     const next = [...controls];
                     next[i] = { ...next[i], controlOwner: e.target.value };
                     setControls(next);
                   }}
-                  placeholder="Owner"
-                  className="w-24 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
-                />
+                  className="w-36 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
+                >
+                  <option value="">Owner...</option>
+                  {activeUsers.map((u) => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                </select>
                 <button
                   onClick={() => setControls(controls.filter((_, j) => j !== i))}
                   className="p-2 text-gray-400 hover:text-red-500 transition-colors"
@@ -495,17 +513,35 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
-                <div className="flex gap-2">
-                  <input
+                <div className="flex gap-2 flex-wrap">
+                  <select
                     value={mit.owner}
                     onChange={(e) => {
                       const next = [...mitigations];
                       next[i] = { ...next[i], owner: e.target.value };
                       setMitigations(next);
                     }}
-                    placeholder="Owner"
-                    className="w-28 px-3 py-1.5 text-xs border border-gray-200 rounded-lg bg-white"
-                  />
+                    className="w-36 px-3 py-1.5 text-xs border border-gray-200 rounded-lg bg-white"
+                  >
+                    <option value="">Owner...</option>
+                    {activeUsers.map((u) => (
+                      <option key={u.id} value={u.id}>{u.name}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={mit.priority}
+                    onChange={(e) => {
+                      const next = [...mitigations];
+                      next[i] = { ...next[i], priority: e.target.value };
+                      setMitigations(next);
+                    }}
+                    className="w-32 px-3 py-1.5 text-xs border border-gray-200 rounded-lg bg-white"
+                  >
+                    <option value="">Priority...</option>
+                    {PRIORITY_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
                   <input
                     type="date"
                     value={mit.deadline}
@@ -533,7 +569,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
               </div>
             ))}
             <button
-              onClick={() => setMitigations([...mitigations, { action: "", owner: "", deadline: "", status: "OPEN" }])}
+              onClick={() => setMitigations([...mitigations, { action: "", owner: "", deadline: "", status: "OPEN", priority: "" }])}
               className="flex items-center gap-1.5 text-sm text-updraft-bright-purple hover:text-updraft-deep transition-colors"
             >
               <Plus className="w-4 h-4" /> Add mitigation action

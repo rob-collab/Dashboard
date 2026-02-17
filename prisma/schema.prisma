@@ -426,6 +426,7 @@ model RiskMitigation {
   owner        String?
   deadline     DateTime?        @db.Date
   status       MitigationStatus @default(OPEN)
+  priority     ActionPriority?
   actionId     String?          @unique
   linkedAction Action?          @relation("MitigationAction", fields: [actionId], references: [id], onDelete: Cascade)
   createdAt    DateTime         @default(now())

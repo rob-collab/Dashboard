@@ -31,6 +31,7 @@ const updateSchema = z.object({
     owner: z.string().nullable().optional(),
     deadline: z.string().nullable().optional(),
     status: z.enum(["OPEN", "IN_PROGRESS", "COMPLETE"]).optional(),
+    priority: z.enum(["P1", "P2", "P3"]).nullable().optional(),
   })).optional(),
 });
 
@@ -146,6 +147,7 @@ export async function PATCH(
             description: `Mitigation action from Risk ${existing.reference}: ${existing.name}`,
             source: "Risk Register",
             status: mitToActionStatus(m.status ?? "OPEN"),
+            priority: m.priority ?? null,
             assignedTo: assigneeId,
             createdBy: userId,
             dueDate: m.deadline ? new Date(m.deadline) : null,
@@ -158,6 +160,7 @@ export async function PATCH(
             owner: m.owner ?? null,
             deadline: m.deadline ? new Date(m.deadline) : null,
             status: m.status ?? "OPEN",
+            priority: m.priority ?? null,
             actionId: linkedAction.id,
           },
         });

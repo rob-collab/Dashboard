@@ -159,6 +159,7 @@ export default function RiskRegisterPage() {
             owner: m.owner ?? null,
             deadline: m.deadline ?? null,
             status: m.status ?? "OPEN",
+            priority: m.priority ?? null,
             actionId: null,
             createdAt: new Date().toISOString(),
           })),

@@ -286,6 +286,7 @@ export interface RiskMitigation {
   owner: string | null;
   deadline: string | null;
   status: MitigationStatus;
+  priority: ActionPriority | null;
   actionId: string | null;
   createdAt: string;
 }
