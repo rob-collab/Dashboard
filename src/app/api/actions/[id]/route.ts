@@ -19,6 +19,7 @@ export async function GET(
           include: { proposer: true, reviewer: true },
           orderBy: { proposedAt: "desc" },
         },
+        linkedMitigation: true,
       },
     });
     if (!action) return errorResponse("Action not found", 404);
@@ -61,8 +62,20 @@ export async function PATCH(
     const updated = await prisma.action.update({
       where: { id },
       data,
-      include: { assignee: true, creator: true, changes: { orderBy: { proposedAt: "desc" } } },
+      include: { assignee: true, creator: true, changes: { orderBy: { proposedAt: "desc" } }, linkedMitigation: true },
     });
+
+    // Reverse sync: if status changed and there's a linked mitigation, update it
+    if (validatedData.status !== undefined && updated.linkedMitigation) {
+      const mitStatusMap: Record<string, string> = { COMPLETED: "COMPLETE", IN_PROGRESS: "IN_PROGRESS", OPEN: "OPEN", OVERDUE: "OPEN" };
+      const newMitStatus = mitStatusMap[validatedData.status] ?? "OPEN";
+      if (newMitStatus !== updated.linkedMitigation.status) {
+        await prisma.riskMitigation.update({
+          where: { id: updated.linkedMitigation.id },
+          data: { status: newMitStatus as "OPEN" | "IN_PROGRESS" | "COMPLETE" },
+        }).catch((e) => console.error("[action→mitigation sync]", e));
+      }
+    }
 
     // Audit log (non-blocking)
     const user = await prisma.user.findUnique({ where: { id: userId } });

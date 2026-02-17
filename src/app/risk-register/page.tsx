@@ -8,7 +8,8 @@ import RiskHeatmap from "@/components/risk-register/RiskHeatmap";
 import RiskTable from "@/components/risk-register/RiskTable";
 import RiskDetailPanel from "@/components/risk-register/RiskDetailPanel";
 import RiskHistoryChart from "@/components/risk-register/RiskHistoryChart";
-import { Grid3X3, List, Plus, Download, ShieldAlert, TrendingDown, TrendingUp, FileText } from "lucide-react";
+import { Grid3X3, List, Plus, Download, ShieldAlert, TrendingDown, TrendingUp, FileText, Bell } from "lucide-react";
+import { api } from "@/lib/api-client";
 
 type ViewTab = "heatmap" | "table";
 type ScoreMode = "inherent" | "residual" | "overlay";
@@ -36,6 +37,7 @@ export default function RiskRegisterPage() {
   // History chart state
   const [historyRisk, setHistoryRisk] = useState<Risk | null>(null);
 
+  const isCCROTeam = currentUser?.role === "CCRO_TEAM";
   const isReadOnly = currentUser?.role === "VIEWER";
 
   // Score helper for current mode (inherent/residual — overlay uses residual for cards)
@@ -130,6 +132,8 @@ export default function RiskRegisterPage() {
           controlEffectiveness: data.controlEffectiveness ?? null,
           riskAppetite: data.riskAppetite ?? null,
           directionOfTravel: data.directionOfTravel ?? "STABLE",
+          reviewFrequencyDays: data.reviewFrequencyDays ?? 90,
+          reviewRequested: false,
           lastReviewed: data.lastReviewed ?? new Date().toISOString().split("T")[0],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -150,6 +154,7 @@ export default function RiskRegisterPage() {
             owner: m.owner ?? null,
             deadline: m.deadline ?? null,
             status: m.status ?? "OPEN",
+            actionId: null,
             createdAt: new Date().toISOString(),
           })),
         };
@@ -165,6 +170,18 @@ export default function RiskRegisterPage() {
       setSelectedRisk(null);
     },
     [isNewRisk, selectedRisk, risks.length, currentUser, addRisk, updateRisk]
+  );
+
+  const handleRequestReview = useCallback(
+    async (riskId: string) => {
+      try {
+        await api<Risk>(`/api/risks/${riskId}/review-request`, { method: "POST" });
+        updateRisk(riskId, { reviewRequested: true });
+      } catch (err) {
+        console.error("Failed to request review:", err);
+      }
+    },
+    [updateRisk]
   );
 
   const handleDelete = useCallback(
@@ -537,6 +554,19 @@ export default function RiskRegisterPage() {
           <RiskTable risks={displayRisks} onRiskClick={handleRiskClick} />
         )}
       </div>
+
+      {/* Request Review button for selected risk (CCRO Team) */}
+      {selectedRisk && !isNewRisk && isCCROTeam && !selectedRisk.reviewRequested && panelOpen && (
+        <div className="fixed bottom-20 right-8 z-50">
+          <button
+            onClick={() => handleRequestReview(selectedRisk.id)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-updraft-bright-purple rounded-lg shadow-lg hover:bg-updraft-deep transition-colors"
+          >
+            <Bell className="w-4 h-4" />
+            Request Review
+          </button>
+        </div>
+      )}
 
       {/* Detail Panel */}
       {panelOpen && (

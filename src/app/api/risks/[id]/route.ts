@@ -16,6 +16,8 @@ const updateSchema = z.object({
   controlEffectiveness: z.enum(["EFFECTIVE", "PARTIALLY_EFFECTIVE", "INEFFECTIVE"]).nullable().optional(),
   riskAppetite: z.enum(["VERY_LOW", "LOW", "LOW_TO_MODERATE", "MODERATE"]).nullable().optional(),
   directionOfTravel: z.enum(["IMPROVING", "STABLE", "DETERIORATING"]).optional(),
+  reviewFrequencyDays: z.number().int().min(1).optional(),
+  reviewRequested: z.boolean().optional(),
   lastReviewed: z.string().optional(),
   controls: z.array(z.object({
     id: z.string().optional(),
@@ -98,18 +100,58 @@ export async function PATCH(
       });
     }
 
-    // Handle mitigations replacement
+    // Handle mitigations replacement with linked action sync
     if (mitigations) {
+      // Fetch existing mitigations with their actionIds
+      const existingMits = await prisma.riskMitigation.findMany({ where: { riskId: id } });
+
+      // Delete all existing mitigations (but unlink their actions first)
+      for (const em of existingMits) {
+        if (em.actionId) {
+          await prisma.riskMitigation.update({ where: { id: em.id }, data: { actionId: null } });
+        }
+      }
       await prisma.riskMitigation.deleteMany({ where: { riskId: id } });
-      await prisma.riskMitigation.createMany({
-        data: mitigations.map((m) => ({
-          riskId: id,
-          action: m.action,
-          owner: m.owner ?? null,
-          deadline: m.deadline ? new Date(m.deadline) : null,
-          status: m.status ?? "OPEN",
-        })),
-      });
+
+      // Helper: resolve owner name to user ID
+      const resolveOwner = async (ownerName: string | null | undefined): Promise<string> => {
+        if (!ownerName) return userId;
+        const user = await prisma.user.findFirst({ where: { name: { equals: ownerName, mode: "insensitive" } } });
+        return user?.id ?? userId;
+      };
+
+      // Map mitigation status to action status
+      const mitToActionStatus = (ms: string): "OPEN" | "IN_PROGRESS" | "COMPLETED" => {
+        if (ms === "COMPLETE") return "COMPLETED";
+        if (ms === "IN_PROGRESS") return "IN_PROGRESS";
+        return "OPEN";
+      };
+
+      // Create new mitigations with linked actions
+      for (const m of mitigations) {
+        const assigneeId = await resolveOwner(m.owner);
+        const linkedAction = await prisma.action.create({
+          data: {
+            title: m.action,
+            description: `Mitigation action from Risk ${existing.reference}: ${existing.name}`,
+            source: "Risk Register",
+            status: mitToActionStatus(m.status ?? "OPEN"),
+            assignedTo: assigneeId,
+            createdBy: userId,
+            dueDate: m.deadline ? new Date(m.deadline) : null,
+          },
+        });
+        await prisma.riskMitigation.create({
+          data: {
+            riskId: id,
+            action: m.action,
+            owner: m.owner ?? null,
+            deadline: m.deadline ? new Date(m.deadline) : null,
+            status: m.status ?? "OPEN",
+            actionId: linkedAction.id,
+          },
+        });
+      }
     }
 
     const risk = await prisma.risk.update({

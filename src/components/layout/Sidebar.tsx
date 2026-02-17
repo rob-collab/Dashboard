@@ -19,7 +19,7 @@ import {
   ChevronDown,
   Check,
 } from "lucide-react";
-import { DEMO_USERS } from "@/lib/auth";
+import { useAppStore } from "@/lib/store";
 import type { User, Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -61,6 +61,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
   const collapsed = collapsedProp ?? collapsedInternal;
   const pathname = usePathname();
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const storeUsers = useAppStore((s) => s.users);
 
   // Close user menu on click outside
   useEffect(() => {
@@ -210,7 +211,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
               </p>
             </div>
             <div className="py-1 max-h-72 overflow-y-auto">
-              {DEMO_USERS.map((u) => {
+              {storeUsers.map((u) => {
                 const isSelected = u.id === currentUser.id;
                 return (
                   <button

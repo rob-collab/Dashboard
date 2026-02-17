@@ -85,6 +85,7 @@ function ActionsPageContent() {
   });
   const [ownerFilter, setOwnerFilter] = useState<string>("ALL");
   const [reportFilter, setReportFilter] = useState<string>("ALL");
+  const [sourceFilter, setSourceFilter] = useState<string>("ALL");
 
   // UI State
   const [showForm, setShowForm] = useState(false);
@@ -136,6 +137,10 @@ function ActionsPageContent() {
       }
       if (ownerFilter !== "ALL" && a.assignedTo !== ownerFilter) return false;
       if (reportFilter !== "ALL" && a.reportId !== reportFilter) return false;
+      if (sourceFilter !== "ALL") {
+        if (sourceFilter === "Risk Register" && a.source !== "Risk Register") return false;
+        if (sourceFilter === "Report" && a.source === "Risk Register") return false;
+      }
       if (search) {
         const q = search.toLowerCase();
         const owner = users.find((u) => u.id === a.assignedTo);
@@ -150,7 +155,7 @@ function ActionsPageContent() {
       }
       return true;
     });
-  }, [actions, statusFilter, ownerFilter, reportFilter, search, users]);
+  }, [actions, statusFilter, ownerFilter, reportFilter, sourceFilter, search, users]);
 
   const handleCreateAction = useCallback((action: Action) => {
     addAction(action);
@@ -311,7 +316,7 @@ function ActionsPageContent() {
       </div>
 
       {showFilters && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-lg border border-gray-200 bg-gray-50/50">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-4 rounded-lg border border-gray-200 bg-gray-50/50">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
             <select
@@ -351,6 +356,18 @@ function ActionsPageContent() {
               {reports.map((r) => (
                 <option key={r.id} value={r.id}>{r.title} — {r.period}</option>
               ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Source</label>
+            <select
+              value={sourceFilter}
+              onChange={(e) => setSourceFilter(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm outline-none focus:border-updraft-light-purple"
+            >
+              <option value="ALL">All Sources</option>
+              <option value="Risk Register">Risk Register</option>
+              <option value="Report">Report</option>
             </select>
           </div>
         </div>
@@ -395,8 +412,15 @@ function ActionsPageContent() {
 
                     {/* Title + Report */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{action.title}</p>
-                      <p className="text-xs text-gray-400 truncate">{action.reportPeriod}{action.sectionTitle ? ` → ${action.sectionTitle}` : ""}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-medium text-gray-900 truncate">{action.title}</p>
+                        {action.source === "Risk Register" && (
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-updraft-pale-purple/40 px-1.5 py-0.5 text-[9px] font-semibold text-updraft-deep shrink-0">
+                            Risk
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-400 truncate">{action.reportPeriod || action.source}{action.sectionTitle ? ` → ${action.sectionTitle}` : ""}</p>
                     </div>
 
                     {/* Owner */}

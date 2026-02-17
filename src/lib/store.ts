@@ -77,6 +77,7 @@ interface AppState {
   addRisk: (risk: Risk) => void;
   updateRisk: (id: string, data: Partial<Risk>) => void;
   deleteRisk: (id: string) => void;
+  syncMitigationStatus: (actionId: string, newActionStatus: string) => void;
 
   // Users (in-memory CRUD)
   users: User[];
@@ -361,6 +362,19 @@ export const useAppStore = create<AppState>((set) => ({
   deleteRisk: (id) => {
     set((state) => ({ risks: state.risks.filter((r) => r.id !== id) }));
     sync(() => api(`/api/risks/${id}`, { method: "DELETE" }));
+  },
+  // Cross-entity sync: when action status changes, update linked mitigation in local state
+  syncMitigationStatus: (actionId: string, newActionStatus: string) => {
+    const mitStatusMap: Record<string, string> = { COMPLETED: "COMPLETE", IN_PROGRESS: "IN_PROGRESS", OPEN: "OPEN", OVERDUE: "OPEN" };
+    const newMitStatus = mitStatusMap[newActionStatus] ?? "OPEN";
+    set((state) => ({
+      risks: state.risks.map((r) => ({
+        ...r,
+        mitigations: r.mitigations?.map((m) =>
+          m.actionId === actionId ? { ...m, status: newMitStatus as "OPEN" | "IN_PROGRESS" | "COMPLETE" } : m
+        ),
+      })),
+    }));
   },
 
   // ── Users ──────────────────────────────────────────────────

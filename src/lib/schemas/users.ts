@@ -8,6 +8,7 @@ export const CreateUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
   role: UserRole.optional().default("VIEWER"),
   assignedMeasures: z.array(z.string()).optional().default([]),
+  riskOwnerCategories: z.array(z.string()).optional().default([]),
   isActive: z.boolean().optional().default(true),
 });
 
@@ -16,6 +17,7 @@ export const UpdateUserSchema = z.object({
   name: z.string().min(1).optional(),
   role: UserRole.optional(),
   assignedMeasures: z.array(z.string()).optional(),
+  riskOwnerCategories: z.array(z.string()).optional(),
   isActive: z.boolean().optional(),
 });
 

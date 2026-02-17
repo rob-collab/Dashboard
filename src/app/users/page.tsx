@@ -191,6 +191,7 @@ export default function UsersPage() {
                 <th className="border-b border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Role</th>
                 <th className="border-b border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Status</th>
                 <th className="border-b border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Assigned Measures</th>
+                <th className="border-b border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Risk Categories</th>
                 <th className="border-b border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Last Login</th>
                 <th className="border-b border-gray-200 px-4 py-3 text-right font-semibold text-gray-700">Actions</th>
               </tr>
@@ -248,6 +249,19 @@ export default function UsersPage() {
                               +{user.assignedMeasures.length - 5} more
                             </span>
                           )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400">&mdash;</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {(user.riskOwnerCategories ?? []).length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {(user.riskOwnerCategories ?? []).map((cat) => (
+                            <span key={cat} className="inline-flex rounded-full bg-updraft-pale-purple/40 px-2 py-0.5 text-[10px] font-medium text-updraft-deep">
+                              {cat}
+                            </span>
+                          ))}
                         </div>
                       ) : (
                         <span className="text-xs text-gray-400">&mdash;</span>

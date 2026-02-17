@@ -41,6 +41,7 @@ export interface User {
   name: string;
   role: Role;
   assignedMeasures: string[];
+  riskOwnerCategories: string[];
   isActive: boolean;
   createdAt: string;
   lastLoginAt: string | null;
@@ -222,6 +223,7 @@ export interface Action {
   updatedAt: string;
   changes?: ActionChange[];
   report?: Report;
+  linkedMitigation?: RiskMitigation;
 }
 
 export interface ActionChange {
@@ -278,6 +280,7 @@ export interface RiskMitigation {
   owner: string | null;
   deadline: string | null;
   status: MitigationStatus;
+  actionId: string | null;
   createdAt: string;
 }
 
@@ -318,6 +321,8 @@ export interface Risk {
   controlEffectiveness: ControlEffectiveness | null;
   riskAppetite: RiskAppetite | null;
   directionOfTravel: DirectionOfTravel;
+  reviewFrequencyDays: number;
+  reviewRequested: boolean;
   lastReviewed: string;
   createdAt: string;
   updatedAt: string;

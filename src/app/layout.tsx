@@ -3,7 +3,8 @@
 import "./globals.css";
 import { useState, useCallback, useEffect } from "react";
 import { Toaster } from "sonner";
-import { AuthContext, DEMO_USERS } from "@/lib/auth";
+import { DEMO_USERS } from "@/lib/auth";
+import { AuthContext } from "@/lib/auth";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useAppStore } from "@/lib/store";
@@ -18,6 +19,8 @@ export default function RootLayout({
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const setStoreUser = useAppStore((s) => s.setCurrentUser);
+  const storeUsers = useAppStore((s) => s.users);
+  const hydrated = useAppStore((s) => s._hydrated);
 
   const hydrate = useAppStore((s) => s.hydrate);
 
@@ -30,6 +33,17 @@ export default function RootLayout({
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  // After hydration, sync local user state with hydrated store data
+  // This fixes the CEO name persistence bug — if user was edited in DB,
+  // the local state will update to reflect the hydrated name/role.
+  useEffect(() => {
+    if (!hydrated) return;
+    const match = storeUsers.find((u) => u.id === user.id);
+    if (match && (match.name !== user.name || match.role !== user.role)) {
+      setUser(match);
+    }
+  }, [hydrated, storeUsers, user.id, user.name, user.role]);
 
   const signIn = useCallback(async () => {
     setLoading(true);

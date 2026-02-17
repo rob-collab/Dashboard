@@ -76,15 +76,16 @@ enum MitigationStatus {
 }
 
 model User {
-  id               String    @id @default(cuid())
-  email            String    @unique
-  name             String
-  role             Role      @default(VIEWER)
-  assignedMeasures String[]
-  isActive         Boolean   @default(true)
-  createdAt        DateTime  @default(now())
-  lastLoginAt      DateTime?
-  updatedAt        DateTime  @updatedAt
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  name                String
+  role                Role      @default(VIEWER)
+  assignedMeasures    String[]
+  riskOwnerCategories String[]
+  isActive            Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  lastLoginAt         DateTime?
+  updatedAt           DateTime  @updatedAt
 
   reports         Report[]        @relation("CreatedReports")
   versions        ReportVersion[] @relation("PublishedVersions")
@@ -309,7 +310,8 @@ model Action {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
-  changes ActionChange[]
+  changes          ActionChange[]
+  linkedMitigation RiskMitigation? @relation("MitigationAction")
 
   @@index([reportId])
   @@index([assignedTo])
@@ -369,6 +371,8 @@ model Risk {
   controlEffectiveness ControlEffectiveness?
   riskAppetite         RiskAppetite?
   directionOfTravel    DirectionOfTravel    @default(STABLE)
+  reviewFrequencyDays  Int                  @default(90)
+  reviewRequested      Boolean              @default(false)
   lastReviewed         DateTime             @default(now()) @db.Date
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
@@ -401,16 +405,19 @@ model RiskControl {
 }
 
 model RiskMitigation {
-  id        String           @id @default(cuid())
-  riskId    String
-  risk      Risk             @relation(fields: [riskId], references: [id], onDelete: Cascade)
-  action    String           @db.Text
-  owner     String?
-  deadline  DateTime?        @db.Date
-  status    MitigationStatus @default(OPEN)
-  createdAt DateTime         @default(now())
+  id           String           @id @default(cuid())
+  riskId       String
+  risk         Risk             @relation(fields: [riskId], references: [id], onDelete: Cascade)
+  action       String           @db.Text
+  owner        String?
+  deadline     DateTime?        @db.Date
+  status       MitigationStatus @default(OPEN)
+  actionId     String?          @unique
+  linkedAction Action?          @relation("MitigationAction", fields: [actionId], references: [id], onDelete: SetNull)
+  createdAt    DateTime         @default(now())
 
   @@index([riskId])
+  @@index([actionId])
   @@map("risk_mitigations")
 }
 

@@ -9,6 +9,10 @@ import {
   CheckCircle,
   ArrowRight,
   Plus,
+  Bell,
+  Clock,
+  ShieldAlert,
+  ListChecks,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDate, ragBgColor } from "@/lib/utils";
@@ -38,6 +42,8 @@ export default function DashboardHome() {
   const warningCount = outcomes.filter((o) => o.ragStatus === "WARNING").length;
   const harmCount = outcomes.filter((o) => o.ragStatus === "HARM").length;
 
+  const risks = useAppStore((s) => s.risks);
+
   const actionStats = useMemo(() => {
     const open = actions.filter((a) => a.status === "OPEN" || a.status === "IN_PROGRESS").length;
     const overdue = actions.filter(
@@ -52,6 +58,40 @@ export default function DashboardHome() {
     }).length;
     const completed = actions.filter((a) => a.status === "COMPLETED").length;
     return { open, overdue, dueThisMonth, completed };
+  }, [actions]);
+
+  // Task notification data
+  const myOverdueActions = useMemo(() => {
+    if (!currentUser) return [];
+    return actions.filter((a) =>
+      a.assignedTo === currentUser.id &&
+      a.status !== "COMPLETED" &&
+      (a.status === "OVERDUE" || (daysUntilDue(a.dueDate) !== null && daysUntilDue(a.dueDate)! <= 0))
+    );
+  }, [actions, currentUser]);
+
+  const myDueThisMonthActions = useMemo(() => {
+    if (!currentUser) return [];
+    return actions.filter((a) => {
+      if (a.assignedTo !== currentUser.id || a.status === "COMPLETED") return false;
+      const days = daysUntilDue(a.dueDate);
+      return days !== null && days > 0 && days <= 30;
+    });
+  }, [actions, currentUser]);
+
+  const risksNeedingReview = useMemo(() => {
+    return risks.filter((r) => {
+      if (r.reviewRequested) return true;
+      const lastRev = new Date(r.lastReviewed);
+      const nextReview = new Date(lastRev);
+      nextReview.setDate(nextReview.getDate() + (r.reviewFrequencyDays ?? 90));
+      const daysUntil = Math.ceil((nextReview.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      return daysUntil <= 7;
+    });
+  }, [risks]);
+
+  const pendingChanges = useMemo(() => {
+    return actions.flatMap((a) => (a.changes ?? []).filter((c) => c.status === "PENDING"));
   }, [actions]);
 
   if (!hydrated) {
@@ -92,7 +132,36 @@ export default function DashboardHome() {
             <p className="mt-1 text-white/80">
               Updraft CCRO Report Management Dashboard
             </p>
-            <div className="mt-4 flex gap-3">
+            {/* Notification pills */}
+            {(myOverdueActions.length > 0 || myDueThisMonthActions.length > 0 || risksNeedingReview.length > 0 || (isCCROTeam && pendingChanges.length > 0)) && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {myOverdueActions.length > 0 && (
+                  <Link href="/actions?status=OVERDUE" className="inline-flex items-center gap-1.5 rounded-full bg-red-500/90 px-3 py-1 text-xs font-semibold text-white hover:bg-red-600 transition-colors">
+                    <AlertTriangle className="h-3 w-3" />
+                    {myOverdueActions.length} overdue action{myOverdueActions.length > 1 ? "s" : ""}
+                  </Link>
+                )}
+                {myDueThisMonthActions.length > 0 && (
+                  <Link href="/actions" className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/90 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-600 transition-colors">
+                    <Clock className="h-3 w-3" />
+                    {myDueThisMonthActions.length} due this month
+                  </Link>
+                )}
+                {risksNeedingReview.length > 0 && (
+                  <Link href="/risk-register" className="inline-flex items-center gap-1.5 rounded-full bg-updraft-bright-purple/90 px-3 py-1 text-xs font-semibold text-white hover:bg-updraft-bright-purple transition-colors">
+                    <ShieldAlert className="h-3 w-3" />
+                    {risksNeedingReview.length} risk{risksNeedingReview.length > 1 ? "s" : ""} due for review
+                  </Link>
+                )}
+                {isCCROTeam && pendingChanges.length > 0 && (
+                  <Link href="/actions" className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/90 px-3 py-1 text-xs font-semibold text-white hover:bg-blue-600 transition-colors">
+                    <Bell className="h-3 w-3" />
+                    {pendingChanges.length} pending proposal{pendingChanges.length > 1 ? "s" : ""}
+                  </Link>
+                )}
+              </div>
+            )}
+            <div className="mt-3 flex gap-3">
             <Link
               href="/reports/new"
               className="inline-flex items-center gap-2 rounded-lg bg-white/20 px-4 py-2 text-sm font-medium hover:bg-white/30 transition-colors"
@@ -193,101 +262,144 @@ export default function DashboardHome() {
         </div>
       </div>
 
-      <div className={`grid grid-cols-1 gap-6 ${isCCROTeam ? 'lg:grid-cols-3' : ''}`}>
-        {/* Consumer Duty Overview */}
-        <div className={isCCROTeam ? "lg:col-span-2 bento-card" : "bento-card"}>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-updraft-deep">Consumer Duty Overview</h2>
-            <Link
-              href="/consumer-duty"
-              className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1"
+      {/* Consumer Duty Overview */}
+      <div className="bento-card">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-updraft-deep">Consumer Duty Overview</h2>
+          <Link
+            href="/consumer-duty"
+            className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1"
+          >
+            View Dashboard <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+        <div className="space-y-3">
+          {outcomes.map((outcome) => (
+            <div
+              key={outcome.id}
+              className="flex items-center justify-between rounded-xl bg-gray-50 p-3 hover:bg-gray-100 transition-colors"
             >
-              View Dashboard <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-          <div className="space-y-3">
-            {outcomes.map((outcome) => (
-              <div
-                key={outcome.id}
-                className="flex items-center justify-between rounded-xl bg-gray-50 p-3 hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`h-3 w-3 rounded-full ${ragBgColor(outcome.ragStatus)}`}
-                  />
-                  <div>
-                    <p className="text-sm font-medium">{outcome.name}</p>
-                    <p className="text-xs text-fca-gray">{outcome.shortDesc}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-fca-gray">
-                    {outcome.measures?.length || 0} measures
-                  </span>
-                  <span
-                    className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                      outcome.ragStatus === "GOOD"
-                        ? "bg-green-100 text-risk-green"
-                        : outcome.ragStatus === "WARNING"
-                        ? "bg-amber-100 text-risk-amber"
-                        : "bg-red-100 text-risk-red"
-                    }`}
-                  >
-                    {outcome.ragStatus === "GOOD"
-                      ? "Green"
-                      : outcome.ragStatus === "WARNING"
-                      ? "Amber"
-                      : "Red"}
-                  </span>
+              <div className="flex items-center gap-3">
+                <div
+                  className={`h-3 w-3 rounded-full ${ragBgColor(outcome.ragStatus)}`}
+                />
+                <div>
+                  <p className="text-sm font-medium">{outcome.name}</p>
+                  <p className="text-xs text-fca-gray">{outcome.shortDesc}</p>
                 </div>
               </div>
-            ))}
-          </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-fca-gray">
+                  {outcome.measures?.length || 0} measures
+                </span>
+                <span
+                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                    outcome.ragStatus === "GOOD"
+                      ? "bg-green-100 text-risk-green"
+                      : outcome.ragStatus === "WARNING"
+                      ? "bg-amber-100 text-risk-amber"
+                      : "bg-red-100 text-risk-red"
+                  }`}
+                >
+                  {outcome.ragStatus === "GOOD"
+                    ? "Green"
+                    : outcome.ragStatus === "WARNING"
+                    ? "Amber"
+                    : "Red"}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
-
-        {/* Recent Activity - CCRO Team only */}
-        {isCCROTeam && (
-          <div className="bento-card">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-updraft-deep">Recent Activity</h2>
-            <Link
-              href="/audit"
-              className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1"
-            >
-              View All <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-          <div className="space-y-3">
-            {auditLogs.map((log) => {
-              const logUser = users.find((u) => u.id === log.userId);
-              return (
-                <div key={log.id} className="flex gap-3">
-                  <div className="flex-shrink-0 mt-1">
-                    <div className="h-2 w-2 rounded-full bg-updraft-light-purple" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm">
-                      <span className="font-medium">{logUser?.name || log.userId}</span>{" "}
-                      <span className="text-fca-gray">{getActionLabel(log.action)}</span>
-                    </p>
-                    {log.changes && (
-                      <p className="text-xs text-fca-gray mt-0.5 truncate">
-                        {Object.entries(log.changes)
-                          .map(([k, v]) => `${k}: ${v}`)
-                          .join(", ")}
-                      </p>
-                    )}
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {formatDate(log.timestamp)}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-        )}
       </div>
+
+      {/* Tasks & Reviews section */}
+      {(risksNeedingReview.length > 0 || myOverdueActions.length > 0 || pendingChanges.length > 0) && (
+        <div>
+          <h2 className="text-lg font-bold text-updraft-deep font-poppins mb-3">Tasks & Reviews</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Risks Due for Review */}
+            <div className="bento-card">
+              <div className="flex items-center gap-2 mb-3">
+                <ShieldAlert className="h-4 w-4 text-updraft-bright-purple" />
+                <h3 className="text-sm font-semibold text-gray-700">Risks Due for Review</h3>
+              </div>
+              {risksNeedingReview.length === 0 ? (
+                <p className="text-xs text-gray-400">No reviews due</p>
+              ) : (
+                <div className="space-y-2">
+                  {risksNeedingReview.slice(0, 5).map((r) => {
+                    const nextReview = new Date(r.lastReviewed);
+                    nextReview.setDate(nextReview.getDate() + (r.reviewFrequencyDays ?? 90));
+                    const daysUntil = Math.ceil((nextReview.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                    return (
+                      <Link key={r.id} href="/risk-register" className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium text-gray-800 truncate">{r.reference}: {r.name}</p>
+                          <p className="text-[10px] text-gray-400">Owner: {r.owner}</p>
+                        </div>
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ml-2 ${
+                          r.reviewRequested ? "bg-updraft-pale-purple/50 text-updraft-deep" :
+                          daysUntil <= 0 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
+                        }`}>
+                          {r.reviewRequested ? "Requested" : daysUntil <= 0 ? "Overdue" : `${daysUntil}d`}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* My Overdue Actions */}
+            <div className="bento-card">
+              <div className="flex items-center gap-2 mb-3">
+                <ListChecks className="h-4 w-4 text-red-500" />
+                <h3 className="text-sm font-semibold text-gray-700">My Overdue Actions</h3>
+              </div>
+              {myOverdueActions.length === 0 ? (
+                <p className="text-xs text-gray-400">No overdue actions</p>
+              ) : (
+                <div className="space-y-2">
+                  {myOverdueActions.slice(0, 5).map((a) => (
+                    <Link key={a.id} href="/actions?status=OVERDUE" className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                      <p className="text-xs font-medium text-gray-800 truncate flex-1 min-w-0">{a.title}</p>
+                      <span className="text-[10px] font-semibold text-red-600 shrink-0 ml-2">
+                        {a.dueDate ? `${Math.abs(daysUntilDue(a.dueDate) ?? 0)}d overdue` : "Overdue"}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Pending Proposals */}
+            <div className="bento-card">
+              <div className="flex items-center gap-2 mb-3">
+                <Bell className="h-4 w-4 text-blue-500" />
+                <h3 className="text-sm font-semibold text-gray-700">
+                  {isCCROTeam ? "Pending Proposals" : "Your Proposed Changes"}
+                </h3>
+              </div>
+              {pendingChanges.length === 0 ? (
+                <p className="text-xs text-gray-400">No pending proposals</p>
+              ) : (
+                <div className="space-y-2">
+                  {pendingChanges.slice(0, 5).map((c) => (
+                    <Link key={c.id} href="/actions" className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-gray-800 truncate">{c.fieldChanged}: {c.newValue}</p>
+                        <p className="text-[10px] text-gray-400">{formatDate(c.proposedAt)}</p>
+                      </div>
+                      <span className="text-[10px] font-semibold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full shrink-0 ml-2">Pending</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Recent Reports */}
       <div className="bento-card">
@@ -354,6 +466,35 @@ export default function DashboardHome() {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+      {/* Recent Activity - all users, horizontal scroll */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-bold text-updraft-deep font-poppins">Recent Activity</h2>
+          <Link
+            href="/audit"
+            className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1"
+          >
+            View All <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+        <div className="flex gap-3 overflow-x-auto pb-2">
+          {auditLogs.slice(0, 20).map((log) => {
+            const logUser = users.find((u) => u.id === log.userId);
+            return (
+              <div key={log.id} className="flex-shrink-0 w-64 rounded-xl border border-gray-200 bg-white p-3 hover:border-updraft-light-purple transition-colors">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-updraft-pale-purple/40 text-[10px] font-semibold text-updraft-bright-purple">
+                    {(logUser?.name ?? "?").charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-xs font-medium text-gray-800 truncate">{logUser?.name || log.userId}</span>
+                </div>
+                <p className="text-xs text-fca-gray truncate">{getActionLabel(log.action)}</p>
+                <p className="text-[10px] text-gray-400 mt-1">{formatDate(log.timestamp)}</p>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

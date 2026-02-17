@@ -12,7 +12,7 @@ import {
   DIRECTION_DISPLAY,
 } from "@/lib/risk-categories";
 import ScoreBadge from "./ScoreBadge";
-import { X, Plus, Trash2, AlertTriangle, ChevronRight, History } from "lucide-react";
+import { X, Plus, Trash2, AlertTriangle, ChevronRight, History, Link2 } from "lucide-react";
 
 interface RiskDetailPanelProps {
   risk: Risk | null;
@@ -35,6 +35,7 @@ interface FormMitigation {
   owner: string;
   deadline: string;
   status: MitigationStatus;
+  actionId?: string | null;
 }
 
 export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete, onViewHistory }: RiskDetailPanelProps) {
@@ -51,6 +52,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
   const [riskAppetite, setRiskAppetite] = useState<RiskAppetite | "">("");
   const [directionOfTravel, setDirectionOfTravel] = useState<DirectionOfTravel>("STABLE");
   const [lastReviewed, setLastReviewed] = useState(new Date().toISOString().split("T")[0]);
+  const [reviewFrequencyDays, setReviewFrequencyDays] = useState(90);
   const [controls, setControls] = useState<FormControl[]>([]);
   const [mitigations, setMitigations] = useState<FormMitigation[]>([]);
 
@@ -69,11 +71,13 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
       setControlEffectiveness(risk.controlEffectiveness ?? "");
       setRiskAppetite(risk.riskAppetite ?? "");
       setDirectionOfTravel(risk.directionOfTravel);
+      setReviewFrequencyDays(risk.reviewFrequencyDays ?? 90);
       setLastReviewed(risk.lastReviewed.split("T")[0]);
       setControls(risk.controls?.map((c) => ({ id: c.id, description: c.description, controlOwner: c.controlOwner ?? "" })) ?? []);
       setMitigations(risk.mitigations?.map((m) => ({
         id: m.id, action: m.action, owner: m.owner ?? "",
         deadline: m.deadline ? m.deadline.split("T")[0] : "", status: m.status,
+        actionId: m.actionId,
       })) ?? []);
     }
   }, [risk, isNew]);
@@ -85,7 +89,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
     const data: Record<string, unknown> = {
       name, description, categoryL1, categoryL2, owner,
       inherentLikelihood, inherentImpact, residualLikelihood, residualImpact,
-      directionOfTravel, lastReviewed,
+      directionOfTravel, reviewFrequencyDays, lastReviewed,
       controlEffectiveness: controlEffectiveness || null,
       riskAppetite: riskAppetite || null,
       controls: controls.filter((c) => c.description.trim()).map((c, i) => ({
@@ -388,6 +392,36 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                 </select>
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Review Frequency</label>
+                <select
+                  value={reviewFrequencyDays}
+                  onChange={(e) => setReviewFrequencyDays(Number(e.target.value))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white"
+                >
+                  <option value={30}>Monthly (30 days)</option>
+                  <option value={90}>Quarterly (90 days)</option>
+                  <option value={180}>Semi-Annual (180 days)</option>
+                  <option value={365}>Annual (365 days)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Next Review Due</label>
+                <div className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-600">
+                  {(() => {
+                    const base = lastReviewed ? new Date(lastReviewed) : new Date();
+                    const next = new Date(base);
+                    next.setDate(next.getDate() + reviewFrequencyDays);
+                    const daysUntil = Math.ceil((next.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                    const formatted = next.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+                    if (daysUntil <= 0) return <span className="text-red-600 font-medium">{formatted} (overdue)</span>;
+                    if (daysUntil <= 7) return <span className="text-amber-600 font-medium">{formatted} ({daysUntil}d)</span>;
+                    return <span>{formatted} ({daysUntil}d)</span>;
+                  })()}
+                </div>
+              </div>
+            </div>
           </section>
 
           {/* Mitigations */}
@@ -399,6 +433,11 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
             </h3>
             {mitigations.map((mit, i) => (
               <div key={i} className="space-y-2 p-3 bg-gray-50 rounded-lg">
+                {mit.actionId && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold bg-updraft-pale-purple/40 text-updraft-deep rounded-full">
+                    <Link2 className="w-3 h-3" /> Linked to Action
+                  </span>
+                )}
                 <div className="flex gap-2">
                   <input
                     value={mit.action}

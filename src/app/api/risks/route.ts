@@ -77,6 +77,20 @@ export async function POST(request: NextRequest) {
     const nextNum = lastRisk ? parseInt(lastRisk.reference.replace("R", ""), 10) + 1 : 1;
     const reference = `R${String(nextNum).padStart(3, "0")}`;
 
+    // Helper: resolve owner name to user ID (case-insensitive, fallback to createdBy)
+    const resolveOwnerToUserId = async (ownerName: string | null | undefined, fallback: string): Promise<string> => {
+      if (!ownerName) return fallback;
+      const user = await prisma.user.findFirst({ where: { name: { equals: ownerName, mode: "insensitive" } } });
+      return user?.id ?? fallback;
+    };
+
+    // Map mitigation status to action status
+    const mitigationToActionStatus = (ms: string): "OPEN" | "IN_PROGRESS" | "COMPLETED" => {
+      if (ms === "COMPLETE") return "COMPLETED";
+      if (ms === "IN_PROGRESS") return "IN_PROGRESS";
+      return "OPEN";
+    };
+
     const risk = await prisma.risk.create({
       data: {
         ...data,
@@ -101,6 +115,37 @@ export async function POST(request: NextRequest) {
           })),
         } : undefined,
       },
+      include: {
+        controls: { orderBy: { sortOrder: "asc" } },
+        mitigations: { orderBy: { createdAt: "asc" } },
+      },
+    });
+
+    // Auto-create linked Actions for each mitigation
+    if (risk.mitigations.length > 0) {
+      for (const mit of risk.mitigations) {
+        const assigneeId = await resolveOwnerToUserId(mit.owner, userId);
+        const linkedAction = await prisma.action.create({
+          data: {
+            title: mit.action,
+            description: `Mitigation action from Risk ${reference}: ${risk.name}`,
+            source: "Risk Register",
+            status: mitigationToActionStatus(mit.status),
+            assignedTo: assigneeId,
+            createdBy: userId,
+            dueDate: mit.deadline,
+          },
+        });
+        await prisma.riskMitigation.update({
+          where: { id: mit.id },
+          data: { actionId: linkedAction.id },
+        });
+      }
+    }
+
+    // Re-fetch to include actionIds in mitigations
+    const refreshedRisk = await prisma.risk.findUnique({
+      where: { id: risk.id },
       include: {
         controls: { orderBy: { sortOrder: "asc" } },
         mitigations: { orderBy: { createdAt: "asc" } },
@@ -134,7 +179,7 @@ export async function POST(request: NextRequest) {
       },
     }).catch((e) => console.error("[risk snapshot]", e));
 
-    return jsonResponse(serialiseDates(risk), 201);
+    return jsonResponse(serialiseDates(refreshedRisk ?? risk), 201);
   } catch (err) {
     console.error("[POST /api/risks]", err);
     return errorResponse("Internal server error", 500);

@@ -10,14 +10,14 @@ const prisma = new PrismaClient({ adapter });
 // ── Demo Users ──────────────────────────────────────────────────────────────────
 const DEMO_USERS: {
   id: string; email: string; name: string; role: Role;
-  assignedMeasures: string[]; isActive: boolean;
+  assignedMeasures: string[]; riskOwnerCategories: string[]; isActive: boolean;
 }[] = [
-  { id: "user-rob", email: "rob@updraft.com", name: "Rob", role: "CCRO_TEAM", assignedMeasures: [], isActive: true },
-  { id: "user-cath", email: "cath@updraft.com", name: "Cath", role: "CCRO_TEAM", assignedMeasures: ["1.9","4.1","5.1","5.2","5.5","5.8"], isActive: true },
-  { id: "user-ash", email: "ash@updraft.com", name: "Ash", role: "METRIC_OWNER", assignedMeasures: ["1.1","1.3","1.4","3.1","3.6","3.7"], isActive: true },
-  { id: "user-chris", email: "chris@updraft.com", name: "Chris", role: "METRIC_OWNER", assignedMeasures: ["1.5","1.8","3.3","3.4","3.5","4.2","4.3","4.4","4.5","4.6","4.7","4.8","4.9","4.10"], isActive: true },
-  { id: "user-micha", email: "micha@updraft.com", name: "Micha", role: "METRIC_OWNER", assignedMeasures: ["1.2","1.6","1.7","2.1","2.2","2.3","2.4","2.5","2.6","2.7"], isActive: true },
-  { id: "user-ceo", email: "ceo@updraft.com", name: "CEO", role: "VIEWER", assignedMeasures: [], isActive: true },
+  { id: "user-rob", email: "rob@updraft.com", name: "Rob", role: "CCRO_TEAM", assignedMeasures: [], riskOwnerCategories: [], isActive: true },
+  { id: "user-cath", email: "cath@updraft.com", name: "Cath", role: "CCRO_TEAM", assignedMeasures: ["1.9","4.1","5.1","5.2","5.5","5.8"], riskOwnerCategories: ["Conduct & Compliance Risk"], isActive: true },
+  { id: "user-ash", email: "ash@updraft.com", name: "Ash", role: "METRIC_OWNER", assignedMeasures: ["1.1","1.3","1.4","3.1","3.6","3.7"], riskOwnerCategories: ["Credit Risk"], isActive: true },
+  { id: "user-chris", email: "chris@updraft.com", name: "Chris", role: "METRIC_OWNER", assignedMeasures: ["1.5","1.8","3.3","3.4","3.5","4.2","4.3","4.4","4.5","4.6","4.7","4.8","4.9","4.10"], riskOwnerCategories: ["Operational Risk"], isActive: true },
+  { id: "user-micha", email: "micha@updraft.com", name: "Micha", role: "METRIC_OWNER", assignedMeasures: ["1.2","1.6","1.7","2.1","2.2","2.3","2.4","2.5","2.6","2.7"], riskOwnerCategories: [], isActive: true },
+  { id: "user-ceo", email: "ceo@updraft.com", name: "CEO", role: "VIEWER", assignedMeasures: [], riskOwnerCategories: [], isActive: true },
 ];
 
 // ── Demo Reports ────────────────────────────────────────────────────────────────
@@ -366,6 +366,7 @@ async function main() {
     controlEffectiveness: ControlEffectiveness | null;
     riskAppetite: RiskAppetite | null;
     directionOfTravel: DirectionOfTravel;
+    reviewFrequencyDays: number;
     lastReviewed: Date; createdBy: string; updatedBy: string;
     controls: SeedRiskControl[]; mitigations: SeedRiskMitigation[];
   }
@@ -377,6 +378,7 @@ async function main() {
       categoryL1: "Conduct & Compliance Risk", categoryL2: "Products", owner: "Cath",
       inherentLikelihood: 3, inherentImpact: 5, residualLikelihood: 2, residualImpact: 4,
       controlEffectiveness: "EFFECTIVE", riskAppetite: "VERY_LOW", directionOfTravel: "IMPROVING",
+      reviewFrequencyDays: 90,
       lastReviewed: new Date("2026-02-01"), createdBy: "user-rob", updatedBy: "user-cath",
       controls: [
         { id: "ctrl-001-1", riskId: "risk-001", description: "Consumer Duty monitoring framework with quarterly reporting", controlOwner: "Cath", sortOrder: 0 },
@@ -393,6 +395,7 @@ async function main() {
       categoryL1: "Credit Risk", categoryL2: "Credit Models", owner: "Ash",
       inherentLikelihood: 3, inherentImpact: 4, residualLikelihood: 2, residualImpact: 3,
       controlEffectiveness: "EFFECTIVE", riskAppetite: "LOW", directionOfTravel: "STABLE",
+      reviewFrequencyDays: 90,
       lastReviewed: new Date("2026-01-15"), createdBy: "user-rob", updatedBy: "user-ash",
       controls: [
         { id: "ctrl-002-1", riskId: "risk-002", description: "Monthly model monitoring and back-testing with tolerance bands", controlOwner: "Ash", sortOrder: 0 },
@@ -407,6 +410,7 @@ async function main() {
       categoryL1: "Operational Risk", categoryL2: "Information Management & Data Security", owner: "Chris",
       inherentLikelihood: 4, inherentImpact: 5, residualLikelihood: 2, residualImpact: 4,
       controlEffectiveness: "EFFECTIVE", riskAppetite: "VERY_LOW", directionOfTravel: "STABLE",
+      reviewFrequencyDays: 90,
       lastReviewed: new Date("2026-02-10"), createdBy: "user-rob", updatedBy: "user-chris",
       controls: [
         { id: "ctrl-003-1", riskId: "risk-003", description: "MFA enforced on all systems and VPN access", controlOwner: "Chris", sortOrder: 0 },
@@ -424,6 +428,7 @@ async function main() {
       categoryL1: "Financial Risk", categoryL2: "Liquidity & Funding", owner: "CFO",
       inherentLikelihood: 3, inherentImpact: 5, residualLikelihood: 2, residualImpact: 4,
       controlEffectiveness: "EFFECTIVE", riskAppetite: "LOW", directionOfTravel: "IMPROVING",
+      reviewFrequencyDays: 90,
       lastReviewed: new Date("2026-01-31"), createdBy: "user-rob", updatedBy: "user-rob",
       controls: [
         { id: "ctrl-004-1", riskId: "risk-004", description: "Monthly cash flow forecasting with 13-week rolling window and stress scenarios", controlOwner: "CFO", sortOrder: 0 },
@@ -438,6 +443,7 @@ async function main() {
       categoryL1: "Operational Risk", categoryL2: "People", owner: "COO",
       inherentLikelihood: 4, inherentImpact: 3, residualLikelihood: 3, residualImpact: 2,
       controlEffectiveness: "PARTIALLY_EFFECTIVE", riskAppetite: "LOW_TO_MODERATE", directionOfTravel: "IMPROVING",
+      reviewFrequencyDays: 90,
       lastReviewed: new Date("2026-01-20"), createdBy: "user-rob", updatedBy: "user-rob",
       controls: [
         { id: "ctrl-005-1", riskId: "risk-005", description: "Cross-training programme for all critical roles", controlOwner: "COO", sortOrder: 0 },
@@ -454,6 +460,7 @@ async function main() {
       categoryL1: "Conduct & Compliance Risk", categoryL2: "Regulations", owner: "Cath",
       inherentLikelihood: 4, inherentImpact: 4, residualLikelihood: 3, residualImpact: 3,
       controlEffectiveness: "EFFECTIVE", riskAppetite: "VERY_LOW", directionOfTravel: "STABLE",
+      reviewFrequencyDays: 90,
       lastReviewed: new Date("2026-02-05"), createdBy: "user-rob", updatedBy: "user-cath",
       controls: [
         { id: "ctrl-006-1", riskId: "risk-006", description: "Monthly regulatory horizon scanning and impact assessment", controlOwner: "Cath", sortOrder: 0 },
