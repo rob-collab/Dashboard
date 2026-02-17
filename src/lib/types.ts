@@ -1,4 +1,4 @@
-export type Role = "CCRO_TEAM" | "METRIC_OWNER" | "RISK_OWNER" | "VIEWER";
+export type Role = "CCRO_TEAM" | "OWNER" | "VIEWER";
 export type ReportStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 export type RAGStatus = "GOOD" | "WARNING" | "HARM";
 export type SectionType =
@@ -344,4 +344,34 @@ export interface RiskCategoryDef {
   name: string;
   definition: string;
   subcategories: { name: string; definition: string }[];
+}
+
+export interface RiskCategoryDB {
+  id: string;
+  level: number;
+  parentId: string | null;
+  name: string;
+  definition: string;
+  children?: RiskCategoryDB[];
+}
+
+export interface PriorityDefinition {
+  code: string;
+  label: string;
+  description: string | null;
+  sortOrder: number;
+  updatedAt: string;
+}
+
+export interface SiteSettings {
+  id: string;
+  logoBase64: string | null;
+  logoMarkBase64: string | null;
+  logoX: number;
+  logoY: number;
+  logoScale: number;
+  primaryColour: string | null;
+  accentColour: string | null;
+  updatedAt: string;
+  updatedBy: string | null;
 }

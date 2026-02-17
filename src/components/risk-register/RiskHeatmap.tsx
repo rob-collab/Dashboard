@@ -86,7 +86,7 @@ export default function RiskHeatmap({
         <div className="flex-1">
           <div className="relative">
             {/* Y-axis label */}
-            <div className="absolute -left-8 top-1/2 -translate-y-1/2 -rotate-90 text-xs font-semibold text-gray-500 whitespace-nowrap">
+            <div className="absolute -left-8 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] font-semibold text-gray-500 whitespace-nowrap">
               LIKELIHOOD
             </div>
 
@@ -116,7 +116,7 @@ export default function RiskHeatmap({
                       <button
                         key={impact}
                         onClick={() => setSelectedCell(isSelected ? null : { l: likelihood, i: impact })}
-                        className={`relative flex-1 aspect-square min-h-[72px] border border-white/50 flex flex-col items-center justify-center transition-all ${
+                        className={`relative flex-1 aspect-square min-h-[50px] border border-white/50 flex flex-col items-center justify-center transition-all ${
                           isSelected ? "ring-2 ring-updraft-deep ring-offset-1" : ""
                         }`}
                         style={{ backgroundColor: cellLevel.colour + "30" }}
@@ -142,7 +142,7 @@ export default function RiskHeatmap({
                                     e.stopPropagation();
                                     onRiskClick?.(risk);
                                   }}
-                                  className={`relative w-5 h-5 rounded-full border-2 cursor-pointer transition-transform ${
+                                  className={`relative w-4 h-4 rounded-full border-2 cursor-pointer transition-transform ${
                                     isHovered ? "scale-125 z-10" : ""
                                   }`}
                                   style={{
@@ -152,7 +152,7 @@ export default function RiskHeatmap({
                                   }}
                                   title={`${risk.reference}: ${risk.name} (${type})`}
                                 >
-                                  <span className={`absolute inset-0 flex items-center justify-center text-[8px] font-bold ${
+                                  <span className={`absolute inset-0 flex items-center justify-center text-[7px] font-bold ${
                                     isInherentInOverlay ? "text-gray-600" : "text-white"
                                   }`}>
                                     {risk.reference.replace("R00", "").replace("R0", "")}
@@ -193,7 +193,7 @@ export default function RiskHeatmap({
 
               {/* X-axis title */}
               <div className="text-center mt-1">
-                <span className="text-xs font-semibold text-gray-500">IMPACT</span>
+                <span className="text-[10px] font-semibold text-gray-500">IMPACT</span>
               </div>
             </div>
           </div>

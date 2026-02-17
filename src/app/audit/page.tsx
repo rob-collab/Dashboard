@@ -38,8 +38,7 @@ const ACTION_LABELS: Record<string, { label: string; color: string }> = {
 
 const ROLE_LABELS: Record<Role, string> = {
   CCRO_TEAM: "CCRO Team",
-  METRIC_OWNER: "Metric Owner",
-  RISK_OWNER: "Risk Owner",
+  OWNER: "Owner",
   VIEWER: "Viewer",
 };
 
@@ -178,8 +177,7 @@ export default function AuditPage() {
             >
               <option value="ALL">All Roles</option>
               <option value="CCRO_TEAM">CCRO Team</option>
-              <option value="METRIC_OWNER">Metric Owner</option>
-              <option value="RISK_OWNER">Risk Owner</option>
+              <option value="OWNER">Owner</option>
               <option value="VIEWER">Viewer</option>
             </select>
           </div>

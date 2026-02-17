@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import type { Risk } from "@/lib/types";
 import { useAppStore } from "@/lib/store";
-import { L1_CATEGORY_COLOURS, L1_CATEGORIES, getRiskScore } from "@/lib/risk-categories";
+import { L1_CATEGORY_COLOURS, L1_CATEGORIES as FALLBACK_L1, getRiskScore } from "@/lib/risk-categories";
 import ScoreBadge from "./ScoreBadge";
 import DirectionArrow from "./DirectionArrow";
 import { ChevronUp, ChevronDown, Search, Filter } from "lucide-react";
@@ -18,6 +18,8 @@ interface RiskTableProps {
 
 export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
   const storeUsers = useAppStore((s) => s.users);
+  const storeCategories = useAppStore((s) => s.riskCategories);
+  const L1_CATEGORIES = storeCategories.length > 0 ? storeCategories.map((c) => c.name) : FALLBACK_L1;
   const getOwnerName = (risk: Risk) => risk.riskOwner?.name ?? storeUsers.find(u => u.id === risk.ownerId)?.name ?? "Unknown";
   const [sortField, setSortField] = useState<SortField>("reference");
   const [sortDir, setSortDir] = useState<SortDir>("asc");

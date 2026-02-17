@@ -18,6 +18,7 @@ import {
   ChevronRight,
   ChevronDown,
   Check,
+  RefreshCw,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import type { User, Role } from "@/lib/types";
@@ -31,11 +32,11 @@ interface SidebarProps {
 }
 
 const NAV_ITEMS: { label: string; href: string; icon: typeof LayoutDashboard; roles: Role[] }[] = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard, roles: ["CCRO_TEAM", "METRIC_OWNER", "RISK_OWNER", "VIEWER"] },
-  { label: "Reports", href: "/reports", icon: FileText, roles: ["CCRO_TEAM", "METRIC_OWNER", "RISK_OWNER", "VIEWER"] },
-  { label: "Consumer Duty", href: "/consumer-duty", icon: ShieldCheck, roles: ["CCRO_TEAM", "METRIC_OWNER", "VIEWER"] },
-  { label: "Actions", href: "/actions", icon: ListChecks, roles: ["CCRO_TEAM", "METRIC_OWNER", "RISK_OWNER", "VIEWER"] },
-  { label: "Risk Register", href: "/risk-register", icon: ShieldAlert, roles: ["CCRO_TEAM", "METRIC_OWNER", "RISK_OWNER", "VIEWER"] },
+  { label: "Dashboard", href: "/", icon: LayoutDashboard, roles: ["CCRO_TEAM", "OWNER", "VIEWER"] },
+  { label: "Reports", href: "/reports", icon: FileText, roles: ["CCRO_TEAM", "OWNER", "VIEWER"] },
+  { label: "Consumer Duty", href: "/consumer-duty", icon: ShieldCheck, roles: ["CCRO_TEAM", "OWNER", "VIEWER"] },
+  { label: "Actions", href: "/actions", icon: ListChecks, roles: ["CCRO_TEAM", "OWNER", "VIEWER"] },
+  { label: "Risk Register", href: "/risk-register", icon: ShieldAlert, roles: ["CCRO_TEAM", "OWNER", "VIEWER"] },
   { label: "Templates", href: "/templates", icon: LayoutTemplate, roles: ["CCRO_TEAM"] },
   { label: "Components", href: "/components-lib", icon: Puzzle, roles: ["CCRO_TEAM"] },
   { label: "Audit Trail", href: "/audit", icon: ClipboardList, roles: ["CCRO_TEAM"] },
@@ -45,15 +46,13 @@ const NAV_ITEMS: { label: string; href: string; icon: typeof LayoutDashboard; ro
 
 const ROLE_LABELS: Record<string, string> = {
   CCRO_TEAM: "CCRO Team",
-  METRIC_OWNER: "Metric Owner",
-  RISK_OWNER: "Risk Owner",
+  OWNER: "Owner",
   VIEWER: "Viewer",
 };
 
 const ROLE_COLORS: Record<string, string> = {
   CCRO_TEAM: "bg-updraft-bright-purple text-white",
-  METRIC_OWNER: "bg-updraft-pale-purple text-updraft-deep",
-  RISK_OWNER: "bg-orange-100 text-orange-700",
+  OWNER: "bg-updraft-pale-purple text-updraft-deep",
   VIEWER: "bg-gray-200 text-gray-700",
 };
 
@@ -64,6 +63,8 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
   const pathname = usePathname();
   const userMenuRef = useRef<HTMLDivElement>(null);
   const storeUsers = useAppStore((s) => s.users);
+  const hydrate = useAppStore((s) => s.hydrate);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Close user menu on click outside
   useEffect(() => {
@@ -142,8 +143,22 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
         })}
       </nav>
 
-      {/* Collapse Toggle */}
-      <div className="px-2 pb-2">
+      {/* Refresh & Collapse */}
+      <div className="px-2 pb-2 space-y-1">
+        <button
+          onClick={async () => {
+            setRefreshing(true);
+            await hydrate();
+            setRefreshing(false);
+          }}
+          disabled={refreshing}
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 py-2 text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors disabled:opacity-50"
+          aria-label="Refresh data"
+          title="Refresh data from database"
+        >
+          <RefreshCw size={14} className={cn(refreshing && "animate-spin")} />
+          {!collapsed && <span>{refreshing ? "Refreshing..." : "Refresh"}</span>}
+        </button>
         <button
           onClick={() => onToggle ? onToggle() : setCollapsedInternal((prev) => !prev)}
           className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 py-2 text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"

@@ -4,16 +4,16 @@ import { useState, useEffect } from "react";
 import type { Risk, RiskControl, RiskMitigation, ControlEffectiveness, RiskAppetite, DirectionOfTravel, MitigationStatus } from "@/lib/types";
 import { useAppStore } from "@/lib/store";
 import {
-  RISK_CATEGORIES,
-  getL2Categories,
   LIKELIHOOD_SCALE,
   IMPACT_SCALE,
   EFFECTIVENESS_DISPLAY,
   APPETITE_DISPLAY,
   DIRECTION_DISPLAY,
+  RISK_CATEGORIES as FALLBACK_CATEGORIES,
+  getL2Categories as getFallbackL2,
 } from "@/lib/risk-categories";
 import ScoreBadge from "./ScoreBadge";
-import { X, Plus, Trash2, AlertTriangle, ChevronRight, History, Link2 } from "lucide-react";
+import { X, Plus, Trash2, AlertTriangle, ChevronRight, ChevronDown, History, Link2 } from "lucide-react";
 
 interface RiskDetailPanelProps {
   risk: Risk | null;
@@ -41,6 +41,19 @@ interface FormMitigation {
 
 export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete, onViewHistory }: RiskDetailPanelProps) {
   const users = useAppStore((s) => s.users);
+  const storeCategories = useAppStore((s) => s.riskCategories);
+
+  // Use DB categories if available, fallback to hardcoded
+  const categorySource = storeCategories.length > 0
+    ? storeCategories.map((c) => ({ name: c.name, subcategories: c.children?.map((ch) => ({ name: ch.name })) ?? [] }))
+    : FALLBACK_CATEGORIES;
+  const getL2Options = (l1Name: string) => {
+    if (storeCategories.length > 0) {
+      const parent = storeCategories.find((c) => c.name === l1Name);
+      return parent?.children?.map((ch) => ({ name: ch.name })) ?? [];
+    }
+    return getFallbackL2(l1Name);
+  };
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [categoryL1, setCategoryL1] = useState("");
@@ -57,6 +70,8 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
   const [reviewFrequencyDays, setReviewFrequencyDays] = useState(90);
   const [controls, setControls] = useState<FormControl[]>([]);
   const [mitigations, setMitigations] = useState<FormMitigation[]>([]);
+  const [controlsOpen, setControlsOpen] = useState(false);
+  const [mitigationsOpen, setMitigationsOpen] = useState(false);
 
   // Populate form when risk changes
   useEffect(() => {
@@ -84,7 +99,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
     }
   }, [risk, isNew]);
 
-  const l2Options = getL2Categories(categoryL1);
+  const l2Options = getL2Options(categoryL1);
   const residualWarning = residualLikelihood > inherentLikelihood || residualImpact > inherentImpact;
 
   function handleSave() {
@@ -178,7 +193,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white"
                 >
                   <option value="">Select category...</option>
-                  {RISK_CATEGORIES.map((c) => (
+                  {categorySource.map((c) => (
                     <option key={c.name} value={c.name}>{c.name}</option>
                   ))}
                 </select>
@@ -251,14 +266,22 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
             </div>
           </section>
 
-          {/* Controls */}
+          {/* Controls (collapsible) */}
           <section className="space-y-3">
-            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setControlsOpen(!controlsOpen)}
+              className="w-full text-sm font-semibold text-gray-700 flex items-center gap-2"
+            >
               <span className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs">3</span>
               Controls
-              <ChevronRight className="w-3 h-3 text-gray-400" />
+              <span className="rounded-full bg-blue-100 text-blue-700 px-1.5 py-0.5 text-[10px] font-bold">{controls.filter((c) => c.description.trim()).length}</span>
               <span className="text-[10px] text-gray-400 font-normal">bridging inherent → residual</span>
-            </h3>
+              <span className="ml-auto">
+                {controlsOpen ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+              </span>
+            </button>
+            {controlsOpen && (<>
             {controls.map((ctrl, i) => (
               <div key={i} className="flex gap-2">
                 <input
@@ -308,6 +331,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                 ))}
               </select>
             </div>
+            </>)}
           </section>
 
           {/* Residual Assessment */}
@@ -430,13 +454,22 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
             </div>
           </section>
 
-          {/* Mitigations */}
+          {/* Mitigations (collapsible) */}
           <section className="space-y-3">
-            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setMitigationsOpen(!mitigationsOpen)}
+              className="w-full text-sm font-semibold text-gray-700 flex items-center gap-2"
+            >
               <span className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs">6</span>
               Mitigation Actions
+              <span className="rounded-full bg-purple-100 text-purple-700 px-1.5 py-0.5 text-[10px] font-bold">{mitigations.length}</span>
               <span className="text-[10px] text-gray-400 font-normal">(optional)</span>
-            </h3>
+              <span className="ml-auto">
+                {mitigationsOpen ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+              </span>
+            </button>
+            {mitigationsOpen && (<>
             {mitigations.map((mit, i) => (
               <div key={i} className="space-y-2 p-3 bg-gray-50 rounded-lg">
                 {mit.actionId && (
@@ -505,6 +538,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
             >
               <Plus className="w-4 h-4" /> Add mitigation action
             </button>
+            </>)}
           </section>
         </div>
 

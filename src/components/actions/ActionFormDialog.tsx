@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Modal from "@/components/common/Modal";
 import type { Action, ActionStatus, ActionPriority, Report, User } from "@/lib/types";
 import { generateId } from "@/lib/utils";
+import { useAppStore } from "@/lib/store";
 
 interface ActionFormDialogProps {
   open: boolean;
@@ -23,12 +24,6 @@ const STATUS_OPTIONS: { value: ActionStatus; label: string }[] = [
   { value: "PROPOSED_CLOSED", label: "Proposed Closed" },
 ];
 
-const PRIORITY_OPTIONS: { value: ActionPriority; label: string }[] = [
-  { value: "P1", label: "P1 — Critical" },
-  { value: "P2", label: "P2 — Important" },
-  { value: "P3", label: "P3 — Routine" },
-];
-
 export default function ActionFormDialog({
   open,
   onClose,
@@ -39,6 +34,17 @@ export default function ActionFormDialog({
   currentUserId,
 }: ActionFormDialogProps) {
   const isEdit = Boolean(action);
+  const priorityDefinitions = useAppStore((s) => s.priorityDefinitions);
+
+  // Build priority options from DB definitions, fallback to hardcoded
+  const PRIORITY_OPTIONS: { value: ActionPriority; label: string }[] =
+    priorityDefinitions.length > 0
+      ? priorityDefinitions.map((d) => ({ value: d.code as ActionPriority, label: `${d.code} — ${d.label}` }))
+      : [
+          { value: "P1", label: "P1 — Critical" },
+          { value: "P2", label: "P2 — Important" },
+          { value: "P3", label: "P3 — Routine" },
+        ];
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");

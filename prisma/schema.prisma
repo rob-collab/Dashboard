@@ -9,8 +9,7 @@ datasource db {
 
 enum Role {
   CCRO_TEAM
-  METRIC_OWNER
-  RISK_OWNER
+  OWNER
   VIEWER
 }
 
@@ -465,4 +464,33 @@ model RiskAuditLog {
   @@index([riskId])
   @@index([changedAt])
   @@map("risk_audit_log")
+}
+
+// ── Site Settings (branding persistence) ─────────────────────────────────────
+
+model SiteSettings {
+  id             String   @id @default("default")
+  logoBase64     String?  @db.Text
+  logoMarkBase64 String?  @db.Text
+  logoX          Int      @default(16)
+  logoY          Int      @default(16)
+  logoScale      Float    @default(1.0)
+  primaryColour  String?
+  accentColour   String?
+  updatedAt      DateTime @updatedAt
+  updatedBy      String?
+
+  @@map("site_settings")
+}
+
+// ── Priority Definitions ─────────────────────────────────────────────────────
+
+model PriorityDefinition {
+  code        String   @id
+  label       String
+  description String?  @db.Text
+  sortOrder   Int      @default(0)
+  updatedAt   DateTime @updatedAt
+
+  @@map("priority_definitions")
 }

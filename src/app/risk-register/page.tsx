@@ -42,7 +42,7 @@ export default function RiskRegisterPage() {
   const [showCSVImport, setShowCSVImport] = useState(false);
 
   const isCCROTeam = currentUser?.role === "CCRO_TEAM";
-  const isRiskOwner = currentUser?.role === "RISK_OWNER";
+  const isOwner = currentUser?.role === "OWNER";
   const isReadOnly = currentUser?.role === "VIEWER";
 
   // Score helper for current mode (inherent/residual — overlay uses residual for cards)
@@ -458,7 +458,7 @@ export default function RiskRegisterPage() {
             <FileText className="w-4 h-4" />
             Export HTML
           </button>
-          {(isCCROTeam || isRiskOwner) && (
+          {(isCCROTeam || isOwner) && (
             <button
               onClick={() => setShowCSVImport(true)}
               className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"

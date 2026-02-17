@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk } from "./types";
+import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings } from "./types";
 import { api } from "./api-client";
 
 interface AppState {
@@ -89,6 +89,18 @@ interface AppState {
   branding: BrandingConfig;
   updateBranding: (data: Partial<BrandingConfig>) => void;
 
+  // Site Settings (DB-persisted branding)
+  siteSettings: SiteSettings | null;
+  updateSiteSettings: (data: Partial<SiteSettings>) => void;
+
+  // Risk Categories (DB-backed)
+  riskCategories: RiskCategoryDB[];
+  setRiskCategories: (cats: RiskCategoryDB[]) => void;
+
+  // Priority Definitions (DB-backed)
+  priorityDefinitions: PriorityDefinition[];
+  setPriorityDefinitions: (defs: PriorityDefinition[]) => void;
+
   // UI State
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
@@ -139,7 +151,7 @@ export const useAppStore = create<AppState>((set) => ({
   _hydrateError: null,
   hydrate: async () => {
     try {
-      const [users, reports, outcomes, templates, components, auditLogs, actions, risks] = await Promise.all([
+      const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions] = await Promise.all([
         api<User[]>("/api/users"),
         api<Report[]>("/api/reports"),
         api<ConsumerDutyOutcome[]>("/api/consumer-duty"),
@@ -148,8 +160,11 @@ export const useAppStore = create<AppState>((set) => ({
         api<{ data: AuditLogEntry[] }>("/api/audit?limit=50").then((r) => r.data),
         api<Action[]>("/api/actions"),
         api<Risk[]>("/api/risks"),
+        api<SiteSettings>("/api/settings").catch(() => null),
+        api<RiskCategoryDB[]>("/api/risk-categories").catch(() => []),
+        api<PriorityDefinition[]>("/api/priority-definitions").catch(() => []),
       ]);
-      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, _hydrated: true, _hydrateError: null });
+      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, _hydrated: true, _hydrateError: null });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to connect to server";
       console.error("[hydrate] API unreachable:", message);
@@ -416,6 +431,23 @@ export const useAppStore = create<AppState>((set) => ({
   },
   updateBranding: (data) =>
     set((state) => ({ branding: { ...state.branding, ...data } })),
+
+  // ── Site Settings (DB-persisted branding) ─────────────────
+  siteSettings: null,
+  updateSiteSettings: (data) => {
+    set((state) => ({
+      siteSettings: state.siteSettings ? { ...state.siteSettings, ...data } : null,
+    }));
+    sync(() => api("/api/settings", { method: "PUT", body: data }));
+  },
+
+  // ── Risk Categories (DB-backed) ──────────────────────────
+  riskCategories: [],
+  setRiskCategories: (cats) => set({ riskCategories: cats }),
+
+  // ── Priority Definitions (DB-backed) ─────────────────────
+  priorityDefinitions: [],
+  setPriorityDefinitions: (defs) => set({ priorityDefinitions: defs }),
 
   // ── UI State ───────────────────────────────────────────────
   sidebarOpen: true,

@@ -44,8 +44,7 @@ const STATUS_DOT_STYLES: Record<StatusIndicator["variant"], string> = {
 
 const ROLE_LABELS: Record<string, string> = {
   CCRO_TEAM: "CCRO Team",
-  METRIC_OWNER: "Metric Owner",
-  RISK_OWNER: "Risk Owner",
+  OWNER: "Owner",
   VIEWER: "Viewer",
 };
 

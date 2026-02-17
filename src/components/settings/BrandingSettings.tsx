@@ -1,17 +1,42 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
-import { Upload, X, ImageIcon } from "lucide-react";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { Upload, X, ImageIcon, Save, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
 import { fileToBase64, ACCEPTED_IMAGE_TYPES, MAX_IMAGE_SIZE_MB } from "@/lib/image-utils";
+import { toast } from "sonner";
 
 export default function BrandingSettings() {
   const branding = useAppStore((s) => s.branding);
   const updateBranding = useAppStore((s) => s.updateBranding);
+  const siteSettings = useAppStore((s) => s.siteSettings);
+  const updateSiteSettings = useAppStore((s) => s.updateSiteSettings);
+
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Logo positioning state — initialise from siteSettings if available
+  const [logoX, setLogoX] = useState(siteSettings?.logoX ?? 16);
+  const [logoY, setLogoY] = useState(siteSettings?.logoY ?? 16);
+  const [logoScale, setLogoScale] = useState(siteSettings?.logoScale ?? 1.0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  // Sync from siteSettings on load
+  useEffect(() => {
+    if (siteSettings) {
+      setLogoX(siteSettings.logoX);
+      setLogoY(siteSettings.logoY);
+      setLogoScale(siteSettings.logoScale);
+      // Also apply logo from DB if local branding doesn't have one
+      if (siteSettings.logoBase64 && !branding.logoSrc) {
+        updateBranding({ logoSrc: siteSettings.logoBase64 });
+      }
+    }
+  }, [siteSettings]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFile = useCallback(
     async (file: File) => {
@@ -44,6 +69,57 @@ export default function BrandingSettings() {
     },
     [handleFile]
   );
+
+  // Drag-to-position handlers for logo preview
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      setIsDragging(true);
+      setDragStart({ x: e.clientX - logoX, y: e.clientY - logoY });
+    },
+    [logoX, logoY]
+  );
+
+  useEffect(() => {
+    if (!isDragging) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      const newX = Math.max(0, Math.min(200, e.clientX - dragStart.x));
+      const newY = Math.max(0, Math.min(60, e.clientY - dragStart.y));
+      setLogoX(newX);
+      setLogoY(newY);
+    };
+    const handleMouseUp = () => setIsDragging(false);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging, dragStart]);
+
+  function resetPosition() {
+    setLogoX(16);
+    setLogoY(16);
+    setLogoScale(1.0);
+  }
+
+  async function saveBrandingToDb() {
+    try {
+      const data = {
+        logoBase64: branding.logoSrc ?? null,
+        logoMarkBase64: branding.dashboardIconSrc ?? null,
+        logoX,
+        logoY,
+        logoScale,
+        primaryColour: null as string | null,
+        accentColour: null as string | null,
+      };
+      updateSiteSettings(data);
+      toast.success("Branding settings saved");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save branding");
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -120,6 +196,79 @@ export default function BrandingSettings() {
 
         {error && <p className="text-xs text-red-500 font-medium">{error}</p>}
       </div>
+
+      {/* Logo Position Preview */}
+      {branding.logoSrc && (
+        <div className="bento-card space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-800">Logo Position & Scale</h3>
+            <button
+              type="button"
+              onClick={resetPosition}
+              className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              <RotateCcw size={12} /> Reset
+            </button>
+          </div>
+
+          {/* Preview panel — simulates sidebar header */}
+          <div
+            ref={previewRef}
+            className="relative overflow-hidden rounded-lg border border-gray-200 bg-gradient-to-br from-updraft-deep via-updraft-bar to-updraft-bright-purple"
+            style={{ height: 100 }}
+          >
+            <p className="absolute top-2 right-3 text-[9px] text-white/50 font-medium uppercase tracking-wider">
+              Preview — drag logo to reposition
+            </p>
+            {branding.logoSrc && (
+              <img
+                src={branding.logoSrc}
+                alt={branding.logoAlt}
+                onMouseDown={handleMouseDown}
+                className={cn(
+                  "absolute select-none",
+                  isDragging ? "cursor-grabbing" : "cursor-grab"
+                )}
+                style={{
+                  left: logoX,
+                  top: logoY,
+                  transform: `scale(${logoScale})`,
+                  transformOrigin: "top left",
+                  maxHeight: 60,
+                  maxWidth: 180,
+                }}
+                draggable={false}
+              />
+            )}
+          </div>
+
+          {/* Scale slider */}
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              Scale: {(logoScale * 100).toFixed(0)}%
+            </label>
+            <input
+              type="range"
+              min={0.3}
+              max={2.5}
+              step={0.05}
+              value={logoScale}
+              onChange={(e) => setLogoScale(Number(e.target.value))}
+              className="w-full accent-updraft-bright-purple"
+            />
+            <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
+              <span>30%</span>
+              <span>250%</span>
+            </div>
+          </div>
+
+          {/* Position display */}
+          <div className="flex gap-4 text-xs text-gray-500">
+            <span>X: {logoX}px</span>
+            <span>Y: {logoY}px</span>
+          </div>
+        </div>
+      )}
 
       {/* Logo settings */}
       <div className="bento-card space-y-4">
@@ -198,11 +347,11 @@ export default function BrandingSettings() {
       </div>
 
       {/* Dashboard Icon */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+      <div className="bento-card space-y-3">
+        <label className="block text-sm font-semibold text-gray-800">
           Dashboard Welcome Icon
         </label>
-        <p className="text-xs text-gray-500 mb-3">
+        <p className="text-xs text-gray-500">
           Upload an icon to display on the dashboard welcome section (recommended: 100x100px, transparent PNG)
         </p>
 
@@ -266,6 +415,17 @@ export default function BrandingSettings() {
             <p className="text-xs text-gray-400 mt-1">PNG, JPG, SVG up to 5MB</p>
           </div>
         )}
+      </div>
+
+      {/* Save to Database button */}
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={saveBrandingToDb}
+          className="inline-flex items-center gap-2 rounded-lg bg-updraft-bright-purple px-5 py-2.5 text-sm font-medium text-white hover:bg-updraft-deep transition-colors"
+        >
+          <Save size={16} /> Save Branding Settings
+        </button>
       </div>
     </div>
   );

@@ -48,21 +48,20 @@ export default function DashboardHome() {
 
   const role = currentUser?.role;
   const isCCRO = role === "CCRO_TEAM";
-  const isMetricOwner = role === "METRIC_OWNER";
-  const isRiskOwner = role === "RISK_OWNER";
+  const isOwner = role === "OWNER";
 
   // (Stats computed inline where needed per role)
 
   // Priority action stats — filtered by role
   const priorityStats = useMemo(() => {
-    const pool = (isCCRO ? actions : (isMetricOwner || isRiskOwner) ? actions.filter((a) => a.assignedTo === currentUser?.id) : actions)
+    const pool = (isCCRO ? actions : isOwner ? actions.filter((a) => a.assignedTo === currentUser?.id) : actions)
       .filter((a) => a.status !== "COMPLETED");
     return {
       P1: pool.filter((a) => a.priority === "P1"),
       P2: pool.filter((a) => a.priority === "P2"),
       P3: pool.filter((a) => a.priority === "P3"),
     };
-  }, [actions, isCCRO, isMetricOwner, isRiskOwner, currentUser?.id]);
+  }, [actions, isCCRO, isOwner, currentUser?.id]);
 
   const actionStats = useMemo(() => {
     const open = actions.filter((a) => a.status === "OPEN" || a.status === "IN_PROGRESS").length;
@@ -114,7 +113,7 @@ export default function DashboardHome() {
     return actions.flatMap((a) => (a.changes ?? []).filter((c) => c.status === "PENDING"));
   }, [actions]);
 
-  // METRIC_OWNER-specific: my risks, my actions, my metrics
+  // OWNER-specific: my risks, my actions, my metrics
   const myRisks = useMemo(() => {
     if (!currentUser) return [];
     return risks.filter((r) => r.ownerId === currentUser.id);
@@ -215,7 +214,7 @@ export default function DashboardHome() {
               </div>
             )}
 
-            {(isMetricOwner || isRiskOwner) && (myOverdueActions.length > 0 || myDueThisMonthActions.length > 0 || myRisksNeedingReview.length > 0) && (
+            {isOwner && (myOverdueActions.length > 0 || myDueThisMonthActions.length > 0 || myRisksNeedingReview.length > 0) && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {myOverdueActions.length > 0 && (
                   <Link href="/actions?status=OVERDUE" className="inline-flex items-center gap-1.5 rounded-full bg-red-500/90 px-3 py-1 text-xs font-semibold text-white hover:bg-red-600 transition-colors">
@@ -534,8 +533,8 @@ export default function DashboardHome() {
         </>
       )}
 
-      {/* ═══════════════ METRIC_OWNER Dashboard ═══════════════ */}
-      {isMetricOwner && (
+      {/* ═══════════════ OWNER Dashboard ═══════════════ */}
+      {isOwner && (
         <>
           {/* My Risks */}
           <div className="bento-card">
@@ -718,59 +717,50 @@ export default function DashboardHome() {
         </>
       )}
 
-      {/* ═══════════════ RISK_OWNER Dashboard ═══════════════ */}
-      {isRiskOwner && (
+      {/* ═══════════════ VIEWER Dashboard ═══════════════ */}
+      {!isCCRO && !isOwner && (
         <>
-          {/* My Risks */}
-          <div className="bento-card">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-updraft-bright-purple" />
-                <h2 className="text-lg font-bold text-updraft-deep font-poppins">My Risks</h2>
-                <span className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5 text-xs font-bold">{myRisks.length}</span>
+          {/* My Risks (items VIEWER owns) */}
+          {myRisks.length > 0 && (
+            <div className="bento-card">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-updraft-bright-purple" />
+                  <h2 className="text-lg font-bold text-updraft-deep font-poppins">My Risks</h2>
+                  <span className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5 text-xs font-bold">{myRisks.length}</span>
+                </div>
+                <Link href="/risk-register" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
+                  Risk Register <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
               </div>
-              <Link href="/risk-register" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-                Risk Register <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-            {myRisks.length === 0 ? (
-              <p className="text-sm text-gray-400">No risks assigned to you</p>
-            ) : (
               <div className="space-y-2">
-                {myRisks.map((r) => {
-                  const nextReview = new Date(r.lastReviewed);
-                  nextReview.setDate(nextReview.getDate() + (r.reviewFrequencyDays ?? 90));
-                  return (
-                    <Link key={r.id} href="/risk-register" className="flex items-center gap-4 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-                      <span className="text-xs font-mono font-bold text-updraft-deep shrink-0">{r.reference}</span>
-                      <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{r.name}</span>
-                      <ScoreBadge likelihood={r.residualLikelihood} impact={r.residualImpact} size="sm" />
-                      <DirectionArrow direction={r.directionOfTravel} />
-                      <span className="text-[10px] text-gray-400 shrink-0">{nextReview.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
-                    </Link>
-                  );
-                })}
+                {myRisks.map((r) => (
+                  <Link key={r.id} href="/risk-register" className="flex items-center gap-4 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <span className="text-xs font-mono font-bold text-updraft-deep shrink-0">{r.reference}</span>
+                    <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{r.name}</span>
+                    <ScoreBadge likelihood={r.residualLikelihood} impact={r.residualImpact} size="sm" />
+                    <DirectionArrow direction={r.directionOfTravel} />
+                  </Link>
+                ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* My Due Actions */}
-          <div className="bento-card">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <ListChecks className="h-5 w-5 text-updraft-bright-purple" />
-                <h2 className="text-lg font-bold text-updraft-deep font-poppins">My Due Actions</h2>
-                <span className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5 text-xs font-bold">{myActions.length}</span>
+          {/* My Actions (items VIEWER owns) */}
+          {myActions.length > 0 && (
+            <div className="bento-card">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <ListChecks className="h-5 w-5 text-updraft-bright-purple" />
+                  <h2 className="text-lg font-bold text-updraft-deep font-poppins">My Actions</h2>
+                  <span className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5 text-xs font-bold">{myActions.length}</span>
+                </div>
+                <Link href="/actions" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
+                  All Actions <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
               </div>
-              <Link href="/actions" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-                All Actions <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-            {myActions.length === 0 ? (
-              <p className="text-sm text-gray-400">No active actions assigned to you</p>
-            ) : (
               <div className="space-y-2">
-                {myActions.slice(0, 8).map((a) => {
+                {myActions.slice(0, 5).map((a) => {
                   const days = daysUntilDue(a.dueDate);
                   const isOverdue = days !== null && days <= 0;
                   return (
@@ -784,64 +774,19 @@ export default function DashboardHome() {
                       )}
                       <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{a.title}</span>
                       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${
-                        a.status === "IN_PROGRESS" ? "bg-amber-100 text-amber-700" :
                         a.status === "OVERDUE" || isOverdue ? "bg-red-100 text-red-700" :
+                        a.status === "IN_PROGRESS" ? "bg-amber-100 text-amber-700" :
                         "bg-blue-100 text-blue-700"
                       }`}>
                         {a.status === "OVERDUE" || isOverdue ? "Overdue" : a.status === "IN_PROGRESS" ? "In Progress" : "Open"}
-                      </span>
-                      <span className={`text-xs shrink-0 ${isOverdue ? "text-red-600 font-semibold" : "text-gray-500"}`}>
-                        {a.dueDate ? new Date(a.dueDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "No date"}
                       </span>
                     </Link>
                   );
                 })}
               </div>
-            )}
-          </div>
-
-          {/* Published Reports only */}
-          <div className="bento-card">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-updraft-deep">Published Reports</h2>
-              <Link href="/reports" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-                View All <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-2 px-3 font-medium text-fca-gray">Report</th>
-                    <th className="text-left py-2 px-3 font-medium text-fca-gray">Period</th>
-                    <th className="text-left py-2 px-3 font-medium text-fca-gray">Updated</th>
-                    <th className="text-right py-2 px-3 font-medium text-fca-gray"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {publishedReports.map((report) => (
-                    <tr key={report.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-3 px-3 font-medium">{report.title}</td>
-                      <td className="py-3 px-3 text-fca-gray">{report.period}</td>
-                      <td className="py-3 px-3 text-fca-gray text-xs">{formatDate(report.updatedAt)}</td>
-                      <td className="py-3 px-3 text-right">
-                        <Link href={`/reports/${report.id}`} className="text-updraft-bright-purple hover:text-updraft-deep text-xs font-medium">View</Link>
-                      </td>
-                    </tr>
-                  ))}
-                  {publishedReports.length === 0 && (
-                    <tr><td colSpan={4} className="py-6 text-center text-sm text-gray-400">No published reports yet</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </>
-      )}
+          )}
 
-      {/* ═══════════════ VIEWER Dashboard ═══════════════ */}
-      {!isCCRO && !isMetricOwner && !isRiskOwner && (
-        <>
           {/* Consumer Duty Overview */}
           <div className="bento-card">
             <div className="flex items-center justify-between mb-4">

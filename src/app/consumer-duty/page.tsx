@@ -40,9 +40,9 @@ function ConsumerDutyContent() {
   const deleteMeasure = useAppStore((s) => s.deleteMeasure);
   const bulkAddMeasures = useAppStore((s) => s.bulkAddMeasures);
 
-  const isMetricOwner = currentUser?.role === "METRIC_OWNER";
+  const isOwner = currentUser?.role === "OWNER";
   const isCCROTeam = currentUser?.role === "CCRO_TEAM";
-  const canEdit = isMetricOwner || isCCROTeam;
+  const canEdit = isOwner || isCCROTeam;
 
   const [selectedOutcomeId, setSelectedOutcomeId] = useState<string | null>(null);
   const [selectedMeasure, setSelectedMeasure] = useState<ConsumerDutyMeasure | null>(null);
@@ -113,7 +113,7 @@ function ConsumerDutyContent() {
   // Can the current user edit a particular measure?
   const canEditMeasure = (measure: ConsumerDutyMeasure): boolean => {
     if (isCCROTeam) return true;
-    if (isMetricOwner && currentUser) {
+    if (isOwner && currentUser) {
       return currentUser.assignedMeasures.includes(measure.measureId);
     }
     return false;
