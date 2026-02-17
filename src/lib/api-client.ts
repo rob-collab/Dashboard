@@ -14,13 +14,18 @@ interface ApiOptions {
 
 export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Promise<T> {
   const { method = "GET", body } = opts;
-  const userId = useAppStore.getState().currentUser?.id;
+  const state = useAppStore.getState();
+  const userId = state.currentUser?.id;
+  const authUserId = state.authUser?.id;
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
   if (userId) {
     headers["X-User-Id"] = userId;
+  }
+  if (authUserId) {
+    headers["X-Auth-User-Id"] = authUserId;
   }
 
   const res = await fetch(path, {

@@ -9,6 +9,8 @@ interface AppState {
   hydrate: () => Promise<void>;
 
   // Auth
+  authUser: User | null;
+  setAuthUser: (user: User | null) => void;
   currentUser: User | null;
   setCurrentUser: (user: User | null) => void;
 
@@ -188,6 +190,8 @@ export const useAppStore = create<AppState>((set) => ({
   },
 
   // ── Auth ───────────────────────────────────────────────────
+  authUser: null,
+  setAuthUser: (user) => set({ authUser: user }),
   currentUser: null,
   setCurrentUser: (user) => set({ currentUser: user }),
 

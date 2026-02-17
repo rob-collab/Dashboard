@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
   FileText,
@@ -20,6 +21,9 @@ import {
   ChevronDown,
   Check,
   RefreshCw,
+  LogOut,
+  Eye,
+  ArrowLeft,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import type { User, Role } from "@/lib/types";
@@ -31,6 +35,8 @@ interface SidebarProps {
   onToggle?: () => void;
   onSwitchUser?: (user: User) => void;
 }
+
+const ROB_EMAIL = "rob@updraft.com";
 
 const NAV_ITEMS: { label: string; href: string; icon: typeof LayoutDashboard; roles: Role[] }[] = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard, roles: ["CCRO_TEAM", "OWNER", "VIEWER"] },
@@ -65,8 +71,27 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
   const pathname = usePathname();
   const userMenuRef = useRef<HTMLDivElement>(null);
   const storeUsers = useAppStore((s) => s.users);
+  const authUser = useAppStore((s) => s.authUser);
   const hydrate = useAppStore((s) => s.hydrate);
   const [refreshing, setRefreshing] = useState(false);
+
+  const isViewingAsOther = authUser && currentUser.id !== authUser.id;
+  const isRob = authUser?.email === ROB_EMAIL;
+
+  // Filter user list: everyone can see all users except Rob (unless they ARE Rob)
+  const viewableUsers = storeUsers.filter((u) => {
+    if (isRob) return true;
+    return u.email !== ROB_EMAIL;
+  });
+
+  // Sort: own account first, then alphabetical
+  const sortedUsers = [...viewableUsers].sort((a, b) => {
+    if (authUser) {
+      if (a.id === authUser.id) return -1;
+      if (b.id === authUser.id) return 1;
+    }
+    return a.name.localeCompare(b.name);
+  });
 
   // Close user menu on click outside
   useEffect(() => {
@@ -112,6 +137,24 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
           )}
         />
       </div>
+
+      {/* View-As Banner */}
+      {isViewingAsOther && !collapsed && (
+        <div className="mx-2 mt-2 flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+          <Eye size={14} className="shrink-0 text-amber-600" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-semibold text-amber-700 uppercase tracking-wider">Viewing as</p>
+            <p className="text-xs font-medium text-amber-800 truncate">{currentUser.name} ({ROLE_LABELS[currentUser.role]})</p>
+          </div>
+          <button
+            onClick={() => authUser && onSwitchUser?.(authUser)}
+            className="shrink-0 rounded p-1 text-amber-600 hover:bg-amber-100 transition-colors"
+            title="Back to my account"
+          >
+            <ArrowLeft size={14} />
+          </button>
+        </div>
+      )}
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-1">
@@ -174,7 +217,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
         </button>
       </div>
 
-      {/* User Switcher */}
+      {/* User Section */}
       <div
         ref={userMenuRef}
         className={cn(
@@ -182,6 +225,20 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
           collapsed ? "flex justify-center" : ""
         )}
       >
+        {/* Signed-in identity (compact, always visible) */}
+        {!collapsed && authUser && (
+          <div className="mb-2 flex items-center gap-2 text-[10px] text-gray-400">
+            <span className="truncate">Signed in as {authUser.name}</span>
+            <button
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="shrink-0 rounded p-0.5 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              title="Sign out"
+            >
+              <LogOut size={12} />
+            </button>
+          </div>
+        )}
+
         {collapsed ? (
           <button
             onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -229,12 +286,13 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
           )}>
             <div className="px-3 py-2 border-b border-gray-100">
               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                Switch User
+                View As
               </p>
             </div>
             <div className="py-1 max-h-72 overflow-y-auto">
-              {storeUsers.map((u) => {
+              {sortedUsers.map((u) => {
                 const isSelected = u.id === currentUser.id;
+                const isSelf = authUser && u.id === authUser.id;
                 return (
                   <button
                     key={u.id}
@@ -258,7 +316,10 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
                       {u.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate text-xs">{u.name}</p>
+                      <p className="font-medium truncate text-xs">
+                        {u.name}
+                        {isSelf && <span className="ml-1 text-[10px] text-gray-400">(My Account)</span>}
+                      </p>
                       <p className="text-[10px] text-gray-500 truncate">
                         {ROLE_LABELS[u.role]}
                       </p>
@@ -269,6 +330,17 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
                   </button>
                 );
               })}
+            </div>
+
+            {/* Sign Out at bottom of dropdown */}
+            <div className="border-t border-gray-100 px-3 py-2">
+              <button
+                onClick={() => signOut({ callbackUrl: "/login" })}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+              >
+                <LogOut size={14} />
+                <span>Sign Out</span>
+              </button>
             </div>
           </div>
         )}

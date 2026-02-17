@@ -8,8 +8,12 @@ export function getUserId(request: Request): string | null {
   return request.headers.get("X-User-Id");
 }
 
+export function getAuthUserId(request: Request): string | null {
+  return request.headers.get("X-Auth-User-Id") || getUserId(request);
+}
+
 export async function requireCCRORole(request: Request): Promise<{ userId: string } | { error: NextResponse }> {
-  const userId = getUserId(request);
+  const userId = getAuthUserId(request);
   if (!userId) {
     return { error: errorResponse("Unauthorised", 401) };
   }
