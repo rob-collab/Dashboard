@@ -84,8 +84,8 @@ export default function BrandingSettings() {
   useEffect(() => {
     if (!isDragging) return;
     const handleMouseMove = (e: MouseEvent) => {
-      const newX = Math.max(0, Math.min(300, dragStart.x - e.clientX));
-      const newY = Math.max(0, Math.min(60, e.clientY - dragStart.y));
+      const newX = Math.max(-100, Math.min(300, dragStart.x - e.clientX));
+      const newY = Math.max(-200, Math.min(200, e.clientY - dragStart.y));
       setLogoX(newX);
       setLogoY(newY);
     };
@@ -291,14 +291,14 @@ export default function BrandingSettings() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
-                Top Offset (px)
+                Top Offset (px) <span className="text-gray-400 font-normal">— negative moves up</span>
               </label>
               <input
                 type="number"
-                min={0}
+                min={-200}
                 max={200}
                 value={logoY}
-                onChange={(e) => setLogoY(Math.max(0, Number(e.target.value)))}
+                onChange={(e) => setLogoY(Number(e.target.value))}
                 className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-sm focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple/50 outline-none"
               />
             </div>
