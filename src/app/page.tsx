@@ -382,16 +382,15 @@ export default function DashboardHome() {
             </div>
             <div className="space-y-3">
               {outcomes.map((outcome) => (
-                <div key={outcome.id} className="flex items-center justify-between rounded-xl bg-gray-50 p-3 hover:bg-gray-100 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className={`h-3 w-3 rounded-full ${ragBgColor(outcome.ragStatus)}`} />
-                    <div>
-                      <p className="text-sm font-medium">{outcome.name}</p>
-                      <p className="text-xs text-fca-gray">{outcome.shortDesc}</p>
+                <div key={outcome.id} className="rounded-xl bg-gray-50 p-3 hover:bg-gray-100 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`h-3 w-3 rounded-full ${ragBgColor(outcome.ragStatus)}`} />
+                      <div>
+                        <p className="text-sm font-medium">{outcome.name}</p>
+                        <p className="text-xs text-fca-gray">{outcome.shortDesc}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-fca-gray">{outcome.measures?.length || 0} measures</span>
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                       outcome.ragStatus === "GOOD" ? "bg-green-100 text-risk-green" :
                       outcome.ragStatus === "WARNING" ? "bg-amber-100 text-risk-amber" :
@@ -400,6 +399,28 @@ export default function DashboardHome() {
                       {outcome.ragStatus === "GOOD" ? "Green" : outcome.ragStatus === "WARNING" ? "Amber" : "Red"}
                     </span>
                   </div>
+                  {/* Inline measures with RAG colours */}
+                  {(outcome.measures ?? []).length > 0 && (
+                    <div className="mt-2 ml-6 space-y-1">
+                      {(outcome.measures ?? []).map((m) => (
+                        <Link
+                          key={m.id}
+                          href={`/consumer-duty?measure=${m.id}`}
+                          className="flex items-center gap-2 text-xs py-1 px-2 rounded hover:bg-white/60 transition-colors"
+                        >
+                          <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${ragBgColor(m.ragStatus)}`} />
+                          <span className="text-gray-600 truncate flex-1 min-w-0">{m.measureId} — {m.name}</span>
+                          <span className={`font-semibold shrink-0 ${
+                            m.ragStatus === "GOOD" ? "text-risk-green" :
+                            m.ragStatus === "WARNING" ? "text-risk-amber" :
+                            "text-risk-red"
+                          }`}>
+                            {m.ragStatus === "GOOD" ? "Green" : m.ragStatus === "WARNING" ? "Amber" : "Red"}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -637,19 +658,26 @@ export default function DashboardHome() {
               </div>
               <div className="space-y-2">
                 {myMetrics.map((m) => (
-                  <div key={m.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+                  <Link
+                    key={m.id}
+                    href={`/consumer-duty?measure=${m.id}`}
+                    className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
+                  >
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-gray-800 truncate">{m.name}</p>
                       <p className="text-xs text-gray-500">{m.measureId}</p>
                     </div>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ml-2 ${
-                      m.ragStatus === "GOOD" ? "bg-green-100 text-risk-green" :
-                      m.ragStatus === "WARNING" ? "bg-amber-100 text-risk-amber" :
-                      "bg-red-100 text-risk-red"
-                    }`}>
-                      {m.ragStatus === "GOOD" ? "Green" : m.ragStatus === "WARNING" ? "Amber" : "Red"}
-                    </span>
-                  </div>
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                        m.ragStatus === "GOOD" ? "bg-green-100 text-risk-green" :
+                        m.ragStatus === "WARNING" ? "bg-amber-100 text-risk-amber" :
+                        "bg-red-100 text-risk-red"
+                      }`}>
+                        {m.ragStatus === "GOOD" ? "Green" : m.ragStatus === "WARNING" ? "Amber" : "Red"}
+                      </span>
+                      <ArrowRight className="h-3.5 w-3.5 text-gray-400" />
+                    </div>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -665,21 +693,44 @@ export default function DashboardHome() {
             </div>
             <div className="space-y-3">
               {outcomes.map((outcome) => (
-                <div key={outcome.id} className="flex items-center justify-between rounded-xl bg-gray-50 p-3 hover:bg-gray-100 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className={`h-3 w-3 rounded-full ${ragBgColor(outcome.ragStatus)}`} />
-                    <div>
-                      <p className="text-sm font-medium">{outcome.name}</p>
-                      <p className="text-xs text-fca-gray">{outcome.shortDesc}</p>
+                <div key={outcome.id} className="rounded-xl bg-gray-50 p-3 hover:bg-gray-100 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`h-3 w-3 rounded-full ${ragBgColor(outcome.ragStatus)}`} />
+                      <div>
+                        <p className="text-sm font-medium">{outcome.name}</p>
+                        <p className="text-xs text-fca-gray">{outcome.shortDesc}</p>
+                      </div>
                     </div>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                      outcome.ragStatus === "GOOD" ? "bg-green-100 text-risk-green" :
+                      outcome.ragStatus === "WARNING" ? "bg-amber-100 text-risk-amber" :
+                      "bg-red-100 text-risk-red"
+                    }`}>
+                      {outcome.ragStatus === "GOOD" ? "Green" : outcome.ragStatus === "WARNING" ? "Amber" : "Red"}
+                    </span>
                   </div>
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                    outcome.ragStatus === "GOOD" ? "bg-green-100 text-risk-green" :
-                    outcome.ragStatus === "WARNING" ? "bg-amber-100 text-risk-amber" :
-                    "bg-red-100 text-risk-red"
-                  }`}>
-                    {outcome.ragStatus === "GOOD" ? "Green" : outcome.ragStatus === "WARNING" ? "Amber" : "Red"}
-                  </span>
+                  {(outcome.measures ?? []).length > 0 && (
+                    <div className="mt-2 ml-6 space-y-1">
+                      {(outcome.measures ?? []).map((m) => (
+                        <Link
+                          key={m.id}
+                          href={`/consumer-duty?measure=${m.id}`}
+                          className="flex items-center gap-2 text-xs py-1 px-2 rounded hover:bg-white/60 transition-colors"
+                        >
+                          <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${ragBgColor(m.ragStatus)}`} />
+                          <span className="text-gray-600 truncate flex-1 min-w-0">{m.measureId} — {m.name}</span>
+                          <span className={`font-semibold shrink-0 ${
+                            m.ragStatus === "GOOD" ? "text-risk-green" :
+                            m.ragStatus === "WARNING" ? "text-risk-amber" :
+                            "text-risk-red"
+                          }`}>
+                            {m.ragStatus === "GOOD" ? "Green" : m.ragStatus === "WARNING" ? "Amber" : "Red"}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -804,21 +855,44 @@ export default function DashboardHome() {
             </div>
             <div className="space-y-3">
               {outcomes.map((outcome) => (
-                <div key={outcome.id} className="flex items-center justify-between rounded-xl bg-gray-50 p-3 hover:bg-gray-100 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className={`h-3 w-3 rounded-full ${ragBgColor(outcome.ragStatus)}`} />
-                    <div>
-                      <p className="text-sm font-medium">{outcome.name}</p>
-                      <p className="text-xs text-fca-gray">{outcome.shortDesc}</p>
+                <div key={outcome.id} className="rounded-xl bg-gray-50 p-3 hover:bg-gray-100 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`h-3 w-3 rounded-full ${ragBgColor(outcome.ragStatus)}`} />
+                      <div>
+                        <p className="text-sm font-medium">{outcome.name}</p>
+                        <p className="text-xs text-fca-gray">{outcome.shortDesc}</p>
+                      </div>
                     </div>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                      outcome.ragStatus === "GOOD" ? "bg-green-100 text-risk-green" :
+                      outcome.ragStatus === "WARNING" ? "bg-amber-100 text-risk-amber" :
+                      "bg-red-100 text-risk-red"
+                    }`}>
+                      {outcome.ragStatus === "GOOD" ? "Green" : outcome.ragStatus === "WARNING" ? "Amber" : "Red"}
+                    </span>
                   </div>
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                    outcome.ragStatus === "GOOD" ? "bg-green-100 text-risk-green" :
-                    outcome.ragStatus === "WARNING" ? "bg-amber-100 text-risk-amber" :
-                    "bg-red-100 text-risk-red"
-                  }`}>
-                    {outcome.ragStatus === "GOOD" ? "Green" : outcome.ragStatus === "WARNING" ? "Amber" : "Red"}
-                  </span>
+                  {(outcome.measures ?? []).length > 0 && (
+                    <div className="mt-2 ml-6 space-y-1">
+                      {(outcome.measures ?? []).map((m) => (
+                        <Link
+                          key={m.id}
+                          href={`/consumer-duty?measure=${m.id}`}
+                          className="flex items-center gap-2 text-xs py-1 px-2 rounded hover:bg-white/60 transition-colors"
+                        >
+                          <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${ragBgColor(m.ragStatus)}`} />
+                          <span className="text-gray-600 truncate flex-1 min-w-0">{m.measureId} — {m.name}</span>
+                          <span className={`font-semibold shrink-0 ${
+                            m.ragStatus === "GOOD" ? "text-risk-green" :
+                            m.ragStatus === "WARNING" ? "text-risk-amber" :
+                            "text-risk-red"
+                          }`}>
+                            {m.ragStatus === "GOOD" ? "Green" : m.ragStatus === "WARNING" ? "Amber" : "Red"}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, Suspense } from "react";
+import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ShieldCheck, Search, Filter, ClipboardEdit, Plus, Upload, Pencil, Trash2, Shield } from "lucide-react";
 import { useAppStore } from "@/lib/store";
@@ -54,6 +54,7 @@ function ConsumerDutyContent() {
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"all" | "my" | "admin">("all");
+  const [measureRagFilter, setMeasureRagFilter] = useState<RAGStatus | "ALL">("ALL");
 
   // Management dialog state
   const [outcomeDialogOpen, setOutcomeDialogOpen] = useState(false);
@@ -66,6 +67,24 @@ function ConsumerDutyContent() {
   const [riskDetailOutcome, setRiskDetailOutcome] = useState<ConsumerDutyOutcome | null>(null);
 
   const selectedOutcome = outcomes.find((o) => o.id === selectedOutcomeId);
+
+  // Deep-link: ?measure=xxx opens MI modal for that measure on first load
+  const [deepLinkHandled, setDeepLinkHandled] = useState(false);
+  useEffect(() => {
+    if (deepLinkHandled || outcomes.length === 0) return;
+    const measureParam = searchParams.get("measure");
+    if (measureParam) {
+      for (const o of outcomes) {
+        const found = (o.measures ?? []).find((m) => m.id === measureParam);
+        if (found) {
+          setSelectedMeasure(found);
+          setSelectedOutcomeId(o.id);
+          break;
+        }
+      }
+      setDeepLinkHandled(true);
+    }
+  }, [outcomes, searchParams, deepLinkHandled]);
 
   // URL-synced RAG filter (for filter bar)
   const handleRagFilter = useCallback((value: RagFilterValue) => {
@@ -89,27 +108,54 @@ function ConsumerDutyContent() {
 
   const filteredOutcomes = useMemo(() => {
     let filtered = outcomes;
+    // Outcome-level RAG filter
     if (ragFilter === "ATTENTION") {
       filtered = filtered.filter((o) => o.ragStatus === "WARNING" || o.ragStatus === "HARM");
     } else if (ragFilter !== "ALL") {
       filtered = filtered.filter((o) => o.ragStatus === ragFilter);
     }
+    // Search across outcomes, measures, and metrics
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (o) =>
           o.name.toLowerCase().includes(q) ||
-          o.shortDesc.toLowerCase().includes(q)
+          o.shortDesc.toLowerCase().includes(q) ||
+          o.outcomeId.toLowerCase().includes(q) ||
+          (o.measures ?? []).some(
+            (m) =>
+              m.name.toLowerCase().includes(q) ||
+              m.measureId.toLowerCase().includes(q) ||
+              (m.owner && users.find((u) => u.id === m.owner)?.name.toLowerCase().includes(q)) ||
+              (m.metrics ?? []).some((mi) => mi.metric.toLowerCase().includes(q))
+          )
       );
     }
     return filtered;
-  }, [outcomes, ragFilter, searchQuery]);
+  }, [outcomes, ragFilter, searchQuery, users]);
 
-  // Summary stats
+  // All measures flattened
+  const allMeasures = useMemo(() =>
+    outcomes.flatMap((o) => (o.measures ?? []).map((m) => ({ ...m, outcomeName: o.name }))),
+    [outcomes]
+  );
+  const totalMeasures = allMeasures.length;
+
+  // Filtered measures (for measure-level RAG filter)
+  const filteredMeasures = useMemo(() => {
+    if (measureRagFilter === "ALL") return allMeasures;
+    return allMeasures.filter((m) => m.ragStatus === measureRagFilter);
+  }, [allMeasures, measureRagFilter]);
+
+  // Measure-level RAG stats
+  const measureGoodCount = allMeasures.filter((m) => m.ragStatus === "GOOD").length;
+  const measureWarningCount = allMeasures.filter((m) => m.ragStatus === "WARNING").length;
+  const measureHarmCount = allMeasures.filter((m) => m.ragStatus === "HARM").length;
+
+  // Outcome-level stats (still used for outcome grid filtering)
   const goodCount = outcomes.filter((o) => o.ragStatus === "GOOD").length;
   const warningCount = outcomes.filter((o) => o.ragStatus === "WARNING").length;
   const harmCount = outcomes.filter((o) => o.ragStatus === "HARM").length;
-  const totalMeasures = outcomes.reduce((acc, o) => acc + (o.measures?.length ?? 0), 0);
 
   // Can the current user edit a particular measure?
   const canEditMeasure = (measure: ConsumerDutyMeasure): boolean => {
@@ -313,62 +359,113 @@ function ConsumerDutyContent() {
         </div>
       </div>
 
-      {/* Summary cards — clickable with active highlight */}
+      {/* Summary cards — measure-level RAG counts */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <button
-          onClick={() => handleStatRagClick("ALL")}
+          onClick={() => { setMeasureRagFilter("ALL"); handleStatRagClick("ALL"); }}
           className={cn(
             "bento-card cursor-pointer text-left",
-            ragFilter === "ALL" && "ring-2 ring-updraft-bright-purple/30"
+            measureRagFilter === "ALL" && ragFilter === "ALL" && "ring-2 ring-updraft-bright-purple/30"
           )}
         >
-          <p className="text-xs text-fca-gray">Total Outcomes</p>
-          <p className="text-2xl font-bold text-updraft-deep mt-1">{outcomes.length}</p>
-          <p className="text-xs text-fca-gray mt-1">{totalMeasures} measures tracked</p>
+          <p className="text-xs text-fca-gray">Total Measures</p>
+          <p className="text-2xl font-bold text-updraft-deep mt-1">{totalMeasures}</p>
+          <p className="text-xs text-fca-gray mt-1">{outcomes.length} outcomes tracked</p>
         </button>
         <button
-          onClick={() => handleStatRagClick("GOOD")}
+          onClick={() => { setMeasureRagFilter("GOOD"); handleStatRagClick("ALL"); }}
           className={cn(
             "bento-card cursor-pointer text-left",
-            ragFilter === "GOOD" && "ring-2 ring-risk-green/40 bg-risk-green/5"
+            measureRagFilter === "GOOD" && "ring-2 ring-risk-green/40 bg-risk-green/5"
           )}
         >
           <div className="flex items-center gap-2">
             <span className={cn("h-2.5 w-2.5 rounded-full", ragBgColor("GOOD"))} />
-            <p className="text-xs text-fca-gray">Green</p>
+            <p className="text-xs text-fca-gray">Green Measures</p>
           </div>
-          <p className="text-2xl font-bold text-risk-green mt-1">{goodCount}</p>
-          <p className="text-xs text-fca-gray mt-1">good customer outcome</p>
+          <p className="text-2xl font-bold text-risk-green mt-1">{measureGoodCount}</p>
+          <p className="text-xs text-fca-gray mt-1">{goodCount} green outcome{goodCount !== 1 ? "s" : ""}</p>
         </button>
         <button
-          onClick={() => handleStatRagClick("WARNING")}
+          onClick={() => { setMeasureRagFilter("WARNING"); handleStatRagClick("ALL"); }}
           className={cn(
             "bento-card cursor-pointer text-left",
-            (ragFilter === "WARNING" || ragFilter === "ATTENTION") && "ring-2 ring-risk-amber/40 bg-risk-amber/5"
+            measureRagFilter === "WARNING" && "ring-2 ring-risk-amber/40 bg-risk-amber/5"
           )}
         >
           <div className="flex items-center gap-2">
             <span className={cn("h-2.5 w-2.5 rounded-full", ragBgColor("WARNING"))} />
-            <p className="text-xs text-fca-gray">Amber</p>
+            <p className="text-xs text-fca-gray">Amber Measures</p>
           </div>
-          <p className="text-2xl font-bold text-risk-amber mt-1">{warningCount}</p>
-          <p className="text-xs text-fca-gray mt-1">possible detriment</p>
+          <p className="text-2xl font-bold text-risk-amber mt-1">{measureWarningCount}</p>
+          <p className="text-xs text-fca-gray mt-1">{warningCount} amber outcome{warningCount !== 1 ? "s" : ""}</p>
         </button>
         <button
-          onClick={() => handleStatRagClick("HARM")}
+          onClick={() => { setMeasureRagFilter("HARM"); handleStatRagClick("ALL"); }}
           className={cn(
             "bento-card cursor-pointer text-left",
-            (ragFilter === "HARM" || ragFilter === "ATTENTION") && "ring-2 ring-risk-red/40 bg-risk-red/5"
+            measureRagFilter === "HARM" && "ring-2 ring-risk-red/40 bg-risk-red/5"
           )}
         >
           <div className="flex items-center gap-2">
             <span className={cn("h-2.5 w-2.5 rounded-full", ragBgColor("HARM"))} />
-            <p className="text-xs text-fca-gray">Red</p>
+            <p className="text-xs text-fca-gray">Red Measures</p>
           </div>
-          <p className="text-2xl font-bold text-risk-red mt-1">{harmCount}</p>
-          <p className="text-xs text-fca-gray mt-1">harm identified</p>
+          <p className="text-2xl font-bold text-risk-red mt-1">{measureHarmCount}</p>
+          <p className="text-xs text-fca-gray mt-1">{harmCount} red outcome{harmCount !== 1 ? "s" : ""}</p>
         </button>
       </div>
+
+      {/* Measure-level RAG quick view */}
+      {measureRagFilter !== "ALL" && (
+        <div className="bento-card animate-slide-up">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold text-updraft-deep font-poppins">
+              {measureRagFilter === "GOOD" ? "Green" : measureRagFilter === "WARNING" ? "Amber" : "Red"} Measures
+              <span className="ml-2 text-xs font-normal text-gray-400">({filteredMeasures.length})</span>
+            </h2>
+            <button
+              onClick={() => setMeasureRagFilter("ALL")}
+              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              Clear filter
+            </button>
+          </div>
+          <div className="space-y-1.5 max-h-72 overflow-y-auto">
+            {filteredMeasures.map((m) => {
+              const ownerName = m.owner ? users.find((u) => u.id === m.owner)?.name : null;
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => {
+                    const parentOutcome = outcomes.find((o) => (o.measures ?? []).some((om) => om.id === m.id));
+                    const originalMeasure = parentOutcome?.measures?.find((om) => om.id === m.id);
+                    if (originalMeasure) setSelectedMeasure(originalMeasure);
+                  }}
+                  className="flex w-full items-center gap-3 rounded-lg bg-gray-50 p-2.5 text-left hover:bg-gray-100 transition-colors"
+                >
+                  <span className={cn("h-2 w-2 shrink-0 rounded-full", ragBgColor(m.ragStatus))} />
+                  <span className="text-xs font-mono font-semibold text-updraft-deep shrink-0">{m.measureId}</span>
+                  <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{m.name}</span>
+                  <span className="text-[10px] text-gray-400 shrink-0">{m.outcomeName}</span>
+                  {ownerName && <span className="text-[10px] text-gray-400 shrink-0">{ownerName}</span>}
+                  <span className={cn(
+                    "text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0",
+                    m.ragStatus === "GOOD" && "bg-risk-green/10 text-risk-green",
+                    m.ragStatus === "WARNING" && "bg-risk-amber/10 text-risk-amber",
+                    m.ragStatus === "HARM" && "bg-risk-red/10 text-risk-red"
+                  )}>
+                    {ragLabelShort(m.ragStatus)}
+                  </span>
+                </button>
+              );
+            })}
+            {filteredMeasures.length === 0 && (
+              <p className="text-xs text-gray-400 py-4 text-center">No measures with this status</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ADMIN RAG VIEW */}
       {viewMode === "admin" && isCCROTeam ? (
@@ -461,7 +558,7 @@ function ConsumerDutyContent() {
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search outcomes..."
+                placeholder="Search outcomes, measures, metrics..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple transition-colors"
