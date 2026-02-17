@@ -274,10 +274,34 @@ export default function BrandingSettings() {
             </div>
           </div>
 
-          {/* Offset display */}
-          <div className="flex gap-4 text-xs text-gray-500">
-            <span>Right offset: {logoX}px</span>
-            <span>Top offset: {logoY}px</span>
+          {/* Position controls — precise inputs */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Right Offset (px)
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={500}
+                value={logoX}
+                onChange={(e) => setLogoX(Math.max(0, Number(e.target.value)))}
+                className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-sm focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple/50 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Top Offset (px)
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={200}
+                value={logoY}
+                onChange={(e) => setLogoY(Math.max(0, Number(e.target.value)))}
+                className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-sm focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple/50 outline-none"
+              />
+            </div>
           </div>
         </div>
       )}

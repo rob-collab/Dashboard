@@ -436,7 +436,9 @@ export const useAppStore = create<AppState>((set) => ({
   siteSettings: null,
   updateSiteSettings: (data) => {
     set((state) => ({
-      siteSettings: state.siteSettings ? { ...state.siteSettings, ...data } : null,
+      siteSettings: state.siteSettings
+        ? { ...state.siteSettings, ...data }
+        : { id: "default", logoBase64: null, logoMarkBase64: null, logoX: 16, logoY: 16, logoScale: 1.0, primaryColour: null, accentColour: null, updatedAt: new Date().toISOString(), updatedBy: null, ...data },
     }));
     sync(() => api("/api/settings", { method: "PUT", body: data }));
   },
