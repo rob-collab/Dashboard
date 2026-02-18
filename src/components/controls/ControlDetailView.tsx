@@ -24,6 +24,8 @@ import {
   Clock,
   ShieldCheck,
   FileText,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
 
 /* ── Result colour maps ──────────────────────────────────────────────────── */
@@ -418,6 +420,59 @@ export default function ControlDetailView({
                 </span>
               ) : (
                 <span className="text-gray-400 text-xs">No attestation</span>
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+              CCRO Review ({periodLabel(selectedYear, selectedMonth)})
+            </dt>
+            <dd className="mt-0.5 text-sm">
+              {ownerAttestation?.ccroAgreement !== null &&
+              ownerAttestation?.ccroAgreement !== undefined ? (
+                <div className="space-y-1">
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                      ownerAttestation.ccroAgreement
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-700"
+                    }`}
+                  >
+                    {ownerAttestation.ccroAgreement ? (
+                      <>
+                        <ThumbsUp size={12} />
+                        CCRO Agrees
+                      </>
+                    ) : (
+                      <>
+                        <ThumbsDown size={12} />
+                        CCRO Disagrees
+                      </>
+                    )}
+                  </span>
+                  {ownerAttestation.ccroComments && (
+                    <p className="text-xs text-gray-600 mt-1">
+                      {ownerAttestation.ccroComments}
+                    </p>
+                  )}
+                  {ownerAttestation.ccroReviewedAt && (
+                    <p className="text-[10px] text-gray-400">
+                      Reviewed{" "}
+                      {new Date(ownerAttestation.ccroReviewedAt).toLocaleDateString(
+                        "en-GB",
+                        { day: "numeric", month: "short", year: "numeric" },
+                      )}
+                      {ownerAttestation.ccroReviewedBy?.name &&
+                        ` by ${ownerAttestation.ccroReviewedBy.name}`}
+                    </p>
+                  )}
+                </div>
+              ) : ownerAttestation ? (
+                <span className="text-gray-400 text-xs">
+                  Awaiting CCRO Review
+                </span>
+              ) : (
+                <span className="text-gray-400 text-xs">{"\u2014"}</span>
               )}
             </dd>
           </div>

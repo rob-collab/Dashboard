@@ -119,6 +119,7 @@ model User {
   authoredSummaries   QuarterlySummary[]     @relation("SummaryAuthor")
   approvedSummaries   QuarterlySummary[]     @relation("SummaryApprover")
   configuredExcoViews ExcoViewConfig[]       @relation("ExcoConfiguredBy")
+  ccroReviews         ControlAttestation[]   @relation("AttestationCCROReviewer")
 
   @@map("users")
 }
@@ -612,6 +613,12 @@ model ControlAttestation {
   comments         String?  @db.Text
   issuesFlagged    Boolean  @default(false)
   issueDescription String?  @db.Text
+
+  ccroReviewedById String?
+  ccroReviewedBy   User?    @relation("AttestationCCROReviewer", fields: [ccroReviewedById], references: [id])
+  ccroReviewedAt   DateTime?
+  ccroAgreement    Boolean?
+  ccroComments     String?  @db.Text
 
   @@unique([controlId, periodYear, periodMonth])
   @@index([controlId])

@@ -114,6 +114,55 @@ async function main() {
   }
   console.log(`  ✓ ${BUSINESS_AREAS.length} control business areas`);
 
+  // CCRO Review data — update existing attestations with CCRO review decisions
+  const existingAttestations = await prisma.controlAttestation.findMany({
+    where: { attested: true },
+    orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }],
+    take: 10,
+  });
+
+  if (existingAttestations.length > 0) {
+    let reviewed = 0;
+    for (let i = 0; i < existingAttestations.length; i++) {
+      const att = existingAttestations[i];
+      if (i < 3) {
+        // First 3: CCRO agrees
+        await prisma.controlAttestation.update({
+          where: { id: att.id },
+          data: {
+            ccroReviewedById: "user-rob",
+            ccroReviewedAt: new Date(),
+            ccroAgreement: true,
+            ccroComments: i === 0
+              ? "Control operating effectively, no concerns."
+              : i === 1
+                ? "Reviewed and confirmed — consistent with testing results."
+                : null,
+          },
+        });
+        reviewed++;
+      } else if (i < 5) {
+        // Next 2: CCRO disagrees
+        await prisma.controlAttestation.update({
+          where: { id: att.id },
+          data: {
+            ccroReviewedById: "user-cath",
+            ccroReviewedAt: new Date(),
+            ccroAgreement: false,
+            ccroComments: i === 3
+              ? "Evidence does not support the attestation — control execution gaps identified during testing."
+              : "Attestation conflicts with recent audit findings. Recommend remediation before next period.",
+          },
+        });
+        reviewed++;
+      }
+      // Remaining: left unreviewed (pending)
+    }
+    console.log(`  ✓ ${reviewed} attestation CCRO reviews (3 agreed, 2 disagreed, rest pending)`);
+  } else {
+    console.log("  ⓘ No existing attestations found — skipping CCRO review seed data");
+  }
+
   console.log("Seed complete! Database is clean — ready for real data.");
 }
 

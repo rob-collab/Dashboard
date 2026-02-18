@@ -471,6 +471,11 @@ export interface ControlAttestation {
   comments: string | null;
   issuesFlagged: boolean;
   issueDescription: string | null;
+  ccroReviewedById: string | null;
+  ccroReviewedBy?: User;
+  ccroReviewedAt: string | null;
+  ccroAgreement: boolean | null;
+  ccroComments: string | null;
 }
 
 export interface TestingScheduleEntry {

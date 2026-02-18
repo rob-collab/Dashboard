@@ -13,7 +13,7 @@ import {
   TESTING_FREQUENCY_LABELS,
   CONTROL_FREQUENCY_LABELS,
 } from "@/lib/types";
-import { ArrowLeft, AlertTriangle, ChevronRight } from "lucide-react";
+import { ArrowLeft, AlertTriangle, ChevronRight, ThumbsDown } from "lucide-react";
 
 // ── Props ────────────────────────────────────────────────────────────────────
 
@@ -135,7 +135,7 @@ export default function BusinessAreaDrillDown({
   // ── Attestation data (from controls array, keyed by controlId) ─────────────
 
   const attestationMap = useMemo(() => {
-    const map = new Map<string, boolean>();
+    const map = new Map<string, { attested: boolean; ccroAgreement: boolean | null }>();
     for (const ctrl of controls) {
       const attestations = ctrl.attestations ?? [];
       const match = attestations.find(
@@ -144,7 +144,10 @@ export default function BusinessAreaDrillDown({
           a.periodMonth === selectedMonth &&
           a.attested,
       );
-      map.set(ctrl.id, !!match);
+      map.set(ctrl.id, {
+        attested: !!match,
+        ccroAgreement: match?.ccroAgreement ?? null,
+      });
     }
     return map;
   }, [controls, selectedYear, selectedMonth]);
@@ -152,18 +155,26 @@ export default function BusinessAreaDrillDown({
   // ── Attestation completion rate ────────────────────────────────────────────
 
   const attestationRate = useMemo(() => {
-    if (areaEntries.length === 0) return { attested: 0, total: 0, pct: "0%" };
+    if (areaEntries.length === 0)
+      return { attested: 0, ccroAgreed: 0, total: 0, pct: "0%", ccroPct: "0%" };
     let attested = 0;
+    let ccroAgreed = 0;
     for (const entry of areaEntries) {
-      if (attestationMap.get(entry.controlId)) {
+      const data = attestationMap.get(entry.controlId);
+      if (data?.attested) {
         attested += 1;
+        if (data.ccroAgreement === true) ccroAgreed += 1;
       }
     }
     const pct =
       areaEntries.length > 0
         ? `${Math.round((attested / areaEntries.length) * 100)}%`
         : "0%";
-    return { attested, total: areaEntries.length, pct };
+    const ccroPct =
+      areaEntries.length > 0
+        ? `${Math.round((ccroAgreed / areaEntries.length) * 100)}%`
+        : "0%";
+    return { attested, ccroAgreed, total: areaEntries.length, pct, ccroPct };
   }, [areaEntries, attestationMap]);
 
   // ── Overall pass rate bar segments ─────────────────────────────────────────
@@ -212,12 +223,21 @@ export default function BusinessAreaDrillDown({
             business area
           </p>
         </div>
-        <div className="text-sm text-gray-500">
-          Owner Attestation:{" "}
-          <span className="font-semibold text-updraft-deep">
-            {attestationRate.pct}
-          </span>{" "}
-          ({attestationRate.attested} / {attestationRate.total})
+        <div className="text-sm text-gray-500 space-y-0.5 text-right">
+          <div>
+            Owner Attested:{" "}
+            <span className="font-semibold text-updraft-deep">
+              {attestationRate.pct}
+            </span>{" "}
+            ({attestationRate.attested} / {attestationRate.total})
+          </div>
+          <div>
+            CCRO Agreed:{" "}
+            <span className="font-semibold text-green-600">
+              {attestationRate.ccroPct}
+            </span>{" "}
+            ({attestationRate.ccroAgreed} / {attestationRate.total})
+          </div>
         </div>
       </div>
 
@@ -277,7 +297,9 @@ export default function BusinessAreaDrillDown({
             const testingFreqLabel =
               TESTING_FREQUENCY_LABELS[entry.testingFrequency] ?? "—";
 
-            const isAttested = attestationMap.get(entry.controlId) ?? false;
+            const attestData = attestationMap.get(entry.controlId);
+            const isAttested = attestData?.attested ?? false;
+            const hasCCRODisagreement = isAttested && attestData?.ccroAgreement === false;
             const resultColours = TEST_RESULT_COLOURS[result];
 
             // Discrepancy: attested but failed
@@ -381,6 +403,16 @@ export default function BusinessAreaDrillDown({
                     <span>
                       Discrepancy: owner has attested but the control failed
                       testing this period.
+                    </span>
+                  </div>
+                )}
+
+                {/* ── CCRO Disagreement warning ───────────────────────────── */}
+                {hasCCRODisagreement && (
+                  <div className="flex items-center gap-1.5 rounded-md bg-orange-50 border border-orange-200 px-2.5 py-1.5 text-xs text-orange-700 mb-2">
+                    <ThumbsDown size={13} className="shrink-0" />
+                    <span>
+                      CCRO Disagrees: the CCRO team does not agree with this attestation.
                     </span>
                   </div>
                 )}

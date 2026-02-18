@@ -28,6 +28,9 @@ export async function GET(request: NextRequest) {
         testingSchedule: includeSchedule === "true" ? {
           include: { assignedTester: true },
         } : false,
+        attestations: includeSchedule === "true" ? {
+          include: { attestedBy: true, ccroReviewedBy: true },
+        } : false,
       },
       orderBy: { controlRef: "asc" },
     });

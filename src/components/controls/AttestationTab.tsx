@@ -24,6 +24,10 @@ import {
   ChevronDown,
   MessageSquare,
   AlertCircle,
+  ThumbsUp,
+  ThumbsDown,
+  Filter,
+  Save,
 } from "lucide-react";
 
 /* ── Constants ──────────────────────────────────────────────────────────────── */
@@ -476,6 +480,118 @@ export default function AttestationTab() {
         };
       });
   }, [isCCROTeam, attestations, controls, controlBusinessAreas, users]);
+
+  /* ── CCRO review state ────────────────────────────────────────────────── */
+
+  type CCROReviewFilter = "ALL" | "PENDING" | "AGREED" | "DISAGREED";
+  const [ccroFilter, setCCROFilter] = useState<CCROReviewFilter>("ALL");
+  const [ccroReviewEdits, setCCROReviewEdits] = useState<
+    Map<string, { agreement: boolean | null; comments: string }>
+  >(new Map());
+  const [ccroSavingId, setCCROSavingId] = useState<string | null>(null);
+  const [ccroSaveSuccess, setCCROSaveSuccess] = useState<string | null>(null);
+
+  /* ── CCRO review: summary counts ─────────────────────────────────────── */
+
+  const ccroReviewCounts = useMemo(() => {
+    if (!isCCROTeam) return { pending: 0, agreed: 0, disagreed: 0 };
+    let pending = 0;
+    let agreed = 0;
+    let disagreed = 0;
+    for (const a of attestations) {
+      if (!a.attested) continue;
+      if (a.ccroAgreement === null || a.ccroAgreement === undefined) pending++;
+      else if (a.ccroAgreement === true) agreed++;
+      else disagreed++;
+    }
+    return { pending, agreed, disagreed };
+  }, [isCCROTeam, attestations]);
+
+  /* ── CCRO review: filtered attestations ──────────────────────────────── */
+
+  const ccroReviewAttestations = useMemo(() => {
+    if (!isCCROTeam) return [];
+    const attested = attestations.filter((a) => a.attested);
+
+    return attested
+      .filter((a) => {
+        if (ccroFilter === "PENDING")
+          return a.ccroAgreement === null || a.ccroAgreement === undefined;
+        if (ccroFilter === "AGREED") return a.ccroAgreement === true;
+        if (ccroFilter === "DISAGREED") return a.ccroAgreement === false;
+        return true;
+      })
+      .map((a) => {
+        const control = controls.find((c) => c.id === a.controlId);
+        const area = controlBusinessAreas.find(
+          (ba) => ba.id === control?.businessAreaId,
+        );
+        const ownerUser =
+          a.attestedBy ?? users.find((u) => u.id === a.attestedById);
+        return {
+          attestation: a,
+          control,
+          areaName: area?.name ?? "Unknown",
+          ownerName: ownerUser?.name ?? "Unknown",
+        };
+      });
+  }, [isCCROTeam, attestations, controls, controlBusinessAreas, users, ccroFilter]);
+
+  /* ── CCRO review: get/set edit state ─────────────────────────────────── */
+
+  function getCCROEdit(attestationId: string, attestation: ControlAttestation) {
+    const existing = ccroReviewEdits.get(attestationId);
+    if (existing) return existing;
+    return {
+      agreement: attestation.ccroAgreement ?? null,
+      comments: attestation.ccroComments ?? "",
+    };
+  }
+
+  function updateCCROEdit(
+    attestationId: string,
+    field: "agreement" | "comments",
+    value: boolean | null | string,
+  ) {
+    setCCROReviewEdits((prev) => {
+      const next = new Map(prev);
+      const current = next.get(attestationId) ?? { agreement: null, comments: "" };
+      next.set(attestationId, { ...current, [field]: value });
+      return next;
+    });
+    setCCROSaveSuccess(null);
+  }
+
+  /* ── CCRO review: save handler ──────────────────────────────────────── */
+
+  async function handleCCROReviewSave(attestationId: string) {
+    const edit = ccroReviewEdits.get(attestationId);
+    if (!edit || edit.agreement === null) return;
+
+    setCCROSavingId(attestationId);
+    setCCROSaveSuccess(null);
+
+    try {
+      await api(`/api/controls/attestations/${attestationId}`, {
+        method: "PATCH",
+        body: {
+          ccroAgreement: edit.agreement,
+          ccroComments: edit.comments || undefined,
+        },
+      });
+      setCCROSaveSuccess(attestationId);
+
+      // Refresh attestations
+      const data = await api<ControlAttestation[]>(
+        `/api/controls/attestations?periodYear=${selectedYear}&periodMonth=${selectedMonth}`,
+      );
+      setAttestations(data);
+    } catch {
+      setSaveError("Failed to save CCRO review. Please try again.");
+    } finally {
+      setCCROSavingId(null);
+    }
+  }
 
   /* ── Guard: no user ────────────────────────────────────────────────────── */
 
@@ -1111,6 +1227,294 @@ export default function AttestationTab() {
                     )}
                   </tbody>
                 </table>
+              </div>
+            )}
+          </div>
+
+          {/* ── CCRO Review Section ─────────────────────────────────────────── */}
+          <div className="bento-card p-5">
+            <h3 className="text-sm font-poppins font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-updraft-deep" />
+              CCRO Review
+            </h3>
+
+            {/* Review summary stat cards */}
+            <div className="grid grid-cols-3 gap-3 mb-5">
+              <div className="rounded-lg border border-gray-200 p-3 text-center">
+                <div className="text-2xl font-bold text-amber-600">
+                  {ccroReviewCounts.pending}
+                </div>
+                <div className="text-xs text-gray-500 font-medium mt-0.5">
+                  Pending Review
+                </div>
+              </div>
+              <div className="rounded-lg border border-gray-200 p-3 text-center">
+                <div className="text-2xl font-bold text-green-600">
+                  {ccroReviewCounts.agreed}
+                </div>
+                <div className="text-xs text-gray-500 font-medium mt-0.5">
+                  CCRO Agrees
+                </div>
+              </div>
+              <div className="rounded-lg border border-gray-200 p-3 text-center">
+                <div className="text-2xl font-bold text-red-600">
+                  {ccroReviewCounts.disagreed}
+                </div>
+                <div className="text-xs text-gray-500 font-medium mt-0.5">
+                  CCRO Disagrees
+                </div>
+              </div>
+            </div>
+
+            {/* Filter buttons */}
+            <div className="flex items-center gap-2 mb-4 flex-wrap">
+              <Filter className="w-3.5 h-3.5 text-gray-400" />
+              {(
+                [
+                  { key: "ALL", label: "All" },
+                  { key: "PENDING", label: "Pending" },
+                  { key: "AGREED", label: "Agreed" },
+                  { key: "DISAGREED", label: "Disagreed" },
+                ] as const
+              ).map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setCCROFilter(key)}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                    ccroFilter === key
+                      ? "bg-updraft-deep text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Review table / cards */}
+            {ccroReviewAttestations.length === 0 ? (
+              <div className="flex items-center justify-center py-8 text-sm text-gray-400">
+                {ccroFilter === "ALL"
+                  ? "No attested controls to review for this period."
+                  : `No ${ccroFilter.toLowerCase()} attestations for this period.`}
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100 space-y-0">
+                {ccroReviewAttestations.map(
+                  ({ attestation, control, areaName, ownerName }) => {
+                    const edit = getCCROEdit(attestation.id, attestation);
+                    const isSaving = ccroSavingId === attestation.id;
+                    const justSaved = ccroSaveSuccess === attestation.id;
+                    const isReviewed =
+                      attestation.ccroAgreement !== null &&
+                      attestation.ccroAgreement !== undefined;
+
+                    return (
+                      <div
+                        key={attestation.id}
+                        className="py-4 first:pt-0 last:pb-0 space-y-3"
+                      >
+                        {/* Control info row */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs font-mono font-semibold text-updraft-deep">
+                                {control?.controlRef ?? "\u2014"}
+                              </span>
+                              <span className="text-sm font-medium text-gray-800">
+                                {control?.controlName ?? "Unknown Control"}
+                              </span>
+                              <span className="text-xs text-gray-400">
+                                &middot; {areaName}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                              <span>Owner: {ownerName}</span>
+                              {attestation.attested && (
+                                <span className="inline-flex items-center gap-1 text-green-600">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  Attested
+                                </span>
+                              )}
+                              {attestation.issuesFlagged && (
+                                <span className="inline-flex items-center gap-1 text-amber-600">
+                                  <AlertTriangle className="w-3 h-3" />
+                                  Issue flagged
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Current review status badge */}
+                          {isReviewed && !ccroReviewEdits.has(attestation.id) && (
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold shrink-0 ${
+                                attestation.ccroAgreement
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-red-100 text-red-700"
+                              }`}
+                            >
+                              {attestation.ccroAgreement ? (
+                                <>
+                                  <ThumbsUp className="w-3 h-3" />
+                                  Agrees
+                                </>
+                              ) : (
+                                <>
+                                  <ThumbsDown className="w-3 h-3" />
+                                  Disagrees
+                                </>
+                              )}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Owner comments */}
+                        {attestation.comments && (
+                          <div className="rounded-md bg-gray-50 border border-gray-100 px-3 py-2 text-sm text-gray-700">
+                            <span className="text-xs font-medium text-gray-500 block mb-0.5">
+                              Owner Comments:
+                            </span>
+                            {attestation.comments}
+                          </div>
+                        )}
+
+                        {/* Issue description */}
+                        {attestation.issuesFlagged &&
+                          attestation.issueDescription && (
+                            <div className="rounded-md bg-amber-50 border border-amber-100 px-3 py-2 text-sm text-amber-900">
+                              <span className="text-xs font-medium text-amber-700 block mb-0.5">
+                                Issue Description:
+                              </span>
+                              {attestation.issueDescription}
+                            </div>
+                          )}
+
+                        {/* Existing CCRO review display (if reviewed and not editing) */}
+                        {isReviewed &&
+                          attestation.ccroComments &&
+                          !ccroReviewEdits.has(attestation.id) && (
+                            <div
+                              className={`rounded-md px-3 py-2 text-sm ${
+                                attestation.ccroAgreement
+                                  ? "bg-green-50 border border-green-100 text-green-800"
+                                  : "bg-red-50 border border-red-100 text-red-800"
+                              }`}
+                            >
+                              <span className="text-xs font-medium block mb-0.5">
+                                CCRO Comments:
+                              </span>
+                              {attestation.ccroComments}
+                            </div>
+                          )}
+
+                        {/* Review action area */}
+                        <div className="flex items-start gap-3 flex-wrap">
+                          {/* Agree / Disagree radio buttons */}
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() =>
+                                updateCCROEdit(attestation.id, "agreement", true)
+                              }
+                              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                                edit.agreement === true
+                                  ? "bg-green-600 text-white"
+                                  : "bg-gray-100 text-gray-600 hover:bg-green-50 hover:text-green-700"
+                              }`}
+                            >
+                              <ThumbsUp className="w-3 h-3" />
+                              Agree
+                            </button>
+                            <button
+                              onClick={() =>
+                                updateCCROEdit(
+                                  attestation.id,
+                                  "agreement",
+                                  false,
+                                )
+                              }
+                              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                                edit.agreement === false
+                                  ? "bg-red-600 text-white"
+                                  : "bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-700"
+                              }`}
+                            >
+                              <ThumbsDown className="w-3 h-3" />
+                              Disagree
+                            </button>
+                          </div>
+
+                          {/* Comment input */}
+                          <div className="flex-1 min-w-[200px]">
+                            <input
+                              type="text"
+                              value={edit.comments}
+                              onChange={(e) =>
+                                updateCCROEdit(
+                                  attestation.id,
+                                  "comments",
+                                  e.target.value,
+                                )
+                              }
+                              placeholder="Optional CCRO comments..."
+                              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
+                            />
+                          </div>
+
+                          {/* Save button */}
+                          <button
+                            onClick={() =>
+                              handleCCROReviewSave(attestation.id)
+                            }
+                            disabled={
+                              isSaving ||
+                              edit.agreement === null ||
+                              !ccroReviewEdits.has(attestation.id)
+                            }
+                            className="inline-flex items-center gap-1.5 rounded-md bg-updraft-deep px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-updraft-deep/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+                          >
+                            {isSaving ? (
+                              <>
+                                <Save className="w-3 h-3 animate-spin" />
+                                Saving...
+                              </>
+                            ) : justSaved ? (
+                              <>
+                                <CheckCircle2 className="w-3 h-3" />
+                                Saved
+                              </>
+                            ) : (
+                              <>
+                                <Save className="w-3 h-3" />
+                                Save
+                              </>
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Reviewed-by info */}
+                        {isReviewed && attestation.ccroReviewedAt && (
+                          <div className="text-xs text-gray-400">
+                            Reviewed by{" "}
+                            {attestation.ccroReviewedBy?.name ??
+                              users.find(
+                                (u) => u.id === attestation.ccroReviewedById,
+                              )?.name ??
+                              "Unknown"}{" "}
+                            on{" "}
+                            {new Date(
+                              attestation.ccroReviewedAt,
+                            ).toLocaleDateString("en-GB", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  },
+                )}
               </div>
             )}
           </div>

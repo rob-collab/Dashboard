@@ -19,7 +19,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             quarterlySummaries: { orderBy: { createdAt: "desc" } },
           },
         },
-        attestations: { orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }], take: 24 },
+        attestations: {
+          include: { attestedBy: true, ccroReviewedBy: true },
+          orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }],
+          take: 24,
+        },
       },
     });
 

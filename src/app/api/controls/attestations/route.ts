@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
       },
       include: {
         attestedBy: true,
+        ccroReviewedBy: true,
         control: { include: { businessArea: true } },
       },
       orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }],
