@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import { toast } from "sonner";
 import { formatDate, cn } from "@/lib/utils";
@@ -26,9 +27,37 @@ export default function RiskAcceptancesPage() {
   const risks = useAppStore((s) => s.risks);
   const users = useAppStore((s) => s.users);
 
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const isCCRO = currentUser?.role === "CCRO_TEAM";
 
   const [showForm, setShowForm] = useState(false);
+  const [prefillSource, setPrefillSource] = useState<RiskAcceptanceSource | undefined>();
+  const [prefillRiskId, setPrefillRiskId] = useState<string | undefined>();
+  const [prefillControlId, setPrefillControlId] = useState<string | undefined>();
+
+  // Handle URL params for prefill (from Risk Register or Controls Testing)
+  useEffect(() => {
+    const newFrom = searchParams.get("newFrom");
+    if (newFrom === "risk") {
+      const rId = searchParams.get("riskId");
+      if (rId) {
+        setPrefillSource("RISK_REGISTER");
+        setPrefillRiskId(rId);
+        setShowForm(true);
+        router.replace("/risk-acceptances");
+      }
+    } else if (newFrom === "control") {
+      const cId = searchParams.get("controlId");
+      if (cId) {
+        setPrefillSource("CONTROL_TESTING");
+        setPrefillControlId(cId);
+        setShowForm(true);
+        router.replace("/risk-acceptances");
+      }
+    }
+  }, [searchParams, router]);
   const [selectedAcceptance, setSelectedAcceptance] = useState<RiskAcceptance | null>(null);
   const [tab, setTab] = useState<TabKey>("all");
   const [statusFilter, setStatusFilter] = useState<RiskAcceptanceStatus | "">("");
@@ -146,7 +175,7 @@ export default function RiskAcceptancesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-updraft-deep font-poppins">Risk Acceptances</h1>
-          <p className="text-sm text-gray-500 mt-1">Formal risk acceptance workflow — FCA regulatory requirement</p>
+          <p className="text-sm text-gray-500 mt-1">Formal risk acceptance workflow</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -383,8 +412,16 @@ export default function RiskAcceptancesPage() {
       {/* Form Dialog */}
       <RiskAcceptanceFormDialog
         open={showForm}
-        onClose={() => setShowForm(false)}
+        onClose={() => {
+          setShowForm(false);
+          setPrefillSource(undefined);
+          setPrefillRiskId(undefined);
+          setPrefillControlId(undefined);
+        }}
         onSave={(acceptance) => addRiskAcceptance(acceptance)}
+        prefillSource={prefillSource}
+        prefillRiskId={prefillRiskId}
+        prefillControlId={prefillControlId}
       />
 
       {/* Detail Panel */}

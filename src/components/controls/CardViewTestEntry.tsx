@@ -18,6 +18,7 @@ import {
   ChevronRight,
   MessageSquare,
   ShieldCheck,
+  ShieldQuestion,
   Clock,
   Plus,
 } from "lucide-react";
@@ -94,6 +95,7 @@ interface CardViewTestEntryProps {
   onEditResult: (entryId: string, result: TestResultValue) => void;
   onEditNotes: (entryId: string, notes: string) => void;
   onCreateAction?: (entry: TestingScheduleEntry) => void;
+  onCreateRiskAcceptance?: (entry: TestingScheduleEntry) => void;
 }
 
 /* ── Component ────────────────────────────────────────────────────────────── */
@@ -106,6 +108,7 @@ export default function CardViewTestEntry({
   onEditResult,
   onEditNotes,
   onCreateAction,
+  onCreateRiskAcceptance,
 }: CardViewTestEntryProps) {
   const users = useAppStore((s) => s.users);
   const controls = useAppStore((s) => s.controls);
@@ -416,16 +419,28 @@ export default function CardViewTestEntry({
                 History
               </button>
 
-              {/* Create Action */}
-              {onCreateAction && (
-                <button
-                  onClick={() => onCreateAction(entry)}
-                  className="ml-auto inline-flex items-center gap-1 rounded-md bg-updraft-pale-purple px-2.5 py-1.5 text-xs font-medium text-updraft-deep hover:bg-updraft-light-purple transition-colors"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Create Action
-                </button>
-              )}
+              <div className="ml-auto flex items-center gap-1.5">
+                {/* Risk Acceptance */}
+                {onCreateRiskAcceptance && (
+                  <button
+                    onClick={() => onCreateRiskAcceptance(entry)}
+                    className="inline-flex items-center gap-1 rounded-md bg-purple-50 border border-purple-200 px-2.5 py-1.5 text-xs font-medium text-purple-700 hover:bg-purple-100 transition-colors"
+                  >
+                    <ShieldQuestion className="w-3.5 h-3.5" />
+                    Risk Acceptance
+                  </button>
+                )}
+                {/* Create Action */}
+                {onCreateAction && (
+                  <button
+                    onClick={() => onCreateAction(entry)}
+                    className="inline-flex items-center gap-1 rounded-md bg-updraft-pale-purple px-2.5 py-1.5 text-xs font-medium text-updraft-deep hover:bg-updraft-light-purple transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Create Action
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* ── Expanded notes textarea ─────────────────────────── */}

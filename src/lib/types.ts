@@ -618,6 +618,8 @@ export interface RiskAcceptance {
   expiredAt: string | null;
   consumerDutyOutcomeId: string | null;
   consumerDutyOutcome?: ConsumerDutyOutcome;
+  linkedControlId: string | null;
+  linkedControl?: ControlRecord;
   linkedActionIds: string[];
   createdAt: string;
   updatedAt: string;

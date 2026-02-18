@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import type {
   TestingScheduleEntry,
@@ -62,6 +63,7 @@ interface EditEntry {
 /* ── Component ────────────────────────────────────────────────────────────── */
 
 export default function TestResultsEntryTab() {
+  const router = useRouter();
   const testingSchedule = useAppStore((s) => s.testingSchedule);
   const users = useAppStore((s) => s.users);
   const reports = useAppStore((s) => s.reports);
@@ -297,6 +299,13 @@ export default function TestResultsEntryTab() {
       controlId: control?.id ?? "",
     });
     setShowActionDialog(true);
+  }
+
+  function handleCreateRiskAcceptance(entry: TestingScheduleEntry) {
+    const control = entry.control;
+    if (control) {
+      router.push(`/risk-acceptances?newFrom=control&controlId=${control.id}`);
+    }
   }
 
   async function handleSaveAll() {
@@ -573,6 +582,7 @@ export default function TestResultsEntryTab() {
             updateEdit(entryId, "notes", notes)
           }
           onCreateAction={handleCreateActionFromEntry}
+          onCreateRiskAcceptance={handleCreateRiskAcceptance}
         />
       ) : (
         /* ── Grid view ─────────────────────────────────────────── */

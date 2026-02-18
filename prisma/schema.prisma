@@ -639,6 +639,7 @@ model Control {
   testingSchedule     TestingScheduleEntry?
   changes             ControlChange[]
   actions             Action[]                @relation("ControlActions")
+  riskAcceptances     RiskAcceptance[]
 
   @@index([businessAreaId])
   @@index([controlOwnerId])
@@ -801,6 +802,8 @@ model RiskAcceptance {
   expiredAt             DateTime?
   consumerDutyOutcomeId String?
   consumerDutyOutcome   ConsumerDutyOutcome?  @relation(fields: [consumerDutyOutcomeId], references: [id], onDelete: SetNull)
+  linkedControlId       String?
+  linkedControl         Control?              @relation(fields: [linkedControlId], references: [id], onDelete: SetNull)
   linkedActionIds       String[]
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt

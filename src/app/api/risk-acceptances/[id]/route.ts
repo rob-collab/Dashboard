@@ -14,6 +14,7 @@ const includeAll = {
   proposer: true,
   approver: true,
   consumerDutyOutcome: true,
+  linkedControl: true,
   comments: { include: { user: true }, orderBy: { createdAt: "asc" as const } },
   history: { include: { user: true }, orderBy: { createdAt: "asc" as const } },
 };
@@ -39,6 +40,7 @@ const updateSchema = z.object({
   approverId: z.string().optional().nullable(),
   reviewDate: z.string().optional().nullable(),
   consumerDutyOutcomeId: z.string().optional().nullable(),
+  linkedControlId: z.string().optional().nullable(),
   linkedActionIds: z.array(z.string()).optional(),
   comment: z.string().optional(),
 });
@@ -169,6 +171,7 @@ export async function PATCH(
     if (fieldUpdates.proposedRationale !== undefined) updateData.proposedRationale = fieldUpdates.proposedRationale;
     if (fieldUpdates.proposedConditions !== undefined) updateData.proposedConditions = fieldUpdates.proposedConditions;
     if (fieldUpdates.consumerDutyOutcomeId !== undefined) updateData.consumerDutyOutcomeId = fieldUpdates.consumerDutyOutcomeId;
+    if (fieldUpdates.linkedControlId !== undefined) updateData.linkedControlId = fieldUpdates.linkedControlId;
     if (fieldUpdates.linkedActionIds !== undefined) updateData.linkedActionIds = fieldUpdates.linkedActionIds;
     if (!transition && fieldUpdates.approverId !== undefined) updateData.approverId = fieldUpdates.approverId;
     if (!transition && fieldUpdates.reviewDate !== undefined) {

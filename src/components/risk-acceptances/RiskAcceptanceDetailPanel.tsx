@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { X, ChevronDown, ChevronRight, Check, Clock, AlertTriangle, MessageCircle, Send, ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { X, ChevronDown, ChevronRight, Check, Clock, AlertTriangle, MessageCircle, Send, ArrowRight, ExternalLink } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
@@ -280,14 +281,32 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
           </CollapsibleSection>
 
           {/* 4. Controls & Mitigations */}
-          {risk && (
+          {(risk || acceptance.linkedControlId || acceptance.linkedActionIds.length > 0) && (
             <CollapsibleSection title="Controls & Mitigations" badge={
               <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
-                {(risk.controls?.length ?? 0) + (risk.mitigations?.length ?? 0)}
+                {(risk?.controls?.length ?? 0) + (risk?.mitigations?.length ?? 0) + (acceptance.linkedControlId ? 1 : 0)}
               </span>
             }>
               <div className="space-y-3 text-sm">
-                {risk.controls && risk.controls.length > 0 && (
+                {/* Linked Control (from Control Testing source) */}
+                {acceptance.linkedControlId && (
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 mb-2">Linked Control</p>
+                    <Link
+                      href={`/controls?control=${acceptance.linkedControlId}`}
+                      className="flex items-center gap-2 rounded-lg bg-updraft-pale-purple/20 border border-updraft-pale-purple/30 p-2 text-xs text-updraft-deep hover:bg-updraft-pale-purple/30 transition-colors"
+                    >
+                      <ExternalLink size={12} />
+                      <span className="font-medium">
+                        {acceptance.linkedControl
+                          ? `${acceptance.linkedControl.controlRef}: ${acceptance.linkedControl.controlName}`
+                          : "View Control Test Results"}
+                      </span>
+                      <span className="ml-auto text-updraft-bright-purple">&rarr;</span>
+                    </Link>
+                  </div>
+                )}
+                {risk?.controls && risk.controls.length > 0 && (
                   <div>
                     <p className="text-xs font-medium text-gray-500 mb-2">Controls</p>
                     {risk.controls.map((c) => (
@@ -295,7 +314,7 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
                     ))}
                   </div>
                 )}
-                {risk.mitigations && risk.mitigations.length > 0 && (
+                {risk?.mitigations && risk.mitigations.length > 0 && (
                   <div>
                     <p className="text-xs font-medium text-gray-500 mb-2">Mitigations</p>
                     {risk.mitigations.map((m) => (

@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import type { Risk, RiskControl, RiskMitigation, ControlEffectiveness, RiskAppetite, DirectionOfTravel, MitigationStatus, ActionPriority } from "@/lib/types";
+import { RISK_ACCEPTANCE_STATUS_LABELS, RISK_ACCEPTANCE_STATUS_COLOURS } from "@/lib/types";
 import { useAppStore } from "@/lib/store";
 import {
   LIKELIHOOD_SCALE,
@@ -13,7 +15,7 @@ import {
   getL2Categories as getFallbackL2,
 } from "@/lib/risk-categories";
 import ScoreBadge from "./ScoreBadge";
-import { X, Plus, Trash2, AlertTriangle, ChevronRight, ChevronDown, History, Link2 } from "lucide-react";
+import { X, Plus, Trash2, AlertTriangle, ChevronRight, ChevronDown, History, Link2, ShieldQuestion } from "lucide-react";
 
 interface RiskDetailPanelProps {
   risk: Risk | null;
@@ -41,9 +43,11 @@ interface FormMitigation {
 }
 
 export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete, onViewHistory }: RiskDetailPanelProps) {
+  const router = useRouter();
   const users = useAppStore((s) => s.users);
   const storeCategories = useAppStore((s) => s.riskCategories);
   const priorityDefinitions = useAppStore((s) => s.priorityDefinitions);
+  const riskAcceptances = useAppStore((s) => s.riskAcceptances);
 
   const activeUsers = users.filter((u) => u.isActive !== false);
   const PRIORITY_OPTIONS: { value: ActionPriority; label: string }[] =
@@ -576,6 +580,50 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
             </button>
             </>)}
           </section>
+
+          {/* Risk Acceptances */}
+          {risk && !isNew && (() => {
+            const relatedAcceptances = riskAcceptances.filter((ra) => ra.riskId === risk.id);
+            return (
+              <section className="space-y-3">
+                <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-updraft-bright-purple text-white flex items-center justify-center text-xs">7</span>
+                  Risk Acceptances
+                  <span className="rounded-full bg-purple-100 text-purple-700 px-1.5 py-0.5 text-[10px] font-bold">{relatedAcceptances.length}</span>
+                </h3>
+                {relatedAcceptances.length > 0 && (
+                  <div className="space-y-1">
+                    {relatedAcceptances.map((ra) => {
+                      const sc = RISK_ACCEPTANCE_STATUS_COLOURS[ra.status];
+                      return (
+                        <button
+                          key={ra.id}
+                          type="button"
+                          onClick={() => router.push("/risk-acceptances")}
+                          className="w-full flex items-center justify-between rounded-lg bg-gray-50 p-2 text-xs hover:bg-gray-100 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-updraft-deep">{ra.reference}</span>
+                            <span className="text-gray-600 truncate max-w-[200px]">{ra.title}</span>
+                          </div>
+                          <span className={`px-1.5 py-0.5 rounded-full font-medium ${sc.bg} ${sc.text}`}>
+                            {RISK_ACCEPTANCE_STATUS_LABELS[ra.status]}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => router.push(`/risk-acceptances?newFrom=risk&riskId=${risk.id}`)}
+                  className="flex items-center gap-1.5 text-sm text-updraft-bright-purple hover:text-updraft-deep transition-colors"
+                >
+                  <ShieldQuestion className="w-4 h-4" /> Add Risk Acceptance
+                </button>
+              </section>
+            );
+          })()}
         </div>
 
         {/* Footer */}

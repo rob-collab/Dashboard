@@ -16,6 +16,9 @@ const createSchema = z.object({
   proposedRationale: z.string().min(1),
   proposedConditions: z.string().optional().nullable(),
   consumerDutyOutcomeId: z.string().optional().nullable(),
+  linkedControlId: z.string().optional().nullable(),
+  reviewDate: z.string().optional().nullable(),
+  approverId: z.string().optional().nullable(),
   linkedActionIds: z.array(z.string()).optional(),
 });
 
@@ -43,6 +46,7 @@ export async function GET(request: NextRequest) {
         proposer: true,
         approver: true,
         consumerDutyOutcome: true,
+        linkedControl: true,
         comments: {
           include: { user: true },
           orderBy: { createdAt: "asc" },
@@ -89,9 +93,12 @@ export async function POST(request: NextRequest) {
         status: "PROPOSED",
         riskId: data.riskId ?? null,
         proposerId: userId,
+        approverId: data.approverId ?? null,
         proposedRationale: data.proposedRationale,
         proposedConditions: data.proposedConditions ?? null,
         consumerDutyOutcomeId: data.consumerDutyOutcomeId ?? null,
+        linkedControlId: data.linkedControlId ?? null,
+        reviewDate: data.reviewDate ? new Date(data.reviewDate) : null,
         linkedActionIds: data.linkedActionIds ?? [],
       },
       include: {
@@ -104,6 +111,7 @@ export async function POST(request: NextRequest) {
         proposer: true,
         approver: true,
         consumerDutyOutcome: true,
+        linkedControl: true,
         comments: { include: { user: true }, orderBy: { createdAt: "asc" } },
         history: { include: { user: true }, orderBy: { createdAt: "asc" } },
       },
@@ -147,6 +155,7 @@ export async function POST(request: NextRequest) {
         proposer: true,
         approver: true,
         consumerDutyOutcome: true,
+        linkedControl: true,
         comments: { include: { user: true }, orderBy: { createdAt: "asc" } },
         history: { include: { user: true }, orderBy: { createdAt: "asc" } },
       },

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Modal from "@/components/common/Modal";
 import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
+import { Search, X, AlertTriangle } from "lucide-react";
 import type { RiskAcceptance, RiskAcceptanceSource } from "@/lib/types";
 import { RISK_ACCEPTANCE_SOURCE_LABELS } from "@/lib/types";
 
@@ -12,14 +13,34 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onSave: (acceptance: RiskAcceptance) => void;
+  prefillSource?: RiskAcceptanceSource;
+  prefillRiskId?: string;
+  prefillControlId?: string;
 }
 
 const SOURCES: RiskAcceptanceSource[] = ["RISK_REGISTER", "CONTROL_TESTING", "INCIDENT", "AD_HOC"];
 
-export default function RiskAcceptanceFormDialog({ open, onClose, onSave }: Props) {
+function defaultReviewDate(): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() + 6);
+  return d.toISOString().split("T")[0];
+}
+
+function isMoreThanSixMonths(dateStr: string): boolean {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  const sixMonths = new Date();
+  sixMonths.setMonth(sixMonths.getMonth() + 6);
+  // Add 1 day buffer for "more than"
+  sixMonths.setDate(sixMonths.getDate() + 1);
+  return d >= sixMonths;
+}
+
+export default function RiskAcceptanceFormDialog({ open, onClose, onSave, prefillSource, prefillRiskId, prefillControlId }: Props) {
   const risks = useAppStore((s) => s.risks);
-  const outcomes = useAppStore((s) => s.outcomes);
   const actions = useAppStore((s) => s.actions);
+  const users = useAppStore((s) => s.users);
+  const controls = useAppStore((s) => s.controls);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -27,9 +48,69 @@ export default function RiskAcceptanceFormDialog({ open, onClose, onSave }: Prop
   const [riskId, setRiskId] = useState("");
   const [rationale, setRationale] = useState("");
   const [conditions, setConditions] = useState("");
-  const [outcomeId, setOutcomeId] = useState("");
   const [linkedActionIds, setLinkedActionIds] = useState<string[]>([]);
+  const [reviewDate, setReviewDate] = useState(defaultReviewDate());
+  const [acceptorId, setAcceptorId] = useState("");
+  const [linkedControlId, setLinkedControlId] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Search states
+  const [riskSearch, setRiskSearch] = useState("");
+  const [actionSearch, setActionSearch] = useState("");
+  const [controlSearch, setControlSearch] = useState("");
+
+  // Handle prefill when dialog opens
+  useEffect(() => {
+    if (open && prefillSource) {
+      setSource(prefillSource);
+      if (prefillSource === "RISK_REGISTER" && prefillRiskId) {
+        handleRiskSelect(prefillRiskId);
+      }
+      if (prefillSource === "CONTROL_TESTING" && prefillControlId) {
+        setLinkedControlId(prefillControlId);
+        const ctrl = controls.find((c) => c.id === prefillControlId);
+        if (ctrl) {
+          setTitle(`Risk acceptance for ${ctrl.controlRef}: ${ctrl.controlName}`);
+          setDescription(`Risk acceptance raised from control testing for ${ctrl.controlRef} — ${ctrl.controlName}`);
+        }
+      }
+    }
+  }, [open, prefillSource, prefillRiskId, prefillControlId]);
+
+  // Filtered risks for searchable selector
+  const filteredRisks = useMemo(() => {
+    if (!riskSearch.trim()) return risks;
+    const q = riskSearch.toLowerCase();
+    return risks.filter((r) =>
+      (r.reference + " " + r.name).toLowerCase().includes(q)
+    );
+  }, [risks, riskSearch]);
+
+  // Filtered actions for searchable selector
+  const filteredActions = useMemo(() => {
+    const active = actions.filter((a) => a.status !== "COMPLETED");
+    if (!actionSearch.trim()) return active;
+    const q = actionSearch.toLowerCase();
+    return active.filter((a) =>
+      (a.reference + " " + a.title).toLowerCase().includes(q)
+    );
+  }, [actions, actionSearch]);
+
+  // Filtered controls for searchable selector
+  const filteredControls = useMemo(() => {
+    const activeControls = controls.filter((c) => c.isActive);
+    if (!controlSearch.trim()) return activeControls;
+    const q = controlSearch.toLowerCase();
+    return activeControls.filter((c) =>
+      (c.controlRef + " " + c.controlName).toLowerCase().includes(q)
+    );
+  }, [controls, controlSearch]);
+
+  // Selected control object
+  const selectedControl = useMemo(
+    () => controls.find((c) => c.id === linkedControlId),
+    [controls, linkedControlId]
+  );
 
   function handleRiskSelect(id: string) {
     setRiskId(id);
@@ -49,8 +130,13 @@ export default function RiskAcceptanceFormDialog({ open, onClose, onSave }: Prop
     setRiskId("");
     setRationale("");
     setConditions("");
-    setOutcomeId("");
     setLinkedActionIds([]);
+    setReviewDate(defaultReviewDate());
+    setAcceptorId("");
+    setLinkedControlId("");
+    setRiskSearch("");
+    setActionSearch("");
+    setControlSearch("");
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -68,7 +154,9 @@ export default function RiskAcceptanceFormDialog({ open, onClose, onSave }: Prop
           riskId: riskId || null,
           proposedRationale: rationale,
           proposedConditions: conditions || null,
-          consumerDutyOutcomeId: outcomeId || null,
+          linkedControlId: linkedControlId || null,
+          reviewDate: reviewDate || null,
+          approverId: acceptorId || null,
           linkedActionIds,
         },
       });
@@ -82,6 +170,8 @@ export default function RiskAcceptanceFormDialog({ open, onClose, onSave }: Prop
       setSaving(false);
     }
   }
+
+  const showReviewWarning = isMoreThanSixMonths(reviewDate);
 
   return (
     <Modal
@@ -110,7 +200,13 @@ export default function RiskAcceptanceFormDialog({ open, onClose, onSave }: Prop
           <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>
           <select
             value={source}
-            onChange={(e) => setSource(e.target.value as RiskAcceptanceSource)}
+            onChange={(e) => {
+              setSource(e.target.value as RiskAcceptanceSource);
+              setRiskId("");
+              setLinkedControlId("");
+              setRiskSearch("");
+              setControlSearch("");
+            }}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
           >
             {SOURCES.map((s) => (
@@ -119,26 +215,113 @@ export default function RiskAcceptanceFormDialog({ open, onClose, onSave }: Prop
           </select>
         </div>
 
-        {/* Link to Risk (conditional) */}
+        {/* Risk Register: Searchable risk selector */}
         {source === "RISK_REGISTER" && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Link to Risk</label>
-            <select
-              value={riskId}
-              onChange={(e) => handleRiskSelect(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
-            >
-              <option value="">Select a risk...</option>
-              {risks.map((r) => (
-                <option key={r.id} value={r.id}>{r.reference}: {r.name}</option>
-              ))}
-            </select>
+            {riskId ? (
+              <div className="flex items-center gap-2 rounded-lg border border-updraft-bright-purple bg-updraft-pale-purple/20 px-3 py-2">
+                <span className="text-sm text-gray-800 flex-1">
+                  {risks.find((r) => r.id === riskId)?.reference}: {risks.find((r) => r.id === riskId)?.name}
+                </span>
+                <button type="button" onClick={() => { setRiskId(""); setTitle(""); setDescription(""); }} className="text-gray-400 hover:text-gray-600">
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={riskSearch}
+                    onChange={(e) => setRiskSearch(e.target.value)}
+                    placeholder="Search by reference or name..."
+                    className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
+                  />
+                </div>
+                <div className="max-h-32 overflow-y-auto rounded-lg border border-gray-200">
+                  {filteredRisks.slice(0, 10).map((r) => (
+                    <button
+                      type="button"
+                      key={r.id}
+                      onClick={() => handleRiskSelect(r.id)}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b border-gray-100 last:border-0"
+                    >
+                      <span className="font-mono text-xs font-bold text-updraft-deep">{r.reference}</span>{" "}
+                      <span className="text-gray-700">{r.name}</span>
+                    </button>
+                  ))}
+                  {filteredRisks.length === 0 && (
+                    <p className="text-xs text-gray-400 p-2">No matching risks</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Control Testing: Searchable control selector */}
+        {source === "CONTROL_TESTING" && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Link to Control</label>
+            {linkedControlId ? (
+              <div className="rounded-lg border border-updraft-bright-purple bg-updraft-pale-purple/20 px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <span className="font-mono text-xs font-bold text-updraft-deep">{selectedControl?.controlRef}</span>{" "}
+                    <span className="text-sm text-gray-800">{selectedControl?.controlName}</span>
+                  </div>
+                  <button type="button" onClick={() => setLinkedControlId("")} className="text-gray-400 hover:text-gray-600">
+                    <X size={14} />
+                  </button>
+                </div>
+                {selectedControl?.testingSchedule?.testResults && selectedControl.testingSchedule.testResults.length > 0 && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Latest test: {selectedControl.testingSchedule.testResults[selectedControl.testingSchedule.testResults.length - 1]?.result ?? "None"}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={controlSearch}
+                    onChange={(e) => setControlSearch(e.target.value)}
+                    placeholder="Search by control ref or name..."
+                    className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
+                  />
+                </div>
+                <div className="max-h-32 overflow-y-auto rounded-lg border border-gray-200">
+                  {filteredControls.slice(0, 10).map((c) => (
+                    <button
+                      type="button"
+                      key={c.id}
+                      onClick={() => {
+                        setLinkedControlId(c.id);
+                        if (!title) setTitle(`Risk acceptance for ${c.controlRef}: ${c.controlName}`);
+                        if (!description) setDescription(`Risk acceptance raised from control testing for ${c.controlRef} — ${c.controlName}`);
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b border-gray-100 last:border-0"
+                    >
+                      <span className="font-mono text-xs font-bold text-updraft-deep">{c.controlRef}</span>{" "}
+                      <span className="text-gray-700">{c.controlName}</span>
+                    </button>
+                  ))}
+                  {filteredControls.length === 0 && (
+                    <p className="text-xs text-gray-400 p-2">No matching controls</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {/* Title */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Title <span className="text-red-500">*</span></label>
           <input
             type="text"
             value={title}
@@ -186,27 +369,77 @@ export default function RiskAcceptanceFormDialog({ open, onClose, onSave }: Prop
           />
         </div>
 
-        {/* Consumer Duty Outcome */}
+        {/* Accepted Till (Review Date) */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Consumer Duty Outcome</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Accepted Till</label>
+          <input
+            type="date"
+            value={reviewDate}
+            onChange={(e) => setReviewDate(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
+          />
+          {showReviewWarning && (
+            <div className="flex items-center gap-2 mt-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+              <AlertTriangle size={14} className="text-amber-500 flex-shrink-0" />
+              <span className="text-xs text-amber-700">
+                Acceptance periods longer than 6 months require CCRO/CEO sign-off
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Formally Accepted By */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Formally Accepted By</label>
           <select
-            value={outcomeId}
-            onChange={(e) => setOutcomeId(e.target.value)}
+            value={acceptorId}
+            onChange={(e) => setAcceptorId(e.target.value)}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
           >
-            <option value="">None</option>
-            {outcomes.map((o) => (
-              <option key={o.id} value={o.id}>{o.name}</option>
-            ))}
+            <option value="">Select approver (optional)...</option>
+            {users
+              .filter((u) => u.isActive)
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((u) => (
+                <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
+              ))}
           </select>
         </div>
 
-        {/* Linked Actions */}
+        {/* Searchable Linked Actions */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Linked Actions</label>
-          <div className="max-h-32 overflow-y-auto rounded-lg border border-gray-300 p-2 space-y-1">
-            {actions.filter((a) => a.status !== "COMPLETED").map((a) => (
-              <label key={a.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded">
+          {/* Selected action chips */}
+          {linkedActionIds.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {linkedActionIds.map((aid) => {
+                const action = actions.find((a) => a.id === aid);
+                return action ? (
+                  <span key={aid} className="inline-flex items-center gap-1 rounded-full bg-updraft-pale-purple/30 text-updraft-deep px-2.5 py-1 text-xs">
+                    {action.reference}: {action.title.length > 30 ? action.title.slice(0, 30) + "..." : action.title}
+                    <button type="button" onClick={() => setLinkedActionIds(linkedActionIds.filter((id) => id !== aid))} className="text-updraft-deep/60 hover:text-updraft-deep">
+                      <X size={12} />
+                    </button>
+                  </span>
+                ) : null;
+              })}
+            </div>
+          )}
+          {/* Search input */}
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={actionSearch}
+              onChange={(e) => setActionSearch(e.target.value)}
+              placeholder="Search actions by reference or title..."
+              className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
+            />
+          </div>
+          {/* Results */}
+          <div className="max-h-28 overflow-y-auto rounded-lg border border-gray-200 mt-1">
+            {filteredActions.filter((a) => !linkedActionIds.includes(a.id)).slice(0, 8).map((a) => (
+              <label key={a.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 px-3 py-1.5 border-b border-gray-100 last:border-0">
                 <input
                   type="checkbox"
                   checked={linkedActionIds.includes(a.id)}
@@ -219,11 +452,14 @@ export default function RiskAcceptanceFormDialog({ open, onClose, onSave }: Prop
                   }}
                   className="rounded border-gray-300 text-updraft-bright-purple focus:ring-updraft-bright-purple"
                 />
-                <span className="text-gray-700">{a.reference}: {a.title}</span>
+                <span className="text-gray-700">
+                  <span className="font-mono text-xs font-bold text-updraft-deep">{a.reference}</span>{" "}
+                  {a.title}
+                </span>
               </label>
             ))}
-            {actions.filter((a) => a.status !== "COMPLETED").length === 0 && (
-              <p className="text-xs text-gray-400 p-1">No active actions available</p>
+            {filteredActions.filter((a) => !linkedActionIds.includes(a.id)).length === 0 && (
+              <p className="text-xs text-gray-400 p-2">No matching actions</p>
             )}
           </div>
         </div>
