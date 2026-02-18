@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import type { Risk, RiskControl, RiskMitigation } from "@/lib/types";
 import { getRiskScore, getRiskLevel, L1_CATEGORY_COLOURS } from "@/lib/risk-categories";
@@ -40,6 +41,20 @@ export default function RiskRegisterPage() {
 
   // CSV import state
   const [showCSVImport, setShowCSVImport] = useState(false);
+
+  // Deep-link: ?risk=<id> opens detail panel
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const riskId = searchParams.get("risk");
+    if (riskId && risks.length > 0) {
+      const match = risks.find((r) => r.id === riskId);
+      if (match) {
+        setSelectedRisk(match);
+        setIsNewRisk(false);
+        setPanelOpen(true);
+      }
+    }
+  }, [searchParams, risks]);
 
   const isCCROTeam = currentUser?.role === "CCRO_TEAM";
   const isOwner = currentUser?.role === "OWNER";

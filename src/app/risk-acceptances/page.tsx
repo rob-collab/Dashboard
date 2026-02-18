@@ -30,8 +30,6 @@ export default function RiskAcceptancesPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const isCCRO = currentUser?.role === "CCRO_TEAM";
-
   const [showForm, setShowForm] = useState(false);
   const [prefillSource, setPrefillSource] = useState<RiskAcceptanceSource | undefined>();
   const [prefillRiskId, setPrefillRiskId] = useState<string | undefined>();
@@ -186,15 +184,13 @@ export default function RiskAcceptancesPage() {
             <Download size={14} />
             {exporting ? "Exporting..." : "Export CSV"}
           </button>
-          {isCCRO && (
-            <button
-              onClick={() => setShowForm(true)}
-              className="inline-flex items-center gap-2 rounded-lg bg-updraft-deep text-white px-4 py-2 text-sm font-medium hover:bg-updraft-bar transition-colors"
-            >
-              <Plus size={14} />
-              Propose Acceptance
-            </button>
-          )}
+          <button
+            onClick={() => setShowForm(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-updraft-deep text-white px-4 py-2 text-sm font-medium hover:bg-updraft-bar transition-colors"
+          >
+            <Plus size={14} />
+            Propose Acceptance
+          </button>
         </div>
       </div>
 

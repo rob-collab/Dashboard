@@ -100,8 +100,8 @@ export function getRiskScore(likelihood: number, impact: number): number {
 export function getRiskLevel(score: number): RiskLevelInfo {
   if (score >= 20) return { level: "Very High", colour: "#dc2626", bgClass: "bg-red-600", textClass: "text-white" };
   if (score >= 10) return { level: "High", colour: "#ea580c", bgClass: "bg-orange-600", textClass: "text-white" };
-  if (score >= 5) return { level: "Medium", colour: "#eab308", bgClass: "bg-yellow-500", textClass: "text-black" };
-  return { level: "Low", colour: "#22c55e", bgClass: "bg-green-500", textClass: "text-white" };
+  if (score >= 5) return { level: "Medium", colour: "#f59e0b", bgClass: "bg-amber-500", textClass: "text-white" };
+  return { level: "Low", colour: "#16a34a", bgClass: "bg-green-600", textClass: "text-white" };
 }
 
 /** Get the risk level info for a specific grid cell */

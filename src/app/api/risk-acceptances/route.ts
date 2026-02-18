@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, getUserId, requireCCRORole, jsonResponse, errorResponse, validateBody, validateQuery } from "@/lib/api-helpers";
+import { prisma, getUserId, jsonResponse, errorResponse, validateBody, validateQuery } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const querySchema = z.object({
@@ -68,9 +68,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireCCRORole(request);
-    if ("error" in auth) return auth.error;
-    const { userId } = auth;
+    const userId = await getUserId(request);
+    if (!userId) return errorResponse("Unauthorised", 401);
 
     const body = await request.json();
     const result = validateBody(createSchema, body);

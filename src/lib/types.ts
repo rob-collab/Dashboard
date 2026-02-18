@@ -347,6 +347,35 @@ export interface Risk {
   mitigations?: RiskMitigation[];
   auditTrail?: RiskAuditEntry[];
   snapshots?: RiskSnapshot[];
+  changes?: RiskChange[];
+}
+
+export interface RiskChange {
+  id: string;
+  riskId: string;
+  fieldChanged: string;
+  oldValue: string | null;
+  newValue: string | null;
+  status: ChangeStatus;
+  proposedBy: string;
+  proposer?: User;
+  proposedAt: string;
+  reviewedBy: string | null;
+  reviewer?: User;
+  reviewNote: string | null;
+}
+
+export interface DashboardNotification {
+  id: string;
+  message: string;
+  type: "info" | "warning" | "urgent";
+  active: boolean;
+  targetRoles: Role[] | string[];
+  createdBy: string;
+  creator?: User;
+  createdAt: string;
+  updatedAt: string;
+  expiresAt: string | null;
 }
 
 export interface RiskCategoryDef {

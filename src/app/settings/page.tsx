@@ -7,11 +7,13 @@ import CategoryEditor from "@/components/settings/CategoryEditor";
 import PriorityEditor from "@/components/settings/PriorityEditor";
 import TemplatesPanel from "@/components/settings/TemplatesPanel";
 import ComponentsPanel from "@/components/settings/ComponentsPanel";
+import NotificationsEditor from "@/components/settings/NotificationsEditor";
 import { cn } from "@/lib/utils";
 
 const TABS = [
   { id: "branding", label: "Branding" },
   { id: "categories", label: "Categories" },
+  { id: "notifications", label: "Notifications" },
   { id: "priorities", label: "Priorities" },
   { id: "templates", label: "Templates" },
   { id: "components", label: "Components" },
@@ -58,6 +60,7 @@ export default function SettingsPage() {
         {/* Tab content */}
         {activeTab === "branding" && <BrandingSettings />}
         {activeTab === "categories" && <CategoryEditor />}
+        {activeTab === "notifications" && <NotificationsEditor />}
         {activeTab === "priorities" && <PriorityEditor />}
         {activeTab === "templates" && <TemplatesPanel />}
         {activeTab === "components" && <ComponentsPanel />}

@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
         controls: { orderBy: { sortOrder: "asc" } },
         mitigations: { orderBy: { createdAt: "asc" } },
         riskOwner: true,
+        changes: { include: { proposer: true, reviewer: true }, orderBy: { proposedAt: "desc" } },
       },
       orderBy: { reference: "asc" },
     });

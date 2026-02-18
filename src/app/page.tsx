@@ -19,6 +19,7 @@ import {
   ExternalLink,
   FlaskConical,
   Loader2,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAppStore } from "@/lib/store";
@@ -26,7 +27,7 @@ import { api } from "@/lib/api-client";
 import { formatDate, ragBgColor } from "@/lib/utils";
 import { getActionLabel } from "@/lib/audit";
 import { getRiskScore } from "@/lib/risk-categories";
-import type { ActionPriority, ActionChange, ControlChange } from "@/lib/types";
+import type { ActionPriority, ActionChange, ControlChange, RiskChange } from "@/lib/types";
 import ScoreBadge from "@/components/risk-register/ScoreBadge";
 import DirectionArrow from "@/components/risk-register/DirectionArrow";
 
@@ -67,8 +68,8 @@ function fieldLabel(field: string): string {
 }
 
 /* ── Pending Changes Panel ───────────────────────────────────────────── */
-type PendingItem = (ActionChange | ControlChange) & {
-  _type: "action" | "control";
+type PendingItem = (ActionChange | ControlChange | RiskChange) & {
+  _type: "action" | "control" | "risk";
   _parentTitle: string;
   _parentId: string;
   _parentRef: string;
@@ -79,11 +80,13 @@ function PendingChangesPanel({
   users,
   updateAction,
   updateControl,
+  updateRisk,
 }: {
   changes: PendingItem[];
   users: { id: string; name: string }[];
   updateAction: (id: string, data: Record<string, unknown>) => void;
   updateControl: (id: string, data: Record<string, unknown>) => void;
+  updateRisk: (id: string, data: Record<string, unknown>) => void;
 }) {
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
@@ -105,7 +108,7 @@ function PendingChangesPanel({
         // Refresh action changes in store
         const updatedChanges = await api<ActionChange[]>(`/api/actions/${ac._parentId}/changes`);
         updateAction(ac._parentId, { changes: updatedChanges });
-      } else {
+      } else if (change._type === "control") {
         const cc = change as ControlChange & { _parentId: string };
         await api(`/api/controls/library/${cc._parentId}/changes/${change.id}`, {
           method: "PATCH",
@@ -113,6 +116,14 @@ function PendingChangesPanel({
         });
         const updatedChanges = await api<ControlChange[]>(`/api/controls/library/${cc._parentId}/changes`);
         updateControl(cc._parentId, { changes: updatedChanges });
+      } else {
+        const rc = change as RiskChange & { _parentId: string };
+        await api(`/api/risks/${rc._parentId}/changes/${change.id}`, {
+          method: "PATCH",
+          body: { status: decision, reviewNote: note },
+        });
+        const updatedChanges = await api<RiskChange[]>(`/api/risks/${rc._parentId}/changes`);
+        updateRisk(rc._parentId, { changes: updatedChanges });
       }
       setProcessedIds((prev) => { const next = new Set(prev); next.add(change.id); return next; });
       toast.success(decision === "APPROVED" ? "Change approved" : "Change rejected");
@@ -121,7 +132,7 @@ function PendingChangesPanel({
     } finally {
       setReviewingId(null);
     }
-  }, [reviewNotes, updateAction, updateControl]);
+  }, [reviewNotes, updateAction, updateControl, updateRisk]);
 
   const visibleChanges = changes.filter((c) => !processedIds.has(c.id));
 
@@ -140,22 +151,24 @@ function PendingChangesPanel({
         {visibleChanges.map((c) => {
           const proposerName = c.proposer?.name ?? users.find((u) => u.id === c.proposedBy)?.name ?? "Unknown";
           const isAction = c._type === "action";
+          const isControl = c._type === "control";
+          const isRisk = c._type === "risk";
           const ac = isAction ? (c as ActionChange & PendingItem) : null;
-          const cc = !isAction ? (c as ControlChange & PendingItem) : null;
+          const cc = isControl ? (c as ControlChange & PendingItem) : null;
           const isProcessing = reviewingId === c.id;
-          const originHref = isAction ? `/actions?edit=${c._parentId}` : `/controls?control=${c._parentId}`;
+          const originHref = isAction ? `/actions?edit=${c._parentId}` : isControl ? `/controls?control=${c._parentId}` : `/risk-register?risk=${c._parentId}`;
 
           return (
             <div key={c.id} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
               {/* Header */}
               <div className="flex items-start gap-3 px-4 py-3 bg-gray-50/80">
-                <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${isAction ? "bg-blue-100" : "bg-purple-100"}`}>
-                  {isAction ? <ListChecks className="h-4 w-4 text-blue-600" /> : <FlaskConical className="h-4 w-4 text-purple-600" />}
+                <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${isAction ? "bg-blue-100" : isRisk ? "bg-red-100" : "bg-purple-100"}`}>
+                  {isAction ? <ListChecks className="h-4 w-4 text-blue-600" /> : isRisk ? <ShieldAlert className="h-4 w-4 text-red-600" /> : <FlaskConical className="h-4 w-4 text-purple-600" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isAction ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"}`}>
-                      {isAction ? "Action" : "Control"}
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isAction ? "bg-blue-50 text-blue-700" : isRisk ? "bg-red-50 text-red-700" : "bg-purple-50 text-purple-700"}`}>
+                      {isAction ? "Action" : isRisk ? "Risk" : "Control"}
                     </span>
                     <span className="text-xs font-mono font-bold text-updraft-deep">{c._parentRef}</span>
                   </div>
@@ -275,6 +288,8 @@ export default function DashboardHome() {
   const controls = useAppStore((s) => s.controls);
   const updateAction = useAppStore((s) => s.updateAction);
   const updateControl = useAppStore((s) => s.updateControl);
+  const updateRisk = useAppStore((s) => s.updateRisk);
+  const notifications = useAppStore((s) => s.notifications);
 
   const role = currentUser?.role;
   const isCCRO = role === "CCRO_TEAM";
@@ -363,11 +378,23 @@ export default function DashboardHome() {
     );
   }, [controls]);
 
+  const pendingRiskChanges = useMemo(() => {
+    return risks.flatMap((r) =>
+      (r.changes ?? []).filter((c) => c.status === "PENDING").map((c) => ({
+        ...c,
+        _type: "risk" as const,
+        _parentTitle: r.name,
+        _parentId: r.id,
+        _parentRef: r.reference,
+      }))
+    );
+  }, [risks]);
+
   const allPendingChanges = useMemo(() => {
-    return [...pendingActionChanges, ...pendingControlChanges].sort(
+    return [...pendingActionChanges, ...pendingControlChanges, ...pendingRiskChanges].sort(
       (a, b) => new Date(b.proposedAt).getTime() - new Date(a.proposedAt).getTime()
     );
-  }, [pendingActionChanges, pendingControlChanges]);
+  }, [pendingActionChanges, pendingControlChanges, pendingRiskChanges]);
 
   // OWNER-specific: my risks, my actions, my metrics
   const myRisks = useMemo(() => {
@@ -413,6 +440,17 @@ export default function DashboardHome() {
 
   // Published reports for non-CCRO users
   const publishedReports = useMemo(() => reports.filter((r) => r.status === "PUBLISHED"), [reports]);
+
+  // Active dashboard notifications for current role
+  const activeNotifications = useMemo(() => {
+    const now = new Date();
+    return notifications.filter((n) => {
+      if (!n.active) return false;
+      if (n.expiresAt && new Date(n.expiresAt) < now) return false;
+      if (n.targetRoles && n.targetRoles.length > 0 && role && !n.targetRoles.includes(role)) return false;
+      return true;
+    });
+  }, [notifications, role]);
 
   // Risk Acceptance stats — visible to all roles
   const raStats = useMemo(() => {
@@ -578,6 +616,25 @@ export default function DashboardHome() {
         </div>
       </div>
 
+      {/* ── Notification Banners ── */}
+      {activeNotifications.length > 0 && (
+        <div className="space-y-2">
+          {activeNotifications.map((n) => {
+            const styles = n.type === "urgent"
+              ? { bg: "bg-red-50 border-red-200", text: "text-red-800", icon: <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" /> }
+              : n.type === "warning"
+              ? { bg: "bg-amber-50 border-amber-200", text: "text-amber-800", icon: <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" /> }
+              : { bg: "bg-blue-50 border-blue-200", text: "text-blue-800", icon: <Info className="h-4 w-4 text-blue-500 shrink-0" /> };
+            return (
+              <div key={n.id} className={`flex items-start gap-3 rounded-xl border ${styles.bg} px-4 py-3`}>
+                {styles.icon}
+                <p className={`text-sm font-medium ${styles.text} flex-1`}>{n.message}</p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* ── Priority Action Cards (ALL roles) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {(["P1", "P2", "P3"] as ActionPriority[]).map((p, idx) => {
@@ -716,6 +773,7 @@ export default function DashboardHome() {
               users={users}
               updateAction={updateAction}
               updateControl={updateControl}
+              updateRisk={(id, data) => updateRisk(id, data as Partial<import("@/lib/types").Risk>)}
             />
           )}
 
@@ -820,7 +878,7 @@ export default function DashboardHome() {
                         nextReview.setDate(nextReview.getDate() + (r.reviewFrequencyDays ?? 90));
                         const daysUntil = Math.ceil((nextReview.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
                         return (
-                          <Link key={r.id} href="/risk-register" className="flex items-center justify-between p-2 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
+                          <Link key={r.id} href={`/risk-register?risk=${r.id}`} className="flex items-center justify-between p-2 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
                             <div className="min-w-0">
                               <p className="text-xs font-medium text-gray-800 truncate">{r.reference}: {r.name}</p>
                               <p className="text-[10px] text-gray-400">Owner: {r.riskOwner?.name ?? users.find(u => u.id === r.ownerId)?.name ?? "Unknown"}</p>
@@ -959,7 +1017,7 @@ export default function DashboardHome() {
                   const nextReview = new Date(r.lastReviewed);
                   nextReview.setDate(nextReview.getDate() + (r.reviewFrequencyDays ?? 90));
                   return (
-                    <Link key={r.id} href="/risk-register" className="flex items-center gap-4 p-3 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
+                    <Link key={r.id} href={`/risk-register?risk=${r.id}`} className="flex items-center gap-4 p-3 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
                       <span className="text-xs font-mono font-bold text-updraft-deep shrink-0">{r.reference}</span>
                       <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{r.name}</span>
                       <ScoreBadge likelihood={r.residualLikelihood} impact={r.residualImpact} size="sm" />
@@ -1219,7 +1277,7 @@ export default function DashboardHome() {
               </div>
               <div className="space-y-2">
                 {myRisks.map((r) => (
-                  <Link key={r.id} href="/risk-register" className="flex items-center gap-4 p-3 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
+                  <Link key={r.id} href={`/risk-register?risk=${r.id}`} className="flex items-center gap-4 p-3 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
                     <span className="text-xs font-mono font-bold text-updraft-deep shrink-0">{r.reference}</span>
                     <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{r.name}</span>
                     <ScoreBadge likelihood={r.residualLikelihood} impact={r.residualImpact} size="sm" />

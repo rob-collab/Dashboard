@@ -49,6 +49,7 @@ export async function GET(
         mitigations: { orderBy: { createdAt: "asc" } },
         auditTrail: { orderBy: { changedAt: "desc" }, take: 50 },
         riskOwner: true,
+        changes: { include: { proposer: true, reviewer: true }, orderBy: { proposedAt: "desc" } },
       },
     });
 
@@ -175,6 +176,7 @@ export async function PATCH(
         controls: { orderBy: { sortOrder: "asc" } },
         mitigations: { orderBy: { createdAt: "asc" } },
         riskOwner: true,
+        changes: { include: { proposer: true, reviewer: true }, orderBy: { proposedAt: "desc" } },
       },
     });
 

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Modal from "@/components/common/Modal";
 import type { Action, ActionStatus, ActionPriority, Report, User } from "@/lib/types";
-import { generateId } from "@/lib/utils";
+import { generateId, cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
 
 const RichTextEditor = dynamic(() => import("@/components/common/RichTextEditor"), { ssr: false });
@@ -22,6 +22,7 @@ interface ActionFormDialogProps {
   prefillControlId?: string;
   prefillConsumerDutyMIId?: string;
   prefillMetricName?: string;
+  prefillRiskId?: string;
 }
 
 const STATUS_OPTIONS: { value: ActionStatus; label: string }[] = [
@@ -45,6 +46,7 @@ export default function ActionFormDialog({
   prefillControlId,
   prefillConsumerDutyMIId,
   prefillMetricName,
+  prefillRiskId,
 }: ActionFormDialogProps) {
   const isEdit = Boolean(action);
   const priorityDefinitions = useAppStore((s) => s.priorityDefinitions);
@@ -90,7 +92,7 @@ export default function ActionFormDialog({
       } else {
         setTitle("");
         setDescription("");
-        setIssueDescription("");
+        setIssueDescription(prefillMetricName ? `<p>Linked to: ${prefillMetricName}</p>` : "");
         setReportId("");
         setSource(prefillSource || "");
         setSectionId("");
@@ -103,12 +105,16 @@ export default function ActionFormDialog({
       }
       setErrors({});
     }
-  }, [open, action, reports, prefillSource, prefillSectionTitle, prefillConsumerDutyMIId, prefillMetricName]);
+  }, [open, action, reports, prefillSource, prefillSectionTitle, prefillConsumerDutyMIId, prefillMetricName, prefillRiskId]);
 
   function validate(): boolean {
     const newErrors: Record<string, string> = {};
     if (!title.trim()) newErrors.title = "Title is required";
     if (!assignedTo) newErrors.assignedTo = "Owner is required";
+    const cleanedDesc = description === "<p></p>" ? "" : description;
+    if (!cleanedDesc.trim()) newErrors.description = "Description is required";
+    if (!dueDate) newErrors.dueDate = "Due date is required";
+    if (!priority) newErrors.priority = "Priority is required";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }
@@ -211,13 +217,14 @@ export default function ActionFormDialog({
 
         {/* Description */}
         <div>
-          <label className={labelClasses}>Description</label>
+          <label className={labelClasses}>Description *</label>
           <RichTextEditor
             value={description}
             onChange={setDescription}
             placeholder="Detailed description of what needs to be done..."
             minHeight="100px"
           />
+          {errors.description && <p className={errorClasses}>{errors.description}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -241,7 +248,7 @@ export default function ActionFormDialog({
           {/* Source (optional) */}
           <div>
             <label htmlFor="action-source" className={labelClasses}>
-              Source (optional)
+              Source {prefillSource ? "" : "(optional)"}
             </label>
             <input
               id="action-source"
@@ -249,7 +256,8 @@ export default function ActionFormDialog({
               value={source}
               onChange={(e) => setSource(e.target.value)}
               placeholder="e.g., Board meeting, External audit"
-              className={inputClasses}
+              readOnly={!!prefillSource}
+              className={cn(inputClasses, prefillSource && "bg-gray-50 text-gray-500")}
             />
           </div>
         </div>
@@ -274,7 +282,7 @@ export default function ActionFormDialog({
 
           {/* Due Date */}
           <div>
-            <label htmlFor="action-due" className={labelClasses}>Due Date</label>
+            <label htmlFor="action-due" className={labelClasses}>Due Date *</label>
             <input
               id="action-due"
               type="date"
@@ -282,24 +290,26 @@ export default function ActionFormDialog({
               onChange={(e) => setDueDate(e.target.value)}
               className={inputClasses}
             />
+            {errors.dueDate && <p className={errorClasses}>{errors.dueDate}</p>}
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           {/* Priority */}
           <div>
-            <label htmlFor="action-priority" className={labelClasses}>Priority</label>
+            <label htmlFor="action-priority" className={labelClasses}>Priority *</label>
             <select
               id="action-priority"
               value={priority}
               onChange={(e) => setPriority(e.target.value as ActionPriority | "")}
               className={inputClasses}
             >
-              <option value="">No priority</option>
+              <option value="">Select priority...</option>
               {PRIORITY_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
+            {errors.priority && <p className={errorClasses}>{errors.priority}</p>}
           </div>
 
           {/* Status (only visible in edit mode) */}

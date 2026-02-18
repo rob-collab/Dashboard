@@ -132,6 +132,13 @@ model User {
   controlProposedChanges  ControlChange[]  @relation("ControlProposedChanges")
   controlReviewedChanges  ControlChange[]  @relation("ControlReviewedChanges")
 
+  // Risk Changes Module
+  riskProposedChanges  RiskChange[]  @relation("RiskProposedChanges")
+  riskReviewedChanges  RiskChange[]  @relation("RiskReviewedChanges")
+
+  // Dashboard Notifications
+  createdNotifications DashboardNotification[] @relation("NotificationCreator")
+
   @@map("users")
 }
 
@@ -460,6 +467,7 @@ model Risk {
   auditTrail  RiskAuditLog[]
   snapshots   RiskSnapshot[]
   acceptances RiskAcceptance[]
+  changes     RiskChange[]
 
   @@index([categoryL1])
   @@index([ownerId])
@@ -987,4 +995,39 @@ model RiskAcceptanceHistory {
 
   @@index([acceptanceId])
   @@map("risk_acceptance_history")
+}
+
+model RiskChange {
+  id           String       @id @default(cuid())
+  riskId       String
+  risk         Risk         @relation(fields: [riskId], references: [id], onDelete: Cascade)
+  fieldChanged String
+  oldValue     String?      @db.Text
+  newValue     String?      @db.Text
+  status       ChangeStatus @default(PENDING)
+  proposedBy   String
+  proposer     User         @relation("RiskProposedChanges", fields: [proposedBy], references: [id])
+  proposedAt   DateTime     @default(now())
+  reviewedBy   String?
+  reviewer     User?        @relation("RiskReviewedChanges", fields: [reviewedBy], references: [id])
+  reviewNote   String?      @db.Text
+
+  @@index([riskId])
+  @@index([status])
+  @@map("risk_changes")
+}
+
+model DashboardNotification {
+  id          String    @id @default(cuid())
+  message     String    @db.Text
+  type        String    @default("info") // "info" | "warning" | "urgent"
+  active      Boolean   @default(true)
+  targetRoles String[]  // empty = all roles
+  createdBy   String
+  creator     User      @relation("NotificationCreator", fields: [createdBy], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  expiresAt   DateTime?
+
+  @@map("dashboard_notifications")
 }

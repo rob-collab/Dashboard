@@ -16,6 +16,8 @@ import {
 } from "@/lib/risk-categories";
 import ScoreBadge from "./ScoreBadge";
 import { X, Plus, Trash2, AlertTriangle, ChevronRight, ChevronDown, History, Link2, ShieldQuestion } from "lucide-react";
+import { toast } from "sonner";
+import { api } from "@/lib/api-client";
 
 interface RiskDetailPanelProps {
   risk: Risk | null;
@@ -45,9 +47,11 @@ interface FormMitigation {
 export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete, onViewHistory }: RiskDetailPanelProps) {
   const router = useRouter();
   const users = useAppStore((s) => s.users);
+  const currentUser = useAppStore((s) => s.currentUser);
   const storeCategories = useAppStore((s) => s.riskCategories);
   const priorityDefinitions = useAppStore((s) => s.priorityDefinitions);
   const riskAcceptances = useAppStore((s) => s.riskAcceptances);
+  const isCCRO = currentUser?.role === "CCRO_TEAM";
 
   const activeUsers = users.filter((u) => u.isActive !== false);
   const PRIORITY_OPTIONS: { value: ActionPriority; label: string }[] =
@@ -138,6 +142,52 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
     onSave(data as Partial<Risk> & { controls?: Partial<RiskControl>[]; mitigations?: Partial<RiskMitigation>[] });
   }
 
+  const [proposing, setProposing] = useState(false);
+
+  async function handleProposeUpdate() {
+    if (!risk) return;
+    setProposing(true);
+    try {
+      // Compute diff between form state and original risk
+      const changes: { fieldChanged: string; oldValue: string | null; newValue: string | null }[] = [];
+      const fieldMap: [string, string | null, string | null][] = [
+        ["name", risk.name, name],
+        ["description", risk.description, description],
+        ["categoryL1", risk.categoryL1, categoryL1],
+        ["categoryL2", risk.categoryL2, categoryL2],
+        ["ownerId", risk.ownerId, ownerId],
+        ["inherentLikelihood", String(risk.inherentLikelihood), String(inherentLikelihood)],
+        ["inherentImpact", String(risk.inherentImpact), String(inherentImpact)],
+        ["residualLikelihood", String(risk.residualLikelihood), String(residualLikelihood)],
+        ["residualImpact", String(risk.residualImpact), String(residualImpact)],
+        ["controlEffectiveness", risk.controlEffectiveness ?? null, controlEffectiveness || null],
+        ["riskAppetite", risk.riskAppetite ?? null, riskAppetite || null],
+        ["directionOfTravel", risk.directionOfTravel, directionOfTravel],
+        ["reviewFrequencyDays", String(risk.reviewFrequencyDays), String(reviewFrequencyDays)],
+        ["lastReviewed", risk.lastReviewed.split("T")[0], lastReviewed],
+      ];
+      for (const [field, oldVal, newVal] of fieldMap) {
+        if (oldVal !== newVal) {
+          changes.push({ fieldChanged: field, oldValue: oldVal, newValue: newVal });
+        }
+      }
+
+      if (changes.length === 0) {
+        toast.info("No changes detected");
+        setProposing(false);
+        return;
+      }
+
+      await api(`/api/risks/${risk.id}/changes`, { method: "POST", body: changes });
+      toast.success("Update proposed — awaiting CCRO review");
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to propose update");
+    } finally {
+      setProposing(false);
+    }
+  }
+
   const canSave = name.trim() && description.trim() && categoryL1 && categoryL2 && ownerId;
 
   return (
@@ -149,14 +199,19 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
       <div className="relative w-full max-w-2xl bg-white shadow-2xl overflow-y-auto animate-slide-in-right">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-poppins font-semibold text-gray-900">
-              {isNew ? "Add New Risk" : `Edit ${risk?.reference}`}
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-poppins font-semibold text-gray-900 truncate">
+              {isNew ? "Add New Risk" : `Edit: ${risk?.name ?? risk?.reference}`}
             </h2>
             {risk && !isNew && (
-              <p className="text-xs text-gray-400 mt-0.5">
-                Last updated {new Date(risk.updatedAt).toLocaleDateString("en-GB")}
-              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="inline-block font-mono text-[11px] font-bold text-updraft-deep bg-updraft-pale-purple/30 px-1.5 py-0.5 rounded">
+                  {risk.reference}
+                </span>
+                <span className="text-xs text-gray-400">
+                  Last updated {new Date(risk.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                </span>
+              </div>
             )}
           </div>
           <div className="flex items-center gap-1">
@@ -578,6 +633,14 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
             >
               <Plus className="w-4 h-4" /> Add mitigation action
             </button>
+            {risk && !isNew && (
+              <button
+                onClick={() => router.push(`/actions?newAction=true&source=${encodeURIComponent("Risk Register")}&metricName=${encodeURIComponent(`${risk.reference}: ${name}`)}&riskId=${risk.id}`)}
+                className="flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-800 transition-colors"
+              >
+                <Plus className="w-4 h-4" /> Raise formal action
+              </button>
+            )}
             </>)}
           </section>
 
@@ -645,13 +708,23 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
             >
               Cancel
             </button>
-            <button
-              onClick={handleSave}
-              disabled={!canSave}
-              className="px-4 py-2 text-sm font-medium text-white bg-updraft-deep rounded-lg hover:bg-updraft-bar disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isNew ? "Create Risk" : "Save Changes"}
-            </button>
+            {!isNew && !isCCRO ? (
+              <button
+                onClick={handleProposeUpdate}
+                disabled={!canSave || proposing}
+                className="px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {proposing ? "Proposing..." : "Propose Update"}
+              </button>
+            ) : (
+              <button
+                onClick={handleSave}
+                disabled={!canSave}
+                className="px-4 py-2 text-sm font-medium text-white bg-updraft-deep rounded-lg hover:bg-updraft-bar disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isNew ? "Create Risk" : "Save Changes"}
+              </button>
+            )}
           </div>
         </div>
       </div>

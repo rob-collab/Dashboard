@@ -184,6 +184,26 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
                 </span>
               </div>
               <h2 className="text-lg font-bold text-gray-900 font-poppins truncate">{acceptance.title}</h2>
+              {acceptance.reviewDate && (
+                <div className="mt-1">
+                  {(() => {
+                    const daysLeft = Math.ceil((new Date(acceptance.reviewDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                    const isExpired = daysLeft <= 0;
+                    const isApproaching = daysLeft > 0 && daysLeft <= 30;
+                    return (
+                      <span className={cn(
+                        "inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full",
+                        isExpired ? "bg-red-100 text-red-700" : isApproaching ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"
+                      )}>
+                        <Clock size={12} />
+                        Accepted until {new Date(acceptance.reviewDate!).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                        {isExpired && " (Expired)"}
+                        {isApproaching && ` (${daysLeft}d remaining)`}
+                      </span>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
             <button onClick={onClose} className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors shrink-0 ml-2">
               <X size={20} />
@@ -335,14 +355,28 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
                     {acceptance.linkedActionIds.map((aid) => {
                       const action = storeActions.find((a) => a.id === aid);
                       return action ? (
-                        <div key={aid} className="flex items-center justify-between rounded-lg bg-gray-50 p-2 mb-1 text-xs">
+                        <Link key={aid} href={`/actions?edit=${aid}`} className="flex items-center justify-between rounded-lg bg-gray-50 p-2 mb-1 text-xs hover:bg-gray-100 transition-colors">
                           <span className="text-gray-700">{action.reference}: {action.title}</span>
                           <span className="text-gray-500">{action.status}</span>
-                        </div>
+                        </Link>
                       ) : null;
                     })}
                   </div>
                 )}
+                <div className="flex gap-2 pt-2">
+                  <Link
+                    href={`/actions?newAction=true&source=${encodeURIComponent("Risk Acceptance")}&metricName=${encodeURIComponent(`${acceptance.reference}: ${acceptance.title}`)}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-updraft-bright-purple hover:text-updraft-deep transition-colors"
+                  >
+                    <ArrowRight size={12} /> Raise Action
+                  </Link>
+                  <Link
+                    href="/controls?newControl=true&source=Risk+Acceptance"
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-updraft-bright-purple hover:text-updraft-deep transition-colors"
+                  >
+                    <ExternalLink size={12} /> Link Control
+                  </Link>
+                </div>
               </div>
             </CollapsibleSection>
           )}

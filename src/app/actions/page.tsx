@@ -118,6 +118,7 @@ function ActionsPageContent() {
   const prefillConsumerDutyMIId = searchParams.get("consumerDutyMIId") || undefined;
   const prefillMetricName = searchParams.get("metricName") || undefined;
   const prefillSource = searchParams.get("source") || undefined;
+  const prefillRiskId = searchParams.get("riskId") || undefined;
 
   // UI State
   const [showForm, setShowForm] = useState(prefillNewAction);
@@ -1051,6 +1052,7 @@ function ActionsPageContent() {
         prefillSource={prefillSource}
         prefillConsumerDutyMIId={prefillConsumerDutyMIId}
         prefillMetricName={prefillMetricName}
+        prefillRiskId={prefillRiskId}
       />
 
       {/* CSV Import Dialog */}

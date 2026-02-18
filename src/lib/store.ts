@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry, RiskAcceptance, Policy, Regulation } from "./types";
+import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry, RiskAcceptance, Policy, Regulation, DashboardNotification } from "./types";
 import { api } from "./api-client";
 
 interface AppState {
@@ -123,6 +123,13 @@ interface AppState {
   updateRegulation: (id: string, data: Partial<Regulation>) => void;
   deleteRegulation: (id: string) => void;
 
+  // Dashboard Notifications
+  notifications: DashboardNotification[];
+  setNotifications: (items: DashboardNotification[]) => void;
+  addNotification: (item: DashboardNotification) => void;
+  updateNotification: (id: string, data: Partial<DashboardNotification>) => void;
+  deleteNotification: (id: string) => void;
+
   // Controls Testing Module
   controlBusinessAreas: ControlBusinessArea[];
   setControlBusinessAreas: (areas: ControlBusinessArea[]) => void;
@@ -185,7 +192,7 @@ export const useAppStore = create<AppState>((set) => ({
   _hydrateError: null,
   hydrate: async () => {
     try {
-      const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations] = await Promise.all([
+      const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications] = await Promise.all([
         api<User[]>("/api/users"),
         api<Report[]>("/api/reports"),
         api<ConsumerDutyOutcome[]>("/api/consumer-duty"),
@@ -203,8 +210,9 @@ export const useAppStore = create<AppState>((set) => ({
         api<RiskAcceptance[]>("/api/risk-acceptances").catch(() => []),
         api<Policy[]>("/api/policies").catch(() => []),
         api<Regulation[]>("/api/regulations").catch(() => []),
+        api<DashboardNotification[]>("/api/notifications").catch(() => []),
       ]);
-      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, _hydrated: true, _hydrateError: null });
+      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, _hydrated: true, _hydrateError: null });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to connect to server";
       console.error("[hydrate] API unreachable:", message);
@@ -545,6 +553,24 @@ export const useAppStore = create<AppState>((set) => ({
   deleteRegulation: (id) => {
     set((state) => ({ regulations: state.regulations.filter((r) => r.id !== id) }));
     sync(() => api(`/api/regulations/${id}`, { method: "DELETE" }));
+  },
+
+  // ── Dashboard Notifications ─────────────────────────────
+  notifications: [],
+  setNotifications: (items) => set({ notifications: items }),
+  addNotification: (item) => {
+    set((state) => ({ notifications: [item, ...state.notifications] }));
+    sync(() => api("/api/notifications", { method: "POST", body: item }));
+  },
+  updateNotification: (id, data) => {
+    set((state) => ({
+      notifications: state.notifications.map((n) => (n.id === id ? { ...n, ...data } : n)),
+    }));
+    sync(() => api(`/api/notifications/${id}`, { method: "PATCH", body: data }));
+  },
+  deleteNotification: (id) => {
+    set((state) => ({ notifications: state.notifications.filter((n) => n.id !== id) }));
+    sync(() => api(`/api/notifications/${id}`, { method: "DELETE" }));
   },
 
   // ── Controls Testing Module ─────────────────────────────
