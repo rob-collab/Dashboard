@@ -5,26 +5,34 @@ import RoleGuard from "@/components/common/RoleGuard";
 import BrandingSettings from "@/components/settings/BrandingSettings";
 import CategoryEditor from "@/components/settings/CategoryEditor";
 import PriorityEditor from "@/components/settings/PriorityEditor";
+import TemplatesPanel from "@/components/settings/TemplatesPanel";
+import ComponentsPanel from "@/components/settings/ComponentsPanel";
 import { cn } from "@/lib/utils";
 
 const TABS = [
   { id: "branding", label: "Branding" },
   { id: "categories", label: "Categories" },
   { id: "priorities", label: "Priorities" },
+  { id: "templates", label: "Templates" },
+  { id: "components", label: "Components" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
 
+const FULL_WIDTH_TABS: TabId[] = ["templates", "components"];
+
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabId>("branding");
 
+  const isFullWidth = FULL_WIDTH_TABS.includes(activeTab);
+
   return (
     <RoleGuard allowedRoles={["CCRO_TEAM"]}>
-      <div className="max-w-3xl mx-auto">
+      <div className={cn(!isFullWidth && "max-w-3xl mx-auto")}>
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-updraft-deep font-poppins">Settings</h1>
           <p className="text-sm text-fca-gray mt-1">
-            Configure branding, risk categories, and priority definitions.
+            Configure branding, risk categories, priority definitions, templates, and components.
           </p>
         </div>
 
@@ -51,6 +59,8 @@ export default function SettingsPage() {
         {activeTab === "branding" && <BrandingSettings />}
         {activeTab === "categories" && <CategoryEditor />}
         {activeTab === "priorities" && <PriorityEditor />}
+        {activeTab === "templates" && <TemplatesPanel />}
+        {activeTab === "components" && <ComponentsPanel />}
       </div>
     </RoleGuard>
   );

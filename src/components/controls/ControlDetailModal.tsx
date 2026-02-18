@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Modal from "@/components/common/Modal";
 import ControlChangePanel from "./ControlChangePanel";
 import ControlSuggestChangeForm from "./ControlSuggestChangeForm";
+import ActionFormDialog from "@/components/actions/ActionFormDialog";
 import { deriveTestingStatus } from "@/lib/controls-utils";
 import { api } from "@/lib/api-client";
 import { useAppStore } from "@/lib/store";
@@ -26,6 +27,8 @@ import {
   Plus,
   Unlink,
   Trash2,
+  Link2,
+  Search,
 } from "lucide-react";
 import { cn, formatDateShort } from "@/lib/utils";
 
@@ -52,6 +55,9 @@ export default function ControlDetailModal({
 }: ControlDetailModalProps) {
   const currentUser = useAppStore((s) => s.currentUser);
   const users = useAppStore((s) => s.users);
+  const reports = useAppStore((s) => s.reports);
+  const allActions = useAppStore((s) => s.actions);
+  const addAction = useAppStore((s) => s.addAction);
   const isCCRO = currentUser?.role === "CCRO_TEAM";
   const canEditActions = currentUser?.role === "CCRO_TEAM" || currentUser?.role === "OWNER";
 
@@ -59,6 +65,9 @@ export default function ControlDetailModal({
   const [loading, setLoading] = useState(false);
   const [changesExpanded, setChangesExpanded] = useState(false);
   const [suggestFormOpen, setSuggestFormOpen] = useState(false);
+  const [linkPickerOpen, setLinkPickerOpen] = useState(false);
+  const [linkSearch, setLinkSearch] = useState("");
+  const [createActionOpen, setCreateActionOpen] = useState(false);
 
   // Fetch full control detail when controlId changes
   useEffect(() => {
@@ -70,6 +79,9 @@ export default function ControlDetailModal({
     setLoading(true);
     setChangesExpanded(false);
     setSuggestFormOpen(false);
+    setLinkPickerOpen(false);
+    setLinkSearch("");
+    setCreateActionOpen(false);
 
     api<ControlRecord>(`/api/controls/library/${controlId}`)
       .then((data) => setControl(data))
@@ -140,6 +152,46 @@ export default function ControlDetailModal({
     }
   }
 
+  // Actions that are not linked to any control (available for linking)
+  const unlinkedActions = useMemo(() => {
+    const q = linkSearch.toLowerCase();
+    return allActions.filter((a) => {
+      if (a.controlId) return false;
+      if (!q) return true;
+      return (
+        a.title.toLowerCase().includes(q) ||
+        (a.reference?.toLowerCase().includes(q) ?? false)
+      );
+    });
+  }, [allActions, linkSearch]);
+
+  async function handleLinkAction(actionId: string) {
+    if (!control) return;
+    try {
+      await api(`/api/actions/${actionId}`, {
+        method: "PATCH",
+        body: { controlId: control.id },
+      });
+      const fresh = await api<ControlRecord>(`/api/controls/library/${control.id}`);
+      setControl(fresh);
+      setLinkPickerOpen(false);
+      setLinkSearch("");
+    } catch (err) {
+      console.error("[ControlDetailModal] link action error:", err);
+    }
+  }
+
+  function handleCreateActionSave(action: Action) {
+    addAction(action);
+    setCreateActionOpen(false);
+    // Refresh control to pick up newly created action
+    if (control) {
+      api<ControlRecord>(`/api/controls/library/${control.id}`)
+        .then((fresh) => setControl(fresh))
+        .catch((err) => console.error("[ControlDetailModal] refresh error:", err));
+    }
+  }
+
   if (!controlId) return null;
 
   const changes: ControlChange[] = control?.changes ?? [];
@@ -158,6 +210,7 @@ export default function ControlDetailModal({
   const latestAttestation = control?.attestations?.[0] ?? null;
 
   return (
+    <>
     <Modal
       open={!!controlId}
       onClose={onClose}
@@ -369,14 +422,75 @@ export default function ControlDetailModal({
 
           {/* ── Associated Actions ── */}
           <div className="bento-card p-4">
-            <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              Associated Actions
-              {actions.length > 0 && (
-                <span className="text-xs font-normal text-gray-400">({actions.length})</span>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                Associated Actions
+                {actions.length > 0 && (
+                  <span className="text-xs font-normal text-gray-400">({actions.length})</span>
+                )}
+              </h4>
+              {canEditActions && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => { setLinkPickerOpen(!linkPickerOpen); setCreateActionOpen(false); }}
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                      linkPickerOpen
+                        ? "bg-updraft-pale-purple/40 text-updraft-deep"
+                        : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                    )}
+                  >
+                    <Link2 size={13} />
+                    Link Existing
+                  </button>
+                  <button
+                    onClick={() => { setCreateActionOpen(true); setLinkPickerOpen(false); }}
+                    className="inline-flex items-center gap-1 rounded-md bg-updraft-bright-purple px-2.5 py-1.5 text-xs font-medium text-white hover:bg-updraft-deep transition-colors"
+                  >
+                    <Plus size={13} />
+                    Create Action
+                  </button>
+                </div>
               )}
-            </h4>
+            </div>
 
-            {actions.length === 0 ? (
+            {/* Inline link picker */}
+            {linkPickerOpen && (
+              <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <div className="relative mb-2">
+                  <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search unlinked actions..."
+                    value={linkSearch}
+                    onChange={(e) => setLinkSearch(e.target.value)}
+                    className="w-full rounded-md border border-gray-200 bg-white py-1.5 pl-8 pr-3 text-xs outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple transition-colors"
+                    autoFocus
+                  />
+                </div>
+                <div className="max-h-40 overflow-y-auto space-y-1">
+                  {unlinkedActions.length === 0 ? (
+                    <p className="text-xs text-gray-400 py-2 text-center">No unlinked actions found.</p>
+                  ) : (
+                    unlinkedActions.slice(0, 20).map((a) => (
+                      <button
+                        key={a.id}
+                        onClick={() => handleLinkAction(a.id)}
+                        className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-xs hover:bg-white transition-colors"
+                      >
+                        <span className="font-mono font-medium text-updraft-deep whitespace-nowrap">{a.reference}</span>
+                        <span className="text-gray-600 truncate">{a.title}</span>
+                        <span className={cn("ml-auto shrink-0 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold", ACTION_STATUS_COLOURS[a.status] ?? "bg-gray-100 text-gray-600")}>
+                          {a.status.replace("_", " ")}
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
+            {actions.length === 0 && !linkPickerOpen ? (
               <p className="text-xs text-gray-400">No actions linked to this control.</p>
             ) : (
               <div className="overflow-x-auto">
@@ -451,5 +565,19 @@ export default function ControlDetailModal({
         <div className="py-12 text-center text-gray-400">Control not found</div>
       )}
     </Modal>
+
+    {/* Create Action dialog */}
+    <ActionFormDialog
+      open={createActionOpen}
+      onClose={() => setCreateActionOpen(false)}
+      onSave={handleCreateActionSave}
+      reports={reports}
+      users={users}
+      currentUserId={currentUser?.id ?? ""}
+      prefillControlId={control?.id}
+      prefillSource={control ? `Control ${control.controlRef}` : undefined}
+      prefillSectionTitle={control?.controlName}
+    />
+    </>
   );
 }

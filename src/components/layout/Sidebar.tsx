@@ -9,8 +9,6 @@ import {
   FileText,
   ShieldCheck,
   ShieldAlert,
-  LayoutTemplate,
-  Puzzle,
   ClipboardList,
   ListChecks,
   FlaskConical,
@@ -45,8 +43,6 @@ const NAV_ITEMS: { label: string; href: string; icon: typeof LayoutDashboard; ro
   { label: "Actions", href: "/actions", icon: ListChecks, roles: ["CCRO_TEAM", "OWNER", "VIEWER"] },
   { label: "Risk Register", href: "/risk-register", icon: ShieldAlert, roles: ["CCRO_TEAM", "OWNER", "VIEWER"] },
   { label: "Controls Testing", href: "/controls", icon: FlaskConical, roles: ["CCRO_TEAM", "OWNER"] },
-  { label: "Templates", href: "/templates", icon: LayoutTemplate, roles: ["CCRO_TEAM"] },
-  { label: "Components", href: "/components-lib", icon: Puzzle, roles: ["CCRO_TEAM"] },
   { label: "Audit Trail", href: "/audit", icon: ClipboardList, roles: ["CCRO_TEAM"] },
   { label: "Users", href: "/users", icon: Users, roles: ["CCRO_TEAM"] },
   { label: "Settings", href: "/settings", icon: Settings, roles: ["CCRO_TEAM"] },
@@ -108,7 +104,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
       )}
     >
       {/* Branding Header */}
-      <div className="relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-updraft-deep via-updraft-bar to-updraft-bright-purple transition-all duration-300 ease-in-out p-2">
+      <Link href="/" className="relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-updraft-deep via-updraft-bar to-updraft-bright-purple transition-all duration-300 ease-in-out p-2">
         <img
           src="/logo.png"
           alt="Updraft CCRO Dashboard"
@@ -125,7 +121,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
             collapsed ? "w-full p-1 opacity-100" : "h-0 w-0 opacity-0 absolute"
           )}
         />
-      </div>
+      </Link>
 
       {/* View-As Banner */}
       {isViewingAsOther && !collapsed && (
