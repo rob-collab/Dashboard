@@ -2,17 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
 
 :root {
-  --background: #F3F4F6;
-  --foreground: #374151;
+  --background: #F8F7F4;
+  --foreground: #1A1A2E;
+  --surface-warm: #FEFDFB;
+  --surface-muted: #F8F7F4;
+  --surface-dark: #1C1B29;
+  --text-secondary: #6B6B6B;
+  --border-warm: #E8E6E1;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'DM Sans', system-ui, sans-serif;
+}
+
+/* Subtle noise texture overlay */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.3;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* Tiptap Editor Styles */
@@ -65,7 +88,7 @@ body {
 }
 
 .tiptap table th {
-  background: #F3F4F6;
+  background: #F8F7F4;
   font-weight: 600;
 }
 
@@ -83,28 +106,66 @@ body {
   height: 0;
 }
 
-/* Bento Card */
+/* Bento Card — warm surface with layered depth */
 .bento-card {
-  @apply bg-white rounded-2xl p-6 shadow-bento border border-gray-200 relative overflow-hidden transition-all duration-200 ease-in-out;
+  @apply rounded-2xl p-6 relative overflow-hidden transition-all duration-200 ease-in-out;
+  background: var(--surface-warm);
+  border: 1px solid var(--border-warm);
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.04),
+    0 4px 8px rgba(0,0,0,0.04),
+    0 8px 16px rgba(0,0,0,0.03),
+    inset 0 1px 0 rgba(255,255,255,0.6);
 }
 .bento-card:hover {
-  @apply -translate-y-0.5 shadow-bento-hover border-updraft-light-purple;
+  @apply -translate-y-0.5;
+  box-shadow:
+    0 2px 4px rgba(0,0,0,0.04),
+    0 8px 16px rgba(0,0,0,0.06),
+    0 16px 32px rgba(0,0,0,0.04),
+    0 0 0 1px rgba(123,31,162,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.7);
+  border-color: #D4C8E0;
 }
 
-/* Glassmorphism */
+/* Glassmorphism — warm variant */
 .glass-card {
-  background: rgba(255, 255, 255, 0.40);
+  background: rgba(254, 253, 251, 0.55);
   backdrop-filter: blur(30px);
   -webkit-backdrop-filter: blur(30px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow:
+    0 8px 32px 0 rgba(31, 38, 135, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
   border-radius: 24px;
   padding: 24px;
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 .glass-card:hover {
-  background: rgba(255, 255, 255, 0.65);
+  background: rgba(254, 253, 251, 0.75);
   transform: translateY(-4px) scale(1.01);
+}
+
+/* Card entrance animation utility classes */
+.card-entrance {
+  animation: staggerIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.card-entrance-1 { animation-delay: 0ms; }
+.card-entrance-2 { animation-delay: 60ms; }
+.card-entrance-3 { animation-delay: 120ms; }
+.card-entrance-4 { animation-delay: 180ms; }
+.card-entrance-5 { animation-delay: 240ms; }
+.card-entrance-6 { animation-delay: 300ms; }
+
+@keyframes staggerIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Scrollbar */

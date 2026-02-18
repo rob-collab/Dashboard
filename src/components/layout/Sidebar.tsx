@@ -106,41 +106,45 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
   return (
     <aside
       className={cn(
-        "flex flex-col h-screen fixed top-0 left-0 border-r border-updraft-pale-purple/30 bg-white transition-all duration-300 ease-in-out z-40",
+        "flex flex-col h-screen fixed top-0 left-0 transition-all duration-300 ease-in-out z-40",
         collapsed ? "w-16" : "w-64"
       )}
+      style={{
+        background: "linear-gradient(180deg, #1C1B29 0%, #161523 100%)",
+        borderRight: "1px solid rgba(255,255,255,0.06)",
+      }}
     >
       {/* Branding Header */}
-      <Link href="/" className="relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-updraft-deep via-updraft-bar to-updraft-bright-purple transition-all duration-300 ease-in-out p-2">
+      <Link href="/" className="relative flex items-center justify-center overflow-hidden transition-all duration-300 ease-in-out p-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
         <img
           src="/logo.png"
           alt="Updraft CCRO Dashboard"
           className={cn(
-            "w-full object-contain transition-all duration-300 ease-in-out",
-            collapsed ? "h-0 opacity-0 absolute" : "opacity-100"
+            "w-full object-contain transition-all duration-300 ease-in-out brightness-0 invert",
+            collapsed ? "h-0 opacity-0 absolute" : "opacity-90"
           )}
         />
         <img
           src="/logo-mark.png"
           alt="Updraft"
           className={cn(
-            "object-contain transition-all duration-300 ease-in-out",
-            collapsed ? "w-full p-1 opacity-100" : "h-0 w-0 opacity-0 absolute"
+            "object-contain transition-all duration-300 ease-in-out brightness-0 invert",
+            collapsed ? "w-full p-1 opacity-90" : "h-0 w-0 opacity-0 absolute"
           )}
         />
       </Link>
 
       {/* View-As Banner */}
       {isViewingAsOther && !collapsed && (
-        <div className="mx-2 mt-2 flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
-          <Eye size={14} className="shrink-0 text-amber-600" />
+        <div className="mx-2 mt-2 flex items-center gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2">
+          <Eye size={14} className="shrink-0 text-amber-400" />
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-semibold text-amber-700 uppercase tracking-wider">Viewing as</p>
-            <p className="text-xs font-medium text-amber-800 truncate">{currentUser.name}</p>
+            <p className="text-[10px] font-semibold text-amber-400/80 uppercase tracking-wider">Viewing as</p>
+            <p className="text-xs font-medium text-amber-200 truncate">{currentUser.name}</p>
           </div>
           <button
             onClick={() => authUser && onSwitchUser?.(authUser)}
-            className="shrink-0 rounded p-1 text-amber-600 hover:bg-amber-100 transition-colors"
+            className="shrink-0 rounded p-1 text-amber-400 hover:bg-amber-500/20 transition-colors"
             title="Back to my account"
           >
             <ArrowLeft size={14} />
@@ -149,7 +153,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
       )}
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-1">
+      <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-0.5">
         {NAV_ITEMS.filter((item) => item.roles.includes(currentUser.role)).map((item) => {
           const active = isActive(item.href);
           const Icon = item.icon;
@@ -159,19 +163,23 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
               href={item.href}
               title={collapsed ? item.label : undefined}
               className={cn(
-                "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150",
+                "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150",
                 active
-                  ? "bg-updraft-pale-purple/40 text-updraft-deep"
-                  : "text-gray-600 hover:bg-updraft-pale-purple/20 hover:text-updraft-bar"
+                  ? "bg-white/10 text-white"
+                  : "text-white/50 hover:bg-white/[0.06] hover:text-white/80"
               )}
             >
+              {/* Active indicator — left accent strip */}
+              {active && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-updraft-light-purple" />
+              )}
               <Icon
                 size={20}
                 className={cn(
                   "shrink-0 transition-colors",
                   active
-                    ? "text-updraft-bright-purple"
-                    : "text-gray-400 group-hover:text-updraft-bar"
+                    ? "text-updraft-light-purple"
+                    : "text-white/30 group-hover:text-white/60"
                 )}
               />
               {!collapsed && <span className="truncate">{item.label}</span>}
@@ -181,7 +189,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
                 </span>
               )}
               {active && !collapsed && !item.badgeKey && (
-                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-updraft-bright-purple" />
+                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-updraft-light-purple" />
               )}
             </Link>
           );
@@ -197,7 +205,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
             setRefreshing(false);
           }}
           disabled={refreshing}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 py-2 text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 py-2 text-xs text-white/40 hover:bg-white/[0.06] hover:text-white/60 transition-colors disabled:opacity-50"
           aria-label="Refresh data"
           title="Refresh data from database"
         >
@@ -206,7 +214,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
         </button>
         <button
           onClick={() => onToggle ? onToggle() : setCollapsedInternal((prev) => !prev)}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 py-2 text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 py-2 text-xs text-white/40 hover:bg-white/[0.06] hover:text-white/60 transition-colors"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
@@ -218,17 +226,18 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
       <div
         ref={userMenuRef}
         className={cn(
-          "relative border-t border-gray-100 px-3 py-3",
+          "relative px-3 py-3",
           collapsed ? "flex justify-center" : ""
         )}
+        style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
       >
         {/* Signed-in identity (compact, always visible) */}
         {!collapsed && authUser && (
-          <div className="mb-2 flex items-center gap-2 text-[10px] text-gray-400">
+          <div className="mb-2 flex items-center gap-2 text-[10px] text-white/30">
             <span className="truncate">Signed in as {authUser.name}</span>
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
-              className="shrink-0 rounded p-0.5 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              className="shrink-0 rounded p-0.5 hover:bg-white/10 hover:text-white/60 transition-colors"
               title="Sign out"
             >
               <LogOut size={12} />
@@ -239,7 +248,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
         {collapsed ? (
           <button
             onClick={() => setUserMenuOpen(!userMenuOpen)}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-updraft-bar text-xs font-semibold text-white hover:ring-2 hover:ring-updraft-light-purple transition-all"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-updraft-bar to-updraft-bright-purple text-xs font-semibold text-white hover:ring-2 hover:ring-updraft-light-purple/40 transition-all"
             title={`${currentUser.name} — Click to switch`}
           >
             {currentUser.name.charAt(0).toUpperCase()}
@@ -247,20 +256,20 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
         ) : (
           <button
             onClick={() => setUserMenuOpen(!userMenuOpen)}
-            className="flex w-full items-center gap-3 rounded-lg px-2 py-2 hover:bg-gray-50 transition-colors"
+            className="flex w-full items-center gap-3 rounded-lg px-2 py-2 hover:bg-white/[0.06] transition-colors"
           >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-updraft-bar text-xs font-semibold text-white">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-updraft-bar to-updraft-bright-purple text-xs font-semibold text-white">
               {currentUser.name.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0 text-left">
-              <p className="text-sm font-medium text-gray-800 truncate">
+              <p className="text-sm font-medium text-white/90 truncate">
                 {currentUser.name}
               </p>
             </div>
             <ChevronDown
               size={14}
               className={cn(
-                "shrink-0 text-gray-400 transition-transform",
+                "shrink-0 text-white/30 transition-transform",
                 userMenuOpen && "rotate-180"
               )}
             />

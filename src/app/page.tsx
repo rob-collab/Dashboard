@@ -448,19 +448,34 @@ export default function DashboardHome() {
   return (
     <div className="space-y-6">
       {/* Welcome Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-updraft-deep to-updraft-bar p-8 text-white">
-        <div className="absolute top-0 right-0 opacity-20">
-          <svg width="300" height="200" viewBox="0 0 300 200">
-            <circle cx="250" cy="30" r="100" fill="#E1BEE7" />
-            <circle cx="180" cy="150" r="60" fill="#BA68C8" />
+      <div className="card-entrance card-entrance-1 relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#1C1B29] via-updraft-deep to-updraft-bar p-8 text-white">
+        {/* Geometric pattern overlay */}
+        <div className="absolute inset-0 opacity-[0.07]" style={{
+          backgroundImage: `
+            linear-gradient(135deg, rgba(255,255,255,0.1) 25%, transparent 25%),
+            linear-gradient(225deg, rgba(255,255,255,0.1) 25%, transparent 25%),
+            linear-gradient(45deg, rgba(255,255,255,0.05) 25%, transparent 25%),
+            linear-gradient(315deg, rgba(255,255,255,0.05) 25%, transparent 25%)
+          `,
+          backgroundSize: '40px 40px',
+          backgroundPosition: '0 0, 0 0, 20px 20px, 20px 20px',
+        }} />
+        {/* Angled accent lines */}
+        <div className="absolute top-0 right-0 w-1/2 h-full opacity-10">
+          <svg width="100%" height="100%" viewBox="0 0 400 200" preserveAspectRatio="none">
+            <line x1="100" y1="0" x2="300" y2="200" stroke="#E1BEE7" strokeWidth="1" />
+            <line x1="150" y1="0" x2="350" y2="200" stroke="#BA68C8" strokeWidth="0.5" />
+            <line x1="200" y1="0" x2="400" y2="200" stroke="#E1BEE7" strokeWidth="1" />
+            <line x1="250" y1="0" x2="400" y2="150" stroke="#BA68C8" strokeWidth="0.5" />
+            <line x1="300" y1="0" x2="400" y2="100" stroke="#E1BEE7" strokeWidth="0.5" />
           </svg>
         </div>
         <div className="relative flex items-center gap-4">
           <div className="flex-1">
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-2xl font-bold font-poppins tracking-tight">
               Welcome back, {currentUser?.name || "User"}
             </h1>
-            <p className="mt-1 text-white/80">
+            <p className="mt-1 text-white/60 text-sm">
               Updraft CCRO Report Management Dashboard
             </p>
 
@@ -468,32 +483,32 @@ export default function DashboardHome() {
             {isCCRO && (myOverdueActions.length > 0 || myDueThisMonthActions.length > 0 || risksNeedingReview.length > 0 || allPendingChanges.length > 0 || overdueMetrics.length > 0) && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {overdueMetrics.length > 0 && (
-                  <Link href="/consumer-duty?rag=ATTENTION" className="inline-flex items-center gap-1.5 rounded-full bg-red-500/90 px-3 py-1 text-xs font-semibold text-white hover:bg-red-600 transition-colors">
-                    <BarChart3 className="h-3 w-3" />
+                  <Link href="/consumer-duty?rag=ATTENTION" className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 transition-colors">
+                    <BarChart3 className="h-3 w-3 text-red-300" />
                     {overdueMetrics.length} overdue metric{overdueMetrics.length > 1 ? "s" : ""}
                   </Link>
                 )}
                 {myOverdueActions.length > 0 && (
-                  <Link href="/actions?status=OVERDUE" className="inline-flex items-center gap-1.5 rounded-full bg-red-500/90 px-3 py-1 text-xs font-semibold text-white hover:bg-red-600 transition-colors">
-                    <AlertTriangle className="h-3 w-3" />
+                  <Link href="/actions?status=OVERDUE" className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 transition-colors">
+                    <AlertTriangle className="h-3 w-3 text-red-300" />
                     {myOverdueActions.length} overdue action{myOverdueActions.length > 1 ? "s" : ""}
                   </Link>
                 )}
                 {myDueThisMonthActions.length > 0 && (
-                  <Link href="/actions" className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/90 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-600 transition-colors">
-                    <Clock className="h-3 w-3" />
+                  <Link href="/actions" className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 transition-colors">
+                    <Clock className="h-3 w-3 text-amber-300" />
                     {myDueThisMonthActions.length} due this month
                   </Link>
                 )}
                 {risksNeedingReview.length > 0 && (
-                  <Link href="/risk-register" className="inline-flex items-center gap-1.5 rounded-full bg-updraft-bright-purple/90 px-3 py-1 text-xs font-semibold text-white hover:bg-updraft-bright-purple transition-colors">
-                    <ShieldAlert className="h-3 w-3" />
+                  <Link href="/risk-register" className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 transition-colors">
+                    <ShieldAlert className="h-3 w-3 text-updraft-pale-purple" />
                     {risksNeedingReview.length} risk{risksNeedingReview.length > 1 ? "s" : ""} due for review
                   </Link>
                 )}
                 {allPendingChanges.length > 0 && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/90 px-3 py-1 text-xs font-semibold text-white">
-                    <Bell className="h-3 w-3" />
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-1 text-xs font-semibold text-white">
+                    <Bell className="h-3 w-3 text-blue-300" />
                     {allPendingChanges.length} pending approval{allPendingChanges.length > 1 ? "s" : ""}
                   </span>
                 )}
@@ -503,20 +518,20 @@ export default function DashboardHome() {
             {isOwner && (myOverdueActions.length > 0 || myDueThisMonthActions.length > 0 || myRisksNeedingReview.length > 0) && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {myOverdueActions.length > 0 && (
-                  <Link href="/actions?status=OVERDUE" className="inline-flex items-center gap-1.5 rounded-full bg-red-500/90 px-3 py-1 text-xs font-semibold text-white hover:bg-red-600 transition-colors">
-                    <AlertTriangle className="h-3 w-3" />
+                  <Link href="/actions?status=OVERDUE" className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 transition-colors">
+                    <AlertTriangle className="h-3 w-3 text-red-300" />
                     {myOverdueActions.length} overdue action{myOverdueActions.length > 1 ? "s" : ""}
                   </Link>
                 )}
                 {myDueThisMonthActions.length > 0 && (
-                  <Link href="/actions" className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/90 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-600 transition-colors">
-                    <Clock className="h-3 w-3" />
+                  <Link href="/actions" className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 transition-colors">
+                    <Clock className="h-3 w-3 text-amber-300" />
                     {myDueThisMonthActions.length} due this month
                   </Link>
                 )}
                 {myRisksNeedingReview.length > 0 && (
-                  <Link href="/risk-register" className="inline-flex items-center gap-1.5 rounded-full bg-updraft-bright-purple/90 px-3 py-1 text-xs font-semibold text-white hover:bg-updraft-bright-purple transition-colors">
-                    <ShieldAlert className="h-3 w-3" />
+                  <Link href="/risk-register" className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 transition-colors">
+                    <ShieldAlert className="h-3 w-3 text-updraft-pale-purple" />
                     {myRisksNeedingReview.length} risk{myRisksNeedingReview.length > 1 ? "s" : ""} due for review
                   </Link>
                 )}
@@ -526,11 +541,11 @@ export default function DashboardHome() {
             {/* VIEWER: no notification pills */}
 
             {/* Action buttons — only CCRO gets New Report */}
-            <div className="mt-3 flex gap-3">
+            <div className="mt-4 flex gap-3">
               {isCCRO && (
                 <Link
                   href="/reports/new"
-                  className="inline-flex items-center gap-2 rounded-lg bg-white/20 px-4 py-2 text-sm font-medium hover:bg-white/30 transition-colors"
+                  className="inline-flex items-center gap-2 rounded-lg bg-white/15 backdrop-blur-sm border border-white/20 px-4 py-2 text-sm font-semibold hover:bg-white/25 transition-all"
                 >
                   <Plus className="h-4 w-4" />
                   New Report
@@ -538,7 +553,7 @@ export default function DashboardHome() {
               )}
               <Link
                 href="/reports"
-                className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-sm font-medium hover:bg-white/20 transition-colors"
+                className="inline-flex items-center gap-2 rounded-lg bg-white/[0.07] backdrop-blur-sm border border-white/10 px-4 py-2 text-sm font-medium text-white/80 hover:bg-white/15 hover:text-white transition-all"
               >
                 <FileText className="h-4 w-4" />
                 View Reports
@@ -565,14 +580,15 @@ export default function DashboardHome() {
 
       {/* ── Priority Action Cards (ALL roles) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {(["P1", "P2", "P3"] as ActionPriority[]).map((p) => {
+        {(["P1", "P2", "P3"] as ActionPriority[]).map((p, idx) => {
           const config = PRIORITY_CONFIG[p];
           const items = priorityStats[p];
           return (
             <Link
               key={p}
               href={`/actions?priority=${p}`}
-              className={`rounded-2xl border ${config.border} ${config.bg} p-5 transition-all hover:shadow-md`}
+              className={`card-entrance card-entrance-${idx + 2} rounded-2xl border ${config.border} p-5 transition-all hover:shadow-bento-hover`}
+              style={{ background: `linear-gradient(135deg, ${p === "P1" ? "#FEF2F2" : p === "P2" ? "#FFFBEB" : "#F8FAFC"} 0%, ${p === "P1" ? "#FFF5F5" : p === "P2" ? "#FEFCE8" : "#F1F5F9"} 100%)` }}
             >
               <div className="flex items-center justify-between mb-3">
                 <h3 className={`text-sm font-bold ${config.color}`}>{config.label}</h3>
@@ -609,7 +625,7 @@ export default function DashboardHome() {
 
       {/* ── Risk Acceptance Widget (ALL roles) ── */}
       {riskAcceptances.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 card-entrance card-entrance-5">
           {/* Main RA card */}
           <Link href="/risk-acceptances" className="bento-card hover:border-updraft-light-purple transition-colors group">
             <div className="flex items-center justify-between mb-3">
@@ -620,21 +636,21 @@ export default function DashboardHome() {
               <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-updraft-bright-purple transition-colors" />
             </div>
             <div className="grid grid-cols-4 gap-2 mb-3">
-              <div className="rounded-lg bg-gray-100 p-2 text-center">
+              <div className="rounded-lg bg-surface-muted border border-[#E8E6E1] p-2 text-center">
                 <p className="text-lg font-bold font-poppins text-gray-600">{raStats.expired}</p>
-                <p className="text-[10px] text-gray-500">Expired</p>
+                <p className="text-[10px] text-text-secondary">Expired</p>
               </div>
-              <div className="rounded-lg bg-amber-50 p-2 text-center">
+              <div className="rounded-lg border border-amber-100 p-2 text-center" style={{ background: "linear-gradient(135deg, #FFFBEB, #FEFCE8)" }}>
                 <p className="text-lg font-bold font-poppins text-amber-700">{raStats.awaiting}</p>
-                <p className="text-[10px] text-gray-500">Awaiting</p>
+                <p className="text-[10px] text-text-secondary">Awaiting</p>
               </div>
-              <div className="rounded-lg bg-purple-50 p-2 text-center">
+              <div className="rounded-lg border border-purple-100 p-2 text-center" style={{ background: "linear-gradient(135deg, #FAF5FF, #F5F3FF)" }}>
                 <p className="text-lg font-bold font-poppins text-purple-700">{raStats.ccroReview}</p>
-                <p className="text-[10px] text-gray-500">CCRO Review</p>
+                <p className="text-[10px] text-text-secondary">CCRO Review</p>
               </div>
-              <div className="rounded-lg bg-green-50 p-2 text-center">
+              <div className="rounded-lg border border-green-100 p-2 text-center" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
                 <p className="text-lg font-bold font-poppins text-green-700">{raStats.accepted}</p>
-                <p className="text-[10px] text-gray-500">Accepted</p>
+                <p className="text-[10px] text-text-secondary">Accepted</p>
               </div>
             </div>
             {raStats.urgent.length > 0 && (
@@ -679,7 +695,7 @@ export default function DashboardHome() {
                   </Link>
                 ))}
                 {raStats.beyond30.slice(0, 2).map((ra) => (
-                  <Link key={ra.id} href="/risk-acceptances" className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors text-xs">
+                  <Link key={ra.id} href="/risk-acceptances" className="flex items-center justify-between p-2 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors text-xs">
                     <span className="truncate flex-1 min-w-0"><span className="font-mono font-bold">{ra.reference}</span> {ra.title}</span>
                     <span className="shrink-0 ml-2 text-gray-500">{ra.daysUntil}d</span>
                   </Link>
@@ -704,7 +720,7 @@ export default function DashboardHome() {
           )}
 
           {/* Action Tracking stats */}
-          <div>
+          <div className="card-entrance card-entrance-6">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-bold text-updraft-deep font-poppins">Action Tracking</h2>
               <Link href="/actions" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
@@ -712,20 +728,20 @@ export default function DashboardHome() {
               </Link>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <Link href="/actions?status=OPEN" className="rounded-xl border border-gray-200 bg-blue-50 p-3 cursor-pointer hover:border-blue-300 transition-colors">
-                <p className="text-xs text-gray-500">Open</p>
+              <Link href="/actions?status=OPEN" className="rounded-xl border border-blue-100 p-3 cursor-pointer hover:border-blue-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #EFF6FF 0%, #F0F7FF 100%)" }}>
+                <p className="text-xs text-text-secondary">Open</p>
                 <p className="text-2xl font-bold font-poppins text-blue-700">{actionStats.open}</p>
               </Link>
-              <Link href="/actions?status=OVERDUE" className="rounded-xl border border-gray-200 bg-red-50 p-3 cursor-pointer hover:border-red-300 transition-colors">
-                <p className="text-xs text-gray-500">Overdue</p>
+              <Link href="/actions?status=OVERDUE" className="rounded-xl border border-red-100 p-3 cursor-pointer hover:border-red-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #FEF2F2 0%, #FFF5F5 100%)" }}>
+                <p className="text-xs text-text-secondary">Overdue</p>
                 <p className="text-2xl font-bold font-poppins text-red-700">{actionStats.overdue}</p>
               </Link>
-              <Link href="/actions" className="rounded-xl border border-gray-200 bg-amber-50 p-3 cursor-pointer hover:border-amber-300 transition-colors">
-                <p className="text-xs text-gray-500">Due This Month</p>
+              <Link href="/actions" className="rounded-xl border border-amber-100 p-3 cursor-pointer hover:border-amber-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEFCE8 100%)" }}>
+                <p className="text-xs text-text-secondary">Due This Month</p>
                 <p className="text-2xl font-bold font-poppins text-amber-700">{actionStats.dueThisMonth}</p>
               </Link>
-              <Link href="/actions?status=COMPLETED" className="rounded-xl border border-gray-200 bg-blue-50 p-3 cursor-pointer hover:border-blue-300 transition-colors">
-                <p className="text-xs text-gray-500">Completed</p>
+              <Link href="/actions?status=COMPLETED" className="rounded-xl border border-blue-100 p-3 cursor-pointer hover:border-blue-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #EFF6FF 0%, #F0F7FF 100%)" }}>
+                <p className="text-xs text-text-secondary">Completed</p>
                 <p className="text-2xl font-bold font-poppins text-blue-700">{actionStats.completed}</p>
               </Link>
             </div>
@@ -741,7 +757,7 @@ export default function DashboardHome() {
             </div>
             <div className="space-y-3">
               {outcomes.map((outcome) => (
-                <Link key={outcome.id} href={`/consumer-duty?outcome=${outcome.id}`} className="block rounded-xl bg-gray-50 p-3 hover:bg-gray-100 hover:-translate-y-0.5 transition-all cursor-pointer">
+                <Link key={outcome.id} href={`/consumer-duty?outcome=${outcome.id}`} className="block rounded-xl bg-surface-muted p-3 hover:bg-surface-warm hover:-translate-y-0.5 transition-all cursor-pointer border border-transparent hover:border-[#E8E6E1]">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`h-3 w-3 rounded-full ${ragBgColor(outcome.ragStatus)}`} />
@@ -804,7 +820,7 @@ export default function DashboardHome() {
                         nextReview.setDate(nextReview.getDate() + (r.reviewFrequencyDays ?? 90));
                         const daysUntil = Math.ceil((nextReview.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
                         return (
-                          <Link key={r.id} href="/risk-register" className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                          <Link key={r.id} href="/risk-register" className="flex items-center justify-between p-2 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
                             <div className="min-w-0">
                               <p className="text-xs font-medium text-gray-800 truncate">{r.reference}: {r.name}</p>
                               <p className="text-[10px] text-gray-400">Owner: {r.riskOwner?.name ?? users.find(u => u.id === r.ownerId)?.name ?? "Unknown"}</p>
@@ -832,7 +848,7 @@ export default function DashboardHome() {
                   ) : (
                     <div className="space-y-2">
                       {myOverdueActions.slice(0, 5).map((a) => (
-                        <Link key={a.id} href={`/actions?edit=${a.id}`} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <Link key={a.id} href={`/actions?edit=${a.id}`} className="flex items-center justify-between p-2 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
                           <p className="text-xs font-medium text-gray-800 truncate flex-1 min-w-0">{a.title}</p>
                           <span className="text-[10px] font-semibold text-red-600 shrink-0 ml-2">
                             {a.dueDate ? `${Math.abs(daysUntilDue(a.dueDate) ?? 0)}d overdue` : "Overdue"}
@@ -867,7 +883,7 @@ export default function DashboardHome() {
                 </thead>
                 <tbody>
                   {reports.map((report) => (
-                    <tr key={report.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <tr key={report.id} className="border-b border-[#E8E6E1]/50 hover:bg-surface-muted">
                       <td className="py-3 px-3 font-medium">{report.title}</td>
                       <td className="py-3 px-3 text-fca-gray">{report.period}</td>
                       <td className="py-3 px-3">
@@ -903,7 +919,7 @@ export default function DashboardHome() {
               {auditLogs.slice(0, 20).map((log) => {
                 const logUser = users.find((u) => u.id === log.userId);
                 return (
-                  <Link key={log.id} href="/audit" className="flex-shrink-0 w-64 rounded-xl border border-gray-200 bg-white p-3 hover:border-updraft-light-purple hover:-translate-y-0.5 transition-all cursor-pointer">
+                  <Link key={log.id} href="/audit" className="flex-shrink-0 w-64 rounded-xl border border-[#E8E6E1] bg-surface-warm p-3 hover:border-updraft-light-purple hover:-translate-y-0.5 hover:shadow-bento transition-all cursor-pointer">
                     <div className="flex items-center gap-2 mb-1.5">
                       <div className="flex h-6 w-6 items-center justify-center rounded-full bg-updraft-pale-purple/40 text-[10px] font-semibold text-updraft-bright-purple">
                         {(logUser?.name ?? "?").charAt(0).toUpperCase()}
@@ -943,7 +959,7 @@ export default function DashboardHome() {
                   const nextReview = new Date(r.lastReviewed);
                   nextReview.setDate(nextReview.getDate() + (r.reviewFrequencyDays ?? 90));
                   return (
-                    <Link key={r.id} href="/risk-register" className="flex items-center gap-4 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <Link key={r.id} href="/risk-register" className="flex items-center gap-4 p-3 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
                       <span className="text-xs font-mono font-bold text-updraft-deep shrink-0">{r.reference}</span>
                       <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{r.name}</span>
                       <ScoreBadge likelihood={r.residualLikelihood} impact={r.residualImpact} size="sm" />
@@ -976,7 +992,7 @@ export default function DashboardHome() {
                   const days = daysUntilDue(a.dueDate);
                   const isOverdue = days !== null && days <= 0;
                   return (
-                    <Link key={a.id} href={`/actions?edit=${a.id}`} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <Link key={a.id} href={`/actions?edit=${a.id}`} className="flex items-center gap-3 p-3 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
                       {a.priority && (
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
                           a.priority === "P1" ? "bg-red-100 text-red-700" :
@@ -1022,7 +1038,7 @@ export default function DashboardHome() {
                     <Link
                       key={m.id}
                       href={`/consumer-duty?measure=${m.id}`}
-                      className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
+                      className="flex items-center justify-between p-3 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors cursor-pointer"
                     >
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-gray-800 truncate">{m.name}</p>
@@ -1061,7 +1077,7 @@ export default function DashboardHome() {
             </div>
             <div className="space-y-3">
               {outcomes.map((outcome) => (
-                <Link key={outcome.id} href={`/consumer-duty?outcome=${outcome.id}`} className="block rounded-xl bg-gray-50 p-3 hover:bg-gray-100 hover:-translate-y-0.5 transition-all cursor-pointer">
+                <Link key={outcome.id} href={`/consumer-duty?outcome=${outcome.id}`} className="block rounded-xl bg-surface-muted p-3 hover:bg-surface-warm hover:-translate-y-0.5 transition-all cursor-pointer border border-transparent hover:border-[#E8E6E1]">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`h-3 w-3 rounded-full ${ragBgColor(outcome.ragStatus)}`} />
@@ -1124,7 +1140,7 @@ export default function DashboardHome() {
                 </thead>
                 <tbody>
                   {publishedReports.map((report) => (
-                    <tr key={report.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <tr key={report.id} className="border-b border-[#E8E6E1]/50 hover:bg-surface-muted">
                       <td className="py-3 px-3 font-medium">{report.title}</td>
                       <td className="py-3 px-3 text-fca-gray">{report.period}</td>
                       <td className="py-3 px-3 text-fca-gray text-xs">{formatDate(report.updatedAt)}</td>
@@ -1203,7 +1219,7 @@ export default function DashboardHome() {
               </div>
               <div className="space-y-2">
                 {myRisks.map((r) => (
-                  <Link key={r.id} href="/risk-register" className="flex items-center gap-4 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                  <Link key={r.id} href="/risk-register" className="flex items-center gap-4 p-3 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
                     <span className="text-xs font-mono font-bold text-updraft-deep shrink-0">{r.reference}</span>
                     <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{r.name}</span>
                     <ScoreBadge likelihood={r.residualLikelihood} impact={r.residualImpact} size="sm" />
@@ -1232,7 +1248,7 @@ export default function DashboardHome() {
                   const days = daysUntilDue(a.dueDate);
                   const isOverdue = days !== null && days <= 0;
                   return (
-                    <Link key={a.id} href={`/actions?edit=${a.id}`} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <Link key={a.id} href={`/actions?edit=${a.id}`} className="flex items-center gap-3 p-3 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
                       {a.priority && (
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
                           a.priority === "P1" ? "bg-red-100 text-red-700" :
@@ -1265,7 +1281,7 @@ export default function DashboardHome() {
             </div>
             <div className="space-y-3">
               {outcomes.map((outcome) => (
-                <Link key={outcome.id} href={`/consumer-duty?outcome=${outcome.id}`} className="block rounded-xl bg-gray-50 p-3 hover:bg-gray-100 hover:-translate-y-0.5 transition-all cursor-pointer">
+                <Link key={outcome.id} href={`/consumer-duty?outcome=${outcome.id}`} className="block rounded-xl bg-surface-muted p-3 hover:bg-surface-warm hover:-translate-y-0.5 transition-all cursor-pointer border border-transparent hover:border-[#E8E6E1]">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`h-3 w-3 rounded-full ${ragBgColor(outcome.ragStatus)}`} />
@@ -1309,27 +1325,27 @@ export default function DashboardHome() {
           </div>
 
           {/* Risk Summary Stats */}
-          <div>
+          <div className="card-entrance card-entrance-5">
             <h2 className="text-lg font-bold text-updraft-deep font-poppins mb-3">Risk Summary</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <Link href="/risk-register" className="rounded-xl border border-gray-200 bg-gray-50 p-3 hover:-translate-y-0.5 transition-all">
-                <p className="text-xs text-gray-500">Total Risks</p>
+              <Link href="/risk-register" className="rounded-xl border border-[#E8E6E1] bg-surface-warm p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all">
+                <p className="text-xs text-text-secondary">Total Risks</p>
                 <p className="text-2xl font-bold font-poppins text-updraft-deep">{risks.length}</p>
               </Link>
-              <Link href="/risk-register" className="rounded-xl border border-gray-200 bg-green-50 p-3 hover:-translate-y-0.5 transition-all">
-                <p className="text-xs text-gray-500">Low Risk</p>
+              <Link href="/risk-register" className="rounded-xl border border-green-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%)" }}>
+                <p className="text-xs text-text-secondary">Low Risk</p>
                 <p className="text-2xl font-bold font-poppins text-green-700">
                   {risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) <= 4).length}
                 </p>
               </Link>
-              <Link href="/risk-register" className="rounded-xl border border-gray-200 bg-amber-50 p-3 hover:-translate-y-0.5 transition-all">
-                <p className="text-xs text-gray-500">Medium Risk</p>
+              <Link href="/risk-register" className="rounded-xl border border-amber-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEFCE8 100%)" }}>
+                <p className="text-xs text-text-secondary">Medium Risk</p>
                 <p className="text-2xl font-bold font-poppins text-amber-700">
                   {risks.filter((r) => { const s = getRiskScore(r.residualLikelihood, r.residualImpact); return s > 4 && s <= 12; }).length}
                 </p>
               </Link>
-              <Link href="/risk-register" className="rounded-xl border border-gray-200 bg-red-50 p-3 hover:-translate-y-0.5 transition-all">
-                <p className="text-xs text-gray-500">High Risk</p>
+              <Link href="/risk-register" className="rounded-xl border border-red-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #FEF2F2 0%, #FFF5F5 100%)" }}>
+                <p className="text-xs text-text-secondary">High Risk</p>
                 <p className="text-2xl font-bold font-poppins text-red-700">
                   {risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) > 12).length}
                 </p>
@@ -1357,7 +1373,7 @@ export default function DashboardHome() {
                 </thead>
                 <tbody>
                   {publishedReports.map((report) => (
-                    <tr key={report.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <tr key={report.id} className="border-b border-[#E8E6E1]/50 hover:bg-surface-muted">
                       <td className="py-3 px-3 font-medium">{report.title}</td>
                       <td className="py-3 px-3 text-fca-gray">{report.period}</td>
                       <td className="py-3 px-3 text-fca-gray text-xs">{formatDate(report.updatedAt)}</td>

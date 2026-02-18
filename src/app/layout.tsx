@@ -129,7 +129,7 @@ export default function RootLayout({
         <title>Updraft CCRO Dashboard</title>
         <meta name="description" content="CCRO Report Management System" />
       </head>
-      <body className="font-inter antialiased bg-bg-light text-fca-dark-gray">
+      <body className="font-inter antialiased bg-bg-light text-text-primary">
         <SessionProvider>
           <AppShell>{children}</AppShell>
         </SessionProvider>
