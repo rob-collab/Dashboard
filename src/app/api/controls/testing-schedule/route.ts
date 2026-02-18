@@ -18,6 +18,9 @@ export async function GET(request: NextRequest) {
           include: {
             businessArea: true,
             controlOwner: true,
+            attestations: {
+              include: { attestedBy: true, ccroReviewedBy: true },
+            },
           },
         },
         assignedTester: true,

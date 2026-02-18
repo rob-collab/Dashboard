@@ -200,10 +200,13 @@ export default function ControlDetailView({
   );
 
   const control = useMemo(() => {
-    if (entry?.control) return entry.control;
+    // Prefer the store's controls array — it includes attestations from the bulk API.
+    // entry.control (from testing-schedule API) lacks attestation data.
     if (entry?.controlId) {
-      return controls.find((c) => c.id === entry.controlId) ?? null;
+      const storeControl = controls.find((c) => c.id === entry.controlId);
+      if (storeControl) return storeControl;
     }
+    if (entry?.control) return entry.control;
     return null;
   }, [entry, controls]);
 
