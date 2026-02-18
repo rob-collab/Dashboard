@@ -34,6 +34,10 @@ export async function GET(request: NextRequest) {
         attestations: includeSchedule === "true" ? {
           include: { attestedBy: true, ccroReviewedBy: true },
         } : false,
+        changes: {
+          include: { proposer: true, reviewer: true },
+          orderBy: { proposedAt: "desc" },
+        },
       },
       orderBy: { controlRef: "asc" },
     });

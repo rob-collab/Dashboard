@@ -1,7 +1,7 @@
 "use client";
 
 import "./globals.css";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, Suspense } from "react";
 import { usePathname } from "next/navigation";
 import { Toaster } from "sonner";
 import { SessionProvider, useSession } from "@/lib/auth";
@@ -110,7 +110,13 @@ function AppShell({ children }: { children: React.ReactNode }) {
           }`}
         >
           <ErrorBoundary>
-            <div className="p-6 max-w-[1400px] mx-auto">{children}</div>
+            <Suspense fallback={
+              <div className="flex items-center justify-center min-h-[400px]">
+                <div className="h-10 w-10 animate-spin rounded-full border-4 border-updraft-bright-purple border-t-transparent" />
+              </div>
+            }>
+              <div className="p-6 max-w-[1400px] mx-auto">{children}</div>
+            </Suspense>
           </ErrorBoundary>
         </main>
       </div>
