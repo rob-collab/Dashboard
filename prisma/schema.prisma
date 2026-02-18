@@ -114,6 +114,9 @@ model User {
   acceptanceComments     RiskAcceptanceComment[]
   acceptanceHistory      RiskAcceptanceHistory[]
 
+  // Policy Review Module
+  ownedPolicies       Policy[]               @relation("OwnedPolicies")
+
   // Controls Testing Module
   ownedControls       Control[]              @relation("ControlOwner")
   createdControls     Control[]              @relation("ControlCreatedBy")
@@ -640,6 +643,7 @@ model Control {
   changes             ControlChange[]
   actions             Action[]                @relation("ControlActions")
   riskAcceptances     RiskAcceptance[]
+  policyLinks         PolicyControlLink[]     @relation("PolicyControlLinks")
 
   @@index([businessAreaId])
   @@index([controlOwnerId])
@@ -758,6 +762,138 @@ model ExcoViewConfig {
 
   @@unique([periodYear, periodMonth])
   @@map("exco_view_configs")
+}
+
+// ── Policy Review Module ──────────────────────────────────────────────────
+
+enum PolicyStatus {
+  CURRENT
+  OVERDUE
+  UNDER_REVIEW
+  ARCHIVED
+}
+
+enum RegulationType {
+  HANDBOOK_RULE
+  PRINCIPLE
+  LEGISLATION
+  STATUTORY_INSTRUMENT
+  GUIDANCE
+  INDUSTRY_CODE
+}
+
+model Policy {
+  id                  String       @id @default(cuid())
+  reference           String       @unique
+  name                String
+  description         String       @db.Text
+  status              PolicyStatus @default(CURRENT)
+  version             String       @default("1.0")
+  ownerId             String
+  owner               User         @relation("OwnedPolicies", fields: [ownerId], references: [id])
+  approvedBy          String?
+  classification      String       @default("Internal Only")
+  reviewFrequencyDays Int          @default(365)
+  lastReviewedDate    DateTime?
+  nextReviewDate      DateTime?
+  effectiveDate       DateTime?
+  scope               String?      @db.Text
+  applicability       String?      @db.Text
+  exceptions          String?      @db.Text
+  relatedPolicies     String[]
+  storageUrl          String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  regulatoryLinks PolicyRegulatoryLink[]
+  controlLinks    PolicyControlLink[]
+  obligations     PolicyObligation[]
+  auditTrail      PolicyAuditLog[]
+
+  @@index([ownerId])
+  @@index([status])
+  @@map("policies")
+}
+
+model Regulation {
+  id          String         @id @default(cuid())
+  reference   String         @unique
+  name        String
+  shortName   String?
+  body        String
+  type        RegulationType
+  provisions  String?        @db.Text
+  url         String?
+  description String?        @db.Text
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  policyLinks PolicyRegulatoryLink[]
+
+  @@map("regulations")
+}
+
+model PolicyRegulatoryLink {
+  id             String     @id @default(cuid())
+  policyId       String
+  policy         Policy     @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  regulationId   String
+  regulation     Regulation @relation(fields: [regulationId], references: [id])
+  policySections String?
+  notes          String?
+  linkedAt       DateTime   @default(now())
+  linkedBy       String
+
+  @@unique([policyId, regulationId])
+  @@map("policy_regulatory_links")
+}
+
+model PolicyControlLink {
+  id        String   @id @default(cuid())
+  policyId  String
+  policy    Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  controlId String
+  control   Control  @relation("PolicyControlLinks", fields: [controlId], references: [id])
+  notes     String?
+  linkedAt  DateTime @default(now())
+  linkedBy  String
+
+  @@unique([policyId, controlId])
+  @@map("policy_control_links")
+}
+
+model PolicyObligation {
+  id             String   @id @default(cuid())
+  policyId       String
+  policy         Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  reference      String
+  category       String
+  description    String   @db.Text
+  regulationRefs String[]
+  controlRefs    String[]
+  notes          String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([policyId])
+  @@map("policy_obligations")
+}
+
+model PolicyAuditLog {
+  id           String   @id @default(cuid())
+  policyId     String
+  policy       Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  userId       String
+  action       String
+  fieldChanged String?
+  oldValue     String?  @db.Text
+  newValue     String?  @db.Text
+  details      String?  @db.Text
+  changedAt    DateTime @default(now())
+
+  @@index([policyId])
+  @@index([changedAt])
+  @@map("policy_audit_log")
 }
 
 // ── Risk Acceptance Module ──────────────────────────────────────────────────

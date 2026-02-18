@@ -421,6 +421,175 @@ async function main() {
   }
   console.log(`  ✓ ${RA_HISTORY.length} risk acceptance history entries`);
 
+  // ── Policy Review Module ──────────────────────────────────────────────
+  // Seed Regulations
+  const SEED_REGULATIONS: {
+    id: string; reference: string; name: string; shortName: string | null;
+    body: string; type: "HANDBOOK_RULE" | "PRINCIPLE" | "LEGISLATION" | "STATUTORY_INSTRUMENT" | "GUIDANCE" | "INDUSTRY_CODE";
+    provisions: string | null; url: string | null; description: string | null;
+  }[] = [
+    { id: "reg-conc", reference: "FCA-CONC", name: "Consumer Credit Sourcebook", shortName: "CONC", body: "FCA", type: "HANDBOOK_RULE", provisions: "Chapter 3 — Financial Promotions", url: "https://www.handbook.fca.org.uk/handbook/CONC/3", description: "Rules and guidance on financial promotions for consumer credit." },
+    { id: "reg-prin", reference: "FCA-PRIN", name: "Principles for Businesses", shortName: "PRIN", body: "FCA", type: "PRINCIPLE", provisions: "Principle 7 — Communications", url: "https://www.handbook.fca.org.uk/handbook/PRIN/2/1", description: "A firm must pay due regard to the information needs of its clients, and communicate information to them in a way which is clear, fair and not misleading." },
+    { id: "reg-cobs", reference: "FCA-COBS", name: "Conduct of Business Sourcebook", shortName: "COBS", body: "FCA", type: "HANDBOOK_RULE", provisions: "Chapter 4 — Communicating with Clients", url: "https://www.handbook.fca.org.uk/handbook/COBS/4", description: "Rules on fair, clear and not misleading communications." },
+    { id: "reg-sysc", reference: "FCA-SYSC", name: "Senior Management Arrangements, Systems and Controls", shortName: "SYSC", body: "FCA", type: "HANDBOOK_RULE", provisions: "Chapter 3 — Systems and Controls", url: "https://www.handbook.fca.org.uk/handbook/SYSC/3", description: "Systems and controls requirements for firms." },
+    { id: "reg-cd", reference: "FCA-CD", name: "Consumer Duty", shortName: "Consumer Duty", body: "FCA", type: "PRINCIPLE", provisions: "Principle 12 — Consumer Duty", url: "https://www.fca.org.uk/firms/consumer-duty", description: "The Consumer Duty sets higher and clearer standards of consumer protection." },
+    { id: "reg-cca", reference: "UK-CCA", name: "Consumer Credit Act 1974", shortName: "CCA 1974", body: "Parliament", type: "LEGISLATION", provisions: "Part III — Licensing", url: "https://www.legislation.gov.uk/ukpga/1974/39", description: "Primary legislation governing consumer credit agreements." },
+    { id: "reg-cpr", reference: "UK-CPR", name: "Consumer Protection from Unfair Trading Regulations 2008", shortName: "CPRs", body: "Parliament", type: "STATUTORY_INSTRUMENT", provisions: null, url: "https://www.legislation.gov.uk/uksi/2008/1277", description: "Prohibits unfair commercial practices." },
+    { id: "reg-gdpr", reference: "ICO-GDPR", name: "UK General Data Protection Regulation", shortName: "UK GDPR", body: "ICO", type: "LEGISLATION", provisions: "Articles 5, 6, 13, 14", url: "https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/", description: "Data protection requirements for processing personal data." },
+    { id: "reg-pecr", reference: "ICO-PECR", name: "Privacy and Electronic Communications Regulations", shortName: "PECR", body: "ICO", type: "STATUTORY_INSTRUMENT", provisions: "Regulation 22 — Direct Marketing", url: "https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/", description: "Rules on electronic marketing, cookies and similar technologies." },
+    { id: "reg-cap", reference: "ASA-CAP", name: "Committee of Advertising Practice Code", shortName: "CAP Code", body: "ASA", type: "INDUSTRY_CODE", provisions: "Section 1 — Financial Services", url: "https://www.asa.org.uk/codes-and-rulings/advertising-codes/non-broadcast-code.html", description: "Non-broadcast advertising code including financial services rules." },
+    { id: "reg-bcap", reference: "ASA-BCAP", name: "Broadcast Committee of Advertising Practice Code", shortName: "BCAP Code", body: "ASA", type: "INDUSTRY_CODE", provisions: null, url: "https://www.asa.org.uk/codes-and-rulings/advertising-codes/broadcast-code.html", description: "Broadcast advertising code." },
+    { id: "reg-fsma", reference: "UK-FSMA", name: "Financial Services and Markets Act 2000", shortName: "FSMA", body: "Parliament", type: "LEGISLATION", provisions: "Section 21 — Financial Promotion", url: "https://www.legislation.gov.uk/ukpga/2000/8/section/21", description: "Restrictions on financial promotion — the s21 gateway." },
+    { id: "reg-smcr", reference: "FCA-SMCR", name: "Senior Managers and Certification Regime", shortName: "SM&CR", body: "FCA", type: "HANDBOOK_RULE", provisions: null, url: "https://www.fca.org.uk/firms/senior-managers-certification-regime", description: "Accountability framework for senior individuals at firms." },
+    { id: "reg-fpo", reference: "UK-FPO", name: "Financial Promotion Order 2005", shortName: "FPO", body: "Parliament", type: "STATUTORY_INSTRUMENT", provisions: "Articles 15-73 — Exempt Communications", url: "https://www.legislation.gov.uk/uksi/2005/1529", description: "Exemptions from the financial promotion restriction." },
+    { id: "reg-mcob", reference: "FCA-MCOB", name: "Mortgages and Home Finance Conduct of Business", shortName: "MCOB", body: "FCA", type: "HANDBOOK_RULE", provisions: "Chapter 3A — Financial Promotions", url: "https://www.handbook.fca.org.uk/handbook/MCOB/3A", description: "Mortgage-specific promotion rules." },
+    { id: "reg-icobs", reference: "FCA-ICOBS", name: "Insurance: Conduct of Business Sourcebook", shortName: "ICOBS", body: "FCA", type: "HANDBOOK_RULE", provisions: "Chapter 2 — General Matters", url: "https://www.handbook.fca.org.uk/handbook/ICOBS/2", description: "Insurance-specific conduct rules." },
+    { id: "reg-ofcom-bc", reference: "OFCOM-BC", name: "Ofcom Broadcasting Code", shortName: null, body: "Ofcom", type: "GUIDANCE", provisions: "Section Nine — Commercial References", url: "https://www.ofcom.org.uk/tv-radio-and-on-demand/broadcast-codes/broadcast-code", description: "Broadcasting standards for commercial content." },
+    { id: "reg-eq-act", reference: "UK-EQA", name: "Equality Act 2010", shortName: "EqA 2010", body: "Parliament", type: "LEGISLATION", provisions: "Part 3 — Services and Public Functions", url: "https://www.legislation.gov.uk/ukpga/2010/15", description: "Anti-discrimination legislation." },
+    { id: "reg-pra-ss", reference: "PRA-SS", name: "PRA Supervisory Statement on Operational Resilience", shortName: null, body: "PRA", type: "GUIDANCE", provisions: "SS1/21", url: "https://www.bankofengland.co.uk/prudential-regulation/publication/2021/march/operational-resilience-ss", description: "PRA expectations on operational resilience." },
+  ];
+
+  for (const reg of SEED_REGULATIONS) {
+    await prisma.regulation.upsert({
+      where: { id: reg.id },
+      update: { name: reg.name, shortName: reg.shortName, body: reg.body, type: reg.type, provisions: reg.provisions, url: reg.url, description: reg.description },
+      create: reg,
+    });
+  }
+  console.log(`  ✓ ${SEED_REGULATIONS.length} regulations`);
+
+  // Seed Policy: Financial Promotions
+  const policyId = "pol-finprom";
+  await prisma.policy.upsert({
+    where: { id: policyId },
+    update: {
+      name: "Financial Promotions Policy",
+      description: "This policy sets out the requirements, governance framework, and operational controls for the approval, monitoring, and withdrawal of financial promotions across all channels and product lines. It ensures compliance with FCA rules, Consumer Duty obligations, and internal risk appetite.",
+      status: "CURRENT",
+      version: "3.2",
+      ownerId: "user-rob",
+      approvedBy: "Aseem (CEO)",
+      classification: "Internal Only",
+      reviewFrequencyDays: 365,
+      lastReviewedDate: new Date("2025-11-15"),
+      nextReviewDate: new Date("2026-11-15"),
+      effectiveDate: new Date("2024-01-01"),
+      scope: "All financial promotions issued or approved by the firm, including website content, marketing emails, social media, comparison site listings, and third-party affiliate materials.",
+      applicability: "All staff involved in creating, reviewing, approving, or distributing financial promotions. Third-party agencies and affiliates acting on behalf of the firm.",
+      exceptions: "Internal-only communications not accessible to consumers. Purely factual regulatory disclosures (e.g. FSCS notices).",
+      relatedPolicies: ["Data Protection Policy", "Consumer Duty Framework", "Anti-Fraud Policy", "Complaints Handling Policy"],
+      storageUrl: null,
+    },
+    create: {
+      id: policyId,
+      reference: "POL-001",
+      name: "Financial Promotions Policy",
+      description: "This policy sets out the requirements, governance framework, and operational controls for the approval, monitoring, and withdrawal of financial promotions across all channels and product lines. It ensures compliance with FCA rules, Consumer Duty obligations, and internal risk appetite.",
+      status: "CURRENT",
+      version: "3.2",
+      ownerId: "user-rob",
+      approvedBy: "Aseem (CEO)",
+      classification: "Internal Only",
+      reviewFrequencyDays: 365,
+      lastReviewedDate: new Date("2025-11-15"),
+      nextReviewDate: new Date("2026-11-15"),
+      effectiveDate: new Date("2024-01-01"),
+      scope: "All financial promotions issued or approved by the firm, including website content, marketing emails, social media, comparison site listings, and third-party affiliate materials.",
+      applicability: "All staff involved in creating, reviewing, approving, or distributing financial promotions. Third-party agencies and affiliates acting on behalf of the firm.",
+      exceptions: "Internal-only communications not accessible to consumers. Purely factual regulatory disclosures (e.g. FSCS notices).",
+      relatedPolicies: ["Data Protection Policy", "Consumer Duty Framework", "Anti-Fraud Policy", "Complaints Handling Policy"],
+      storageUrl: null,
+    },
+  });
+  console.log("  ✓ 1 policy (Financial Promotions)");
+
+  // Link regulations to policy
+  const regLinks = [
+    "reg-conc", "reg-prin", "reg-cobs", "reg-sysc", "reg-cd", "reg-cca",
+    "reg-cpr", "reg-gdpr", "reg-pecr", "reg-cap", "reg-fsma", "reg-fpo",
+  ];
+  for (const regId of regLinks) {
+    await prisma.policyRegulatoryLink.upsert({
+      where: { policyId_regulationId: { policyId, regulationId: regId } },
+      update: {},
+      create: { policyId, regulationId: regId, linkedBy: "user-rob" },
+    });
+  }
+  console.log(`  ✓ ${regLinks.length} policy-regulation links`);
+
+  // Link controls to policy (if they exist)
+  const controlsForPolicy = await prisma.control.findMany({ take: 8, orderBy: { controlRef: "asc" } });
+  let ctrlLinked = 0;
+  for (const ctrl of controlsForPolicy) {
+    await prisma.policyControlLink.upsert({
+      where: { policyId_controlId: { policyId, controlId: ctrl.id } },
+      update: {},
+      create: { policyId, controlId: ctrl.id, linkedBy: "user-rob" },
+    });
+    ctrlLinked++;
+  }
+  console.log(`  ✓ ${ctrlLinked} policy-control links`);
+
+  // Seed obligations
+  const SEED_OBLIGATIONS: {
+    id: string; reference: string; category: string; description: string;
+    regulationRefs: string[]; controlRefs: string[];
+  }[] = [
+    { id: "obl-01", reference: "POL-001-OBL-01", category: "Regulatory Compliance", description: "All financial promotions must comply with FCA CONC Chapter 3 requirements for consumer credit promotions.", regulationRefs: ["FCA-CONC"], controlRefs: controlsForPolicy[0]?.controlRef ? [controlsForPolicy[0].controlRef] : [] },
+    { id: "obl-02", reference: "POL-001-OBL-02", category: "Regulatory Compliance", description: "Communications must be fair, clear and not misleading per FCA Principle 7.", regulationRefs: ["FCA-PRIN", "FCA-COBS"], controlRefs: controlsForPolicy[1]?.controlRef ? [controlsForPolicy[1].controlRef] : [] },
+    { id: "obl-03", reference: "POL-001-OBL-03", category: "Regulatory Compliance", description: "Financial promotions must pass through the s21 gateway or qualify for an FPO exemption.", regulationRefs: ["UK-FSMA", "UK-FPO"], controlRefs: [] },
+    { id: "obl-04", reference: "POL-001-OBL-04", category: "Promotions Approval", description: "All promotions must receive documented sign-off from the appointed compliance approver before publication.", regulationRefs: ["FCA-CONC", "FCA-SYSC"], controlRefs: controlsForPolicy[2]?.controlRef ? [controlsForPolicy[2].controlRef] : [] },
+    { id: "obl-05", reference: "POL-001-OBL-05", category: "Promotions Approval", description: "Approval records must include the promotion content, target audience, channel, approver name, and date.", regulationRefs: ["FCA-SYSC"], controlRefs: [] },
+    { id: "obl-06", reference: "POL-001-OBL-06", category: "Promotions Approval", description: "Material changes to approved promotions require re-approval.", regulationRefs: ["FCA-CONC"], controlRefs: controlsForPolicy[3]?.controlRef ? [controlsForPolicy[3].controlRef] : [] },
+    { id: "obl-07", reference: "POL-001-OBL-07", category: "Content Standards", description: "Representative examples must be shown where required, using the median APR for the product.", regulationRefs: ["FCA-CONC", "UK-CCA"], controlRefs: controlsForPolicy[4]?.controlRef ? [controlsForPolicy[4].controlRef] : [] },
+    { id: "obl-08", reference: "POL-001-OBL-08", category: "Content Standards", description: "Risk warnings must be included and given equal prominence to any benefits claimed.", regulationRefs: ["FCA-CONC", "FCA-PRIN"], controlRefs: [] },
+    { id: "obl-09", reference: "POL-001-OBL-09", category: "Content Standards", description: "Advertising must not target vulnerable consumers inappropriately or use misleading urgency.", regulationRefs: ["FCA-CD", "UK-CPR"], controlRefs: [] },
+    { id: "obl-10", reference: "POL-001-OBL-10", category: "Content Standards", description: "All promotions must be accessible and not discriminate on protected characteristics.", regulationRefs: ["UK-EQA", "FCA-CD"], controlRefs: [] },
+    { id: "obl-11", reference: "POL-001-OBL-11", category: "Record Keeping", description: "Retain copies of all financial promotions and approval records for a minimum of 3 years.", regulationRefs: ["FCA-SYSC", "FCA-CONC"], controlRefs: controlsForPolicy[5]?.controlRef ? [controlsForPolicy[5].controlRef] : [] },
+    { id: "obl-12", reference: "POL-001-OBL-12", category: "Record Keeping", description: "Maintain a complete register of all active promotions with review dates and channel information.", regulationRefs: ["FCA-SYSC"], controlRefs: [] },
+    { id: "obl-13", reference: "POL-001-OBL-13", category: "Monitoring & Oversight", description: "Conduct monthly monitoring of live promotions for accuracy and regulatory compliance.", regulationRefs: ["FCA-SYSC", "FCA-CD"], controlRefs: controlsForPolicy[6]?.controlRef ? [controlsForPolicy[6].controlRef] : [] },
+    { id: "obl-14", reference: "POL-001-OBL-14", category: "Monitoring & Oversight", description: "Third-party and affiliate promotions must be subject to the same approval and monitoring standards.", regulationRefs: ["FCA-CONC"], controlRefs: [] },
+    { id: "obl-15", reference: "POL-001-OBL-15", category: "Monitoring & Oversight", description: "Implement a withdrawal procedure for promotions that become misleading or non-compliant.", regulationRefs: ["FCA-CONC", "UK-CPR"], controlRefs: [] },
+    { id: "obl-16", reference: "POL-001-OBL-16", category: "Data Protection", description: "Marketing communications must comply with PECR opt-in/opt-out requirements.", regulationRefs: ["ICO-PECR", "ICO-GDPR"], controlRefs: [] },
+    { id: "obl-17", reference: "POL-001-OBL-17", category: "Data Protection", description: "Personal data used for targeting must have a lawful basis under UK GDPR.", regulationRefs: ["ICO-GDPR"], controlRefs: [] },
+    { id: "obl-18", reference: "POL-001-OBL-18", category: "Consumer Duty", description: "Promotions must support good consumer outcomes and avoid foreseeable harm.", regulationRefs: ["FCA-CD"], controlRefs: controlsForPolicy[7]?.controlRef ? [controlsForPolicy[7].controlRef] : [] },
+    { id: "obl-19", reference: "POL-001-OBL-19", category: "Consumer Duty", description: "Regularly assess whether promotions meet the Consumer Duty cross-cutting rules.", regulationRefs: ["FCA-CD", "FCA-PRIN"], controlRefs: [] },
+    { id: "obl-20", reference: "POL-001-OBL-20", category: "Reporting", description: "Report promotion compliance metrics to the Board/ExCo quarterly.", regulationRefs: ["FCA-SYSC"], controlRefs: [] },
+    { id: "obl-21", reference: "POL-001-OBL-21", category: "Reporting", description: "Escalate material breaches or near-misses to the CCRO and compliance function immediately.", regulationRefs: ["FCA-SYSC", "FCA-CONC"], controlRefs: [] },
+    { id: "obl-22", reference: "POL-001-OBL-22", category: "Reporting", description: "Include promotion-related MI in the monthly CCRO dashboard.", regulationRefs: ["FCA-SYSC", "FCA-CD"], controlRefs: [] },
+  ];
+
+  for (const obl of SEED_OBLIGATIONS) {
+    await prisma.policyObligation.upsert({
+      where: { id: obl.id },
+      update: { category: obl.category, description: obl.description, regulationRefs: obl.regulationRefs, controlRefs: obl.controlRefs },
+      create: { ...obl, policyId },
+    });
+  }
+  console.log(`  ✓ ${SEED_OBLIGATIONS.length} policy obligations`);
+
+  // Policy audit trail
+  const POLICY_AUDIT: {
+    id: string; policyId: string; userId: string; action: string;
+    fieldChanged: string | null; oldValue: string | null; newValue: string | null;
+    details: string | null; changedAt: Date;
+  }[] = [
+    { id: "pau-01", policyId, userId: "user-rob", action: "CREATED_POLICY", fieldChanged: null, oldValue: null, newValue: null, details: "Created policy POL-001: Financial Promotions Policy", changedAt: new Date("2024-01-01") },
+    { id: "pau-02", policyId, userId: "user-rob", action: "UPDATED_FIELD", fieldChanged: "version", oldValue: "1.0", newValue: "2.0", details: "Annual review — updated version", changedAt: new Date("2025-01-15") },
+    { id: "pau-03", policyId, userId: "user-cath", action: "UPDATED_FIELD", fieldChanged: "scope", oldValue: "Website and email promotions", newValue: "All financial promotions including social media and affiliate materials", details: "Scope expanded to cover all channels", changedAt: new Date("2025-06-01") },
+    { id: "pau-04", policyId, userId: "user-rob", action: "UPDATED_FIELD", fieldChanged: "version", oldValue: "2.0", newValue: "3.0", details: "Consumer Duty alignment update", changedAt: new Date("2025-09-01") },
+    { id: "pau-05", policyId, userId: "user-rob", action: "UPDATED_FIELD", fieldChanged: "version", oldValue: "3.0", newValue: "3.2", details: "Annual review completed. Minor updates to approval workflow.", changedAt: new Date("2025-11-15") },
+  ];
+
+  for (const a of POLICY_AUDIT) {
+    await prisma.policyAuditLog.upsert({
+      where: { id: a.id },
+      update: { action: a.action, fieldChanged: a.fieldChanged, oldValue: a.oldValue, newValue: a.newValue, details: a.details },
+      create: a,
+    });
+  }
+  console.log(`  ✓ ${POLICY_AUDIT.length} policy audit entries`);
+
   console.log("Seed complete! Database is clean — ready for real data.");
 }
 

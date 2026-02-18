@@ -578,6 +578,132 @@ export interface ExcoViewConfig {
   updatedAt: string;
 }
 
+// ── Policy Review Module ──────────────────────────────────────────────────
+
+export type PolicyStatus = "CURRENT" | "OVERDUE" | "UNDER_REVIEW" | "ARCHIVED";
+export type RegulationType = "HANDBOOK_RULE" | "PRINCIPLE" | "LEGISLATION" | "STATUTORY_INSTRUMENT" | "GUIDANCE" | "INDUSTRY_CODE";
+
+export interface Regulation {
+  id: string;
+  reference: string;
+  name: string;
+  shortName: string | null;
+  body: string;
+  type: RegulationType;
+  provisions: string | null;
+  url: string | null;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+  policyLinks?: PolicyRegulatoryLink[];
+}
+
+export interface PolicyRegulatoryLink {
+  id: string;
+  policyId: string;
+  regulationId: string;
+  regulation?: Regulation;
+  policySections: string | null;
+  notes: string | null;
+  linkedAt: string;
+  linkedBy: string;
+}
+
+export interface PolicyControlLink {
+  id: string;
+  policyId: string;
+  controlId: string;
+  control?: ControlRecord;
+  notes: string | null;
+  linkedAt: string;
+  linkedBy: string;
+}
+
+export interface PolicyObligation {
+  id: string;
+  policyId: string;
+  reference: string;
+  category: string;
+  description: string;
+  regulationRefs: string[];
+  controlRefs: string[];
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PolicyAuditEntry {
+  id: string;
+  policyId: string;
+  userId: string;
+  action: string;
+  fieldChanged: string | null;
+  oldValue: string | null;
+  newValue: string | null;
+  details: string | null;
+  changedAt: string;
+}
+
+export interface Policy {
+  id: string;
+  reference: string;
+  name: string;
+  description: string;
+  status: PolicyStatus;
+  version: string;
+  ownerId: string;
+  owner?: User;
+  approvedBy: string | null;
+  classification: string;
+  reviewFrequencyDays: number;
+  lastReviewedDate: string | null;
+  nextReviewDate: string | null;
+  effectiveDate: string | null;
+  scope: string | null;
+  applicability: string | null;
+  exceptions: string | null;
+  relatedPolicies: string[];
+  storageUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+  regulatoryLinks?: PolicyRegulatoryLink[];
+  controlLinks?: PolicyControlLink[];
+  obligations?: PolicyObligation[];
+  auditTrail?: PolicyAuditEntry[];
+}
+
+export const POLICY_STATUS_LABELS: Record<PolicyStatus, string> = {
+  CURRENT: "Current",
+  OVERDUE: "Overdue",
+  UNDER_REVIEW: "Under Review",
+  ARCHIVED: "Archived",
+};
+
+export const POLICY_STATUS_COLOURS: Record<PolicyStatus, { bg: string; text: string }> = {
+  CURRENT: { bg: "bg-green-100", text: "text-green-700" },
+  OVERDUE: { bg: "bg-red-100", text: "text-red-700" },
+  UNDER_REVIEW: { bg: "bg-amber-100", text: "text-amber-700" },
+  ARCHIVED: { bg: "bg-gray-100", text: "text-gray-600" },
+};
+
+export const REGULATION_TYPE_LABELS: Record<RegulationType, string> = {
+  HANDBOOK_RULE: "Handbook Rule",
+  PRINCIPLE: "Principle",
+  LEGISLATION: "Legislation",
+  STATUTORY_INSTRUMENT: "Statutory Instrument",
+  GUIDANCE: "Guidance",
+  INDUSTRY_CODE: "Industry Code",
+};
+
+export const REGULATION_TYPE_COLOURS: Record<RegulationType, { bg: string; text: string }> = {
+  HANDBOOK_RULE: { bg: "bg-blue-100", text: "text-blue-700" },
+  PRINCIPLE: { bg: "bg-purple-100", text: "text-purple-700" },
+  LEGISLATION: { bg: "bg-red-100", text: "text-red-700" },
+  STATUTORY_INSTRUMENT: { bg: "bg-orange-100", text: "text-orange-700" },
+  GUIDANCE: { bg: "bg-teal-100", text: "text-teal-700" },
+  INDUSTRY_CODE: { bg: "bg-indigo-100", text: "text-indigo-700" },
+};
+
 // ── Risk Acceptance Module ──────────────────────────────────────────────────
 
 export type RiskAcceptanceStatus =

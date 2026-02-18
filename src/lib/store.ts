@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry, RiskAcceptance } from "./types";
+import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry, RiskAcceptance, Policy, Regulation } from "./types";
 import { api } from "./api-client";
 
 interface AppState {
@@ -111,6 +111,18 @@ interface AppState {
   updateRiskAcceptance: (id: string, data: Partial<RiskAcceptance>) => void;
   deleteRiskAcceptance: (id: string) => void;
 
+  // Policy Review Module
+  policies: Policy[];
+  setPolicies: (items: Policy[]) => void;
+  addPolicy: (item: Policy) => void;
+  updatePolicy: (id: string, data: Partial<Policy>) => void;
+  deletePolicy: (id: string) => void;
+  regulations: Regulation[];
+  setRegulations: (items: Regulation[]) => void;
+  addRegulation: (item: Regulation) => void;
+  updateRegulation: (id: string, data: Partial<Regulation>) => void;
+  deleteRegulation: (id: string) => void;
+
   // Controls Testing Module
   controlBusinessAreas: ControlBusinessArea[];
   setControlBusinessAreas: (areas: ControlBusinessArea[]) => void;
@@ -173,7 +185,7 @@ export const useAppStore = create<AppState>((set) => ({
   _hydrateError: null,
   hydrate: async () => {
     try {
-      const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances] = await Promise.all([
+      const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations] = await Promise.all([
         api<User[]>("/api/users"),
         api<Report[]>("/api/reports"),
         api<ConsumerDutyOutcome[]>("/api/consumer-duty"),
@@ -189,8 +201,10 @@ export const useAppStore = create<AppState>((set) => ({
         api<ControlRecord[]>("/api/controls/library?includeSchedule=true").catch(() => []),
         api<TestingScheduleEntry[]>("/api/controls/testing-schedule?includeResults=true").catch(() => []),
         api<RiskAcceptance[]>("/api/risk-acceptances").catch(() => []),
+        api<Policy[]>("/api/policies").catch(() => []),
+        api<Regulation[]>("/api/regulations").catch(() => []),
       ]);
-      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, _hydrated: true, _hydrateError: null });
+      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, _hydrated: true, _hydrateError: null });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to connect to server";
       console.error("[hydrate] API unreachable:", message);
@@ -497,6 +511,40 @@ export const useAppStore = create<AppState>((set) => ({
   },
   deleteRiskAcceptance: (id) => {
     set((state) => ({ riskAcceptances: state.riskAcceptances.filter((ra) => ra.id !== id) }));
+  },
+
+  // ── Policy Review Module ────────────────────────────────
+  policies: [],
+  setPolicies: (items) => set({ policies: items }),
+  addPolicy: (item) => {
+    set((state) => ({ policies: [item, ...state.policies] }));
+    sync(() => api("/api/policies", { method: "POST", body: item }));
+  },
+  updatePolicy: (id, data) => {
+    set((state) => ({
+      policies: state.policies.map((p) => (p.id === id ? { ...p, ...data } : p)),
+    }));
+    sync(() => api(`/api/policies/${id}`, { method: "PATCH", body: data }));
+  },
+  deletePolicy: (id) => {
+    set((state) => ({ policies: state.policies.filter((p) => p.id !== id) }));
+    sync(() => api(`/api/policies/${id}`, { method: "DELETE" }));
+  },
+  regulations: [],
+  setRegulations: (items) => set({ regulations: items }),
+  addRegulation: (item) => {
+    set((state) => ({ regulations: [item, ...state.regulations] }));
+    sync(() => api("/api/regulations", { method: "POST", body: item }));
+  },
+  updateRegulation: (id, data) => {
+    set((state) => ({
+      regulations: state.regulations.map((r) => (r.id === id ? { ...r, ...data } : r)),
+    }));
+    sync(() => api(`/api/regulations/${id}`, { method: "PATCH", body: data }));
+  },
+  deleteRegulation: (id) => {
+    set((state) => ({ regulations: state.regulations.filter((r) => r.id !== id) }));
+    sync(() => api(`/api/regulations/${id}`, { method: "DELETE" }));
   },
 
   // ── Controls Testing Module ─────────────────────────────
