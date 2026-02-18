@@ -406,7 +406,7 @@ export default function DashboardHome() {
             </div>
             <div className="space-y-3">
               {outcomes.map((outcome) => (
-                <div key={outcome.id} className="rounded-xl bg-gray-50 p-3 hover:bg-gray-100 transition-colors">
+                <Link key={outcome.id} href={`/consumer-duty?outcome=${outcome.id}`} className="block rounded-xl bg-gray-50 p-3 hover:bg-gray-100 hover:-translate-y-0.5 transition-all cursor-pointer">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`h-3 w-3 rounded-full ${ragBgColor(outcome.ragStatus)}`} />
@@ -445,7 +445,7 @@ export default function DashboardHome() {
                       ))}
                     </div>
                   )}
-                </div>
+                </Link>
               ))}
             </div>
           </div>
@@ -568,7 +568,7 @@ export default function DashboardHome() {
               {auditLogs.slice(0, 20).map((log) => {
                 const logUser = users.find((u) => u.id === log.userId);
                 return (
-                  <div key={log.id} className="flex-shrink-0 w-64 rounded-xl border border-gray-200 bg-white p-3 hover:border-updraft-light-purple transition-colors">
+                  <Link key={log.id} href="/audit" className="flex-shrink-0 w-64 rounded-xl border border-gray-200 bg-white p-3 hover:border-updraft-light-purple hover:-translate-y-0.5 transition-all cursor-pointer">
                     <div className="flex items-center gap-2 mb-1.5">
                       <div className="flex h-6 w-6 items-center justify-center rounded-full bg-updraft-pale-purple/40 text-[10px] font-semibold text-updraft-bright-purple">
                         {(logUser?.name ?? "?").charAt(0).toUpperCase()}
@@ -577,7 +577,7 @@ export default function DashboardHome() {
                     </div>
                     <p className="text-xs text-fca-gray truncate">{getActionLabel(log.action)}</p>
                     <p className="text-[10px] text-gray-400 mt-1">{formatDate(log.timestamp)}</p>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
@@ -726,7 +726,7 @@ export default function DashboardHome() {
             </div>
             <div className="space-y-3">
               {outcomes.map((outcome) => (
-                <div key={outcome.id} className="rounded-xl bg-gray-50 p-3 hover:bg-gray-100 transition-colors">
+                <Link key={outcome.id} href={`/consumer-duty?outcome=${outcome.id}`} className="block rounded-xl bg-gray-50 p-3 hover:bg-gray-100 hover:-translate-y-0.5 transition-all cursor-pointer">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`h-3 w-3 rounded-full ${ragBgColor(outcome.ragStatus)}`} />
@@ -764,7 +764,7 @@ export default function DashboardHome() {
                       ))}
                     </div>
                   )}
-                </div>
+                </Link>
               ))}
             </div>
           </div>
@@ -930,7 +930,7 @@ export default function DashboardHome() {
             </div>
             <div className="space-y-3">
               {outcomes.map((outcome) => (
-                <div key={outcome.id} className="rounded-xl bg-gray-50 p-3 hover:bg-gray-100 transition-colors">
+                <Link key={outcome.id} href={`/consumer-duty?outcome=${outcome.id}`} className="block rounded-xl bg-gray-50 p-3 hover:bg-gray-100 hover:-translate-y-0.5 transition-all cursor-pointer">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`h-3 w-3 rounded-full ${ragBgColor(outcome.ragStatus)}`} />
@@ -968,7 +968,7 @@ export default function DashboardHome() {
                       ))}
                     </div>
                   )}
-                </div>
+                </Link>
               ))}
             </div>
           </div>
@@ -977,28 +977,28 @@ export default function DashboardHome() {
           <div>
             <h2 className="text-lg font-bold text-updraft-deep font-poppins mb-3">Risk Summary</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+              <Link href="/risk-register" className="rounded-xl border border-gray-200 bg-gray-50 p-3 hover:-translate-y-0.5 transition-all">
                 <p className="text-xs text-gray-500">Total Risks</p>
                 <p className="text-2xl font-bold font-poppins text-updraft-deep">{risks.length}</p>
-              </div>
-              <div className="rounded-xl border border-gray-200 bg-green-50 p-3">
+              </Link>
+              <Link href="/risk-register" className="rounded-xl border border-gray-200 bg-green-50 p-3 hover:-translate-y-0.5 transition-all">
                 <p className="text-xs text-gray-500">Low Risk</p>
                 <p className="text-2xl font-bold font-poppins text-green-700">
                   {risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) <= 4).length}
                 </p>
-              </div>
-              <div className="rounded-xl border border-gray-200 bg-amber-50 p-3">
+              </Link>
+              <Link href="/risk-register" className="rounded-xl border border-gray-200 bg-amber-50 p-3 hover:-translate-y-0.5 transition-all">
                 <p className="text-xs text-gray-500">Medium Risk</p>
                 <p className="text-2xl font-bold font-poppins text-amber-700">
                   {risks.filter((r) => { const s = getRiskScore(r.residualLikelihood, r.residualImpact); return s > 4 && s <= 12; }).length}
                 </p>
-              </div>
-              <div className="rounded-xl border border-gray-200 bg-red-50 p-3">
+              </Link>
+              <Link href="/risk-register" className="rounded-xl border border-gray-200 bg-red-50 p-3 hover:-translate-y-0.5 transition-all">
                 <p className="text-xs text-gray-500">High Risk</p>
                 <p className="text-2xl font-bold font-poppins text-red-700">
                   {risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) > 12).length}
                 </p>
-              </div>
+              </Link>
             </div>
           </div>
 

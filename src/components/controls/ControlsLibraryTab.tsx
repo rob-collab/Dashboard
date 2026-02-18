@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   AlertTriangle,
   Clock,
+  Upload,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import type {
@@ -26,6 +27,7 @@ import {
   CONTROL_TYPE_LABELS,
 } from "@/lib/types";
 import ControlDetailModal from "./ControlDetailModal";
+import ControlCSVUploadDialog from "./ControlCSVUploadDialog";
 import { api } from "@/lib/api-client";
 import { deriveTestingStatus } from "@/lib/controls-utils";
 
@@ -71,6 +73,7 @@ export default function ControlsLibraryTab() {
   const currentUser = useAppStore((s) => s.currentUser);
   const addControl = useAppStore((s) => s.addControl);
   const updateControl = useAppStore((s) => s.updateControl);
+  const hydrate = useAppStore((s) => s.hydrate);
 
   const isCCRO = currentUser?.role === "CCRO_TEAM";
 
@@ -82,6 +85,9 @@ export default function ControlsLibraryTab() {
   const [areaFilter, setAreaFilter] = useState("");
   const [outcomeFilter, setOutcomeFilter] = useState("");
   const [showArchived, setShowArchived] = useState(false);
+
+  // ── Import dialog state ────────────────────────────────────
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   // ── Dialog state ───────────────────────────────────────────
   const [showDialog, setShowDialog] = useState(false);
@@ -243,16 +249,25 @@ export default function ControlsLibraryTab() {
           Controls Library
         </h2>
         {isCCRO && (
-          <button
-            onClick={() => {
-              setEditingControl(null);
-              setShowDialog(true);
-            }}
-            className="inline-flex items-center gap-2 rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colours"
-          >
-            <Plus className="h-4 w-4" />
-            Add Control
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowImportDialog(true)}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colours"
+            >
+              <Upload className="h-4 w-4" />
+              Bulk Import
+            </button>
+            <button
+              onClick={() => {
+                setEditingControl(null);
+                setShowDialog(true);
+              }}
+              className="inline-flex items-center gap-2 rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colours"
+            >
+              <Plus className="h-4 w-4" />
+              Add Control
+            </button>
+          </div>
         )}
       </div>
 
@@ -830,6 +845,12 @@ export default function ControlsLibraryTab() {
         controlId={selectedControlId}
         onClose={() => setSelectedControlId(null)}
         onEditControl={isCCRO ? (c) => { setEditingControl(c); setShowDialog(true); } : undefined}
+      />
+
+      <ControlCSVUploadDialog
+        open={showImportDialog}
+        onClose={() => setShowImportDialog(false)}
+        onImportComplete={() => { setShowImportDialog(false); hydrate(); }}
       />
     </div>
   );

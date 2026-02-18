@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   ClipboardList,
   Search,
@@ -9,6 +10,7 @@ import {
   Calendar,
   User,
   ChevronDown,
+  ExternalLink,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import RoleGuard from "@/components/common/RoleGuard";
@@ -47,7 +49,24 @@ function actionBadge(action: string) {
   return config;
 }
 
+// Map entity types to navigable routes
+function getEntityLink(entityType: string, entityId: string | null, reportId: string | null): string | null {
+  if (reportId) return `/reports/${reportId}`;
+  if (!entityId) return null;
+  switch (entityType) {
+    case "report": return `/reports/${entityId}`;
+    case "action": return `/actions?highlight=${entityId}`;
+    case "risk": return `/risk-register`;
+    case "template": return `/settings`;
+    case "component": return `/settings`;
+    case "control": return `/controls`;
+    case "user": return `/users`;
+    default: return null;
+  }
+}
+
 export default function AuditPage() {
+  const router = useRouter();
   const auditLogs = useAppStore((s) => s.auditLogs);
   const reports = useAppStore((s) => s.reports);
   const users = useAppStore((s) => s.users);
@@ -56,6 +75,7 @@ export default function AuditPage() {
   const [actionFilter, setActionFilter] = useState<string>("ALL");
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
   const [showFilters, setShowFilters] = useState(false);
+  const [statFilter, setStatFilter] = useState<"all" | "reports">("all");
 
   const uniqueActions = useMemo(
     () => Array.from(new Set(auditLogs.map((l) => l.action))),
@@ -65,6 +85,9 @@ export default function AuditPage() {
   const filteredLogs = useMemo(() => {
     let logs = auditLogs;
 
+    if (statFilter === "reports") {
+      logs = logs.filter((l) => l.reportId);
+    }
     if (actionFilter !== "ALL") {
       logs = logs.filter((l) => l.action === actionFilter);
     }
@@ -85,7 +108,7 @@ export default function AuditPage() {
     }
 
     return logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  }, [auditLogs, users, actionFilter, roleFilter, searchQuery]);
+  }, [auditLogs, users, actionFilter, roleFilter, searchQuery, statFilter]);
 
   return (
     <RoleGuard allowedRoles={["CCRO_TEAM"]}>
@@ -108,7 +131,13 @@ export default function AuditPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bento-card">
+        <div
+          onClick={() => setStatFilter("all")}
+          className={cn(
+            "bento-card cursor-pointer transition-all hover:shadow-bento-hover hover:-translate-y-0.5",
+            statFilter === "all" && "ring-2 ring-updraft-bright-purple/40",
+          )}
+        >
           <p className="text-xs text-fca-gray">Total Events</p>
           <p className="text-2xl font-bold text-updraft-deep mt-1">{auditLogs.length}</p>
         </div>
@@ -118,7 +147,13 @@ export default function AuditPage() {
             {new Set(auditLogs.map((l) => l.userId)).size}
           </p>
         </div>
-        <div className="bento-card">
+        <div
+          onClick={() => setStatFilter(statFilter === "reports" ? "all" : "reports")}
+          className={cn(
+            "bento-card cursor-pointer transition-all hover:shadow-bento-hover hover:-translate-y-0.5",
+            statFilter === "reports" && "ring-2 ring-updraft-bright-purple/40",
+          )}
+        >
           <p className="text-xs text-fca-gray">Reports Affected</p>
           <p className="text-2xl font-bold text-updraft-deep mt-1">
             {new Set(auditLogs.filter((l) => l.reportId).map((l) => l.reportId)).size}
@@ -219,7 +254,19 @@ export default function AuditPage() {
                 const report = log.reportId ? reports.find((r) => r.id === log.reportId) : null;
                 const badge = actionBadge(log.action);
                 return (
-                  <tr key={log.id} className="hover:bg-gray-50/50 border-b border-gray-100 last:border-b-0">
+                  <tr
+                    key={log.id}
+                    className={cn(
+                      "border-b border-gray-100 last:border-b-0 transition-colors",
+                      getEntityLink(log.entityType, log.entityId, log.reportId)
+                        ? "hover:bg-updraft-pale-purple/20 cursor-pointer"
+                        : "hover:bg-gray-50/50",
+                    )}
+                    onClick={() => {
+                      const link = getEntityLink(log.entityType, log.entityId, log.reportId);
+                      if (link) router.push(link);
+                    }}
+                  >
                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{formatDate(log.timestamp)}</td>
                     <td className="px-4 py-3">
                       <span className="font-medium text-gray-800">{user?.name ?? log.userId}</span>
@@ -233,8 +280,13 @@ export default function AuditPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-500">
-                      <span className="text-xs">{log.entityType}</span>
-                      {log.entityId && <span className="text-xs text-gray-400 ml-1">({log.entityId})</span>}
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs">{log.entityType}</span>
+                        {log.entityId && <span className="text-xs text-gray-400">({log.entityId})</span>}
+                        {getEntityLink(log.entityType, log.entityId, log.reportId) && (
+                          <ExternalLink size={10} className="text-updraft-bright-purple shrink-0" />
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-xs">
                       {report ? `${report.title} — ${report.period}` : "—"}

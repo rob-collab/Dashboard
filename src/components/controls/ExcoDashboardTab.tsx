@@ -1,22 +1,29 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { api } from "@/lib/api-client";
 import type {
   TestResultValue,
   ExcoViewConfig,
   QuarterlySummaryRecord,
+  ControlRecord,
 } from "@/lib/types";
 import {
   TEST_RESULT_LABELS,
   CD_OUTCOME_LABELS,
+  CONTROL_TYPE_LABELS,
 } from "@/lib/types";
+import type { ControlType } from "@/lib/types";
 import {
   BarChart3,
   ShieldCheck,
   AlertTriangle,
   TrendingUp,
+  X,
+  ChevronRight,
 } from "lucide-react";
+import ControlDetailModal from "./ControlDetailModal";
+import { cn } from "@/lib/utils";
 import {
   BarChart,
   Bar,
@@ -113,11 +120,20 @@ interface StatCardProps {
   subtext?: string;
   accentColour: string;
   icon: React.ReactNode;
+  onClick?: () => void;
+  active?: boolean;
 }
 
-function ExcoStatCard({ value, label, subtext, accentColour, icon }: StatCardProps) {
+function ExcoStatCard({ value, label, subtext, accentColour, icon, onClick, active }: StatCardProps) {
   return (
-    <div className="bento-card p-6 flex flex-col gap-2">
+    <div
+      onClick={onClick}
+      className={cn(
+        "bento-card p-6 flex flex-col gap-2 transition-all",
+        onClick && "cursor-pointer hover:shadow-bento-hover hover:-translate-y-0.5",
+        active && "ring-2 ring-updraft-bright-purple/40",
+      )}
+    >
       <div className="flex items-center justify-between">
         <div className={`text-4xl font-bold font-poppins ${accentColour}`}>
           {value}
@@ -149,6 +165,13 @@ export default function ExcoDashboardTab() {
   const [data, setData] = useState<ExcoDashboardData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /* Drill-down state */
+  type DrillFilter = { type: "status"; status: string } | { type: "area"; areaId: string; areaName: string } | { type: "outcome"; outcome: string } | null;
+  const [drillFilter, setDrillFilter] = useState<DrillFilter>(null);
+  const [drillControls, setDrillControls] = useState<ControlRecord[]>([]);
+  const [drillLoading, setDrillLoading] = useState(false);
+  const [detailControlId, setDetailControlId] = useState<string | null>(null);
 
   const periodLabel = `${MONTH_NAMES[selectedMonth - 1]} ${selectedYear}`;
 
@@ -190,6 +213,76 @@ export default function ExcoDashboardTab() {
       cancelled = true;
     };
   }, [selectedYear, selectedMonth]);
+
+  /* ── Drill-down: fetch controls when filter changes ────────────────── */
+
+  useEffect(() => {
+    if (!drillFilter) {
+      setDrillControls([]);
+      return;
+    }
+    let cancelled = false;
+    setDrillLoading(true);
+
+    api<ControlRecord[]>("/api/controls/library?isActive=true&includeSchedule=true")
+      .then((controls) => {
+        if (cancelled) return;
+        const filtered = controls.filter((c) => {
+          // Get latest test result for the selected period
+          const results = c.testingSchedule?.testResults ?? [];
+          const periodResult = results.find(
+            (r) => r.periodYear === selectedYear && r.periodMonth === selectedMonth,
+          );
+          const status = periodResult?.result ?? (c.testingSchedule ? "NOT_DUE" : "NOT_TESTED");
+
+          if (drillFilter.type === "status") {
+            if (drillFilter.status === "ALL") return true;
+            return status === drillFilter.status;
+          }
+          if (drillFilter.type === "area") {
+            return c.businessAreaId === drillFilter.areaId;
+          }
+          if (drillFilter.type === "outcome") {
+            return c.consumerDutyOutcome === drillFilter.outcome;
+          }
+          return true;
+        });
+        setDrillControls(filtered);
+      })
+      .catch((err) => {
+        if (!cancelled) console.error("[ExcoDashboard] drill-down fetch error:", err);
+      })
+      .finally(() => {
+        if (!cancelled) setDrillLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [drillFilter, selectedYear, selectedMonth]);
+
+  const handleDrillDown = useCallback((filter: DrillFilter) => {
+    setDrillFilter((prev) => {
+      // Toggle off if clicking the same filter
+      if (prev && filter && prev.type === filter.type) {
+        if (prev.type === "status" && filter.type === "status" && prev.status === filter.status) return null;
+        if (prev.type === "area" && filter.type === "area" && prev.areaId === filter.areaId) return null;
+        if (prev.type === "outcome" && filter.type === "outcome" && prev.outcome === filter.outcome) return null;
+      }
+      return filter;
+    });
+  }, []);
+
+  const drillFilterLabel = useMemo(() => {
+    if (!drillFilter) return "";
+    if (drillFilter.type === "status") {
+      if (drillFilter.status === "ALL") return "All Active Controls";
+      return TEST_RESULT_LABELS[drillFilter.status as TestResultValue] ?? drillFilter.status;
+    }
+    if (drillFilter.type === "area") return drillFilter.areaName;
+    if (drillFilter.type === "outcome") {
+      return CD_OUTCOME_LABELS[drillFilter.outcome as keyof typeof CD_OUTCOME_LABELS] ?? drillFilter.outcome;
+    }
+    return "";
+  }, [drillFilter]);
 
   /* ── Derived chart data ────────────────────────────────────────────────── */
 
@@ -303,6 +396,8 @@ export default function ExcoDashboardTab() {
                 label="Active Controls"
                 icon={<BarChart3 size={22} />}
                 accentColour="text-updraft-bright-purple"
+                onClick={() => handleDrillDown({ type: "status", status: "ALL" })}
+                active={drillFilter?.type === "status" && drillFilter.status === "ALL"}
               />
               <ExcoStatCard
                 value={data.summaryStats.passed}
@@ -310,6 +405,8 @@ export default function ExcoDashboardTab() {
                 subtext={pct(data.summaryStats.passed, data.summaryStats.totalActive)}
                 icon={<ShieldCheck size={22} />}
                 accentColour="text-green-600"
+                onClick={() => handleDrillDown({ type: "status", status: "PASS" })}
+                active={drillFilter?.type === "status" && drillFilter.status === "PASS"}
               />
               <ExcoStatCard
                 value={data.summaryStats.failed}
@@ -317,6 +414,8 @@ export default function ExcoDashboardTab() {
                 subtext={pct(data.summaryStats.failed, data.summaryStats.totalActive)}
                 icon={<AlertTriangle size={22} />}
                 accentColour="text-red-600"
+                onClick={() => handleDrillDown({ type: "status", status: "FAIL" })}
+                active={drillFilter?.type === "status" && drillFilter.status === "FAIL"}
               />
               <ExcoStatCard
                 value={data.summaryStats.partially}
@@ -324,6 +423,8 @@ export default function ExcoDashboardTab() {
                 subtext={pct(data.summaryStats.partially, data.summaryStats.totalActive)}
                 icon={<TrendingUp size={22} />}
                 accentColour="text-amber-600"
+                onClick={() => handleDrillDown({ type: "status", status: "PARTIALLY" })}
+                active={drillFilter?.type === "status" && drillFilter.status === "PARTIALLY"}
               />
               <ExcoStatCard
                 value={data.summaryStats.notTested}
@@ -331,6 +432,8 @@ export default function ExcoDashboardTab() {
                 subtext={pct(data.summaryStats.notTested, data.summaryStats.totalActive)}
                 icon={<BarChart3 size={22} />}
                 accentColour="text-gray-500"
+                onClick={() => handleDrillDown({ type: "status", status: "NOT_TESTED" })}
+                active={drillFilter?.type === "status" && drillFilter.status === "NOT_TESTED"}
               />
               <ExcoStatCard
                 value={data.summaryStats.notDue}
@@ -338,6 +441,8 @@ export default function ExcoDashboardTab() {
                 subtext={pct(data.summaryStats.notDue, data.summaryStats.totalActive)}
                 icon={<BarChart3 size={22} />}
                 accentColour="text-gray-400"
+                onClick={() => handleDrillDown({ type: "status", status: "NOT_DUE" })}
+                active={drillFilter?.type === "status" && drillFilter.status === "NOT_DUE"}
               />
             </div>
           )}
@@ -363,6 +468,16 @@ export default function ExcoDashboardTab() {
                       data={businessAreaChartData}
                       layout="vertical"
                       margin={{ top: 4, right: 24, left: 4, bottom: 4 }}
+                      className="cursor-pointer"
+                      onClick={(chartData: Record<string, unknown>) => {
+                        const label = chartData?.activeLabel as string | undefined;
+                        if (label) {
+                          const area = data?.byBusinessArea.find((a) => a.areaName === label);
+                          if (area) {
+                            handleDrillDown({ type: "area", areaId: area.areaId, areaName: area.areaName });
+                          }
+                        }
+                      }}
                     >
                       <CartesianGrid
                         strokeDasharray="3 3"
@@ -430,7 +545,14 @@ export default function ExcoDashboardTab() {
                 </h3>
                 <div className="grid grid-cols-2 gap-5">
                   {outcomeChartData.map((outcome) => (
-                    <div key={outcome.outcome} className="text-center">
+                    <div
+                      key={outcome.outcome}
+                      className={cn(
+                        "text-center cursor-pointer rounded-xl p-3 transition-all hover:bg-gray-50",
+                        drillFilter?.type === "outcome" && drillFilter.outcome === outcome.outcome && "ring-2 ring-updraft-bright-purple/40 bg-gray-50",
+                      )}
+                      onClick={() => handleDrillDown({ type: "outcome", outcome: outcome.outcome })}
+                    >
                       <div
                         className="text-xs font-medium text-gray-600 mb-2 truncate px-1"
                         title={outcome.label}
@@ -594,6 +716,98 @@ export default function ExcoDashboardTab() {
             </div>
           )}
 
+          {/* ── Drill-Down Panel ──────────────────────────────────────────── */}
+          {drillFilter && (
+            <div className="bento-card p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <ChevronRight size={16} className="text-updraft-bright-purple" />
+                  <h3 className="text-base font-poppins font-semibold text-gray-800">
+                    {drillFilterLabel}
+                  </h3>
+                  <span className="text-xs text-gray-400">
+                    ({drillControls.length} control{drillControls.length !== 1 ? "s" : ""})
+                  </span>
+                </div>
+                <button
+                  onClick={() => setDrillFilter(null)}
+                  className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                  title="Close drill-down"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {drillLoading ? (
+                <div className="flex items-center justify-center py-8 text-sm text-gray-400">
+                  Loading controls...
+                </div>
+              ) : drillControls.length === 0 ? (
+                <div className="flex items-center justify-center py-8 text-sm text-gray-400">
+                  No controls match this filter.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-100 text-left text-xs text-gray-500">
+                        <th className="pb-2 pr-4 font-medium">Ref</th>
+                        <th className="pb-2 pr-4 font-medium">Control Name</th>
+                        <th className="pb-2 pr-4 font-medium">Business Area</th>
+                        <th className="pb-2 pr-4 font-medium">Owner</th>
+                        <th className="pb-2 pr-4 font-medium">Type</th>
+                        <th className="pb-2 font-medium">Period Result</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {drillControls.map((c) => {
+                        const results = c.testingSchedule?.testResults ?? [];
+                        const periodResult = results.find(
+                          (r) => r.periodYear === selectedYear && r.periodMonth === selectedMonth,
+                        );
+                        const status = periodResult?.result ?? (c.testingSchedule ? "NOT_DUE" : "NOT_TESTED");
+                        const resultLabel = TEST_RESULT_LABELS[status as TestResultValue] ?? status;
+                        const resultColour = RESULT_COLOURS[status as TestResultValue] ?? "#9ca3af";
+
+                        return (
+                          <tr
+                            key={c.id}
+                            onClick={() => setDetailControlId(c.id)}
+                            className="hover:bg-gray-50/50 transition-colors cursor-pointer"
+                          >
+                            <td className="py-2.5 pr-4 font-mono font-medium text-updraft-deep text-xs whitespace-nowrap">
+                              {c.controlRef}
+                            </td>
+                            <td className="py-2.5 pr-4 text-gray-700 max-w-[250px] truncate">
+                              {c.controlName}
+                            </td>
+                            <td className="py-2.5 pr-4 text-gray-500 text-xs">
+                              {c.businessArea?.name ?? "—"}
+                            </td>
+                            <td className="py-2.5 pr-4 text-gray-500 text-xs whitespace-nowrap">
+                              {c.controlOwner?.name ?? "—"}
+                            </td>
+                            <td className="py-2.5 pr-4 text-gray-500 text-xs">
+                              {c.controlType ? CONTROL_TYPE_LABELS[c.controlType as ControlType] : "—"}
+                            </td>
+                            <td className="py-2.5">
+                              <span
+                                className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium text-white"
+                                style={{ backgroundColor: resultColour }}
+                              >
+                                {resultLabel}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ── Footer ──────────────────────────────────────────────────────── */}
           <div className="text-center pt-4 pb-8">
             <p className="text-xs text-gray-300 font-inter">
@@ -603,6 +817,12 @@ export default function ExcoDashboardTab() {
           </div>
         </>
       )}
+
+      {/* Control Detail Modal (outside conditional to persist state) */}
+      <ControlDetailModal
+        controlId={detailControlId}
+        onClose={() => setDetailControlId(null)}
+      />
     </div>
   );
 }

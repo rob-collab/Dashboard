@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useAppStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
 import type {
   TestingScheduleEntry,
   TestResultValue,
@@ -106,11 +107,20 @@ interface StatCardProps {
   label: string;
   percentage?: string;
   accentClass: string;
+  onClick?: () => void;
+  active?: boolean;
 }
 
-function StatCard({ icon, value, label, percentage, accentClass }: StatCardProps) {
+function StatCard({ icon, value, label, percentage, accentClass, onClick, active }: StatCardProps) {
   return (
-    <div className="bento-card p-4 flex flex-col gap-1">
+    <div
+      onClick={onClick}
+      className={cn(
+        "bento-card p-4 flex flex-col gap-1 transition-all",
+        onClick && "cursor-pointer hover:shadow-bento-hover hover:-translate-y-0.5",
+        active && "ring-2 ring-updraft-bright-purple/40",
+      )}
+    >
       <div className="flex items-center justify-between">
         <div className={`text-3xl font-bold ${accentClass}`}>{value}</div>
         <div className={`p-2 rounded-lg ${accentClass} opacity-20`}>{icon}</div>
@@ -145,6 +155,11 @@ export default function ControlsDashboardTab() {
 
   // Drill-down navigation
   const [drillDown, setDrillDown] = useState<DrillDownView>({ type: "overview" });
+  // Status filter from stat card clicks
+  const [statusFilter, setStatusFilter] = useState<TestResultValue | null>(null);
+  const toggleStatusFilter = useCallback((status: TestResultValue) => {
+    setStatusFilter((prev) => prev === status ? null : status);
+  }, []);
 
   const selectedLabel = useMemo(() => {
     const opt = monthOptions.find(
@@ -444,6 +459,8 @@ export default function ControlsDashboardTab() {
           value={summary.total}
           label="Active Tests"
           accentClass="text-updraft-bright-purple"
+          onClick={() => setStatusFilter(null)}
+          active={statusFilter === null}
         />
         <StatCard
           icon={<CheckCircle2 size={20} />}
@@ -451,6 +468,8 @@ export default function ControlsDashboardTab() {
           label="Passed"
           percentage={summary.pct(summary.counts.PASS)}
           accentClass="text-green-600"
+          onClick={() => toggleStatusFilter("PASS")}
+          active={statusFilter === "PASS"}
         />
         <StatCard
           icon={<XCircle size={20} />}
@@ -458,6 +477,8 @@ export default function ControlsDashboardTab() {
           label="Failed"
           percentage={summary.pct(summary.counts.FAIL)}
           accentClass="text-red-600"
+          onClick={() => toggleStatusFilter("FAIL")}
+          active={statusFilter === "FAIL"}
         />
         <StatCard
           icon={<AlertTriangle size={20} />}
@@ -465,6 +486,8 @@ export default function ControlsDashboardTab() {
           label="Partially Effective"
           percentage={summary.pct(summary.counts.PARTIALLY)}
           accentClass="text-amber-600"
+          onClick={() => toggleStatusFilter("PARTIALLY")}
+          active={statusFilter === "PARTIALLY"}
         />
         <StatCard
           icon={<MinusCircle size={20} />}
@@ -472,6 +495,8 @@ export default function ControlsDashboardTab() {
           label="Not Tested"
           percentage={summary.pct(summary.counts.NOT_TESTED)}
           accentClass="text-gray-500"
+          onClick={() => toggleStatusFilter("NOT_TESTED")}
+          active={statusFilter === "NOT_TESTED"}
         />
         <StatCard
           icon={<ThumbsDown size={20} />}
