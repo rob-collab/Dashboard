@@ -33,6 +33,7 @@ function blankMetric(measureRefId: string): ConsumerDutyMI {
     ragStatus: "GOOD",
     appetite: null,
     appetiteOperator: null,
+    narrative: null,
   };
 }
 

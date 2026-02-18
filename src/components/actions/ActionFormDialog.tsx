@@ -20,6 +20,8 @@ interface ActionFormDialogProps {
   prefillSource?: string;
   prefillSectionTitle?: string;
   prefillControlId?: string;
+  prefillConsumerDutyMIId?: string;
+  prefillMetricName?: string;
 }
 
 const STATUS_OPTIONS: { value: ActionStatus; label: string }[] = [
@@ -41,6 +43,8 @@ export default function ActionFormDialog({
   prefillSource,
   prefillSectionTitle,
   prefillControlId,
+  prefillConsumerDutyMIId,
+  prefillMetricName,
 }: ActionFormDialogProps) {
   const isEdit = Boolean(action);
   const priorityDefinitions = useAppStore((s) => s.priorityDefinitions);
@@ -66,6 +70,7 @@ export default function ActionFormDialog({
   const [dueDate, setDueDate] = useState("");
   const [status, setStatus] = useState<ActionStatus>("OPEN");
   const [priority, setPriority] = useState<ActionPriority | "">("P2");
+  const [consumerDutyMIId, setConsumerDutyMIId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -89,15 +94,16 @@ export default function ActionFormDialog({
         setReportId("");
         setSource(prefillSource || "");
         setSectionId("");
-        setSectionTitle(prefillSectionTitle || "");
+        setSectionTitle(prefillSectionTitle || prefillMetricName || "");
         setAssignedTo("");
         setDueDate("");
         setStatus("OPEN");
         setPriority("P2");
+        setConsumerDutyMIId(prefillConsumerDutyMIId || null);
       }
       setErrors({});
     }
-  }, [open, action, reports, prefillSource, prefillSectionTitle]);
+  }, [open, action, reports, prefillSource, prefillSectionTitle, prefillConsumerDutyMIId, prefillMetricName]);
 
   function validate(): boolean {
     const newErrors: Record<string, string> = {};
@@ -126,6 +132,7 @@ export default function ActionFormDialog({
       sectionId: sectionId || null,
       sectionTitle: sectionTitle || null,
       controlId: action?.controlId ?? prefillControlId ?? null,
+      consumerDutyMIId: action?.consumerDutyMIId ?? consumerDutyMIId,
       title: title.trim(),
       description: cleanDesc,
       issueDescription: cleanIssue || null,

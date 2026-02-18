@@ -141,7 +141,9 @@ export interface ConsumerDutyMI {
   ragStatus: RAGStatus;
   appetite: string | null;
   appetiteOperator: string | null;
+  narrative: string | null;
   snapshots?: MetricSnapshot[];
+  actions?: Action[];
 }
 
 export interface MetricSnapshot {
@@ -224,6 +226,7 @@ export interface Action {
   creator?: User;
   controlId: string | null;
   control?: ControlRecord;
+  consumerDutyMIId: string | null;
   dueDate: string | null;
   completedAt: string | null;
   createdAt: string;

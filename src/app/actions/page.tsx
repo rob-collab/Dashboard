@@ -113,8 +113,14 @@ function ActionsPageContent() {
   const [reportFilter, setReportFilter] = useState<string>("ALL");
   const [sourceFilter, setSourceFilter] = useState<string>("ALL");
 
+  // Query-param prefill for "Create Action from Metric"
+  const prefillNewAction = searchParams.get("newAction") === "true";
+  const prefillConsumerDutyMIId = searchParams.get("consumerDutyMIId") || undefined;
+  const prefillMetricName = searchParams.get("metricName") || undefined;
+  const prefillSource = searchParams.get("source") || undefined;
+
   // UI State
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(prefillNewAction);
   const [editAction, setEditAction] = useState<Action | undefined>(undefined);
   const [expandedId, setExpandedId] = useState<string | null>(() => searchParams.get("edit"));
   const [showCSVImport, setShowCSVImport] = useState(false);
@@ -1042,6 +1048,9 @@ function ActionsPageContent() {
         reports={reports}
         users={users}
         currentUserId={currentUser?.id ?? ""}
+        prefillSource={prefillSource}
+        prefillConsumerDutyMIId={prefillConsumerDutyMIId}
+        prefillMetricName={prefillMetricName}
       />
 
       {/* CSV Import Dialog */}

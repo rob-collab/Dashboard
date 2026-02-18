@@ -461,7 +461,7 @@ export const useAppStore = create<AppState>((set) => ({
   },
   deleteUser: (id) => {
     set((state) => ({ users: state.users.filter((u) => u.id !== id) }));
-    sync(() => api(`/api/users/${id}`, { method: "DELETE" }));
+    // API call is handled by UserDeleteDialog (requires reassignment body)
   },
 
   // ── Branding ───────────────────────────────────────────────

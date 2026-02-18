@@ -30,6 +30,7 @@ interface MIModalProps {
   isCCRO?: boolean;
   onSave?: (measureId: string, metrics: ConsumerDutyMI[]) => void;
   onSaveAppetite?: (miId: string, appetite: string | null, appetiteOperator: string | null) => void;
+  onCreateAction?: (miId: string, metricName: string) => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -74,6 +75,7 @@ export default function MIModal({
   isCCRO = false,
   onSave,
   onSaveAppetite,
+  onCreateAction,
 }: MIModalProps) {
   const users = useAppStore((s) => s.users);
   const [editedMetrics, setEditedMetrics] = useState<ConsumerDutyMI[]>([]);
@@ -375,6 +377,7 @@ export default function MIModal({
         onClose={() => setDrillDownMetric(null)}
         isCCRO={isCCRO}
         onSaveAppetite={onSaveAppetite}
+        onCreateAction={onCreateAction}
       />
     </Modal>
   );

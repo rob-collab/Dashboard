@@ -229,10 +229,12 @@ model ConsumerDutyMI {
   ragStatus        RAGStatus @default(GOOD)
   appetite         String?
   appetiteOperator String?
+  narrative        String?   @db.Text
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
   snapshots MetricSnapshot[]
+  actions   Action[]         @relation("ConsumerDutyMIActions")
 
   @@map("consumer_duty_mi")
 }
@@ -347,6 +349,8 @@ model Action {
   creator       User         @relation("CreatedActions", fields: [createdBy], references: [id])
   controlId     String?
   control       Control?     @relation("ControlActions", fields: [controlId], references: [id], onDelete: SetNull)
+  consumerDutyMIId String?
+  consumerDutyMI   ConsumerDutyMI? @relation("ConsumerDutyMIActions", fields: [consumerDutyMIId], references: [id], onDelete: SetNull)
   dueDate       DateTime?
   completedAt   DateTime?
   createdAt     DateTime     @default(now())
@@ -361,6 +365,7 @@ model Action {
   @@index([dueDate])
   @@index([source])
   @@index([controlId])
+  @@index([consumerDutyMIId])
   @@map("actions")
 }
 

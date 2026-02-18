@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import type { ConsumerDutyMI, MetricSnapshot } from "@/lib/types";
 import { cn, ragBgColor, ragLabelShort } from "@/lib/utils";
 import { api } from "@/lib/api-client";
@@ -15,7 +16,9 @@ import {
   ReferenceLine,
   CartesianGrid,
 } from "recharts";
-import { Target, TrendingUp, TrendingDown, Minus, Save } from "lucide-react";
+import { Target, TrendingUp, TrendingDown, Minus, Save, FileText, Plus } from "lucide-react";
+
+const RichTextEditor = dynamic(() => import("@/components/common/RichTextEditor"), { ssr: false });
 
 interface MetricDrillDownProps {
   metric: ConsumerDutyMI | null;
@@ -27,6 +30,7 @@ interface MetricDrillDownProps {
     appetite: string | null,
     appetiteOperator: string | null
   ) => void;
+  onCreateAction?: (miId: string, metricName: string) => void;
 }
 
 const OPERATORS = [">=", "<=", ">", "<", "=="] as const;
@@ -71,18 +75,24 @@ export default function MetricDrillDown({
   onClose,
   isCCRO,
   onSaveAppetite,
+  onCreateAction,
 }: MetricDrillDownProps) {
   const [snapshots, setSnapshots] = useState<MetricSnapshot[]>([]);
   const [loading, setLoading] = useState(false);
   const [appetiteValue, setAppetiteValue] = useState("");
   const [appetiteOp, setAppetiteOp] = useState<string>(">=");
   const [dirty, setDirty] = useState(false);
+  const [narrativeValue, setNarrativeValue] = useState("");
+  const [narrativeDirty, setNarrativeDirty] = useState(false);
+  const [narrativeSaving, setNarrativeSaving] = useState(false);
 
   useEffect(() => {
     if (!metric || !open) return;
     setAppetiteValue(metric.appetite ?? "");
     setAppetiteOp(metric.appetiteOperator ?? ">=");
+    setNarrativeValue(metric.narrative ?? "");
     setDirty(false);
+    setNarrativeDirty(false);
 
     setLoading(true);
     api<MetricSnapshot[]>(`/api/consumer-duty/mi/${metric.id}/snapshots`)
@@ -100,6 +110,23 @@ export default function MetricDrillDown({
     );
     setDirty(false);
   }, [metric, onSaveAppetite, appetiteValue, appetiteOp]);
+
+  const handleSaveNarrative = useCallback(async () => {
+    if (!metric) return;
+    setNarrativeSaving(true);
+    try {
+      const clean = narrativeValue === "<p></p>" ? "" : narrativeValue;
+      await api(`/api/consumer-duty/mi/${metric.id}`, {
+        method: "PATCH",
+        body: { narrative: clean || null },
+      });
+      setNarrativeDirty(false);
+    } catch (err) {
+      console.error("Failed to save narrative:", err);
+    } finally {
+      setNarrativeSaving(false);
+    }
+  }, [metric, narrativeValue]);
 
   if (!metric) return null;
 
@@ -184,6 +211,14 @@ export default function MetricDrillDown({
             {changeIcon}
             {metric.change}
           </span>
+        )}
+        {onCreateAction && (
+          <button
+            onClick={() => onCreateAction(metric.id, metric.metric)}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-updraft-light-purple bg-updraft-pale-purple/20 px-3 py-1.5 text-xs font-medium text-updraft-deep hover:bg-updraft-pale-purple/40 transition-colors"
+          >
+            <Plus size={13} /> Create Action
+          </button>
         )}
       </div>
 
@@ -323,6 +358,35 @@ export default function MetricDrillDown({
           </ResponsiveContainer>
         </div>
       ) : null}
+
+      {/* Monthly Narrative */}
+      <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50/30 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <FileText size={16} className="text-updraft-bar" />
+            <h4 className="text-sm font-semibold text-gray-700">Monthly Narrative</h4>
+          </div>
+          {narrativeDirty && (
+            <button
+              onClick={handleSaveNarrative}
+              disabled={narrativeSaving}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-colors",
+                narrativeSaving ? "bg-gray-300 cursor-not-allowed" : "bg-updraft-bar hover:bg-updraft-bright-purple"
+              )}
+            >
+              <Save size={13} />
+              {narrativeSaving ? "Saving..." : "Save Narrative"}
+            </button>
+          )}
+        </div>
+        <RichTextEditor
+          value={narrativeValue}
+          onChange={(val) => { setNarrativeValue(val); setNarrativeDirty(true); }}
+          placeholder="Add commentary or narrative for this metric..."
+          minHeight="80px"
+        />
+      </div>
 
       {/* History table */}
       {snapshots.length > 0 && (

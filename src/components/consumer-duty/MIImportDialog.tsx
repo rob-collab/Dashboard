@@ -192,6 +192,7 @@ export default function MIImportDialog({
           ragStatus: r.ragStatus,
           appetite: null,
           appetiteOperator: null,
+          narrative: null,
         }));
 
         return { measureId: measure.id, metrics };

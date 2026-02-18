@@ -9,6 +9,7 @@ export const CreateActionSchema = z.object({
   sectionId: z.string().nullable().optional(),
   sectionTitle: z.string().nullable().optional(),
   controlId: z.string().nullable().optional(),
+  consumerDutyMIId: z.string().nullable().optional(),
   title: z.string().min(1, "Title is required"),
   description: z.string().default(""),
   issueDescription: z.string().nullable().optional(),

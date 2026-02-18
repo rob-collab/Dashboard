@@ -11,10 +11,12 @@ import {
   CheckCircle,
   XCircle,
   Pencil,
+  Trash2,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import RoleGuard from "@/components/common/RoleGuard";
 import UserFormDialog from "@/components/users/UserFormDialog";
+import UserDeleteDialog from "@/components/users/UserDeleteDialog";
 import { cn, formatDate } from "@/lib/utils";
 import type { Role, User } from "@/lib/types";
 import { logAuditEvent } from "@/lib/audit";
@@ -48,8 +50,10 @@ const ROLE_CONFIG: Record<Role, { label: string; color: string; description: str
 
 export default function UsersPage() {
   const users = useAppStore((s) => s.users);
+  const currentUser = useAppStore((s) => s.currentUser);
   const addUser = useAppStore((s) => s.addUser);
   const updateUser = useAppStore((s) => s.updateUser);
+  const deleteUser = useAppStore((s) => s.deleteUser);
   const ownedRiskCounts = useOwnedRiskCounts();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -59,6 +63,7 @@ export default function UsersPage() {
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | undefined>(undefined);
+  const [deletingUser, setDeletingUser] = useState<User | null>(null);
 
   const filteredUsers = useMemo(() => {
     let filtered = users;
@@ -283,13 +288,28 @@ export default function UsersPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => handleOpenEdit(user)}
-                        className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-                        title="Edit user"
-                      >
-                        <Pencil size={14} />
-                      </button>
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => handleOpenEdit(user)}
+                          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                          title="Edit user"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          onClick={() => setDeletingUser(user)}
+                          disabled={user.id === currentUser?.id}
+                          className={cn(
+                            "rounded-lg p-1.5 transition-colors",
+                            user.id === currentUser?.id
+                              ? "text-gray-200 cursor-not-allowed"
+                              : "text-gray-400 hover:bg-red-50 hover:text-red-600"
+                          )}
+                          title={user.id === currentUser?.id ? "Cannot delete yourself" : "Delete user"}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -313,6 +333,18 @@ export default function UsersPage() {
         onClose={handleCloseDialog}
         onSave={handleSave}
         user={editingUser}
+      />
+
+      {/* User Delete Dialog */}
+      <UserDeleteDialog
+        open={!!deletingUser}
+        onClose={() => setDeletingUser(null)}
+        user={deletingUser}
+        users={users}
+        onDeleted={(userId) => {
+          deleteUser(userId);
+          logAuditEvent({ action: "delete_user", entityType: "user", entityId: userId, changes: { name: deletingUser?.name } });
+        }}
       />
     </div>
     </RoleGuard>

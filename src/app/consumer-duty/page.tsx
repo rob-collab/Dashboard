@@ -776,6 +776,9 @@ function ConsumerDutyContent() {
           );
           updateMeasureMetrics(selectedMeasure.id, updatedMetrics);
         }}
+        onCreateAction={(miId, metricName) => {
+          router.push(`/actions?newAction=true&consumerDutyMIId=${encodeURIComponent(miId)}&metricName=${encodeURIComponent(metricName)}&source=Consumer+Duty`);
+        }}
       />
 
       {/* Outcome Form Dialog */}

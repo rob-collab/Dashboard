@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
       ...(data.sectionId && { sectionId: data.sectionId }),
       ...(data.sectionTitle && { sectionTitle: data.sectionTitle }),
       ...(data.controlId && { controlId: data.controlId }),
+      ...(data.consumerDutyMIId && { consumerDutyMIId: data.consumerDutyMIId }),
       title: data.title,
       description: data.description,
       ...(data.issueDescription !== undefined && { issueDescription: data.issueDescription }),
