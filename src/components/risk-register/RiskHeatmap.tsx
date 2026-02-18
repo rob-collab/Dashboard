@@ -271,7 +271,7 @@ export default function RiskHeatmap({
                     className="w-full text-left p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
                   >
                     <div className="flex items-center gap-1.5">
-                      <span className={`inline-block px-1.5 py-0.5 text-[8px] font-bold rounded ${level.bgClass} ${level.textClass}`}>
+                      <span className="inline-block px-1.5 py-0.5 text-[8px] font-bold rounded" style={{ backgroundColor: level.colour, color: "#fff" }}>
                         {score}
                       </span>
                       <span className="text-xs font-medium text-gray-800 truncate">{risk.reference}</span>

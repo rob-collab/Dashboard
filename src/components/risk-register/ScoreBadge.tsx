@@ -20,7 +20,8 @@ export default function ScoreBadge({ likelihood, impact, size = "md" }: ScoreBad
 
   return (
     <span
-      className={`inline-flex items-center gap-1 font-bold rounded-md ${level.bgClass} ${level.textClass} ${sizeClasses[size]}`}
+      className={`inline-flex items-center gap-1 font-bold rounded-md ${sizeClasses[size]}`}
+      style={{ backgroundColor: level.colour, color: "#fff" }}
     >
       <span>{score}</span>
       <span className="font-normal text-[0.85em] opacity-90">{level.level}</span>
