@@ -24,6 +24,8 @@ import {
   Clock,
   Pencil,
   Plus,
+  Unlink,
+  Trash2,
 } from "lucide-react";
 import { cn, formatDateShort } from "@/lib/utils";
 
@@ -51,6 +53,7 @@ export default function ControlDetailModal({
   const currentUser = useAppStore((s) => s.currentUser);
   const users = useAppStore((s) => s.users);
   const isCCRO = currentUser?.role === "CCRO_TEAM";
+  const canEditActions = currentUser?.role === "CCRO_TEAM" || currentUser?.role === "OWNER";
 
   const [control, setControl] = useState<ControlRecord | null>(null);
   const [loading, setLoading] = useState(false);
@@ -109,6 +112,32 @@ export default function ControlDetailModal({
     setControl(fresh);
     setSuggestFormOpen(false);
     setChangesExpanded(true);
+  }
+
+  async function handleUnlinkAction(actionId: string) {
+    if (!control) return;
+    try {
+      await api(`/api/actions/${actionId}`, {
+        method: "PATCH",
+        body: { controlId: null },
+      });
+      const fresh = await api<ControlRecord>(`/api/controls/library/${control.id}`);
+      setControl(fresh);
+    } catch (err) {
+      console.error("[ControlDetailModal] unlink action error:", err);
+    }
+  }
+
+  async function handleDeleteAction(actionId: string) {
+    if (!control) return;
+    if (!window.confirm("Are you sure you want to permanently delete this action?")) return;
+    try {
+      await api(`/api/actions/${actionId}`, { method: "DELETE" });
+      const fresh = await api<ControlRecord>(`/api/controls/library/${control.id}`);
+      setControl(fresh);
+    } catch (err) {
+      console.error("[ControlDetailModal] delete action error:", err);
+    }
   }
 
   if (!controlId) return null;
@@ -359,7 +388,8 @@ export default function ControlDetailModal({
                       <th className="pb-2 pr-3 font-medium">Status</th>
                       <th className="pb-2 pr-3 font-medium">Priority</th>
                       <th className="pb-2 pr-3 font-medium">Assignee</th>
-                      <th className="pb-2 font-medium">Due Date</th>
+                      <th className="pb-2 pr-3 font-medium">Due Date</th>
+                      {canEditActions && <th className="pb-2 font-medium text-right">Manage</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -386,9 +416,29 @@ export default function ControlDetailModal({
                         <td className="py-2 pr-3 text-gray-600 whitespace-nowrap">
                           {action.assignee?.name ?? "—"}
                         </td>
-                        <td className="py-2 text-gray-500 whitespace-nowrap">
+                        <td className="py-2 pr-3 text-gray-500 whitespace-nowrap">
                           {action.dueDate ? formatDateShort(action.dueDate) : "—"}
                         </td>
+                        {canEditActions && (
+                          <td className="py-2 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleUnlinkAction(action.id); }}
+                                className="rounded p-1 text-gray-400 hover:bg-amber-50 hover:text-amber-600 transition-colors"
+                                title="Unlink from control"
+                              >
+                                <Unlink size={13} />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleDeleteAction(action.id); }}
+                                className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                                title="Delete action"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>

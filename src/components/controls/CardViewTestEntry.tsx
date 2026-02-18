@@ -416,17 +416,16 @@ export default function CardViewTestEntry({
                 History
               </button>
 
-              {/* Create Action for FAIL/PARTIALLY results */}
-              {onCreateAction &&
-                (effectiveResult === "FAIL" || effectiveResult === "PARTIALLY") && (
-                  <button
-                    onClick={() => onCreateAction(entry)}
-                    className="ml-auto inline-flex items-center gap-1 rounded-md bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 transition-colors"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Create Action
-                  </button>
-                )}
+              {/* Create Action */}
+              {onCreateAction && (
+                <button
+                  onClick={() => onCreateAction(entry)}
+                  className="ml-auto inline-flex items-center gap-1 rounded-md bg-updraft-pale-purple px-2.5 py-1.5 text-xs font-medium text-updraft-deep hover:bg-updraft-light-purple transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Create Action
+                </button>
+              )}
             </div>
 
             {/* ── Expanded notes textarea ─────────────────────────── */}
