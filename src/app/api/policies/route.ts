@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, getUserId, requireCCRORole, jsonResponse, errorResponse, validateBody, validateQuery } from "@/lib/api-helpers";
+import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody, validateQuery } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const POLICY_INCLUDE = {
@@ -37,9 +37,6 @@ const createSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = getUserId(request);
-    if (!userId) return errorResponse("Unauthorised", 401);
-
     const result = validateQuery(querySchema, request.nextUrl.searchParams);
     if ("error" in result) return result.error;
     const { status, search } = result.data;

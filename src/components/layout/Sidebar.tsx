@@ -40,14 +40,14 @@ const ROB_EMAIL = "rob@updraft.com";
 
 const NAV_ITEMS: { label: string; href: string; icon: typeof LayoutDashboard; roles: Role[]; badgeKey?: string }[] = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard, roles: ["CCRO_TEAM", "OWNER", "VIEWER"] },
-  { label: "Actions", href: "/actions", icon: ListChecks, roles: ["CCRO_TEAM", "OWNER", "VIEWER"] },
+  { label: "Actions", href: "/actions", icon: ListChecks, roles: ["CCRO_TEAM", "OWNER", "VIEWER"], badgeKey: "actions" },
   { label: "Audit Trail", href: "/audit", icon: ClipboardList, roles: ["CCRO_TEAM"] },
   { label: "Consumer Duty", href: "/consumer-duty", icon: ShieldCheck, roles: ["CCRO_TEAM", "OWNER", "VIEWER"] },
-  { label: "Controls Testing", href: "/controls", icon: FlaskConical, roles: ["CCRO_TEAM", "OWNER"] },
+  { label: "Controls Testing", href: "/controls", icon: FlaskConical, roles: ["CCRO_TEAM", "OWNER"], badgeKey: "controls" },
   { label: "Policies", href: "/policies", icon: BookOpen, roles: ["CCRO_TEAM", "OWNER", "VIEWER"] },
   { label: "Reports", href: "/reports", icon: FileText, roles: ["CCRO_TEAM", "OWNER", "VIEWER"] },
   { label: "Risk Acceptance", href: "/risk-acceptances", icon: ShieldQuestion, roles: ["CCRO_TEAM", "OWNER", "VIEWER"], badgeKey: "riskAcceptance" },
-  { label: "Risk Register", href: "/risk-register", icon: ShieldAlert, roles: ["CCRO_TEAM", "OWNER", "VIEWER"] },
+  { label: "Risk Register", href: "/risk-register", icon: ShieldAlert, roles: ["CCRO_TEAM", "OWNER", "VIEWER"], badgeKey: "riskRegister" },
   { label: "Settings", href: "/settings", icon: Settings, roles: ["CCRO_TEAM"] },
   { label: "Users", href: "/users", icon: Users, roles: ["CCRO_TEAM"] },
 ];
@@ -62,9 +62,43 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
   const storeUsers = useAppStore((s) => s.users);
   const authUser = useAppStore((s) => s.authUser);
   const hydrate = useAppStore((s) => s.hydrate);
-  const riskAcceptanceBadge = useAppStore((s) =>
-    s.riskAcceptances.filter((ra) => ["PROPOSED", "CCRO_REVIEW", "AWAITING_APPROVAL", "EXPIRED"].includes(ra.status)).length
-  );
+
+  // Badge counts — role-aware
+  const badges = useAppStore((s) => {
+    const isCCRO = currentUser.role === "CCRO_TEAM";
+    const isOwner = currentUser.role === "OWNER";
+
+    // Actions: overdue items relevant to the user's role
+    const overdueActions = s.actions.filter((a) => {
+      if (a.status === "COMPLETED") return false;
+      if (!a.dueDate) return false;
+      if (isOwner && a.assignedTo !== currentUser.id) return false;
+      return new Date(a.dueDate) < new Date();
+    }).length;
+
+    // Controls: pending changes awaiting CCRO review
+    const pendingControlChanges = isCCRO
+      ? s.controls.reduce((n, c) => n + (c.changes ?? []).filter((ch) => ch.status === "PENDING").length, 0)
+      : 0;
+
+    // Risk Acceptance: items needing attention
+    const riskAcceptance = s.riskAcceptances.filter((ra) =>
+      ["PROPOSED", "CCRO_REVIEW", "AWAITING_APPROVAL", "EXPIRED"].includes(ra.status)
+    ).length;
+
+    // Risk Register: pending changes awaiting CCRO review
+    const pendingRiskChanges = isCCRO
+      ? s.risks.reduce((n, r) => n + (r.changes ?? []).filter((ch) => ch.status === "PENDING").length, 0)
+      : 0;
+
+    return {
+      actions: overdueActions,
+      controls: pendingControlChanges,
+      riskAcceptance,
+      riskRegister: pendingRiskChanges,
+    } as Record<string, number>;
+  });
+
   const [refreshing, setRefreshing] = useState(false);
 
   const isViewingAsOther = authUser && currentUser.id !== authUser.id;
@@ -183,12 +217,12 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
                 )}
               />
               {!collapsed && <span className="truncate">{item.label}</span>}
-              {!collapsed && item.badgeKey === "riskAcceptance" && riskAcceptanceBadge > 0 && (
+              {!collapsed && item.badgeKey && (badges[item.badgeKey] ?? 0) > 0 && (
                 <span className="ml-auto rounded-full bg-red-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                  {riskAcceptanceBadge}
+                  {badges[item.badgeKey]}
                 </span>
               )}
-              {active && !collapsed && !item.badgeKey && (
+              {active && !collapsed && !(item.badgeKey && (badges[item.badgeKey] ?? 0) > 0) && (
                 <span className="ml-auto h-1.5 w-1.5 rounded-full bg-updraft-light-purple" />
               )}
             </Link>

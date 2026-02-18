@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, getUserId, requireCCRORole, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
+import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const createSchema = z.object({
@@ -11,11 +11,8 @@ const createSchema = z.object({
   expiresAt: z.string().nullable().optional(),
 });
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const userId = await getUserId(request);
-    if (!userId) return errorResponse("Unauthorised", 401);
-
     const notifications = await prisma.dashboardNotification.findMany({
       include: { creator: true },
       orderBy: { createdAt: "desc" },
