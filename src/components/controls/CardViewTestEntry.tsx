@@ -19,6 +19,7 @@ import {
   MessageSquare,
   ShieldCheck,
   Clock,
+  Plus,
 } from "lucide-react";
 
 /* ── Constants ────────────────────────────────────────────────────────────── */
@@ -92,6 +93,7 @@ interface CardViewTestEntryProps {
   edits: Map<string, { result: TestResultValue; notes: string }>;
   onEditResult: (entryId: string, result: TestResultValue) => void;
   onEditNotes: (entryId: string, notes: string) => void;
+  onCreateAction?: (entry: TestingScheduleEntry) => void;
 }
 
 /* ── Component ────────────────────────────────────────────────────────────── */
@@ -103,6 +105,7 @@ export default function CardViewTestEntry({
   edits,
   onEditResult,
   onEditNotes,
+  onCreateAction,
 }: CardViewTestEntryProps) {
   const users = useAppStore((s) => s.users);
   const controls = useAppStore((s) => s.controls);
@@ -412,6 +415,18 @@ export default function CardViewTestEntry({
                 )}
                 History
               </button>
+
+              {/* Create Action for FAIL/PARTIALLY results */}
+              {onCreateAction &&
+                (effectiveResult === "FAIL" || effectiveResult === "PARTIALLY") && (
+                  <button
+                    onClick={() => onCreateAction(entry)}
+                    className="ml-auto inline-flex items-center gap-1 rounded-md bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Create Action
+                  </button>
+                )}
             </div>
 
             {/* ── Expanded notes textarea ─────────────────────────── */}

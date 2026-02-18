@@ -24,6 +24,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }],
           take: 24,
         },
+        changes: {
+          include: { proposer: true, reviewer: true },
+          orderBy: { proposedAt: "desc" },
+        },
+        actions: {
+          include: { assignee: true },
+          orderBy: { createdAt: "desc" },
+        },
       },
     });
 
@@ -43,6 +51,7 @@ const updateSchema = z.object({
   consumerDutyOutcome: z.enum(["PRODUCTS_AND_SERVICES", "CONSUMER_UNDERSTANDING", "CONSUMER_SUPPORT", "GOVERNANCE_CULTURE_OVERSIGHT"]).optional(),
   controlFrequency: z.enum(["DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "BI_ANNUAL", "ANNUAL", "EVENT_DRIVEN"]).optional(),
   internalOrThirdParty: z.enum(["INTERNAL", "THIRD_PARTY"]).optional(),
+  controlType: z.enum(["PREVENTATIVE", "DETECTIVE", "CORRECTIVE", "DIRECTIVE"]).nullable().optional(),
   standingComments: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
 });

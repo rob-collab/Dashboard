@@ -17,6 +17,9 @@ interface ActionFormDialogProps {
   reports: Report[];
   users: User[];
   currentUserId: string;
+  prefillSource?: string;
+  prefillSectionTitle?: string;
+  prefillControlId?: string;
 }
 
 const STATUS_OPTIONS: { value: ActionStatus; label: string }[] = [
@@ -35,6 +38,9 @@ export default function ActionFormDialog({
   reports,
   users,
   currentUserId,
+  prefillSource,
+  prefillSectionTitle,
+  prefillControlId,
 }: ActionFormDialogProps) {
   const isEdit = Boolean(action);
   const priorityDefinitions = useAppStore((s) => s.priorityDefinitions);
@@ -81,9 +87,9 @@ export default function ActionFormDialog({
         setDescription("");
         setIssueDescription("");
         setReportId("");
-        setSource("");
+        setSource(prefillSource || "");
         setSectionId("");
-        setSectionTitle("");
+        setSectionTitle(prefillSectionTitle || "");
         setAssignedTo("");
         setDueDate("");
         setStatus("OPEN");
@@ -91,7 +97,7 @@ export default function ActionFormDialog({
       }
       setErrors({});
     }
-  }, [open, action, reports]);
+  }, [open, action, reports, prefillSource, prefillSectionTitle]);
 
   function validate(): boolean {
     const newErrors: Record<string, string> = {};
@@ -119,6 +125,7 @@ export default function ActionFormDialog({
       source: source.trim() || null,
       sectionId: sectionId || null,
       sectionTitle: sectionTitle || null,
+      controlId: action?.controlId ?? prefillControlId ?? null,
       title: title.trim(),
       description: cleanDesc,
       issueDescription: cleanIssue || null,

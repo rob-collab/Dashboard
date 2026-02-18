@@ -8,6 +8,7 @@ export const CreateActionSchema = z.object({
   source: z.string().nullable().optional(),
   sectionId: z.string().nullable().optional(),
   sectionTitle: z.string().nullable().optional(),
+  controlId: z.string().nullable().optional(),
   title: z.string().min(1, "Title is required"),
   description: z.string().default(""),
   issueDescription: z.string().nullable().optional(),
@@ -27,6 +28,7 @@ export const UpdateActionSchema = z.object({
   completedAt: z.string().nullable().optional(),
   sectionId: z.string().nullable().optional(),
   sectionTitle: z.string().nullable().optional(),
+  controlId: z.string().nullable().optional(),
   priority: z.enum(["P1", "P2", "P3"]).nullable().optional(),
 });
 

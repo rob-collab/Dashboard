@@ -26,7 +26,10 @@ export async function GET(request: NextRequest) {
         businessArea: true,
         controlOwner: true,
         testingSchedule: includeSchedule === "true" ? {
-          include: { assignedTester: true },
+          include: {
+            assignedTester: true,
+            testResults: { orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }], take: 12 },
+          },
         } : false,
         attestations: includeSchedule === "true" ? {
           include: { attestedBy: true, ccroReviewedBy: true },
@@ -50,6 +53,7 @@ const createSchema = z.object({
   consumerDutyOutcome: z.enum(["PRODUCTS_AND_SERVICES", "CONSUMER_UNDERSTANDING", "CONSUMER_SUPPORT", "GOVERNANCE_CULTURE_OVERSIGHT"]),
   controlFrequency: z.enum(["DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "BI_ANNUAL", "ANNUAL", "EVENT_DRIVEN"]),
   internalOrThirdParty: z.enum(["INTERNAL", "THIRD_PARTY"]).optional(),
+  controlType: z.enum(["PREVENTATIVE", "DETECTIVE", "CORRECTIVE", "DIRECTIVE"]).nullable().optional(),
   standingComments: z.string().nullable().optional(),
 });
 
@@ -81,6 +85,7 @@ export async function POST(request: NextRequest) {
         consumerDutyOutcome: result.data.consumerDutyOutcome,
         controlFrequency: result.data.controlFrequency,
         internalOrThirdParty: result.data.internalOrThirdParty ?? "INTERNAL",
+        controlType: result.data.controlType ?? null,
         standingComments: result.data.standingComments ?? null,
         createdById: auth.userId,
       },

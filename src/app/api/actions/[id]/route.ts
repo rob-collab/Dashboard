@@ -20,6 +20,7 @@ export async function GET(
           orderBy: { proposedAt: "desc" },
         },
         linkedMitigation: true,
+        control: { select: { id: true, controlRef: true, controlName: true } },
       },
     });
     if (!action) return errorResponse("Action not found", 404);
@@ -61,6 +62,7 @@ export async function PATCH(
     if (validatedData.dueDate !== undefined) data.dueDate = validatedData.dueDate ? new Date(validatedData.dueDate) : null;
     if (validatedData.sectionId !== undefined) data.sectionId = validatedData.sectionId;
     if (validatedData.sectionTitle !== undefined) data.sectionTitle = validatedData.sectionTitle;
+    if (validatedData.controlId !== undefined) data.controlId = validatedData.controlId;
 
     const updated = await prisma.action.update({
       where: { id },

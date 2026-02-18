@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import CardViewTestEntry from "./CardViewTestEntry";
 import BulkHistoricalEntry from "./BulkHistoricalEntry";
+import ActionFormDialog from "@/components/actions/ActionFormDialog";
 
 /* ── Constants ────────────────────────────────────────────────────────────── */
 
@@ -63,6 +64,9 @@ interface EditEntry {
 export default function TestResultsEntryTab() {
   const testingSchedule = useAppStore((s) => s.testingSchedule);
   const users = useAppStore((s) => s.users);
+  const reports = useAppStore((s) => s.reports);
+  const currentUser = useAppStore((s) => s.currentUser);
+  const addAction = useAppStore((s) => s.addAction);
 
   /* Period selector state — defaults to current month/year */
   const now = new Date();
@@ -88,6 +92,14 @@ export default function TestResultsEntryTab() {
 
   /* Bulk import dialog */
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
+
+  /* Action creation from test results */
+  const [showActionDialog, setShowActionDialog] = useState(false);
+  const [actionPrefill, setActionPrefill] = useState<{
+    source: string;
+    sectionTitle: string;
+    controlId: string;
+  } | null>(null);
 
   /* Local edits map: scheduleEntryId -> { result, notes } */
   const [edits, setEdits] = useState<Map<string, EditEntry>>(new Map());
@@ -275,6 +287,16 @@ export default function TestResultsEntryTab() {
     setEdits(new Map());
     setSaveSuccess(false);
     setSaveError(null);
+  }
+
+  function handleCreateActionFromEntry(entry: TestingScheduleEntry) {
+    const control = entry.control;
+    setActionPrefill({
+      source: "Controls Testing",
+      sectionTitle: control ? `${control.controlRef} — ${control.controlName}` : entry.id,
+      controlId: control?.id ?? "",
+    });
+    setShowActionDialog(true);
   }
 
   async function handleSaveAll() {
@@ -550,6 +572,7 @@ export default function TestResultsEntryTab() {
           onEditNotes={(entryId, notes) =>
             updateEdit(entryId, "notes", notes)
           }
+          onCreateAction={handleCreateActionFromEntry}
         />
       ) : (
         /* ── Grid view ─────────────────────────────────────────── */
@@ -755,6 +778,25 @@ export default function TestResultsEntryTab() {
           setSaveSuccess(true);
         }}
       />
+
+      {/* Action creation from test results */}
+      {currentUser && (
+        <ActionFormDialog
+          open={showActionDialog}
+          onClose={() => { setShowActionDialog(false); setActionPrefill(null); }}
+          onSave={(action) => {
+            addAction(action);
+            setShowActionDialog(false);
+            setActionPrefill(null);
+          }}
+          reports={reports}
+          users={users}
+          currentUserId={currentUser.id}
+          prefillSource={actionPrefill?.source}
+          prefillSectionTitle={actionPrefill?.sectionTitle}
+          prefillControlId={actionPrefill?.controlId}
+        />
+      )}
     </div>
   );
 }

@@ -120,6 +120,8 @@ model User {
   approvedSummaries   QuarterlySummary[]     @relation("SummaryApprover")
   configuredExcoViews ExcoViewConfig[]       @relation("ExcoConfiguredBy")
   ccroReviews         ControlAttestation[]   @relation("AttestationCCROReviewer")
+  controlProposedChanges  ControlChange[]  @relation("ControlProposedChanges")
+  controlReviewedChanges  ControlChange[]  @relation("ControlReviewedChanges")
 
   @@map("users")
 }
@@ -333,6 +335,8 @@ model Action {
   assignee      User         @relation("AssignedActions", fields: [assignedTo], references: [id])
   createdBy     String
   creator       User         @relation("CreatedActions", fields: [createdBy], references: [id])
+  controlId     String?
+  control       Control?     @relation("ControlActions", fields: [controlId], references: [id], onDelete: SetNull)
   dueDate       DateTime?
   completedAt   DateTime?
   createdAt     DateTime     @default(now())
@@ -346,6 +350,7 @@ model Action {
   @@index([status])
   @@index([dueDate])
   @@index([source])
+  @@index([controlId])
   @@map("actions")
 }
 
@@ -371,6 +376,28 @@ model ActionChange {
   @@index([actionId])
   @@index([status])
   @@map("action_changes")
+}
+
+model ControlChange {
+  id           String       @id @default(cuid())
+  controlId    String
+  control      Control      @relation(fields: [controlId], references: [id], onDelete: Cascade)
+  proposedBy   String
+  proposer     User         @relation("ControlProposedChanges", fields: [proposedBy], references: [id])
+  fieldChanged String
+  oldValue     String?      @db.Text
+  newValue     String?      @db.Text
+  rationale    String       @db.Text
+  proposedAt   DateTime     @default(now())
+  status       ChangeStatus @default(PENDING)
+  reviewedBy   String?
+  reviewer     User?        @relation("ControlReviewedChanges", fields: [reviewedBy], references: [id])
+  reviewedAt   DateTime?
+  reviewNote   String?
+
+  @@index([controlId])
+  @@index([status])
+  @@map("control_changes")
 }
 
 // ── Risk Register ──────────────────────────────────────────────────────────────
@@ -560,6 +587,13 @@ enum InternalOrThirdParty {
   THIRD_PARTY
 }
 
+enum ControlType {
+  PREVENTATIVE
+  DETECTIVE
+  CORRECTIVE
+  DIRECTIVE
+}
+
 model ControlBusinessArea {
   id        String   @id @default(cuid())
   name      String   @unique
@@ -584,6 +618,7 @@ model Control {
   consumerDutyOutcome ConsumerDutyOutcomeType
   controlFrequency    ControlFrequency
   internalOrThirdParty InternalOrThirdParty   @default(INTERNAL)
+  controlType          ControlType?
   isActive            Boolean                 @default(true)
   standingComments    String?                 @db.Text
   createdAt           DateTime                @default(now())
@@ -594,6 +629,8 @@ model Control {
 
   attestations        ControlAttestation[]
   testingSchedule     TestingScheduleEntry?
+  changes             ControlChange[]
+  actions             Action[]                @relation("ControlActions")
 
   @@index([businessAreaId])
   @@index([controlOwnerId])

@@ -222,6 +222,8 @@ export interface Action {
   assignee?: User;
   createdBy: string;
   creator?: User;
+  controlId: string | null;
+  control?: ControlRecord;
   dueDate: string | null;
   completedAt: string | null;
   createdAt: string;
@@ -388,6 +390,14 @@ export type TestResultValue = "PASS" | "FAIL" | "PARTIALLY" | "NOT_TESTED" | "NO
 export type QuarterlySummaryStatus = "DRAFT" | "SUBMITTED" | "APPROVED";
 export type ConsumerDutyOutcomeType = "PRODUCTS_AND_SERVICES" | "CONSUMER_UNDERSTANDING" | "CONSUMER_SUPPORT" | "GOVERNANCE_CULTURE_OVERSIGHT";
 export type InternalOrThirdParty = "INTERNAL" | "THIRD_PARTY";
+export type ControlType = "PREVENTATIVE" | "DETECTIVE" | "CORRECTIVE" | "DIRECTIVE";
+
+export const CONTROL_TYPE_LABELS: Record<ControlType, string> = {
+  PREVENTATIVE: "Preventative",
+  DETECTIVE: "Detective",
+  CORRECTIVE: "Corrective",
+  DIRECTIVE: "Directive",
+};
 
 export const CD_OUTCOME_LABELS: Record<ConsumerDutyOutcomeType, string> = {
   PRODUCTS_AND_SERVICES: "Products and Services",
@@ -449,6 +459,7 @@ export interface ControlRecord {
   consumerDutyOutcome: ConsumerDutyOutcomeType;
   controlFrequency: ControlFrequency;
   internalOrThirdParty: InternalOrThirdParty;
+  controlType: ControlType | null;
   isActive: boolean;
   standingComments: string | null;
   createdAt: string;
@@ -457,6 +468,8 @@ export interface ControlRecord {
   updatedAt: string;
   testingSchedule?: TestingScheduleEntry | null;
   attestations?: ControlAttestation[];
+  changes?: ControlChange[];
+  actions?: Action[];
 }
 
 export interface ControlAttestation {
@@ -476,6 +489,23 @@ export interface ControlAttestation {
   ccroReviewedAt: string | null;
   ccroAgreement: boolean | null;
   ccroComments: string | null;
+}
+
+export interface ControlChange {
+  id: string;
+  controlId: string;
+  proposedBy: string;
+  proposer?: User;
+  fieldChanged: string;
+  oldValue: string | null;
+  newValue: string | null;
+  rationale: string;
+  proposedAt: string;
+  status: ChangeStatus;
+  reviewedBy: string | null;
+  reviewer?: User;
+  reviewedAt: string | null;
+  reviewNote: string | null;
 }
 
 export interface TestingScheduleEntry {

@@ -18,78 +18,18 @@ import type {
   ConsumerDutyOutcomeType,
   ControlFrequency,
   InternalOrThirdParty,
+  ControlType,
 } from "@/lib/types";
 import {
   CD_OUTCOME_LABELS,
   CONTROL_FREQUENCY_LABELS,
+  CONTROL_TYPE_LABELS,
 } from "@/lib/types";
+import ControlDetailModal from "./ControlDetailModal";
 import { api } from "@/lib/api-client";
+import { deriveTestingStatus } from "@/lib/controls-utils";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-
-function deriveTestingStatus(control: ControlRecord): {
-  label: string;
-  colour: string;
-  bgColour: string;
-  dotColour: string;
-} {
-  if (!control.testingSchedule) {
-    return {
-      label: "Not Scheduled",
-      colour: "text-gray-500",
-      bgColour: "bg-gray-100",
-      dotColour: "bg-gray-400",
-    };
-  }
-  if (!control.testingSchedule.isActive) {
-    return {
-      label: "Removed",
-      colour: "text-orange-600",
-      bgColour: "bg-orange-100",
-      dotColour: "bg-orange-400",
-    };
-  }
-  const results = control.testingSchedule.testResults ?? [];
-  if (results.length === 0) {
-    return {
-      label: "Awaiting Test",
-      colour: "text-blue-600",
-      bgColour: "bg-blue-100",
-      dotColour: "bg-blue-400",
-    };
-  }
-  const latest = results[0];
-  switch (latest.result) {
-    case "PASS":
-      return {
-        label: "Pass",
-        colour: "text-green-700",
-        bgColour: "bg-green-100",
-        dotColour: "bg-green-500",
-      };
-    case "FAIL":
-      return {
-        label: "Fail",
-        colour: "text-red-700",
-        bgColour: "bg-red-100",
-        dotColour: "bg-red-500",
-      };
-    case "PARTIALLY":
-      return {
-        label: "Partial",
-        colour: "text-amber-700",
-        bgColour: "bg-amber-100",
-        dotColour: "bg-amber-500",
-      };
-    default:
-      return {
-        label: "Not Tested",
-        colour: "text-gray-600",
-        bgColour: "bg-gray-100",
-        dotColour: "bg-gray-400",
-      };
-  }
-}
 
 const INTERNAL_THIRD_PARTY_LABELS: Record<InternalOrThirdParty, string> = {
   INTERNAL: "Internal",
@@ -106,6 +46,7 @@ interface ControlFormData {
   consumerDutyOutcome: ConsumerDutyOutcomeType;
   controlFrequency: ControlFrequency;
   internalOrThirdParty: InternalOrThirdParty;
+  controlType: ControlType | "";
   standingComments: string;
 }
 
@@ -117,6 +58,7 @@ const EMPTY_FORM: ControlFormData = {
   consumerDutyOutcome: "PRODUCTS_AND_SERVICES",
   controlFrequency: "MONTHLY",
   internalOrThirdParty: "INTERNAL",
+  controlType: "",
   standingComments: "",
 };
 
@@ -131,6 +73,9 @@ export default function ControlsLibraryTab() {
   const updateControl = useAppStore((s) => s.updateControl);
 
   const isCCRO = currentUser?.role === "CCRO_TEAM";
+
+  // ── Detail modal state ──────────────────────────────────────
+  const [selectedControlId, setSelectedControlId] = useState<string | null>(null);
 
   // ── Filters ────────────────────────────────────────────────
   const [search, setSearch] = useState("");
@@ -157,6 +102,7 @@ export default function ControlsLibraryTab() {
           consumerDutyOutcome: editingControl.consumerDutyOutcome,
           controlFrequency: editingControl.controlFrequency,
           internalOrThirdParty: editingControl.internalOrThirdParty,
+          controlType: editingControl.controlType ?? "",
           standingComments: editingControl.standingComments ?? "",
         });
       } else {
@@ -229,6 +175,7 @@ export default function ControlsLibraryTab() {
               consumerDutyOutcome: form.consumerDutyOutcome,
               controlFrequency: form.controlFrequency,
               internalOrThirdParty: form.internalOrThirdParty,
+              controlType: form.controlType || null,
               standingComments: form.standingComments.trim() || null,
             },
           }
@@ -246,6 +193,7 @@ export default function ControlsLibraryTab() {
             consumerDutyOutcome: form.consumerDutyOutcome,
             controlFrequency: form.controlFrequency,
             internalOrThirdParty: form.internalOrThirdParty,
+            controlType: form.controlType || null,
             standingComments: form.standingComments.trim() || null,
           },
         });
@@ -422,7 +370,10 @@ export default function ControlsLibraryTab() {
                   Frequency
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-gray-500">
-                  Type
+                  Int/Ext
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-gray-500">
+                  Control Type
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-gray-500">
                   Testing Status
@@ -438,7 +389,7 @@ export default function ControlsLibraryTab() {
               {filtered.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={isCCRO ? 9 : 8}
+                    colSpan={isCCRO ? 10 : 9}
                     className="px-4 py-12 text-center text-gray-400"
                   >
                     {showArchived
@@ -452,7 +403,8 @@ export default function ControlsLibraryTab() {
                   return (
                     <tr
                       key={control.id}
-                      className="hover:bg-gray-50/50 transition-colours"
+                      className="hover:bg-gray-50/50 transition-colours cursor-pointer"
+                      onClick={() => setSelectedControlId(control.id)}
                     >
                       <td className="px-4 py-3 font-mono text-xs text-updraft-deep font-semibold whitespace-nowrap">
                         {control.controlRef}
@@ -478,6 +430,15 @@ export default function ControlsLibraryTab() {
                         {INTERNAL_THIRD_PARTY_LABELS[control.internalOrThirdParty]}
                       </td>
                       <td className="px-4 py-3">
+                        {control.controlType ? (
+                          <span className="inline-block rounded-full bg-updraft-pale-purple px-2.5 py-0.5 text-xs font-medium text-updraft-deep whitespace-nowrap">
+                            {CONTROL_TYPE_LABELS[control.controlType]}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
                         <span
                           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${testing.bgColour} ${testing.colour}`}
                         >
@@ -491,7 +452,8 @@ export default function ControlsLibraryTab() {
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
                             <button
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setEditingControl(control);
                                 setShowDialog(true);
                               }}
@@ -501,7 +463,7 @@ export default function ControlsLibraryTab() {
                               <Pencil className="h-4 w-4" />
                             </button>
                             <button
-                              onClick={() => handleToggleArchive(control)}
+                              onClick={(e) => { e.stopPropagation(); handleToggleArchive(control); }}
                               className={`rounded-lg p-1.5 transition-colours ${
                                 control.isActive
                                   ? "text-gray-400 hover:bg-orange-100 hover:text-orange-600"
@@ -544,6 +506,10 @@ export default function ControlsLibraryTab() {
               const results = c.testingSchedule.testResults ?? [];
               return results.length > 0 && results[0].result === "FAIL";
             }).length} failing
+          </span>
+          <span className="flex items-center gap-1.5">
+            <AlertTriangle className="h-3.5 w-3.5 text-orange-500" />
+            {controls.filter((c) => c.isActive && deriveTestingStatus(c).label === "Overdue").length} overdue
           </span>
           <span className="flex items-center gap-1.5">
             <Clock className="h-3.5 w-3.5 text-blue-500" />
@@ -613,14 +579,18 @@ export default function ControlsLibraryTab() {
                   id="ctrl-desc"
                   rows={3}
                   value={form.controlDescription}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setForm((f) => ({
                       ...f,
                       controlDescription: e.target.value,
-                    }))
-                  }
+                    }));
+                    // Auto-resize
+                    const el = e.target;
+                    el.style.height = "auto";
+                    el.style.height = `${el.scrollHeight}px`;
+                  }}
                   placeholder="Describe what this control does..."
-                  className={inputClasses}
+                  className={`${inputClasses} resize-y`}
                 />
                 {errors.controlDescription && (
                   <p className={errorClasses}>{errors.controlDescription}</p>
@@ -776,6 +746,36 @@ export default function ControlsLibraryTab() {
                 </div>
               </div>
 
+              {/* Control Type */}
+              <div>
+                <label htmlFor="ctrl-control-type" className={labelClasses}>
+                  Control Type
+                </label>
+                <select
+                  id="ctrl-control-type"
+                  value={form.controlType}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      controlType: e.target.value as ControlType | "",
+                    }))
+                  }
+                  className={inputClasses}
+                >
+                  <option value="">Not specified</option>
+                  {(
+                    Object.entries(CONTROL_TYPE_LABELS) as [
+                      ControlType,
+                      string,
+                    ][]
+                  ).map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* Standing Comments */}
               <div>
                 <label htmlFor="ctrl-comments" className={labelClasses}>
@@ -824,6 +824,13 @@ export default function ControlsLibraryTab() {
           </div>
         </div>
       )}
+
+      {/* ── Control Detail Modal ──────────────────────────────── */}
+      <ControlDetailModal
+        controlId={selectedControlId}
+        onClose={() => setSelectedControlId(null)}
+        onEditControl={isCCRO ? (c) => { setEditingControl(c); setShowDialog(true); } : undefined}
+      />
     </div>
   );
 }

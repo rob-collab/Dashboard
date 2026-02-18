@@ -163,6 +163,97 @@ async function main() {
     console.log("  ⓘ No existing attestations found — skipping CCRO review seed data");
   }
 
+  // ── Control Types ────────────────────────────────────────────────────────
+  // Update existing controls with controlType values
+  const existingControls = await prisma.control.findMany({ orderBy: { controlRef: "asc" } });
+  const controlTypes: ("PREVENTATIVE" | "DETECTIVE" | "CORRECTIVE" | "DIRECTIVE")[] = [
+    "PREVENTATIVE", "DETECTIVE", "CORRECTIVE", "DIRECTIVE",
+  ];
+  let typesUpdated = 0;
+  for (let i = 0; i < existingControls.length; i++) {
+    const ctrl = existingControls[i];
+    if (!ctrl.controlType) {
+      await prisma.control.update({
+        where: { id: ctrl.id },
+        data: { controlType: controlTypes[i % controlTypes.length] },
+      });
+      typesUpdated++;
+    }
+  }
+  if (typesUpdated > 0) {
+    console.log(`  ✓ ${typesUpdated} controls updated with controlType`);
+  }
+
+  // ── Control Change Proposals ────────────────────────────────────────────
+  // Seed a few ControlChange records if controls exist and no changes yet
+  if (existingControls.length >= 2) {
+    const existingChanges = await prisma.controlChange.count();
+    if (existingChanges === 0) {
+      const ctrl1 = existingControls[0];
+      const ctrl2 = existingControls[1];
+
+      await prisma.controlChange.createMany({
+        data: [
+          {
+            controlId: ctrl1.id,
+            proposedBy: "user-ash",
+            fieldChanged: "controlDescription",
+            oldValue: ctrl1.controlDescription.substring(0, 100),
+            newValue: "Updated description with more detail on the review steps and escalation process.",
+            rationale: "Current description is too vague — stakeholders need clearer guidance on what the review entails.",
+            status: "PENDING",
+          },
+          {
+            controlId: ctrl1.id,
+            proposedBy: "user-micha",
+            fieldChanged: "controlFrequency",
+            oldValue: ctrl1.controlFrequency,
+            newValue: "QUARTERLY",
+            rationale: "Monthly frequency is excessive for this control; quarterly aligns with reporting cycle.",
+            status: "APPROVED",
+            reviewedBy: "user-rob",
+            reviewedAt: new Date(),
+            reviewNote: "Agreed — quarterly is more proportionate.",
+          },
+          {
+            controlId: ctrl2.id,
+            proposedBy: "user-chris",
+            fieldChanged: "controlName",
+            oldValue: ctrl2.controlName,
+            newValue: `${ctrl2.controlName} (Enhanced)`,
+            rationale: "Renaming to reflect the expanded scope after the Q4 review.",
+            status: "REJECTED",
+            reviewedBy: "user-cath",
+            reviewedAt: new Date(),
+            reviewNote: "Name change not warranted — scope expansion should be reflected in description instead.",
+          },
+        ],
+      });
+      console.log("  ✓ 3 control change proposals seeded (1 pending, 1 approved, 1 rejected)");
+    }
+  }
+
+  // ── Action–Control Links ────────────────────────────────────────────────
+  // Link a couple of existing actions to controls if they exist
+  if (existingControls.length >= 1) {
+    const unlinkdActions = await prisma.action.findMany({
+      where: { controlId: null },
+      take: 2,
+    });
+    let linked = 0;
+    for (let i = 0; i < Math.min(unlinkdActions.length, 2); i++) {
+      const ctrl = existingControls[i % existingControls.length];
+      await prisma.action.update({
+        where: { id: unlinkdActions[i].id },
+        data: { controlId: ctrl.id },
+      });
+      linked++;
+    }
+    if (linked > 0) {
+      console.log(`  ✓ ${linked} actions linked to controls`);
+    }
+  }
+
   console.log("Seed complete! Database is clean — ready for real data.");
 }
 

@@ -18,7 +18,13 @@ export async function GET(request: NextRequest) {
 
   const actions = await prisma.action.findMany({
     where,
-    include: { assignee: true, creator: true, changes: { orderBy: { proposedAt: "desc" } }, linkedMitigation: true },
+    include: {
+      assignee: true,
+      creator: true,
+      changes: { orderBy: { proposedAt: "desc" } },
+      linkedMitigation: true,
+      control: { select: { id: true, controlRef: true, controlName: true } },
+    },
     orderBy: { reference: "asc" },
   });
   return jsonResponse(serialiseDates(actions));
@@ -65,6 +71,7 @@ export async function POST(request: NextRequest) {
       ...(data.source && { source: data.source }),
       ...(data.sectionId && { sectionId: data.sectionId }),
       ...(data.sectionTitle && { sectionTitle: data.sectionTitle }),
+      ...(data.controlId && { controlId: data.controlId }),
       title: data.title,
       description: data.description,
       ...(data.issueDescription !== undefined && { issueDescription: data.issueDescription }),
