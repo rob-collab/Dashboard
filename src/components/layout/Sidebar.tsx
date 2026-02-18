@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -62,42 +62,37 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
   const storeUsers = useAppStore((s) => s.users);
   const authUser = useAppStore((s) => s.authUser);
   const hydrate = useAppStore((s) => s.hydrate);
+  const actions = useAppStore((s) => s.actions);
+  const controls = useAppStore((s) => s.controls);
+  const risks = useAppStore((s) => s.risks);
+  const riskAcceptances = useAppStore((s) => s.riskAcceptances);
 
-  // Badge counts — role-aware
-  const badges = useAppStore((s) => {
+  // Badge counts — role-aware, computed via useMemo to avoid infinite re-renders
+  const badges: Record<string, number> = useMemo(() => {
     const isCCRO = currentUser.role === "CCRO_TEAM";
     const isOwner = currentUser.role === "OWNER";
 
-    // Actions: overdue items relevant to the user's role
-    const overdueActions = s.actions.filter((a) => {
+    const overdueActions = actions.filter((a) => {
       if (a.status === "COMPLETED") return false;
       if (!a.dueDate) return false;
       if (isOwner && a.assignedTo !== currentUser.id) return false;
       return new Date(a.dueDate) < new Date();
     }).length;
 
-    // Controls: pending changes awaiting CCRO review
     const pendingControlChanges = isCCRO
-      ? s.controls.reduce((n, c) => n + (c.changes ?? []).filter((ch) => ch.status === "PENDING").length, 0)
+      ? controls.reduce((n, c) => n + (c.changes ?? []).filter((ch) => ch.status === "PENDING").length, 0)
       : 0;
 
-    // Risk Acceptance: items needing attention
-    const riskAcceptance = s.riskAcceptances.filter((ra) =>
+    const riskAcceptance = riskAcceptances.filter((ra) =>
       ["PROPOSED", "CCRO_REVIEW", "AWAITING_APPROVAL", "EXPIRED"].includes(ra.status)
     ).length;
 
-    // Risk Register: pending changes awaiting CCRO review
     const pendingRiskChanges = isCCRO
-      ? s.risks.reduce((n, r) => n + (r.changes ?? []).filter((ch) => ch.status === "PENDING").length, 0)
+      ? risks.reduce((n, r) => n + (r.changes ?? []).filter((ch) => ch.status === "PENDING").length, 0)
       : 0;
 
-    return {
-      actions: overdueActions,
-      controls: pendingControlChanges,
-      riskAcceptance,
-      riskRegister: pendingRiskChanges,
-    } as Record<string, number>;
-  });
+    return { actions: overdueActions, controls: pendingControlChanges, riskAcceptance, riskRegister: pendingRiskChanges };
+  }, [actions, controls, risks, riskAcceptances, currentUser]);
 
   const [refreshing, setRefreshing] = useState(false);
 
