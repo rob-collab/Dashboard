@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { X, Shield, BookOpen, Scale } from "lucide-react";
 import type { Policy } from "@/lib/types";
-import { POLICY_STATUS_LABELS, POLICY_STATUS_COLOURS } from "@/lib/types";
+import { POLICY_STATUS_LABELS } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import PolicyOverviewTab from "./PolicyOverviewTab";
 import PolicyRegulationsTab from "./PolicyRegulationsTab";
@@ -41,7 +41,25 @@ export default function PolicyDetailPanel({ policy, onClose, onUpdate }: Props) 
     return () => document.removeEventListener("keydown", handleKey);
   }, [onClose]);
 
-  const sc = POLICY_STATUS_COLOURS[policy.status];
+  // Health summary
+  const healthSummary = useMemo(() => {
+    const controls = policy.controlLinks?.length ?? 0;
+    const regulations = policy.regulatoryLinks?.length ?? 0;
+    const obligations = policy.obligations?.length ?? 0;
+
+    let pass = 0;
+    for (const link of policy.controlLinks ?? []) {
+      const ctrl = link.control;
+      if (!ctrl) continue;
+      const results = ctrl.testingSchedule?.testResults ?? [];
+      if (results.length > 0) {
+        const sorted = [...results].sort((a, b) => new Date(b.testedDate).getTime() - new Date(a.testedDate).getTime());
+        if (sorted[0].result === "PASS") pass++;
+      }
+    }
+
+    return { controls, pass, regulations, obligations };
+  }, [policy]);
 
   function handleEditSave(updated: Policy) {
     onUpdate(updated);
@@ -54,20 +72,50 @@ export default function PolicyDetailPanel({ policy, onClose, onUpdate }: Props) 
 
       {/* Panel */}
       <div className="fixed right-0 top-0 z-50 h-screen w-full max-w-2xl bg-white shadow-xl border-l border-gray-200 flex flex-col animate-slide-in-right">
-        {/* Header */}
-        <div className="shrink-0 border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-3">
-              <span className="font-mono text-xs font-bold rounded-md bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5">{policy.reference}</span>
-              <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", sc.bg, sc.text)}>
+        {/* Gradient Header */}
+        <div className="shrink-0 relative overflow-hidden bg-gradient-to-r from-updraft-deep to-updraft-bar px-6 py-5">
+          {/* Decorative */}
+          <div className="absolute -top-4 -right-4 opacity-10">
+            <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
+              <circle cx="60" cy="60" r="50" stroke="white" strokeWidth="1.5" />
+              <circle cx="60" cy="60" r="30" stroke="white" strokeWidth="1.5" />
+            </svg>
+          </div>
+
+          <div className="relative flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2.5">
+              <span className="font-mono text-xs font-bold rounded-md bg-white/20 text-white px-2.5 py-1">{policy.reference}</span>
+              <span className={cn(
+                "rounded-full px-2.5 py-0.5 text-xs font-semibold",
+                policy.status === "OVERDUE" ? "bg-red-500 text-white" :
+                policy.status === "CURRENT" ? "bg-green-500 text-white" :
+                policy.status === "UNDER_REVIEW" ? "bg-amber-500 text-white" :
+                "bg-gray-500 text-white"
+              )}>
                 {POLICY_STATUS_LABELS[policy.status]}
               </span>
             </div>
-            <button onClick={onClose} className="rounded-lg p-1 hover:bg-gray-100 transition-colors">
-              <X size={18} className="text-gray-500" />
+            <button onClick={onClose} className="rounded-lg p-1 hover:bg-white/10 transition-colors">
+              <X size={18} className="text-white/80" />
             </button>
           </div>
-          <h2 className="text-lg font-bold text-updraft-deep font-poppins">{policy.name}</h2>
+          <h2 className="text-lg font-bold text-white font-poppins">{policy.name}</h2>
+
+          {/* Health summary */}
+          <div className="flex items-center gap-4 mt-3 text-white/70 text-xs">
+            <span className="inline-flex items-center gap-1">
+              <Shield size={12} />
+              {healthSummary.controls} controls{healthSummary.controls > 0 && `, ${healthSummary.pass} pass`}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <Scale size={12} />
+              {healthSummary.regulations} regulations
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <BookOpen size={12} />
+              {healthSummary.obligations} obligations
+            </span>
+          </div>
         </div>
 
         {/* Tabs */}

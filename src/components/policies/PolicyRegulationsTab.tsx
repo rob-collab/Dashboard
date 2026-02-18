@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ExternalLink, Link2, Plus, Search, Unlink } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
@@ -9,6 +9,17 @@ import type { Policy, Regulation, PolicyRegulatoryLink } from "@/lib/types";
 import { REGULATION_TYPE_LABELS, REGULATION_TYPE_COLOURS } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import RegulationFormDialog from "./RegulationFormDialog";
+
+const BODY_COLOURS: Record<string, { bg: string; text: string; border: string }> = {
+  FCA: { bg: "bg-blue-100", text: "text-blue-700", border: "border-blue-200" },
+  Parliament: { bg: "bg-purple-100", text: "text-purple-700", border: "border-purple-200" },
+  ICO: { bg: "bg-green-100", text: "text-green-700", border: "border-green-200" },
+  ASA: { bg: "bg-amber-100", text: "text-amber-700", border: "border-amber-200" },
+  Ofcom: { bg: "bg-orange-100", text: "text-orange-700", border: "border-orange-200" },
+  PRA: { bg: "bg-rose-100", text: "text-rose-700", border: "border-rose-200" },
+};
+
+const DEFAULT_BODY_COLOUR = { bg: "bg-gray-100", text: "text-gray-600", border: "border-gray-200" };
 
 interface Props {
   policy: Policy;
@@ -32,6 +43,15 @@ export default function PolicyRegulationsTab({ policy, onUpdate }: Props) {
   const filteredUnlinked = pickerSearch
     ? unlinked.filter((r) => r.name.toLowerCase().includes(pickerSearch.toLowerCase()) || r.reference.toLowerCase().includes(pickerSearch.toLowerCase()))
     : unlinked;
+
+  // Count unique regulatory bodies
+  const bodyCount = useMemo(() => {
+    const bodies = new Set<string>();
+    for (const link of linked) {
+      if (link.regulation?.body) bodies.add(link.regulation.body);
+    }
+    return bodies.size;
+  }, [linked]);
 
   async function handleLink(regulationId: string) {
     setLinking(regulationId);
@@ -72,11 +92,20 @@ export default function PolicyRegulationsTab({ policy, onUpdate }: Props) {
     addRegulation(reg);
   }
 
+  function getBodyColour(body: string) {
+    return BODY_COLOURS[body] ?? DEFAULT_BODY_COLOUR;
+  }
+
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {/* Header with count */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">{linked.length} linked regulation{linked.length !== 1 ? "s" : ""}</p>
+        <div>
+          <p className="text-sm font-semibold text-gray-700">{linked.length} regulation{linked.length !== 1 ? "s" : ""}</p>
+          {bodyCount > 0 && (
+            <p className="text-xs text-gray-400">across {bodyCount} regulatory bod{bodyCount !== 1 ? "ies" : "y"}</p>
+          )}
+        </div>
         {isCCRO && (
           <div className="flex gap-2">
             <button onClick={() => setShowPicker(!showPicker)} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
@@ -145,18 +174,23 @@ export default function PolicyRegulationsTab({ policy, onUpdate }: Props) {
               {linked.map((link) => {
                 const reg = link.regulation;
                 if (!reg) return null;
+                const bc = getBodyColour(reg.body);
                 return (
-                  <tr key={link.id} className="border-b border-gray-100">
-                    <td className="py-2 px-2 font-mono text-xs font-bold text-updraft-deep">{reg.reference}</td>
-                    <td className="py-2 px-2 text-xs text-gray-800">{reg.name}</td>
-                    <td className="py-2 px-2 text-xs text-gray-600">{reg.body}</td>
-                    <td className="py-2 px-2">
+                  <tr key={link.id} className="border-b border-gray-100 hover:bg-updraft-pale-purple/10 transition-colors">
+                    <td className="py-2.5 px-2 font-mono text-xs font-bold text-updraft-deep">{reg.reference}</td>
+                    <td className="py-2.5 px-2 text-xs text-gray-800 max-w-[180px]">{reg.shortName ?? reg.name}</td>
+                    <td className="py-2.5 px-2">
+                      <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border", bc.bg, bc.text, bc.border)}>
+                        {reg.body}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-2">
                       <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", REGULATION_TYPE_COLOURS[reg.type].bg, REGULATION_TYPE_COLOURS[reg.type].text)}>
                         {REGULATION_TYPE_LABELS[reg.type]}
                       </span>
                     </td>
-                    <td className="py-2 px-2 text-xs text-gray-500">{reg.provisions ?? "—"}</td>
-                    <td className="py-2 px-2 text-right">
+                    <td className="py-2.5 px-2 text-xs text-gray-500 max-w-[140px] truncate">{reg.provisions ?? "—"}</td>
+                    <td className="py-2.5 px-2 text-right">
                       <div className="flex items-center justify-end gap-1">
                         {reg.url && (
                           <a href={reg.url} target="_blank" rel="noopener noreferrer" className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-blue-600 transition-colors" title="View source">

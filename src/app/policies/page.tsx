@@ -5,12 +5,22 @@ import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
 import { formatDate, cn } from "@/lib/utils";
-import { BookOpen, ChevronRight, FileUp, Plus, Search } from "lucide-react";
+import {
+  BookOpen,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  ChevronRight,
+  FileUp,
+  Plus,
+  Search,
+} from "lucide-react";
 import type { Policy } from "@/lib/types";
 import { POLICY_STATUS_LABELS, POLICY_STATUS_COLOURS } from "@/lib/types";
 import PolicyFormDialog from "@/components/policies/PolicyFormDialog";
 import PolicyDetailPanel from "@/components/policies/PolicyDetailPanel";
 import CSVImportPanel from "@/components/policies/CSVImportPanel";
+import PolicyComplianceCharts from "@/components/policies/PolicyComplianceCharts";
 
 type TabKey = "all" | "CURRENT" | "OVERDUE" | "UNDER_REVIEW" | "ARCHIVED";
 
@@ -34,12 +44,22 @@ export default function PoliciesPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   // Summary stats
-  const stats = useMemo(() => ({
-    total: policies.length,
-    current: policies.filter((p) => p.status === "CURRENT").length,
-    overdue: policies.filter((p) => p.status === "OVERDUE").length,
-    underReview: policies.filter((p) => p.status === "UNDER_REVIEW").length,
-  }), [policies]);
+  const stats = useMemo(() => {
+    const overdue = policies.filter((p) => p.status === "OVERDUE").length;
+    const dueSoon = policies.filter((p) => {
+      if (p.status === "OVERDUE") return false;
+      if (!p.nextReviewDate) return false;
+      const days = Math.ceil((new Date(p.nextReviewDate).getTime() - Date.now()) / 86400000);
+      return days >= 0 && days <= 30;
+    }).length;
+    return {
+      total: policies.length,
+      current: policies.filter((p) => p.status === "CURRENT").length,
+      overdue,
+      underReview: policies.filter((p) => p.status === "UNDER_REVIEW").length,
+      dueSoon,
+    };
+  }, [policies]);
 
   // Filtered + sorted
   const filtered = useMemo(() => {
@@ -148,53 +168,132 @@ export default function PoliciesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-updraft-deep font-poppins">Policy Review</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage policies, regulatory mappings, and obligations</p>
+      {/* Gradient Hero Header */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-updraft-deep to-updraft-bar p-8 text-white">
+        {/* Decorative circles */}
+        <div className="absolute -top-6 -right-6 opacity-10">
+          <svg width="200" height="200" viewBox="0 0 200 200" fill="none">
+            <circle cx="100" cy="100" r="80" stroke="white" strokeWidth="2" />
+            <circle cx="100" cy="100" r="50" stroke="white" strokeWidth="2" />
+            <circle cx="100" cy="100" r="20" stroke="white" strokeWidth="2" />
+          </svg>
         </div>
-        <div className="flex items-center gap-2">
-          {isCCRO && (
-            <>
-              <button
-                onClick={() => setShowImport(true)}
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                <FileUp size={14} />
-                Import CSV
-              </button>
-              <button
-                onClick={() => setShowForm(true)}
-                className="inline-flex items-center gap-2 rounded-lg bg-updraft-deep text-white px-4 py-2 text-sm font-medium hover:bg-updraft-bar transition-colors"
-              >
-                <Plus size={14} />
-                New Policy
-              </button>
-            </>
-          )}
+        <div className="absolute bottom-0 left-1/3 opacity-5">
+          <svg width="160" height="80" viewBox="0 0 160 80" fill="none">
+            <circle cx="40" cy="40" r="40" fill="white" />
+            <circle cx="120" cy="40" r="40" fill="white" />
+          </svg>
+        </div>
+
+        <div className="relative flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold font-poppins">Policy Review</h1>
+            <p className="text-white/70 text-sm mt-1">Manage policies, regulatory mappings, and obligations</p>
+            {/* Notification pills */}
+            <div className="flex items-center gap-2 mt-3">
+              {stats.overdue > 0 && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/90 px-3 py-1 text-xs font-semibold text-white shadow-sm">
+                  <AlertTriangle size={12} />
+                  {stats.overdue} overdue
+                </span>
+              )}
+              {stats.dueSoon > 0 && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/90 px-3 py-1 text-xs font-semibold text-white shadow-sm">
+                  <Clock size={12} />
+                  {stats.dueSoon} due within 30 days
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {isCCRO && (
+              <>
+                <button
+                  onClick={() => setShowImport(true)}
+                  className="inline-flex items-center gap-2 rounded-lg border border-white/30 px-3 py-2 text-sm text-white hover:bg-white/10 transition-colors"
+                >
+                  <FileUp size={14} />
+                  Import CSV
+                </button>
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="inline-flex items-center gap-2 rounded-lg bg-white text-updraft-deep px-4 py-2 text-sm font-medium hover:bg-white/90 transition-colors"
+                >
+                  <Plus size={14} />
+                  New Policy
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <button onClick={() => setTab("all")} className="rounded-xl border border-gray-200 bg-white p-3 text-left hover:border-updraft-bright-purple transition-colors">
-          <div className="flex items-center gap-2 mb-1"><BookOpen size={14} className="text-updraft-bright-purple" /><p className="text-xs text-gray-500">Total Policies</p></div>
-          <p className="text-2xl font-bold font-poppins text-updraft-deep">{stats.total}</p>
+      {/* Enhanced Summary Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <button onClick={() => setTab("all")} className={cn(
+          "bento-card p-4 text-left transition-all",
+          tab === "all" && "ring-2 ring-updraft-bright-purple"
+        )}>
+          <div className="flex items-center gap-2.5 mb-2">
+            <div className="rounded-lg bg-updraft-pale-purple/40 p-2">
+              <BookOpen size={16} className="text-updraft-bright-purple" />
+            </div>
+            <p className="text-xs font-medium text-gray-500">Total Policies</p>
+          </div>
+          <p className="text-3xl font-bold font-poppins text-updraft-deep">{stats.total}</p>
         </button>
-        <button onClick={() => setTab("CURRENT")} className="rounded-xl border border-green-200 bg-green-50 p-3 text-left hover:border-green-400 transition-colors">
-          <p className="text-xs text-gray-500">Current</p>
-          <p className="text-2xl font-bold font-poppins text-green-700">{stats.current}</p>
+
+        <button onClick={() => setTab("CURRENT")} className={cn(
+          "bento-card p-4 text-left transition-all",
+          tab === "CURRENT" && "ring-2 ring-green-400"
+        )}>
+          <div className="flex items-center gap-2.5 mb-2">
+            <div className="rounded-lg bg-green-100 p-2">
+              <CheckCircle2 size={16} className="text-green-600" />
+            </div>
+            <p className="text-xs font-medium text-gray-500">Current</p>
+          </div>
+          <p className="text-3xl font-bold font-poppins text-green-700">{stats.current}</p>
+          {stats.total > 0 && (
+            <p className="text-[10px] text-gray-400 mt-0.5">{Math.round((stats.current / stats.total) * 100)}% of total</p>
+          )}
         </button>
-        <button onClick={() => setTab("OVERDUE")} className="rounded-xl border border-red-200 bg-red-50 p-3 text-left hover:border-red-400 transition-colors">
-          <p className="text-xs text-gray-500">Overdue</p>
-          <p className="text-2xl font-bold font-poppins text-red-700">{stats.overdue}</p>
+
+        <button onClick={() => setTab("OVERDUE")} className={cn(
+          "bento-card p-4 text-left transition-all",
+          tab === "OVERDUE" && "ring-2 ring-red-400"
+        )}>
+          <div className="flex items-center gap-2.5 mb-2">
+            <div className="rounded-lg bg-red-100 p-2">
+              <AlertTriangle size={16} className="text-red-600" />
+            </div>
+            <p className="text-xs font-medium text-gray-500">Overdue</p>
+          </div>
+          <p className="text-3xl font-bold font-poppins text-red-700">{stats.overdue}</p>
+          {stats.total > 0 && (
+            <p className="text-[10px] text-gray-400 mt-0.5">{Math.round((stats.overdue / stats.total) * 100)}% of total</p>
+          )}
         </button>
-        <button onClick={() => setTab("UNDER_REVIEW")} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-left hover:border-amber-400 transition-colors">
-          <p className="text-xs text-gray-500">Under Review</p>
-          <p className="text-2xl font-bold font-poppins text-amber-700">{stats.underReview}</p>
+
+        <button onClick={() => setTab("UNDER_REVIEW")} className={cn(
+          "bento-card p-4 text-left transition-all",
+          tab === "UNDER_REVIEW" && "ring-2 ring-amber-400"
+        )}>
+          <div className="flex items-center gap-2.5 mb-2">
+            <div className="rounded-lg bg-amber-100 p-2">
+              <Clock size={16} className="text-amber-600" />
+            </div>
+            <p className="text-xs font-medium text-gray-500">Under Review</p>
+          </div>
+          <p className="text-3xl font-bold font-poppins text-amber-700">{stats.underReview}</p>
+          {stats.total > 0 && (
+            <p className="text-[10px] text-gray-400 mt-0.5">{Math.round((stats.underReview / stats.total) * 100)}% of total</p>
+          )}
         </button>
       </div>
+
+      {/* Compliance Charts */}
+      <PolicyComplianceCharts policies={policies} />
 
       {/* Tabs */}
       <div className="flex items-center gap-1 border-b border-gray-200">
@@ -235,6 +334,7 @@ export default function PoliciesPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-200">
+              <th className="text-left py-2 px-3 font-medium text-gray-500 text-xs w-6"></th>
               <SortHeader label="Reference" sortKey="reference" current={sortBy} dir={sortDir} onSort={handleSort} />
               <SortHeader label="Name" sortKey="name" current={sortBy} dir={sortDir} onSort={handleSort} />
               <SortHeader label="Owner" sortKey="owner" current={sortBy} dir={sortDir} onSort={handleSort} />
@@ -247,7 +347,7 @@ export default function PoliciesPage() {
           </thead>
           <tbody>
             {filtered.length === 0 && (
-              <tr><td colSpan={8} className="py-12 text-center text-sm text-gray-400">No policies found</td></tr>
+              <tr><td colSpan={9} className="py-12 text-center text-sm text-gray-400">No policies found</td></tr>
             )}
             {filtered.map((p) => {
               const sc = POLICY_STATUS_COLOURS[p.status];
@@ -255,12 +355,21 @@ export default function PoliciesPage() {
               const passRate = getControlsPassRate(p);
               const reviewDays = p.nextReviewDate ? Math.ceil((new Date(p.nextReviewDate).getTime() - Date.now()) / 86400000) : null;
 
+              // Status dot colour
+              const dotColour = p.status === "OVERDUE" ? "bg-red-500" :
+                p.status === "CURRENT" ? "bg-green-500" :
+                p.status === "UNDER_REVIEW" ? "bg-amber-500" :
+                "bg-gray-400";
+
               return (
                 <tr
                   key={p.id}
                   onClick={() => setSelectedPolicy(p)}
-                  className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
+                  className="border-b border-gray-100 hover:bg-updraft-pale-purple/20 cursor-pointer transition-colors"
                 >
+                  <td className="py-3 px-3">
+                    <span className={cn("inline-block w-2.5 h-2.5 rounded-full", dotColour)} />
+                  </td>
                   <td className="py-3 px-3 font-mono text-xs font-bold text-updraft-deep">{p.reference}</td>
                   <td className="py-3 px-3 text-sm text-gray-800 max-w-[200px] truncate">{p.name}</td>
                   <td className="py-3 px-3 text-xs text-gray-600">{owner?.name ?? "—"}</td>
@@ -278,10 +387,10 @@ export default function PoliciesPage() {
                   </td>
                   <td className="py-3 px-3">
                     {p.nextReviewDate ? (
-                      <span className={cn("text-xs font-medium",
-                        reviewDays !== null && reviewDays < 0 ? "text-red-600" :
-                        reviewDays !== null && reviewDays <= 30 ? "text-amber-600" :
-                        "text-gray-500"
+                      <span className={cn("text-xs",
+                        reviewDays !== null && reviewDays < 0 ? "text-red-600 font-bold" :
+                        reviewDays !== null && reviewDays <= 30 ? "text-amber-600 font-semibold" :
+                        "text-gray-500 font-medium"
                       )}>
                         {new Date(p.nextReviewDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                       </span>

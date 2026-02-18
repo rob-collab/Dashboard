@@ -1,6 +1,25 @@
 "use client";
 
-import { AlertTriangle, ExternalLink, Pencil } from "lucide-react";
+import { useMemo } from "react";
+import {
+  AlertTriangle,
+  ExternalLink,
+  Pencil,
+  User,
+  Shield,
+  FileText,
+  Calendar,
+  Clock,
+  Tag,
+  CheckCircle2,
+} from "lucide-react";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts";
 import { useAppStore } from "@/lib/store";
 import type { Policy } from "@/lib/types";
 import { POLICY_STATUS_LABELS, POLICY_STATUS_COLOURS } from "@/lib/types";
@@ -10,6 +29,13 @@ interface Props {
   policy: Policy;
   onEdit: () => void;
 }
+
+const HEALTH_COLOURS = {
+  Pass: "#22c55e",
+  Fail: "#ef4444",
+  Partial: "#f59e0b",
+  "Not Tested": "#d1d5db",
+};
 
 export default function PolicyOverviewTab({ policy, onEdit }: Props) {
   const users = useAppStore((s) => s.users);
@@ -21,29 +47,52 @@ export default function PolicyOverviewTab({ policy, onEdit }: Props) {
 
   // Control health from linked controls
   const controlLinks = policy.controlLinks ?? [];
-  const controlHealth = { pass: 0, fail: 0, partial: 0, total: controlLinks.length };
-  for (const link of controlLinks) {
-    const ctrl = link.control;
-    if (!ctrl) continue;
-    const schedule = ctrl.testingSchedule;
-    const results = schedule?.testResults ?? [];
-    if (results.length === 0) continue;
-    const latest = results[results.length - 1];
-    if (latest.result === "PASS") controlHealth.pass++;
-    else if (latest.result === "FAIL") controlHealth.fail++;
-    else if (latest.result === "PARTIALLY") controlHealth.partial++;
-  }
+  const controlHealth = useMemo(() => {
+    const h = { pass: 0, fail: 0, partial: 0, notTested: 0, total: controlLinks.length };
+    for (const link of controlLinks) {
+      const ctrl = link.control;
+      if (!ctrl) continue;
+      const schedule = ctrl.testingSchedule;
+      const results = schedule?.testResults ?? [];
+      if (results.length === 0) { h.notTested++; continue; }
+      const sorted = [...results].sort((a, b) => new Date(b.testedDate).getTime() - new Date(a.testedDate).getTime());
+      const latest = sorted[0];
+      if (latest.result === "PASS") h.pass++;
+      else if (latest.result === "FAIL") h.fail++;
+      else if (latest.result === "PARTIALLY") h.partial++;
+      else h.notTested++;
+    }
+    return h;
+  }, [controlLinks]);
+
+  const donutData = useMemo(() => [
+    { name: "Pass", value: controlHealth.pass, colour: HEALTH_COLOURS.Pass },
+    { name: "Fail", value: controlHealth.fail, colour: HEALTH_COLOURS.Fail },
+    { name: "Partial", value: controlHealth.partial, colour: HEALTH_COLOURS.Partial },
+    { name: "Not Tested", value: controlHealth.notTested, colour: HEALTH_COLOURS["Not Tested"] },
+  ].filter(d => d.value > 0), [controlHealth]);
 
   return (
     <div className="space-y-6">
       {/* Overdue Alert */}
       {isOverdue && (
-        <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3">
-          <AlertTriangle size={16} className="text-red-600 shrink-0" />
-          <p className="text-sm text-red-700 font-medium">
-            This policy is overdue for review
-            {policy.nextReviewDate && ` (due ${new Date(policy.nextReviewDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })})`}
-          </p>
+        <div className="relative overflow-hidden rounded-xl border border-red-200 bg-gradient-to-r from-red-50 to-red-100 px-4 py-3">
+          <div className="absolute -right-4 -top-4 opacity-10">
+            <AlertTriangle size={80} className="text-red-600" />
+          </div>
+          <div className="relative flex items-center gap-2">
+            <div className="rounded-lg bg-red-500 p-1.5">
+              <AlertTriangle size={14} className="text-white" />
+            </div>
+            <div>
+              <p className="text-sm text-red-800 font-semibold">Policy Overdue for Review</p>
+              {policy.nextReviewDate && (
+                <p className="text-xs text-red-600 mt-0.5">
+                  Review was due {new Date(policy.nextReviewDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -57,21 +106,26 @@ export default function PolicyOverviewTab({ policy, onEdit }: Props) {
       )}
 
       {/* Metadata Grid */}
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="Owner" value={owner?.name ?? "—"} />
-        <Field label="Approved By" value={policy.approvedBy ?? "—"} />
-        <Field label="Classification" value={policy.classification} />
-        <Field label="Version" value={policy.version} />
-        <Field label="Review Frequency" value={`${policy.reviewFrequencyDays} days`} />
-        <Field label="Status">
-          <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold", POLICY_STATUS_COLOURS[policy.status].bg, POLICY_STATUS_COLOURS[policy.status].text)}>
-            {POLICY_STATUS_LABELS[policy.status]}
-          </span>
-        </Field>
-        <Field label="Effective Date" value={policy.effectiveDate ? formatDate(policy.effectiveDate) : "—"} />
-        <Field label="Last Reviewed" value={policy.lastReviewedDate ? formatDate(policy.lastReviewedDate) : "—"} />
-        <Field label="Next Review" value={policy.nextReviewDate ? formatDate(policy.nextReviewDate) : "—"} />
-        <Field label="Created" value={formatDate(policy.createdAt)} />
+      <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+        <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Policy Details</h3>
+        </div>
+        <div className="grid grid-cols-2 gap-4 p-4">
+          <Field icon={<User size={12} className="text-updraft-bright-purple" />} label="Owner" value={owner?.name ?? "—"} />
+          <Field icon={<CheckCircle2 size={12} className="text-updraft-bright-purple" />} label="Approved By" value={policy.approvedBy ?? "—"} />
+          <Field icon={<Shield size={12} className="text-updraft-bright-purple" />} label="Classification" value={policy.classification} />
+          <Field icon={<Tag size={12} className="text-updraft-bright-purple" />} label="Version" value={policy.version} />
+          <Field icon={<Clock size={12} className="text-updraft-bright-purple" />} label="Review Frequency" value={`${policy.reviewFrequencyDays} days`} />
+          <Field icon={<FileText size={12} className="text-updraft-bright-purple" />} label="Status">
+            <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold", POLICY_STATUS_COLOURS[policy.status].bg, POLICY_STATUS_COLOURS[policy.status].text)}>
+              {POLICY_STATUS_LABELS[policy.status]}
+            </span>
+          </Field>
+          <Field icon={<Calendar size={12} className="text-updraft-bright-purple" />} label="Effective Date" value={policy.effectiveDate ? formatDate(policy.effectiveDate) : "—"} />
+          <Field icon={<Calendar size={12} className="text-updraft-bright-purple" />} label="Last Reviewed" value={policy.lastReviewedDate ? formatDate(policy.lastReviewedDate) : "—"} />
+          <Field icon={<Calendar size={12} className="text-updraft-bright-purple" />} label="Next Review" value={policy.nextReviewDate ? formatDate(policy.nextReviewDate) : "—"} />
+          <Field icon={<Calendar size={12} className="text-updraft-bright-purple" />} label="Created" value={formatDate(policy.createdAt)} />
+        </div>
       </div>
 
       {/* Scope */}
@@ -114,26 +168,62 @@ export default function PolicyOverviewTab({ policy, onEdit }: Props) {
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Related Policies</label>
           <div className="flex flex-wrap gap-1.5">
             {policy.relatedPolicies.map((p) => (
-              <span key={p} className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-600">{p}</span>
+              <span key={p} className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2.5 py-0.5 text-xs font-medium">{p}</span>
             ))}
           </div>
         </div>
       )}
 
-      {/* Control Health */}
+      {/* Control Health Donut */}
       {controlHealth.total > 0 && (
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Controls Health</label>
-          <div className="flex items-center gap-4">
-            <div className="flex-1 h-3 rounded-full bg-gray-100 overflow-hidden flex">
-              {controlHealth.pass > 0 && <div className="bg-green-500 h-full" style={{ width: `${(controlHealth.pass / controlHealth.total) * 100}%` }} />}
-              {controlHealth.partial > 0 && <div className="bg-amber-500 h-full" style={{ width: `${(controlHealth.partial / controlHealth.total) * 100}%` }} />}
-              {controlHealth.fail > 0 && <div className="bg-red-500 h-full" style={{ width: `${(controlHealth.fail / controlHealth.total) * 100}%` }} />}
-            </div>
-            <div className="flex gap-3 text-[10px]">
-              <span className="text-green-600 font-medium">{controlHealth.pass} Pass</span>
-              <span className="text-amber-600 font-medium">{controlHealth.partial} Partial</span>
-              <span className="text-red-600 font-medium">{controlHealth.fail} Fail</span>
+        <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+          <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Controls Health</h3>
+          </div>
+          <div className="p-4 flex items-center gap-6">
+            <ResponsiveContainer width={120} height={120}>
+              <PieChart>
+                <Pie
+                  data={donutData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={35}
+                  outerRadius={50}
+                  paddingAngle={2}
+                  dataKey="value"
+                  strokeWidth={0}
+                >
+                  {donutData.map((d, i) => (
+                    <Cell key={i} fill={d.colour} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value) => [`${value}`]}
+                  contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-green-500" />
+                <span className="text-xs text-gray-600">Pass</span>
+                <span className="text-xs font-bold text-gray-800">{controlHealth.pass}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-amber-500" />
+                <span className="text-xs text-gray-600">Partial</span>
+                <span className="text-xs font-bold text-gray-800">{controlHealth.partial}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-red-500" />
+                <span className="text-xs text-gray-600">Fail</span>
+                <span className="text-xs font-bold text-gray-800">{controlHealth.fail}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-gray-300" />
+                <span className="text-xs text-gray-600">Not Tested</span>
+                <span className="text-xs font-bold text-gray-800">{controlHealth.notTested}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -148,10 +238,13 @@ export default function PolicyOverviewTab({ policy, onEdit }: Props) {
   );
 }
 
-function Field({ label, value, children }: { label: string; value?: string; children?: React.ReactNode }) {
+function Field({ icon, label, value, children }: { icon?: React.ReactNode; label: string; value?: string; children?: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{label}</label>
+      <label className="flex items-center gap-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+        {icon}
+        {label}
+      </label>
       {children ?? <p className="text-sm text-gray-800 mt-0.5">{value}</p>}
     </div>
   );

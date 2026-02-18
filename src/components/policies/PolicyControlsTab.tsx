@@ -1,13 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ChevronDown, ChevronRight, Link2, Search, Unlink } from "lucide-react";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+} from "recharts";
 import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
 import type { Policy, PolicyControlLink, ControlRecord, TestResultValue } from "@/lib/types";
 import { TEST_RESULT_COLOURS, TEST_RESULT_LABELS, CONTROL_FREQUENCY_LABELS } from "@/lib/types";
 import { cn, formatDate } from "@/lib/utils";
+
+const DONUT_COLOURS: Record<string, string> = {
+  Pass: "#22c55e",
+  Fail: "#ef4444",
+  Partial: "#f59e0b",
+  "Not Tested": "#d1d5db",
+};
 
 interface Props {
   policy: Policy;
@@ -31,11 +44,44 @@ export default function PolicyControlsTab({ policy, onUpdate }: Props) {
     ? unlinked.filter((c) => c.controlName.toLowerCase().includes(pickerSearch.toLowerCase()) || c.controlRef.toLowerCase().includes(pickerSearch.toLowerCase()))
     : unlinked;
 
+  // Mini donut data
+  const healthStats = useMemo(() => {
+    let pass = 0, fail = 0, partial = 0, notTested = 0;
+    for (const link of linked) {
+      const ctrl = link.control;
+      if (!ctrl) continue;
+      const results = ctrl.testingSchedule?.testResults ?? [];
+      if (results.length === 0) { notTested++; continue; }
+      const sorted = [...results].sort((a, b) => new Date(b.testedDate).getTime() - new Date(a.testedDate).getTime());
+      const r = sorted[0].result;
+      if (r === "PASS") pass++;
+      else if (r === "FAIL") fail++;
+      else if (r === "PARTIALLY") partial++;
+      else notTested++;
+    }
+    return { pass, fail, partial, notTested, total: linked.length };
+  }, [linked]);
+
+  const donutData = useMemo(() => [
+    { name: "Pass", value: healthStats.pass, colour: DONUT_COLOURS.Pass },
+    { name: "Fail", value: healthStats.fail, colour: DONUT_COLOURS.Fail },
+    { name: "Partial", value: healthStats.partial, colour: DONUT_COLOURS.Partial },
+    { name: "Not Tested", value: healthStats.notTested, colour: DONUT_COLOURS["Not Tested"] },
+  ].filter(d => d.value > 0), [healthStats]);
+
   function getLatestResult(ctrl: ControlRecord): { result: TestResultValue; date: string } | null {
     const schedule = ctrl.testingSchedule;
     if (!schedule?.testResults?.length) return null;
     const sorted = [...schedule.testResults].sort((a, b) => new Date(b.testedDate).getTime() - new Date(a.testedDate).getTime());
     return { result: sorted[0].result, date: sorted[0].testedDate };
+  }
+
+  function ragDot(result: TestResultValue | null) {
+    if (!result) return "bg-gray-300";
+    if (result === "PASS") return "bg-green-500";
+    if (result === "FAIL") return "bg-red-500";
+    if (result === "PARTIALLY") return "bg-amber-500";
+    return "bg-gray-300";
   }
 
   async function handleLink(controlId: string) {
@@ -75,9 +121,41 @@ export default function PolicyControlsTab({ policy, onUpdate }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {/* Header with mini donut */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">{linked.length} linked control{linked.length !== 1 ? "s" : ""}</p>
+        <div className="flex items-center gap-4">
+          {healthStats.total > 0 && (
+            <div className="flex items-center gap-3">
+              <ResponsiveContainer width={48} height={48}>
+                <PieChart>
+                  <Pie
+                    data={donutData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={14}
+                    outerRadius={22}
+                    paddingAngle={2}
+                    dataKey="value"
+                    strokeWidth={0}
+                  >
+                    {donutData.map((d, i) => (
+                      <Cell key={i} fill={d.colour} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              <div>
+                <p className="text-sm font-semibold text-gray-700">{linked.length} controls</p>
+                <p className="text-[10px] text-gray-400">
+                  {healthStats.pass} pass · {healthStats.fail} fail · {healthStats.partial} partial
+                </p>
+              </div>
+            </div>
+          )}
+          {healthStats.total === 0 && (
+            <p className="text-sm text-gray-500">{linked.length} linked control{linked.length !== 1 ? "s" : ""}</p>
+          )}
+        </div>
         {isCCRO && (
           <button onClick={() => setShowPicker(!showPicker)} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
             <Link2 size={12} /> Link Control
@@ -123,7 +201,7 @@ export default function PolicyControlsTab({ policy, onUpdate }: Props) {
       {linked.length === 0 ? (
         <p className="text-sm text-gray-400 text-center py-8">No controls linked yet</p>
       ) : (
-        <div className="space-y-1">
+        <div className="space-y-2">
           {linked.map((link) => {
             const ctrl = link.control;
             if (!ctrl) return null;
@@ -132,12 +210,14 @@ export default function PolicyControlsTab({ policy, onUpdate }: Props) {
             const rc = latest ? TEST_RESULT_COLOURS[latest.result] : null;
 
             return (
-              <div key={link.id} className="rounded-lg border border-gray-200 bg-white">
+              <div key={link.id} className="rounded-xl border border-gray-200 bg-white overflow-hidden hover:border-gray-300 transition-colors">
                 {/* Row */}
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : link.id)}
-                  className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm hover:bg-gray-50 transition-colors"
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-gray-50/50 transition-colors"
                 >
+                  {/* RAG dot */}
+                  <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", ragDot(latest?.result ?? null))} />
                   {isExpanded ? <ChevronDown size={14} className="text-gray-400 shrink-0" /> : <ChevronRight size={14} className="text-gray-400 shrink-0" />}
                   <span className="font-mono text-xs font-bold text-updraft-deep w-20 shrink-0">{ctrl.controlRef}</span>
                   <span className="flex-1 text-xs text-gray-800 truncate">{ctrl.controlName}</span>
@@ -146,6 +226,9 @@ export default function PolicyControlsTab({ policy, onUpdate }: Props) {
                     <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium shrink-0", rc.bg, rc.text)}>
                       {TEST_RESULT_LABELS[latest.result]}
                     </span>
+                  )}
+                  {!latest && (
+                    <span className="rounded-full px-2 py-0.5 text-[10px] font-medium shrink-0 bg-gray-100 text-gray-400">Not Tested</span>
                   )}
                   {isCCRO && (
                     <button
@@ -158,29 +241,31 @@ export default function PolicyControlsTab({ policy, onUpdate }: Props) {
                   )}
                 </button>
 
-                {/* Expanded Details */}
+                {/* Expanded Details — Card Layout */}
                 {isExpanded && (
-                  <div className="border-t border-gray-100 px-4 py-3 grid grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <span className="text-gray-400 block text-[10px] uppercase font-semibold">Owner</span>
-                      <span className="text-gray-700">{ctrl.controlOwner?.name ?? "—"}</span>
+                  <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-3">
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div className="rounded-lg bg-white border border-gray-100 p-2.5">
+                        <span className="text-gray-400 block text-[10px] uppercase font-semibold mb-0.5">Owner</span>
+                        <span className="text-gray-700 font-medium">{ctrl.controlOwner?.name ?? "—"}</span>
+                      </div>
+                      <div className="rounded-lg bg-white border border-gray-100 p-2.5">
+                        <span className="text-gray-400 block text-[10px] uppercase font-semibold mb-0.5">Business Area</span>
+                        <span className="text-gray-700 font-medium">{ctrl.businessArea?.name ?? "—"}</span>
+                      </div>
+                      <div className="rounded-lg bg-white border border-gray-100 p-2.5">
+                        <span className="text-gray-400 block text-[10px] uppercase font-semibold mb-0.5">Last Tested</span>
+                        <span className="text-gray-700 font-medium">{latest ? formatDate(latest.date) : "Not tested"}</span>
+                      </div>
+                      <div className="rounded-lg bg-white border border-gray-100 p-2.5">
+                        <span className="text-gray-400 block text-[10px] uppercase font-semibold mb-0.5">Type</span>
+                        <span className="text-gray-700 font-medium">{ctrl.controlType ?? "—"}</span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-gray-400 block text-[10px] uppercase font-semibold">Business Area</span>
-                      <span className="text-gray-700">{ctrl.businessArea?.name ?? "—"}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-400 block text-[10px] uppercase font-semibold">Last Tested</span>
-                      <span className="text-gray-700">{latest ? formatDate(latest.date) : "Not tested"}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-400 block text-[10px] uppercase font-semibold">Type</span>
-                      <span className="text-gray-700">{ctrl.controlType ?? "—"}</span>
-                    </div>
-                    {ctrl.standingComments && (
-                      <div className="col-span-2">
-                        <span className="text-gray-400 block text-[10px] uppercase font-semibold">Comments</span>
-                        <span className="text-gray-700">{ctrl.standingComments}</span>
+                    {ctrl.controlDescription && (
+                      <div className="mt-2.5 rounded-lg bg-white border border-gray-100 p-2.5">
+                        <span className="text-gray-400 block text-[10px] uppercase font-semibold mb-0.5">Description</span>
+                        <span className="text-gray-600 text-xs leading-relaxed">{ctrl.controlDescription}</span>
                       </div>
                     )}
                   </div>
