@@ -432,7 +432,11 @@ export const useAppStore = create<AppState>((set) => ({
   users: [],
   setUsers: (users) => set({ users }),
   addUser: (user) => {
-    set((state) => ({ users: [...state.users, user] }));
+    set((state) => {
+      // Prevent duplicate users by email or id
+      if (state.users.some((u) => u.id === user.id || u.email === user.email)) return state;
+      return { users: [...state.users, user] };
+    });
     sync(() => api("/api/users", { method: "POST", body: user }));
   },
   updateUser: (id, data) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import {
   FileText,
@@ -14,12 +14,19 @@ import {
   ShieldQuestion,
   ListChecks,
   BarChart3,
+  CheckCircle2,
+  XCircle,
+  ExternalLink,
+  FlaskConical,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useAppStore } from "@/lib/store";
+import { api } from "@/lib/api-client";
 import { formatDate, ragBgColor } from "@/lib/utils";
 import { getActionLabel } from "@/lib/audit";
 import { getRiskScore } from "@/lib/risk-categories";
-import type { ActionPriority } from "@/lib/types";
+import type { ActionPriority, ActionChange, ControlChange } from "@/lib/types";
 import ScoreBadge from "@/components/risk-register/ScoreBadge";
 import DirectionArrow from "@/components/risk-register/DirectionArrow";
 
@@ -36,6 +43,223 @@ const PRIORITY_CONFIG: Record<ActionPriority, { label: string; description: stri
   P3: { label: "P3 — Routine", description: "Standard priority, planned resolution", color: "text-slate-600", bg: "bg-slate-50", border: "border-slate-200 hover:border-slate-400" },
 };
 
+/* ── Field label humaniser ───────────────────────────────────────────── */
+const FIELD_LABELS: Record<string, string> = {
+  status: "Status",
+  dueDate: "Due Date",
+  assignedTo: "Assigned To",
+  title: "Title",
+  description: "Description",
+  priority: "Priority",
+  controlName: "Control Name",
+  controlDescription: "Control Description",
+  controlOwnerId: "Control Owner",
+  consumerDutyOutcome: "Consumer Duty Outcome",
+  controlFrequency: "Frequency",
+  controlType: "Control Type",
+  internalOrThirdParty: "Internal/Third Party",
+  standingComments: "Standing Comments",
+  businessAreaId: "Business Area",
+};
+
+function fieldLabel(field: string): string {
+  return FIELD_LABELS[field] ?? field.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase());
+}
+
+/* ── Pending Changes Panel ───────────────────────────────────────────── */
+type PendingItem = (ActionChange | ControlChange) & {
+  _type: "action" | "control";
+  _parentTitle: string;
+  _parentId: string;
+  _parentRef: string;
+};
+
+function PendingChangesPanel({
+  changes,
+  users,
+  updateAction,
+  updateControl,
+}: {
+  changes: PendingItem[];
+  users: { id: string; name: string }[];
+  updateAction: (id: string, data: Record<string, unknown>) => void;
+  updateControl: (id: string, data: Record<string, unknown>) => void;
+}) {
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
+  const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
+  const [processedIds, setProcessedIds] = useState<Set<string>>(new Set());
+
+  const handleReview = useCallback(async (
+    change: PendingItem,
+    decision: "APPROVED" | "REJECTED"
+  ) => {
+    setReviewingId(change.id);
+    try {
+      const note = reviewNotes[change.id] || undefined;
+      if (change._type === "action") {
+        const ac = change as ActionChange & { _parentId: string };
+        await api(`/api/actions/${ac._parentId}/changes/${change.id}`, {
+          method: "PATCH",
+          body: { status: decision, reviewNote: note },
+        });
+        // Refresh action changes in store
+        const updatedChanges = await api<ActionChange[]>(`/api/actions/${ac._parentId}/changes`);
+        updateAction(ac._parentId, { changes: updatedChanges });
+      } else {
+        const cc = change as ControlChange & { _parentId: string };
+        await api(`/api/controls/library/${cc._parentId}/changes/${change.id}`, {
+          method: "PATCH",
+          body: { status: decision, reviewNote: note },
+        });
+        const updatedChanges = await api<ControlChange[]>(`/api/controls/library/${cc._parentId}/changes`);
+        updateControl(cc._parentId, { changes: updatedChanges });
+      }
+      setProcessedIds((prev) => { const next = new Set(prev); next.add(change.id); return next; });
+      toast.success(decision === "APPROVED" ? "Change approved" : "Change rejected");
+    } catch (err) {
+      toast.error("Failed to process change", { description: err instanceof Error ? err.message : "Unknown error" });
+    } finally {
+      setReviewingId(null);
+    }
+  }, [reviewNotes, updateAction, updateControl]);
+
+  const visibleChanges = changes.filter((c) => !processedIds.has(c.id));
+
+  if (visibleChanges.length === 0) return null;
+
+  return (
+    <div className="bento-card border-2 border-amber-200">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Bell className="h-5 w-5 text-amber-500" />
+          <h2 className="text-lg font-bold text-updraft-deep font-poppins">Proposed Changes</h2>
+          <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-bold">{visibleChanges.length}</span>
+        </div>
+      </div>
+      <div className="space-y-3">
+        {visibleChanges.map((c) => {
+          const proposerName = c.proposer?.name ?? users.find((u) => u.id === c.proposedBy)?.name ?? "Unknown";
+          const isAction = c._type === "action";
+          const ac = isAction ? (c as ActionChange & PendingItem) : null;
+          const cc = !isAction ? (c as ControlChange & PendingItem) : null;
+          const isProcessing = reviewingId === c.id;
+          const originHref = isAction ? `/actions?edit=${c._parentId}` : `/controls?control=${c._parentId}`;
+
+          return (
+            <div key={c.id} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+              {/* Header */}
+              <div className="flex items-start gap-3 px-4 py-3 bg-gray-50/80">
+                <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${isAction ? "bg-blue-100" : "bg-purple-100"}`}>
+                  {isAction ? <ListChecks className="h-4 w-4 text-blue-600" /> : <FlaskConical className="h-4 w-4 text-purple-600" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isAction ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"}`}>
+                      {isAction ? "Action" : "Control"}
+                    </span>
+                    <span className="text-xs font-mono font-bold text-updraft-deep">{c._parentRef}</span>
+                  </div>
+                  <p className="text-sm font-medium text-gray-900 mt-0.5">{c._parentTitle}</p>
+                </div>
+                <Link
+                  href={originHref}
+                  className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium text-updraft-bright-purple hover:text-updraft-deep transition-colors px-2 py-1 rounded-md hover:bg-updraft-pale-purple/20"
+                  title={`View ${isAction ? "action" : "control"} details`}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  View
+                </Link>
+              </div>
+
+              {/* Change Details */}
+              <div className="px-4 py-3 space-y-2">
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <span>Proposed by <strong className="text-gray-700">{proposerName}</strong></span>
+                  <span className="text-gray-300">·</span>
+                  <span>{formatDate(c.proposedAt)}</span>
+                </div>
+
+                {ac?.isUpdate ? (
+                  <div className="rounded-lg bg-blue-50/60 border border-blue-100 p-3">
+                    <p className="text-xs font-semibold text-blue-700 mb-1">Progress Update</p>
+                    <p className="text-sm text-gray-800 whitespace-pre-wrap">{ac.newValue ?? "No details provided"}</p>
+                    {ac.evidenceUrl && (
+                      <a
+                        href={ac.evidenceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        {ac.evidenceName ?? "View evidence"}
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <div className="rounded-lg bg-amber-50/60 border border-amber-100 p-3">
+                    <p className="text-xs font-semibold text-amber-700 mb-2">
+                      Field: {fieldLabel(c.fieldChanged)}
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Current Value</p>
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap bg-white/70 rounded px-2 py-1.5 border border-gray-100 min-h-[2rem]">
+                          {c.oldValue || <span className="text-gray-400 italic">Empty</span>}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Proposed Value</p>
+                        <p className="text-sm text-gray-900 font-medium whitespace-pre-wrap bg-white/70 rounded px-2 py-1.5 border border-amber-200 min-h-[2rem]">
+                          {c.newValue || <span className="text-gray-400 italic">Empty</span>}
+                        </p>
+                      </div>
+                    </div>
+                    {cc?.rationale && (
+                      <div className="mt-2">
+                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Rationale</p>
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{cc.rationale}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Review note input + action buttons */}
+                <div className="pt-2 border-t border-gray-100 space-y-2">
+                  <textarea
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple/30 outline-none resize-none"
+                    rows={2}
+                    placeholder="Review note (optional)..."
+                    value={reviewNotes[c.id] ?? ""}
+                    onChange={(e) => setReviewNotes((prev) => ({ ...prev, [c.id]: e.target.value }))}
+                  />
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => handleReview(c, "REJECTED")}
+                      disabled={isProcessing}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
+                    >
+                      {isProcessing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
+                      Reject
+                    </button>
+                    <button
+                      onClick={() => handleReview(c, "APPROVED")}
+                      disabled={isProcessing}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
+                    >
+                      {isProcessing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                      Approve
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardHome() {
   const hydrated = useAppStore((s) => s._hydrated);
   const currentUser = useAppStore((s) => s.currentUser);
@@ -48,6 +272,9 @@ export default function DashboardHome() {
   const users = useAppStore((s) => s.users);
   const risks = useAppStore((s) => s.risks);
   const riskAcceptances = useAppStore((s) => s.riskAcceptances);
+  const controls = useAppStore((s) => s.controls);
+  const updateAction = useAppStore((s) => s.updateAction);
+  const updateControl = useAppStore((s) => s.updateControl);
 
   const role = currentUser?.role;
   const isCCRO = role === "CCRO_TEAM";
@@ -112,9 +339,35 @@ export default function DashboardHome() {
     });
   }, [risks]);
 
-  const pendingChanges = useMemo(() => {
-    return actions.flatMap((a) => (a.changes ?? []).filter((c) => c.status === "PENDING"));
+  const pendingActionChanges = useMemo(() => {
+    return actions.flatMap((a) =>
+      (a.changes ?? []).filter((c) => c.status === "PENDING").map((c) => ({
+        ...c,
+        _type: "action" as const,
+        _parentTitle: a.title,
+        _parentId: a.id,
+        _parentRef: a.reference ?? a.id.slice(0, 8),
+      }))
+    );
   }, [actions]);
+
+  const pendingControlChanges = useMemo(() => {
+    return controls.flatMap((ctrl) =>
+      (ctrl.changes ?? []).filter((c) => c.status === "PENDING").map((c) => ({
+        ...c,
+        _type: "control" as const,
+        _parentTitle: ctrl.controlName,
+        _parentId: ctrl.id,
+        _parentRef: ctrl.controlRef,
+      }))
+    );
+  }, [controls]);
+
+  const allPendingChanges = useMemo(() => {
+    return [...pendingActionChanges, ...pendingControlChanges].sort(
+      (a, b) => new Date(b.proposedAt).getTime() - new Date(a.proposedAt).getTime()
+    );
+  }, [pendingActionChanges, pendingControlChanges]);
 
   // OWNER-specific: my risks, my actions, my metrics
   const myRisks = useMemo(() => {
@@ -212,7 +465,7 @@ export default function DashboardHome() {
             </p>
 
             {/* Notification pills — role-specific */}
-            {isCCRO && (myOverdueActions.length > 0 || myDueThisMonthActions.length > 0 || risksNeedingReview.length > 0 || pendingChanges.length > 0 || overdueMetrics.length > 0) && (
+            {isCCRO && (myOverdueActions.length > 0 || myDueThisMonthActions.length > 0 || risksNeedingReview.length > 0 || allPendingChanges.length > 0 || overdueMetrics.length > 0) && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {overdueMetrics.length > 0 && (
                   <Link href="/consumer-duty?rag=ATTENTION" className="inline-flex items-center gap-1.5 rounded-full bg-red-500/90 px-3 py-1 text-xs font-semibold text-white hover:bg-red-600 transition-colors">
@@ -238,11 +491,11 @@ export default function DashboardHome() {
                     {risksNeedingReview.length} risk{risksNeedingReview.length > 1 ? "s" : ""} due for review
                   </Link>
                 )}
-                {pendingChanges.length > 0 && (
-                  <Link href="/actions" className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/90 px-3 py-1 text-xs font-semibold text-white hover:bg-blue-600 transition-colors">
+                {allPendingChanges.length > 0 && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/90 px-3 py-1 text-xs font-semibold text-white">
                     <Bell className="h-3 w-3" />
-                    {pendingChanges.length} pending approval{pendingChanges.length > 1 ? "s" : ""}
-                  </Link>
+                    {allPendingChanges.length} pending approval{allPendingChanges.length > 1 ? "s" : ""}
+                  </span>
                 )}
               </div>
             )}
@@ -440,37 +693,14 @@ export default function DashboardHome() {
       {/* ═══════════════ CCRO_TEAM Dashboard ═══════════════ */}
       {isCCRO && (
         <>
-          {/* Pending Approvals */}
-          {pendingChanges.length > 0 && (
-            <div className="bento-card border-2 border-amber-200">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Bell className="h-5 w-5 text-amber-500" />
-                  <h2 className="text-lg font-bold text-updraft-deep font-poppins">Pending Approvals</h2>
-                  <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-bold">{pendingChanges.length}</span>
-                </div>
-                <Link href="/actions" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-                  Review All <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-              <div className="space-y-2">
-                {pendingChanges.slice(0, 5).map((c) => {
-                  const action = actions.find((a) => a.id === c.actionId);
-                  return (
-                    <Link key={c.id} href={`/actions?edit=${c.actionId}`} className="flex items-center justify-between p-2.5 rounded-lg bg-amber-50/50 hover:bg-amber-100/50 transition-colors">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium text-gray-800 truncate">{action?.title ?? "Unknown action"}</p>
-                        <p className="text-[10px] text-gray-500">
-                          {c.isUpdate ? "Progress update" : `${c.fieldChanged}: ${c.oldValue ?? "—"} → ${c.newValue}`}
-                          {" · "}by {c.proposer?.name ?? "Unknown"} · {formatDate(c.proposedAt)}
-                        </p>
-                      </div>
-                      <span className="text-[10px] font-semibold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full shrink-0 ml-2">Pending</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
+          {/* Proposed Changes — Full Detail Panel */}
+          {allPendingChanges.length > 0 && (
+            <PendingChangesPanel
+              changes={allPendingChanges}
+              users={users}
+              updateAction={updateAction}
+              updateControl={updateControl}
+            />
           )}
 
           {/* Action Tracking stats */}
