@@ -9,6 +9,7 @@ import {
   FileText,
   ShieldCheck,
   ShieldAlert,
+  ShieldQuestion,
   ClipboardList,
   ListChecks,
   FlaskConical,
@@ -36,12 +37,13 @@ interface SidebarProps {
 
 const ROB_EMAIL = "rob@updraft.com";
 
-const NAV_ITEMS: { label: string; href: string; icon: typeof LayoutDashboard; roles: Role[] }[] = [
+const NAV_ITEMS: { label: string; href: string; icon: typeof LayoutDashboard; roles: Role[]; badgeKey?: string }[] = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard, roles: ["CCRO_TEAM", "OWNER", "VIEWER"] },
   { label: "Reports", href: "/reports", icon: FileText, roles: ["CCRO_TEAM", "OWNER", "VIEWER"] },
   { label: "Consumer Duty", href: "/consumer-duty", icon: ShieldCheck, roles: ["CCRO_TEAM", "OWNER", "VIEWER"] },
   { label: "Actions", href: "/actions", icon: ListChecks, roles: ["CCRO_TEAM", "OWNER", "VIEWER"] },
   { label: "Risk Register", href: "/risk-register", icon: ShieldAlert, roles: ["CCRO_TEAM", "OWNER", "VIEWER"] },
+  { label: "Risk Acceptance", href: "/risk-acceptances", icon: ShieldQuestion, roles: ["CCRO_TEAM", "OWNER", "VIEWER"], badgeKey: "riskAcceptance" },
   { label: "Controls Testing", href: "/controls", icon: FlaskConical, roles: ["CCRO_TEAM", "OWNER"] },
   { label: "Audit Trail", href: "/audit", icon: ClipboardList, roles: ["CCRO_TEAM"] },
   { label: "Users", href: "/users", icon: Users, roles: ["CCRO_TEAM"] },
@@ -58,6 +60,9 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
   const storeUsers = useAppStore((s) => s.users);
   const authUser = useAppStore((s) => s.authUser);
   const hydrate = useAppStore((s) => s.hydrate);
+  const riskAcceptanceBadge = useAppStore((s) =>
+    s.riskAcceptances.filter((ra) => ["PROPOSED", "CCRO_REVIEW", "AWAITING_APPROVAL", "EXPIRED"].includes(ra.status)).length
+  );
   const [refreshing, setRefreshing] = useState(false);
 
   const isViewingAsOther = authUser && currentUser.id !== authUser.id;
@@ -168,7 +173,12 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
                 )}
               />
               {!collapsed && <span className="truncate">{item.label}</span>}
-              {active && !collapsed && (
+              {!collapsed && item.badgeKey === "riskAcceptance" && riskAcceptanceBadge > 0 && (
+                <span className="ml-auto rounded-full bg-red-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                  {riskAcceptanceBadge}
+                </span>
+              )}
+              {active && !collapsed && !item.badgeKey && (
                 <span className="ml-auto h-1.5 w-1.5 rounded-full bg-updraft-bright-purple" />
               )}
             </Link>

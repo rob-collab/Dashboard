@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry } from "./types";
+import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry, RiskAcceptance } from "./types";
 import { api } from "./api-client";
 
 interface AppState {
@@ -103,6 +103,14 @@ interface AppState {
   priorityDefinitions: PriorityDefinition[];
   setPriorityDefinitions: (defs: PriorityDefinition[]) => void;
 
+  // Risk Acceptances
+  riskAcceptances: RiskAcceptance[];
+  riskAcceptancesLoading: boolean;
+  setRiskAcceptances: (items: RiskAcceptance[]) => void;
+  addRiskAcceptance: (item: RiskAcceptance) => void;
+  updateRiskAcceptance: (id: string, data: Partial<RiskAcceptance>) => void;
+  deleteRiskAcceptance: (id: string) => void;
+
   // Controls Testing Module
   controlBusinessAreas: ControlBusinessArea[];
   setControlBusinessAreas: (areas: ControlBusinessArea[]) => void;
@@ -165,7 +173,7 @@ export const useAppStore = create<AppState>((set) => ({
   _hydrateError: null,
   hydrate: async () => {
     try {
-      const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule] = await Promise.all([
+      const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances] = await Promise.all([
         api<User[]>("/api/users"),
         api<Report[]>("/api/reports"),
         api<ConsumerDutyOutcome[]>("/api/consumer-duty"),
@@ -180,8 +188,9 @@ export const useAppStore = create<AppState>((set) => ({
         api<ControlBusinessArea[]>("/api/controls/business-areas").catch(() => []),
         api<ControlRecord[]>("/api/controls/library?includeSchedule=true").catch(() => []),
         api<TestingScheduleEntry[]>("/api/controls/testing-schedule?includeResults=true").catch(() => []),
+        api<RiskAcceptance[]>("/api/risk-acceptances").catch(() => []),
       ]);
-      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, _hydrated: true, _hydrateError: null });
+      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, _hydrated: true, _hydrateError: null });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to connect to server";
       console.error("[hydrate] API unreachable:", message);
@@ -469,6 +478,22 @@ export const useAppStore = create<AppState>((set) => ({
   // ── Priority Definitions (DB-backed) ─────────────────────
   priorityDefinitions: [],
   setPriorityDefinitions: (defs) => set({ priorityDefinitions: defs }),
+
+  // ── Risk Acceptances ─────────────────────────────────────
+  riskAcceptances: [],
+  riskAcceptancesLoading: false,
+  setRiskAcceptances: (items) => set({ riskAcceptances: items }),
+  addRiskAcceptance: (item) => {
+    set((state) => ({ riskAcceptances: [item, ...state.riskAcceptances] }));
+  },
+  updateRiskAcceptance: (id, data) => {
+    set((state) => ({
+      riskAcceptances: state.riskAcceptances.map((ra) => (ra.id === id ? { ...ra, ...data } : ra)),
+    }));
+  },
+  deleteRiskAcceptance: (id) => {
+    set((state) => ({ riskAcceptances: state.riskAcceptances.filter((ra) => ra.id !== id) }));
+  },
 
   // ── Controls Testing Module ─────────────────────────────
   controlBusinessAreas: [],

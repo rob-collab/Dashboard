@@ -11,6 +11,7 @@ import {
   Bell,
   Clock,
   ShieldAlert,
+  ShieldQuestion,
   ListChecks,
   BarChart3,
 } from "lucide-react";
@@ -46,6 +47,7 @@ export default function DashboardHome() {
   const auditLogs = useAppStore((s) => s.auditLogs);
   const users = useAppStore((s) => s.users);
   const risks = useAppStore((s) => s.risks);
+  const riskAcceptances = useAppStore((s) => s.riskAcceptances);
 
   const role = currentUser?.role;
   const isCCRO = role === "CCRO_TEAM";
@@ -158,6 +160,26 @@ export default function DashboardHome() {
 
   // Published reports for non-CCRO users
   const publishedReports = useMemo(() => reports.filter((r) => r.status === "PUBLISHED"), [reports]);
+
+  // Risk Acceptance stats — visible to all roles
+  const raStats = useMemo(() => {
+    const expired = riskAcceptances.filter((ra) => ra.status === "EXPIRED");
+    const awaiting = riskAcceptances.filter((ra) => ra.status === "AWAITING_APPROVAL");
+    const ccroReview = riskAcceptances.filter((ra) => ra.status === "CCRO_REVIEW" || ra.status === "PROPOSED");
+    const accepted = riskAcceptances.filter((ra) => ra.status === "APPROVED");
+    // Urgent: expired first, then awaiting approval
+    const urgent = [...expired, ...awaiting].slice(0, 3);
+    // Upcoming reviews: approved with review dates
+    const now = Date.now();
+    const withReview = accepted
+      .filter((ra) => ra.reviewDate)
+      .map((ra) => ({ ...ra, daysUntil: Math.ceil((new Date(ra.reviewDate!).getTime() - now) / 86400000) }))
+      .sort((a, b) => a.daysUntil - b.daysUntil);
+    const overdue = withReview.filter((r) => r.daysUntil < 0);
+    const due30 = withReview.filter((r) => r.daysUntil >= 0 && r.daysUntil <= 30);
+    const beyond30 = withReview.filter((r) => r.daysUntil > 30);
+    return { expired: expired.length, awaiting: awaiting.length, ccroReview: ccroReview.length, accepted: accepted.length, urgent, overdue, due30, beyond30 };
+  }, [riskAcceptances]);
 
   if (!hydrated) {
     return (
@@ -331,6 +353,89 @@ export default function DashboardHome() {
           );
         })}
       </div>
+
+      {/* ── Risk Acceptance Widget (ALL roles) ── */}
+      {riskAcceptances.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Main RA card */}
+          <Link href="/risk-acceptances" className="bento-card hover:border-updraft-light-purple transition-colors group">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <ShieldQuestion className="h-5 w-5 text-updraft-bright-purple" />
+                <h2 className="text-lg font-bold text-updraft-deep font-poppins">Risk Acceptances</h2>
+              </div>
+              <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-updraft-bright-purple transition-colors" />
+            </div>
+            <div className="grid grid-cols-4 gap-2 mb-3">
+              <div className="rounded-lg bg-gray-100 p-2 text-center">
+                <p className="text-lg font-bold font-poppins text-gray-600">{raStats.expired}</p>
+                <p className="text-[10px] text-gray-500">Expired</p>
+              </div>
+              <div className="rounded-lg bg-amber-50 p-2 text-center">
+                <p className="text-lg font-bold font-poppins text-amber-700">{raStats.awaiting}</p>
+                <p className="text-[10px] text-gray-500">Awaiting</p>
+              </div>
+              <div className="rounded-lg bg-purple-50 p-2 text-center">
+                <p className="text-lg font-bold font-poppins text-purple-700">{raStats.ccroReview}</p>
+                <p className="text-[10px] text-gray-500">CCRO Review</p>
+              </div>
+              <div className="rounded-lg bg-green-50 p-2 text-center">
+                <p className="text-lg font-bold font-poppins text-green-700">{raStats.accepted}</p>
+                <p className="text-[10px] text-gray-500">Accepted</p>
+              </div>
+            </div>
+            {raStats.urgent.length > 0 && (
+              <div className="space-y-1.5">
+                {raStats.urgent.map((ra) => (
+                  <div key={ra.id} className="flex items-center justify-between text-xs py-1">
+                    <span className="text-gray-700 truncate flex-1 min-w-0">
+                      <span className="font-mono font-bold text-updraft-deep mr-1">{ra.reference}</span>
+                      {ra.title}
+                    </span>
+                    <span className={`shrink-0 ml-2 px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
+                      ra.status === "EXPIRED" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
+                    }`}>
+                      {ra.status === "EXPIRED" ? "Expired" : "Awaiting"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Link>
+
+          {/* Upcoming reviews card */}
+          <div className="bento-card">
+            <div className="flex items-center gap-2 mb-3">
+              <Clock className="h-4 w-4 text-gray-400" />
+              <h3 className="text-sm font-semibold text-gray-700">Upcoming Reviews</h3>
+            </div>
+            {raStats.overdue.length === 0 && raStats.due30.length === 0 && raStats.beyond30.length === 0 ? (
+              <p className="text-xs text-gray-400">No upcoming reviews</p>
+            ) : (
+              <div className="space-y-1.5">
+                {raStats.overdue.slice(0, 3).map((ra) => (
+                  <Link key={ra.id} href="/risk-acceptances" className="flex items-center justify-between p-2 rounded-lg bg-red-50 hover:bg-red-100 transition-colors text-xs">
+                    <span className="truncate flex-1 min-w-0"><span className="font-mono font-bold">{ra.reference}</span> {ra.title}</span>
+                    <span className="shrink-0 ml-2 font-semibold text-red-700">{Math.abs(ra.daysUntil)}d overdue</span>
+                  </Link>
+                ))}
+                {raStats.due30.slice(0, 3).map((ra) => (
+                  <Link key={ra.id} href="/risk-acceptances" className="flex items-center justify-between p-2 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors text-xs">
+                    <span className="truncate flex-1 min-w-0"><span className="font-mono font-bold">{ra.reference}</span> {ra.title}</span>
+                    <span className="shrink-0 ml-2 font-semibold text-amber-700">{ra.daysUntil}d</span>
+                  </Link>
+                ))}
+                {raStats.beyond30.slice(0, 2).map((ra) => (
+                  <Link key={ra.id} href="/risk-acceptances" className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors text-xs">
+                    <span className="truncate flex-1 min-w-0"><span className="font-mono font-bold">{ra.reference}</span> {ra.title}</span>
+                    <span className="shrink-0 ml-2 text-gray-500">{ra.daysUntil}d</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ═══════════════ CCRO_TEAM Dashboard ═══════════════ */}
       {isCCRO && (

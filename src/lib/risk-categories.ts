@@ -1,4 +1,4 @@
-import type { RiskCategoryDef } from "./types";
+import type { RiskCategoryDef, RiskAppetite } from "./types";
 
 // ── L1 → L2 Risk Category Taxonomy (from RMF Appendix 4.2) ────────────────
 
@@ -143,3 +143,24 @@ export const APPETITE_DISPLAY = {
   LOW_TO_MODERATE: "Low to Moderate",
   MODERATE: "Moderate",
 } as const;
+
+// ── Risk Appetite Breach Helpers ──────────────────────────────────────────
+
+const APPETITE_MAX_SCORES: Record<RiskAppetite, number> = {
+  VERY_LOW: 3,
+  LOW: 6,
+  LOW_TO_MODERATE: 8,
+  MODERATE: 9,
+};
+
+export function getAppetiteMaxScore(appetite: RiskAppetite): number {
+  return APPETITE_MAX_SCORES[appetite];
+}
+
+export function calculateBreach(residualScore: number, appetite: RiskAppetite): { breached: boolean; difference: number } {
+  const threshold = APPETITE_MAX_SCORES[appetite];
+  return {
+    breached: residualScore > threshold,
+    difference: residualScore - threshold,
+  };
+}

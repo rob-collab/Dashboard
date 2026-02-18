@@ -577,3 +577,99 @@ export interface ExcoViewConfig {
   createdAt: string;
   updatedAt: string;
 }
+
+// ── Risk Acceptance Module ──────────────────────────────────────────────────
+
+export type RiskAcceptanceStatus =
+  | "PROPOSED"
+  | "CCRO_REVIEW"
+  | "AWAITING_APPROVAL"
+  | "APPROVED"
+  | "REJECTED"
+  | "RETURNED"
+  | "EXPIRED";
+
+export type RiskAcceptanceSource =
+  | "RISK_REGISTER"
+  | "CONTROL_TESTING"
+  | "INCIDENT"
+  | "AD_HOC";
+
+export interface RiskAcceptance {
+  id: string;
+  reference: string;
+  title: string;
+  description: string;
+  source: RiskAcceptanceSource;
+  status: RiskAcceptanceStatus;
+  riskId: string | null;
+  risk?: Risk;
+  proposerId: string;
+  proposer?: User;
+  approverId: string | null;
+  approver?: User;
+  proposedRationale: string;
+  proposedConditions: string | null;
+  approverRationale: string | null;
+  ccroNote: string | null;
+  reviewDate: string | null;
+  approvedAt: string | null;
+  rejectedAt: string | null;
+  expiredAt: string | null;
+  consumerDutyOutcomeId: string | null;
+  consumerDutyOutcome?: ConsumerDutyOutcome;
+  linkedActionIds: string[];
+  createdAt: string;
+  updatedAt: string;
+  comments?: RiskAcceptanceComment[];
+  history?: RiskAcceptanceHistory[];
+}
+
+export interface RiskAcceptanceComment {
+  id: string;
+  acceptanceId: string;
+  userId: string;
+  user?: User;
+  content: string;
+  createdAt: string;
+}
+
+export interface RiskAcceptanceHistory {
+  id: string;
+  acceptanceId: string;
+  userId: string | null;
+  user?: User;
+  action: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  details: string;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+export const RISK_ACCEPTANCE_STATUS_LABELS: Record<RiskAcceptanceStatus, string> = {
+  PROPOSED: "Proposed",
+  CCRO_REVIEW: "CCRO Review",
+  AWAITING_APPROVAL: "Awaiting Approval",
+  APPROVED: "Approved",
+  REJECTED: "Rejected",
+  RETURNED: "Returned",
+  EXPIRED: "Expired",
+};
+
+export const RISK_ACCEPTANCE_STATUS_COLOURS: Record<RiskAcceptanceStatus, { bg: string; text: string }> = {
+  PROPOSED: { bg: "bg-blue-100", text: "text-blue-700" },
+  CCRO_REVIEW: { bg: "bg-purple-100", text: "text-purple-700" },
+  AWAITING_APPROVAL: { bg: "bg-amber-100", text: "text-amber-700" },
+  APPROVED: { bg: "bg-green-100", text: "text-green-700" },
+  REJECTED: { bg: "bg-red-100", text: "text-red-700" },
+  RETURNED: { bg: "bg-orange-100", text: "text-orange-700" },
+  EXPIRED: { bg: "bg-gray-100", text: "text-gray-600" },
+};
+
+export const RISK_ACCEPTANCE_SOURCE_LABELS: Record<RiskAcceptanceSource, string> = {
+  RISK_REGISTER: "Risk Register",
+  CONTROL_TESTING: "Control Testing",
+  INCIDENT: "Incident",
+  AD_HOC: "Ad Hoc",
+};

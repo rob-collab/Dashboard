@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma, getUserId, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
+import { getRiskScore, getAppetiteMaxScore, calculateBreach } from "@/lib/risk-categories";
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
@@ -226,7 +227,20 @@ export async function PATCH(
       }).catch((e) => console.error("[risk snapshot]", e));
     }
 
-    return jsonResponse(serialiseDates(risk));
+    // Calculate appetite breach if appetite is set
+    const responseData = serialiseDates(risk);
+    if (risk.riskAppetite) {
+      const residualScore = getRiskScore(risk.residualLikelihood, risk.residualImpact);
+      const threshold = getAppetiteMaxScore(risk.riskAppetite);
+      const breach = calculateBreach(residualScore, risk.riskAppetite);
+      Object.assign(responseData as Record<string, unknown>, {
+        appetiteBreached: breach.breached,
+        residualScore,
+        appetiteThreshold: threshold,
+      });
+    }
+
+    return jsonResponse(responseData);
   } catch (err) {
     console.error("[PATCH /api/risks/:id]", err);
     return errorResponse("Internal server error", 500);

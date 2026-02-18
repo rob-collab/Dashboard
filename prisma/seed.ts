@@ -254,6 +254,173 @@ async function main() {
     }
   }
 
+  // ── Risk Acceptance Module ──────────────────────────────────────────────
+  // Get existing risks for linking
+  const existingRisks = await prisma.risk.findMany({ take: 6, orderBy: { reference: "asc" } });
+  const existingOutcomes = await prisma.consumerDutyOutcome.findMany({ take: 2 });
+
+  const RA_SEED: {
+    id: string; reference: string; title: string; description: string;
+    source: "RISK_REGISTER" | "CONTROL_TESTING" | "INCIDENT" | "AD_HOC";
+    status: "PROPOSED" | "CCRO_REVIEW" | "AWAITING_APPROVAL" | "APPROVED" | "REJECTED" | "RETURNED" | "EXPIRED";
+    riskId: string | null; proposerId: string; approverId: string | null;
+    proposedRationale: string; proposedConditions: string | null;
+    approverRationale: string | null; ccroNote: string | null;
+    reviewDate: Date | null; approvedAt: Date | null; rejectedAt: Date | null; expiredAt: Date | null;
+    consumerDutyOutcomeId: string | null; linkedActionIds: string[];
+  }[] = [
+    // 1. EXPIRED — linked to first risk, approved by CEO, past review date
+    {
+      id: "ra-001", reference: "RA-001", title: "Accept elevated credit impairment risk",
+      description: "Residual risk on credit impairments exceeds very low appetite due to macroeconomic conditions. Board accepts risk temporarily pending economic stabilisation.",
+      source: "RISK_REGISTER", status: "EXPIRED",
+      riskId: existingRisks[0]?.id ?? null, proposerId: "user-rob", approverId: "user-ceo",
+      proposedRationale: "Current macroeconomic environment makes it impractical to reduce residual risk below appetite threshold. Impairment provisioning has been increased and stress testing shows the firm can absorb the elevated risk.",
+      proposedConditions: "1. Monthly monitoring of impairment rates\n2. Quarterly Board update\n3. Trigger review if impairment rate exceeds 5%",
+      approverRationale: "Accepted on the basis that monitoring conditions are met and quarterly updates provided to the Board.",
+      ccroNote: "Recommend acceptance — risk is well understood and mitigated by increased provisioning.",
+      reviewDate: new Date("2025-12-01"), approvedAt: new Date("2025-09-15"), rejectedAt: null, expiredAt: new Date("2025-12-02"),
+      consumerDutyOutcomeId: existingOutcomes[0]?.id ?? null, linkedActionIds: [],
+    },
+    // 2. AWAITING_APPROVAL — linked to risk → CEO
+    {
+      id: "ra-002", reference: "RA-002", title: "Accept residual operational resilience gap",
+      description: "Third-party dependency on cloud provider creates a residual risk that cannot be fully mitigated within current architecture.",
+      source: "RISK_REGISTER", status: "AWAITING_APPROVAL",
+      riskId: existingRisks[1]?.id ?? null, proposerId: "user-cath", approverId: "user-ceo",
+      proposedRationale: "Full multi-cloud redundancy would cost £2.4M annually with marginal risk reduction. Current DR capabilities meet regulatory requirements. Alternative mitigation through enhanced monitoring and faster failover is in place.",
+      proposedConditions: "1. Annual DR testing\n2. SLA review with provider bi-annually\n3. Exit strategy maintained and tested",
+      approverRationale: null, ccroNote: "Cost-benefit analysis supports acceptance. DR capabilities are adequate.",
+      reviewDate: new Date("2026-09-01"), approvedAt: null, rejectedAt: null, expiredAt: null,
+      consumerDutyOutcomeId: null, linkedActionIds: [],
+    },
+    // 3. AWAITING_APPROVAL — standalone from control testing → user-micha (CFO proxy)
+    {
+      id: "ra-003", reference: "RA-003", title: "Accept control testing gap in marketing approvals",
+      description: "Control testing identified that marketing approval controls are partially effective. Full automation not feasible until Q3 2026.",
+      source: "CONTROL_TESTING", status: "AWAITING_APPROVAL",
+      riskId: null, proposerId: "user-rob", approverId: "user-micha",
+      proposedRationale: "The partially effective control rating stems from manual steps in the approval chain. A digital approval workflow is in development (target Q3 2026). Interim manual checks provide adequate, if imperfect, coverage.",
+      proposedConditions: "1. Manual spot checks weekly\n2. Digital workflow go-live by 30 Sep 2026\n3. Monthly reporting on approval turnaround times",
+      approverRationale: null, ccroNote: "Interim risk is low given manual checks. Recommend acceptance with conditions.",
+      reviewDate: new Date("2026-10-01"), approvedAt: null, rejectedAt: null, expiredAt: null,
+      consumerDutyOutcomeId: existingOutcomes[1]?.id ?? null, linkedActionIds: [],
+    },
+    // 4. CCRO_REVIEW — linked to risk, proposed by cath, not yet routed
+    {
+      id: "ra-004", reference: "RA-004", title: "Accept elevated fraud detection latency",
+      description: "Real-time fraud detection has a 4-second latency against a 2-second target. Remediation requires infrastructure investment.",
+      source: "RISK_REGISTER", status: "CCRO_REVIEW",
+      riskId: existingRisks[2]?.id ?? null, proposerId: "user-cath", approverId: null,
+      proposedRationale: "Infrastructure upgrade to reduce latency below 2 seconds is scheduled for Q2 2026. Current 4-second latency still catches 97% of fraud within the transaction window. Additional manual review layer covers the gap.",
+      proposedConditions: null, approverRationale: null, ccroNote: null,
+      reviewDate: null, approvedAt: null, rejectedAt: null, expiredAt: null,
+      consumerDutyOutcomeId: null, linkedActionIds: [],
+    },
+    // 5. APPROVED — linked to existing risk, future review date
+    {
+      id: "ra-005", reference: "RA-005", title: "Accept data residency risk in EU processing",
+      description: "Certain customer data is processed through EU-based servers creating a cross-border transfer risk under UK GDPR.",
+      source: "RISK_REGISTER", status: "APPROVED",
+      riskId: existingRisks[3]?.id ?? null, proposerId: "user-rob", approverId: "user-ceo",
+      proposedRationale: "Standard contractual clauses and supplementary measures are in place. ICO guidance followed. Risk is well-documented and compliant with current regulatory framework.",
+      proposedConditions: "1. Annual review of SCCs\n2. Monitor ICO guidance updates\n3. Data Protection Impact Assessment maintained",
+      approverRationale: "Accepted. The legal framework and safeguards are robust. Annual review is appropriate.",
+      ccroNote: "Legal team confirms compliance posture is strong.",
+      reviewDate: new Date("2026-06-15"), approvedAt: new Date("2026-01-10"), rejectedAt: null, expiredAt: null,
+      consumerDutyOutcomeId: null, linkedActionIds: [],
+    },
+    // 6. APPROVED — linked to existing risk, future review date
+    {
+      id: "ra-006", reference: "RA-006", title: "Accept customer communication delay risk",
+      description: "System-generated customer communications have a 24-hour SLA against a 4-hour target for certain complaint categories.",
+      source: "INCIDENT", status: "APPROVED",
+      riskId: existingRisks[4]?.id ?? null, proposerId: "user-cath", approverId: "user-ash",
+      proposedRationale: "Legacy system limitations prevent sub-4-hour automated responses for complex complaint types. Manual escalation process ensures no customer is left without response beyond 24 hours. System replacement planned for H2 2026.",
+      proposedConditions: "1. Manual escalation for P1 complaints within 2 hours\n2. Weekly reporting on SLA breaches\n3. System replacement by Dec 2026",
+      approverRationale: "The interim manual process is adequate. Accepted with the condition that the system replacement stays on track.",
+      ccroNote: "Consumer Duty implications noted. Manual process mitigates customer harm.",
+      reviewDate: new Date("2026-08-01"), approvedAt: new Date("2026-01-20"), rejectedAt: null, expiredAt: null,
+      consumerDutyOutcomeId: existingOutcomes[0]?.id ?? null, linkedActionIds: [],
+    },
+  ];
+
+  for (const ra of RA_SEED) {
+    await prisma.riskAcceptance.upsert({
+      where: { id: ra.id },
+      update: {
+        title: ra.title, description: ra.description, source: ra.source, status: ra.status,
+        riskId: ra.riskId, proposerId: ra.proposerId, approverId: ra.approverId,
+        proposedRationale: ra.proposedRationale, proposedConditions: ra.proposedConditions,
+        approverRationale: ra.approverRationale, ccroNote: ra.ccroNote,
+        reviewDate: ra.reviewDate, approvedAt: ra.approvedAt, rejectedAt: ra.rejectedAt, expiredAt: ra.expiredAt,
+        consumerDutyOutcomeId: ra.consumerDutyOutcomeId, linkedActionIds: ra.linkedActionIds,
+      },
+      create: ra,
+    });
+  }
+  console.log(`  ✓ ${RA_SEED.length} risk acceptances`);
+
+  // Risk Acceptance Comments
+  const RA_COMMENTS: { id: string; acceptanceId: string; userId: string; content: string; createdAt: Date }[] = [
+    { id: "rac-001", acceptanceId: "ra-001", userId: "user-rob", content: "Impairment provisioning has been increased by 15% as a precautionary measure.", createdAt: new Date("2025-09-10") },
+    { id: "rac-002", acceptanceId: "ra-001", userId: "user-ceo", content: "Board has been briefed. Quarterly updates confirmed.", createdAt: new Date("2025-09-16") },
+    { id: "rac-003", acceptanceId: "ra-002", userId: "user-cath", content: "DR testing results from January show 99.7% recovery within RTO targets.", createdAt: new Date("2026-01-25") },
+    { id: "rac-004", acceptanceId: "ra-002", userId: "user-rob", content: "Cloud provider SLA review completed. No material changes to service commitments.", createdAt: new Date("2026-02-05") },
+    { id: "rac-005", acceptanceId: "ra-003", userId: "user-rob", content: "Interim manual spot check results show 94% compliance rate. Acceptable for the transition period.", createdAt: new Date("2026-02-01") },
+    { id: "rac-006", acceptanceId: "ra-005", userId: "user-ceo", content: "ICO confirmed no changes to their adequacy stance. SCCs remain valid.", createdAt: new Date("2026-01-15") },
+    { id: "rac-007", acceptanceId: "ra-006", userId: "user-ash", content: "Weekly SLA breach reports show improvement — down from 12% to 3% since manual escalation process implemented.", createdAt: new Date("2026-02-10") },
+  ];
+
+  for (const c of RA_COMMENTS) {
+    await prisma.riskAcceptanceComment.upsert({
+      where: { id: c.id },
+      update: { content: c.content, userId: c.userId },
+      create: c,
+    });
+  }
+  console.log(`  ✓ ${RA_COMMENTS.length} risk acceptance comments`);
+
+  // Risk Acceptance History
+  const RA_HISTORY: { id: string; acceptanceId: string; userId: string | null; action: string; fromStatus: string | null; toStatus: string | null; details: string; createdAt: Date }[] = [
+    // RA-001 story: PROPOSED → CCRO_REVIEW → AWAITING_APPROVAL → APPROVED → EXPIRED
+    { id: "rah-001", acceptanceId: "ra-001", userId: "user-rob", action: "CREATED", fromStatus: null, toStatus: "PROPOSED", details: "Risk acceptance RA-001 proposed: Accept elevated credit impairment risk", createdAt: new Date("2025-09-01") },
+    { id: "rah-002", acceptanceId: "ra-001", userId: "user-rob", action: "SUBMIT_FOR_REVIEW", fromStatus: "PROPOSED", toStatus: "CCRO_REVIEW", details: "Submitted for CCRO review", createdAt: new Date("2025-09-02") },
+    { id: "rah-003", acceptanceId: "ra-001", userId: "user-rob", action: "ROUTE_TO_APPROVER", fromStatus: "CCRO_REVIEW", toStatus: "AWAITING_APPROVAL", details: "Routed to CEO for approval", createdAt: new Date("2025-09-10") },
+    { id: "rah-004", acceptanceId: "ra-001", userId: "user-ceo", action: "APPROVE", fromStatus: "AWAITING_APPROVAL", toStatus: "APPROVED", details: "Approved with monitoring conditions", createdAt: new Date("2025-09-15") },
+    { id: "rah-005", acceptanceId: "ra-001", userId: null, action: "EXPIRE", fromStatus: "APPROVED", toStatus: "EXPIRED", details: "Review date 2025-12-01 has passed. Acceptance expired.", createdAt: new Date("2025-12-02") },
+    // RA-002 story: PROPOSED → CCRO_REVIEW → AWAITING_APPROVAL
+    { id: "rah-006", acceptanceId: "ra-002", userId: "user-cath", action: "CREATED", fromStatus: null, toStatus: "PROPOSED", details: "Risk acceptance RA-002 proposed: Accept residual operational resilience gap", createdAt: new Date("2026-01-15") },
+    { id: "rah-007", acceptanceId: "ra-002", userId: "user-rob", action: "SUBMIT_FOR_REVIEW", fromStatus: "PROPOSED", toStatus: "CCRO_REVIEW", details: "Submitted for CCRO review", createdAt: new Date("2026-01-16") },
+    { id: "rah-008", acceptanceId: "ra-002", userId: "user-rob", action: "ROUTE_TO_APPROVER", fromStatus: "CCRO_REVIEW", toStatus: "AWAITING_APPROVAL", details: "Routed to CEO for approval", createdAt: new Date("2026-01-20") },
+    // RA-003 story: PROPOSED → CCRO_REVIEW → AWAITING_APPROVAL
+    { id: "rah-009", acceptanceId: "ra-003", userId: "user-rob", action: "CREATED", fromStatus: null, toStatus: "PROPOSED", details: "Risk acceptance RA-003 proposed: Accept control testing gap in marketing approvals", createdAt: new Date("2026-01-25") },
+    { id: "rah-010", acceptanceId: "ra-003", userId: "user-rob", action: "SUBMIT_FOR_REVIEW", fromStatus: "PROPOSED", toStatus: "CCRO_REVIEW", details: "Submitted for CCRO review", createdAt: new Date("2026-01-26") },
+    { id: "rah-011", acceptanceId: "ra-003", userId: "user-rob", action: "ROUTE_TO_APPROVER", fromStatus: "CCRO_REVIEW", toStatus: "AWAITING_APPROVAL", details: "Routed to Micha for approval", createdAt: new Date("2026-01-28") },
+    // RA-004 story: PROPOSED → CCRO_REVIEW
+    { id: "rah-012", acceptanceId: "ra-004", userId: "user-cath", action: "CREATED", fromStatus: null, toStatus: "PROPOSED", details: "Risk acceptance RA-004 proposed: Accept elevated fraud detection latency", createdAt: new Date("2026-02-10") },
+    { id: "rah-013", acceptanceId: "ra-004", userId: "user-rob", action: "SUBMIT_FOR_REVIEW", fromStatus: "PROPOSED", toStatus: "CCRO_REVIEW", details: "Submitted for CCRO review", createdAt: new Date("2026-02-11") },
+    // RA-005 story: PROPOSED → CCRO_REVIEW → AWAITING_APPROVAL → APPROVED
+    { id: "rah-014", acceptanceId: "ra-005", userId: "user-rob", action: "CREATED", fromStatus: null, toStatus: "PROPOSED", details: "Risk acceptance RA-005 proposed: Accept data residency risk in EU processing", createdAt: new Date("2025-12-15") },
+    { id: "rah-015", acceptanceId: "ra-005", userId: "user-rob", action: "SUBMIT_FOR_REVIEW", fromStatus: "PROPOSED", toStatus: "CCRO_REVIEW", details: "Submitted for CCRO review", createdAt: new Date("2025-12-16") },
+    { id: "rah-016", acceptanceId: "ra-005", userId: "user-rob", action: "ROUTE_TO_APPROVER", fromStatus: "CCRO_REVIEW", toStatus: "AWAITING_APPROVAL", details: "Routed to CEO for approval", createdAt: new Date("2026-01-05") },
+    { id: "rah-017", acceptanceId: "ra-005", userId: "user-ceo", action: "APPROVE", fromStatus: "AWAITING_APPROVAL", toStatus: "APPROVED", details: "Approved. Legal framework and safeguards are robust.", createdAt: new Date("2026-01-10") },
+    // RA-006 story: PROPOSED → CCRO_REVIEW → AWAITING_APPROVAL → APPROVED
+    { id: "rah-018", acceptanceId: "ra-006", userId: "user-cath", action: "CREATED", fromStatus: null, toStatus: "PROPOSED", details: "Risk acceptance RA-006 proposed: Accept customer communication delay risk", createdAt: new Date("2026-01-05") },
+    { id: "rah-019", acceptanceId: "ra-006", userId: "user-rob", action: "SUBMIT_FOR_REVIEW", fromStatus: "PROPOSED", toStatus: "CCRO_REVIEW", details: "Submitted for CCRO review", createdAt: new Date("2026-01-06") },
+    { id: "rah-020", acceptanceId: "ra-006", userId: "user-rob", action: "ROUTE_TO_APPROVER", fromStatus: "CCRO_REVIEW", toStatus: "AWAITING_APPROVAL", details: "Routed to Ash for approval", createdAt: new Date("2026-01-15") },
+    { id: "rah-021", acceptanceId: "ra-006", userId: "user-ash", action: "APPROVE", fromStatus: "AWAITING_APPROVAL", toStatus: "APPROVED", details: "Interim manual process is adequate. Accepted with conditions.", createdAt: new Date("2026-01-20") },
+  ];
+
+  for (const h of RA_HISTORY) {
+    await prisma.riskAcceptanceHistory.upsert({
+      where: { id: h.id },
+      update: { action: h.action, details: h.details, fromStatus: h.fromStatus, toStatus: h.toStatus },
+      create: h,
+    });
+  }
+  console.log(`  ✓ ${RA_HISTORY.length} risk acceptance history entries`);
+
   console.log("Seed complete! Database is clean — ready for real data.");
 }
 

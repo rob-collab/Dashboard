@@ -108,6 +108,12 @@ model User {
 
   updatedMeasures ConsumerDutyMeasure[]  @relation("MeasureUpdater")
 
+  // Risk Acceptance Module
+  proposedAcceptances    RiskAcceptance[]        @relation("AcceptanceProposer")
+  approverAcceptances    RiskAcceptance[]        @relation("AcceptanceApprover")
+  acceptanceComments     RiskAcceptanceComment[]
+  acceptanceHistory      RiskAcceptanceHistory[]
+
   // Controls Testing Module
   ownedControls       Control[]              @relation("ControlOwner")
   createdControls     Control[]              @relation("ControlCreatedBy")
@@ -182,6 +188,7 @@ model ConsumerDutyOutcome {
   updatedAt            DateTime  @updatedAt
 
   measures ConsumerDutyMeasure[]
+  riskAcceptances RiskAcceptance[]
 
   @@unique([reportId, outcomeId])
   @@map("consumer_duty_outcomes")
@@ -444,6 +451,7 @@ model Risk {
   mitigations RiskMitigation[]
   auditTrail  RiskAuditLog[]
   snapshots   RiskSnapshot[]
+  acceptances RiskAcceptance[]
 
   @@index([categoryL1])
   @@index([ownerId])
@@ -749,4 +757,90 @@ model ExcoViewConfig {
 
   @@unique([periodYear, periodMonth])
   @@map("exco_view_configs")
+}
+
+// ── Risk Acceptance Module ──────────────────────────────────────────────────
+
+enum RiskAcceptanceStatus {
+  PROPOSED
+  CCRO_REVIEW
+  AWAITING_APPROVAL
+  APPROVED
+  REJECTED
+  RETURNED
+  EXPIRED
+}
+
+enum RiskAcceptanceSource {
+  RISK_REGISTER
+  CONTROL_TESTING
+  INCIDENT
+  AD_HOC
+}
+
+model RiskAcceptance {
+  id                    String                @id @default(cuid())
+  reference             String                @unique
+  title                 String
+  description           String                @db.Text
+  source                RiskAcceptanceSource
+  status                RiskAcceptanceStatus  @default(PROPOSED)
+  riskId                String?
+  risk                  Risk?                 @relation(fields: [riskId], references: [id], onDelete: SetNull)
+  proposerId            String
+  proposer              User                  @relation("AcceptanceProposer", fields: [proposerId], references: [id])
+  approverId            String?
+  approver              User?                 @relation("AcceptanceApprover", fields: [approverId], references: [id])
+  proposedRationale     String                @db.Text
+  proposedConditions    String?               @db.Text
+  approverRationale     String?               @db.Text
+  ccroNote              String?               @db.Text
+  reviewDate            DateTime?
+  approvedAt            DateTime?
+  rejectedAt            DateTime?
+  expiredAt             DateTime?
+  consumerDutyOutcomeId String?
+  consumerDutyOutcome   ConsumerDutyOutcome?  @relation(fields: [consumerDutyOutcomeId], references: [id], onDelete: SetNull)
+  linkedActionIds       String[]
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  comments RiskAcceptanceComment[]
+  history  RiskAcceptanceHistory[]
+
+  @@index([status])
+  @@index([proposerId])
+  @@index([approverId])
+  @@index([riskId])
+  @@map("risk_acceptances")
+}
+
+model RiskAcceptanceComment {
+  id           String         @id @default(cuid())
+  acceptanceId String
+  acceptance   RiskAcceptance @relation(fields: [acceptanceId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User           @relation(fields: [userId], references: [id])
+  content      String         @db.Text
+  createdAt    DateTime       @default(now())
+
+  @@index([acceptanceId])
+  @@map("risk_acceptance_comments")
+}
+
+model RiskAcceptanceHistory {
+  id           String         @id @default(cuid())
+  acceptanceId String
+  acceptance   RiskAcceptance @relation(fields: [acceptanceId], references: [id], onDelete: Cascade)
+  userId       String?
+  user         User?          @relation(fields: [userId], references: [id])
+  action       String
+  fromStatus   String?
+  toStatus     String?
+  details      String         @db.Text
+  metadata     Json?
+  createdAt    DateTime       @default(now())
+
+  @@index([acceptanceId])
+  @@map("risk_acceptance_history")
 }
