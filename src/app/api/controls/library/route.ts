@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
           orderBy: { proposedAt: "desc" },
         },
         riskLinks: { include: { risk: { select: { id: true, reference: true, name: true, residualLikelihood: true, residualImpact: true } } } },
+        regulationLinks: { include: { regulation: { select: { id: true, reference: true, name: true, complianceStatus: true } } } },
       },
       orderBy: { controlRef: "asc" },
     });

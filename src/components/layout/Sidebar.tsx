@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   ShieldQuestion,
   BookOpen,
+  Scale,
   ClipboardList,
   ListChecks,
   FlaskConical,
@@ -44,6 +45,7 @@ const NAV_ITEMS: { label: string; href: string; icon: typeof LayoutDashboard; pe
   { label: "Dashboard", href: "/", icon: LayoutDashboard, permission: "page:dashboard", badgeKey: "dashboard" },
   { label: "Actions", href: "/actions", icon: ListChecks, permission: "page:actions", badgeKey: "actions" },
   { label: "Audit Trail", href: "/audit", icon: ClipboardList, permission: "page:audit" },
+  { label: "Compliance", href: "/compliance", icon: Scale, permission: "page:compliance", badgeKey: "compliance" },
   { label: "Consumer Duty", href: "/consumer-duty", icon: ShieldCheck, permission: "page:consumer-duty" },
   { label: "Controls Testing", href: "/controls", icon: FlaskConical, permission: "page:controls", badgeKey: "controls" },
   { label: "Policies", href: "/policies", icon: BookOpen, permission: "page:policies" },
@@ -68,6 +70,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
   const controls = useAppStore((s) => s.controls);
   const risks = useAppStore((s) => s.risks);
   const riskAcceptances = useAppStore((s) => s.riskAcceptances);
+  const regulations = useAppStore((s) => s.regulations);
   const permissionSet = usePermissionSet();
 
   // Badge counts — permission-aware
@@ -94,13 +97,17 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
       ? risks.reduce((n, r) => n + (r.changes ?? []).filter((ch) => ch.status === "PENDING").length, 0)
       : 0;
 
+    const complianceGaps = canViewPending
+      ? regulations.filter((r) => r.isApplicable && (r.complianceStatus === "NON_COMPLIANT" || r.complianceStatus === "GAP_IDENTIFIED")).length
+      : 0;
+
     if (canViewPending) {
       const total = overdueActions + pendingControlChanges + riskAcceptance + pendingRiskChanges;
-      return { dashboard: total } as Record<string, number>;
+      return { dashboard: total, compliance: complianceGaps } as Record<string, number>;
     }
 
     return { actions: overdueActions, riskAcceptance } as Record<string, number>;
-  }, [actions, controls, risks, riskAcceptances, currentUser, permissionSet]);
+  }, [actions, controls, risks, riskAcceptances, regulations, currentUser, permissionSet]);
 
   const [refreshing, setRefreshing] = useState(false);
 

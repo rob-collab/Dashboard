@@ -8,6 +8,7 @@ export type PermissionCode =
   | "page:controls"
   | "page:consumer-duty"
   | "page:policies"
+  | "page:compliance"
   | "page:reports"
   | "page:risk-acceptances"
   | "page:audit"
@@ -23,6 +24,10 @@ export type PermissionCode =
   | "delete:risk"
   | "delete:action"
   | "delete:control"
+  // Compliance capabilities
+  | "edit:compliance"
+  | "manage:smcr"
+  | "manage:regulations"
   // Special capabilities
   | "can:toggle-risk-focus"
   | "can:bypass-approval"
@@ -39,7 +44,8 @@ export const ALL_PERMISSIONS: Record<PermissionCode, { label: string; category: 
   "page:actions":          { label: "View Actions",               category: "Pages" },
   "page:controls":         { label: "View Controls Testing",      category: "Pages" },
   "page:consumer-duty":    { label: "View Consumer Duty",         category: "Pages" },
-  "page:policies":         { label: "View Policies",              category: "Pages" },
+  "page:policies":         { label: "View Policies (legacy)",     category: "Pages" },
+  "page:compliance":       { label: "View Compliance",            category: "Pages" },
   "page:reports":          { label: "View Reports",               category: "Pages" },
   "page:risk-acceptances": { label: "View Risk Acceptances",      category: "Pages" },
   "page:audit":            { label: "View Audit Trail",           category: "Pages" },
@@ -55,6 +61,10 @@ export const ALL_PERMISSIONS: Record<PermissionCode, { label: string; category: 
   "delete:risk":    { label: "Delete Risks",    category: "Data" },
   "delete:action":  { label: "Delete Actions",  category: "Data" },
   "delete:control": { label: "Delete Controls", category: "Data" },
+  // Compliance
+  "edit:compliance":      { label: "Edit Compliance Assessments",    category: "Compliance" },
+  "manage:smcr":          { label: "Manage SM&CR Data",              category: "Compliance" },
+  "manage:regulations":   { label: "Manage Regulation Applicability", category: "Compliance" },
   // Special
   "can:toggle-risk-focus":    { label: "Toggle Risk in Focus",         category: "Special" },
   "can:bypass-approval":      { label: "Create/Edit Without Approval", category: "Special" },
@@ -67,7 +77,7 @@ export const ALL_PERMISSIONS: Record<PermissionCode, { label: string; category: 
 
 export const PERMISSION_CODES = Object.keys(ALL_PERMISSIONS) as PermissionCode[];
 
-export const PERMISSION_CATEGORIES = ["Pages", "Data", "Special", "Admin"] as const;
+export const PERMISSION_CATEGORIES = ["Pages", "Data", "Compliance", "Special", "Admin"] as const;
 
 /** Hardcoded default permissions per role — always works even with empty DB */
 export const DEFAULT_ROLE_PERMISSIONS: Record<Role, Partial<Record<PermissionCode, boolean>>> = {
@@ -79,6 +89,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<Role, Partial<Record<PermissionCod
     "page:controls": true,
     "page:consumer-duty": true,
     "page:policies": true,
+    "page:compliance": true,
     "page:reports": true,
     "page:risk-acceptances": true,
     "can:toggle-risk-focus": true,
@@ -90,6 +101,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<Role, Partial<Record<PermissionCod
     "page:controls": true,
     "page:consumer-duty": true,
     "page:policies": true,
+    "page:compliance": true,
     "page:reports": true,
     "page:risk-acceptances": true,
     "create:risk": true,
@@ -103,6 +115,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<Role, Partial<Record<PermissionCod
     "page:actions": true,
     "page:consumer-duty": true,
     "page:policies": true,
+    "page:compliance": true,
     "page:reports": true,
     "page:risk-acceptances": true,
   },

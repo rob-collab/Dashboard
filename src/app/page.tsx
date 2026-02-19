@@ -21,6 +21,7 @@ import {
   Loader2,
   Info,
   Star,
+  Scale,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAppStore } from "@/lib/store";
@@ -29,7 +30,8 @@ import { formatDate, ragBgColor } from "@/lib/utils";
 import { getActionLabel } from "@/lib/audit";
 import { getRiskScore } from "@/lib/risk-categories";
 import type { ActionPriority, ActionChange, ControlChange, RiskChange } from "@/lib/types";
-import { useHasPermission } from "@/lib/usePermission";
+import { useHasPermission, usePermissionSet } from "@/lib/usePermission";
+import type { ComplianceStatus } from "@/lib/types";
 import ScoreBadge from "@/components/risk-register/ScoreBadge";
 import DirectionArrow from "@/components/risk-register/DirectionArrow";
 import { usePageTitle } from "@/lib/usePageTitle";
@@ -296,6 +298,10 @@ export default function DashboardHome() {
   const approveEntity = useAppStore((s) => s.approveEntity);
   const rejectEntity = useAppStore((s) => s.rejectEntity);
   const notifications = useAppStore((s) => s.notifications);
+  const regulations = useAppStore((s) => s.regulations);
+  const certifiedPersons = useAppStore((s) => s.certifiedPersons);
+  const permissionSet = usePermissionSet();
+  const hasCompliancePage = permissionSet.has("page:compliance");
   const canApproveEntities = useHasPermission("can:approve-entities");
   const canViewPending = useHasPermission("can:view-pending");
   const hasActionsPage = useHasPermission("page:actions");
@@ -508,6 +514,31 @@ export default function DashboardHome() {
     const beyond30 = withReview.filter((r) => r.daysUntil > 30);
     return { expired: expired.length, awaiting: awaiting.length, ccroReview: ccroReview.length, accepted: accepted.length, urgent, overdue, due30, beyond30 };
   }, [riskAcceptances]);
+
+  // Compliance health stats
+  const complianceHealth = useMemo(() => {
+    if (!hasCompliancePage || regulations.length === 0) return null;
+    const applicable = regulations.filter((r) => r.isApplicable);
+    const total = applicable.length;
+    if (total === 0) return null;
+    const statusCounts: Record<ComplianceStatus, number> = {
+      COMPLIANT: 0, PARTIALLY_COMPLIANT: 0, NON_COMPLIANT: 0, NOT_ASSESSED: 0, GAP_IDENTIFIED: 0,
+    };
+    for (const r of applicable) {
+      const s = (r.complianceStatus ?? "NOT_ASSESSED") as ComplianceStatus;
+      statusCounts[s] = (statusCounts[s] ?? 0) + 1;
+    }
+    const compliantPct = Math.round((statusCounts.COMPLIANT / total) * 100);
+    const gaps = statusCounts.NON_COMPLIANT + statusCounts.GAP_IDENTIFIED;
+    const now = new Date();
+    const overdueAssessments = applicable.filter(
+      (r) => r.nextReviewDate && new Date(r.nextReviewDate) < now
+    ).length;
+    const pendingCerts = certifiedPersons.filter(
+      (c) => c.status === "DUE" || c.status === "OVERDUE"
+    ).length;
+    return { total, compliantPct, gaps, overdueAssessments, pendingCerts, statusCounts };
+  }, [regulations, certifiedPersons, hasCompliancePage]);
 
   if (!hydrated) {
     return (
@@ -779,6 +810,41 @@ export default function DashboardHome() {
             )}
           </div>
         </div>
+      )}
+
+      {/* ── Compliance Health (page:compliance) ── */}
+      {complianceHealth && (
+        <Link href="/compliance" className="bento-card hover:border-updraft-light-purple transition-colors group block card-entrance card-entrance-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Scale className="h-5 w-5 text-updraft-bright-purple" />
+              <h2 className="text-lg font-bold text-updraft-deep font-poppins">Compliance Health</h2>
+            </div>
+            <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-updraft-bright-purple transition-colors" />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div className="rounded-lg border border-green-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+              <p className="text-xl font-bold font-poppins text-green-700">{complianceHealth.compliantPct}%</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">Compliant</p>
+            </div>
+            <div className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm">
+              <p className="text-xl font-bold font-poppins text-updraft-deep">{complianceHealth.total}</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">Applicable</p>
+            </div>
+            <div className={`rounded-lg border p-3 text-center ${complianceHealth.gaps > 0 ? "border-red-100" : "border-green-100"}`} style={{ background: complianceHealth.gaps > 0 ? "linear-gradient(135deg, #FEF2F2, #FFF5F5)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+              <p className={`text-xl font-bold font-poppins ${complianceHealth.gaps > 0 ? "text-red-700" : "text-green-700"}`}>{complianceHealth.gaps}</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">Open Gaps</p>
+            </div>
+            <div className={`rounded-lg border p-3 text-center ${complianceHealth.overdueAssessments > 0 ? "border-amber-100" : "border-green-100"}`} style={{ background: complianceHealth.overdueAssessments > 0 ? "linear-gradient(135deg, #FFFBEB, #FEFCE8)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+              <p className={`text-xl font-bold font-poppins ${complianceHealth.overdueAssessments > 0 ? "text-amber-700" : "text-green-700"}`}>{complianceHealth.overdueAssessments}</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">Overdue Assessments</p>
+            </div>
+            <div className={`rounded-lg border p-3 text-center ${complianceHealth.pendingCerts > 0 ? "border-amber-100" : "border-green-100"}`} style={{ background: complianceHealth.pendingCerts > 0 ? "linear-gradient(135deg, #FFFBEB, #FEFCE8)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+              <p className={`text-xl font-bold font-poppins ${complianceHealth.pendingCerts > 0 ? "text-amber-700" : "text-green-700"}`}>{complianceHealth.pendingCerts}</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">Pending Certs</p>
+            </div>
+          </div>
+        </Link>
       )}
 
       {/* ── Risks in Focus (ALL roles) ── */}

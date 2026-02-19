@@ -500,6 +500,7 @@ export interface ControlRecord {
   changes?: ControlChange[];
   actions?: Action[];
   riskLinks?: RiskControlLink[];
+  regulationLinks?: RegulationControlLink[];
 }
 
 export interface ControlAttestation {
@@ -625,7 +626,29 @@ export interface Regulation {
   description: string | null;
   createdAt: string;
   updatedAt: string;
+  // Hierarchy
+  parentId: string | null;
+  parent?: Regulation;
+  children?: Regulation[];
+  level: number;
+  // Regulatory
+  regulatoryBody: string | null;
+  applicability: Applicability;
+  applicabilityNotes: string | null;
+  isApplicable: boolean;
+  isActive: boolean;
+  // SMF Accountability
+  primarySMF: string | null;
+  secondarySMF: string | null;
+  smfNotes: string | null;
+  // Compliance Assessment
+  complianceStatus: ComplianceStatus;
+  lastAssessedAt: string | null;
+  nextReviewDate: string | null;
+  assessmentNotes: string | null;
+  // Links
   policyLinks?: PolicyRegulatoryLink[];
+  controlLinks?: RegulationControlLink[];
 }
 
 export interface PolicyRegulatoryLink {
@@ -694,6 +717,7 @@ export interface Policy {
   exceptions: string | null;
   relatedPolicies: string[];
   storageUrl: string | null;
+  approvingBody: string | null;
   createdAt: string;
   updatedAt: string;
   regulatoryLinks?: PolicyRegulatoryLink[];
@@ -857,6 +881,244 @@ export interface RiskControlLink {
   linkedAt: string;
   linkedBy: string;
   notes: string | null;
+}
+
+// ── Compliance Universe ──────────────────────────────────────────────────────
+
+export type Applicability = "CORE" | "HIGH" | "MEDIUM" | "LOW" | "N_A" | "ASSESS";
+export type ComplianceStatus = "COMPLIANT" | "PARTIALLY_COMPLIANT" | "NON_COMPLIANT" | "NOT_ASSESSED" | "GAP_IDENTIFIED";
+export type SMFStatus = "ACTIVE" | "VACANT" | "PENDING_APPROVAL";
+export type CertificationStatus = "CURRENT" | "DUE" | "OVERDUE" | "LAPSED" | "REVOKED";
+export type BreachStatus = "IDENTIFIED" | "UNDER_INVESTIGATION" | "CLOSED_NO_ACTION" | "CLOSED_DISCIPLINARY" | "REPORTED_TO_FCA";
+export type DocumentStatus = "DOC_CURRENT" | "DOC_OVERDUE" | "DOC_DRAFT" | "DOC_NOT_STARTED";
+
+export const APPLICABILITY_LABELS: Record<Applicability, string> = {
+  CORE: "Core",
+  HIGH: "High",
+  MEDIUM: "Medium",
+  LOW: "Low",
+  N_A: "Not Applicable",
+  ASSESS: "To Assess",
+};
+
+export const APPLICABILITY_COLOURS: Record<Applicability, { bg: string; text: string }> = {
+  CORE: { bg: "bg-red-100", text: "text-red-700" },
+  HIGH: { bg: "bg-orange-100", text: "text-orange-700" },
+  MEDIUM: { bg: "bg-amber-100", text: "text-amber-700" },
+  LOW: { bg: "bg-blue-100", text: "text-blue-700" },
+  N_A: { bg: "bg-gray-100", text: "text-gray-500" },
+  ASSESS: { bg: "bg-purple-100", text: "text-purple-700" },
+};
+
+export const COMPLIANCE_STATUS_LABELS: Record<ComplianceStatus, string> = {
+  COMPLIANT: "Compliant",
+  PARTIALLY_COMPLIANT: "Partially Compliant",
+  NON_COMPLIANT: "Non-Compliant",
+  NOT_ASSESSED: "Not Assessed",
+  GAP_IDENTIFIED: "Gap Identified",
+};
+
+export const COMPLIANCE_STATUS_COLOURS: Record<ComplianceStatus, { bg: string; text: string; dot: string }> = {
+  COMPLIANT: { bg: "bg-green-100", text: "text-green-700", dot: "bg-green-500" },
+  PARTIALLY_COMPLIANT: { bg: "bg-amber-100", text: "text-amber-700", dot: "bg-amber-500" },
+  NON_COMPLIANT: { bg: "bg-red-100", text: "text-red-700", dot: "bg-red-500" },
+  NOT_ASSESSED: { bg: "bg-gray-100", text: "text-gray-600", dot: "bg-gray-400" },
+  GAP_IDENTIFIED: { bg: "bg-purple-100", text: "text-purple-700", dot: "bg-purple-500" },
+};
+
+export const SMF_STATUS_LABELS: Record<SMFStatus, string> = {
+  ACTIVE: "Active",
+  VACANT: "Vacant",
+  PENDING_APPROVAL: "Pending Approval",
+};
+
+export const SMF_STATUS_COLOURS: Record<SMFStatus, { bg: string; text: string }> = {
+  ACTIVE: { bg: "bg-green-100", text: "text-green-700" },
+  VACANT: { bg: "bg-red-100", text: "text-red-700" },
+  PENDING_APPROVAL: { bg: "bg-amber-100", text: "text-amber-700" },
+};
+
+export const CERTIFICATION_STATUS_LABELS: Record<CertificationStatus, string> = {
+  CURRENT: "Current",
+  DUE: "Due",
+  OVERDUE: "Overdue",
+  LAPSED: "Lapsed",
+  REVOKED: "Revoked",
+};
+
+export const CERTIFICATION_STATUS_COLOURS: Record<CertificationStatus, { bg: string; text: string }> = {
+  CURRENT: { bg: "bg-green-100", text: "text-green-700" },
+  DUE: { bg: "bg-amber-100", text: "text-amber-700" },
+  OVERDUE: { bg: "bg-red-100", text: "text-red-700" },
+  LAPSED: { bg: "bg-gray-100", text: "text-gray-600" },
+  REVOKED: { bg: "bg-red-200", text: "text-red-800" },
+};
+
+export const BREACH_STATUS_LABELS: Record<BreachStatus, string> = {
+  IDENTIFIED: "Identified",
+  UNDER_INVESTIGATION: "Under Investigation",
+  CLOSED_NO_ACTION: "Closed — No Action",
+  CLOSED_DISCIPLINARY: "Closed — Disciplinary",
+  REPORTED_TO_FCA: "Reported to FCA",
+};
+
+export const BREACH_STATUS_COLOURS: Record<BreachStatus, { bg: string; text: string }> = {
+  IDENTIFIED: { bg: "bg-red-100", text: "text-red-700" },
+  UNDER_INVESTIGATION: { bg: "bg-amber-100", text: "text-amber-700" },
+  CLOSED_NO_ACTION: { bg: "bg-green-100", text: "text-green-700" },
+  CLOSED_DISCIPLINARY: { bg: "bg-orange-100", text: "text-orange-700" },
+  REPORTED_TO_FCA: { bg: "bg-purple-100", text: "text-purple-700" },
+};
+
+export const DOCUMENT_STATUS_LABELS: Record<DocumentStatus, string> = {
+  DOC_CURRENT: "Current",
+  DOC_OVERDUE: "Overdue",
+  DOC_DRAFT: "Draft",
+  DOC_NOT_STARTED: "Not Started",
+};
+
+export const DOCUMENT_STATUS_COLOURS: Record<DocumentStatus, { bg: string; text: string }> = {
+  DOC_CURRENT: { bg: "bg-green-100", text: "text-green-700" },
+  DOC_OVERDUE: { bg: "bg-red-100", text: "text-red-700" },
+  DOC_DRAFT: { bg: "bg-amber-100", text: "text-amber-700" },
+  DOC_NOT_STARTED: { bg: "bg-gray-100", text: "text-gray-600" },
+};
+
+export interface RegulationControlLink {
+  id: string;
+  regulationId: string;
+  controlId: string;
+  regulation?: Regulation;
+  control?: Pick<ControlRecord, "id" | "controlRef" | "controlName"> & { businessArea?: ControlBusinessArea };
+  notes: string | null;
+  linkedAt: string;
+  linkedBy: string;
+}
+
+export interface SMFRole {
+  id: string;
+  smfId: string;
+  title: string;
+  shortTitle: string | null;
+  description: string;
+  fitsUpdraft: boolean;
+  mandatory: boolean;
+  currentHolderId: string | null;
+  currentHolder?: User;
+  status: SMFStatus;
+  scope: string | null;
+  keyDuties: string | null;
+  regulatoryBasis: string | null;
+  notes: string | null;
+  appointmentDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+  responsibilities?: PrescribedResponsibility[];
+}
+
+export interface PrescribedResponsibility {
+  id: string;
+  prId: string;
+  reference: string;
+  title: string;
+  description: string;
+  mandatoryFor: string | null;
+  suggestedSMF: string | null;
+  assignedSMFId: string | null;
+  assignedSMF?: SMFRole;
+  scope: string | null;
+  keyActivities: string | null;
+  linkedDomains: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CertificationFunction {
+  id: string;
+  cfId: string;
+  title: string;
+  description: string;
+  fitsUpdraft: boolean;
+  examples: string | null;
+  assessmentFrequency: string | null;
+  fandpCriteria: string | null;
+  createdAt: string;
+  updatedAt: string;
+  certifiedPersons?: CertifiedPerson[];
+}
+
+export interface CertifiedPerson {
+  id: string;
+  userId: string;
+  user?: User;
+  certificationFunctionId: string;
+  certificationFunction?: CertificationFunction;
+  certifiedDate: string | null;
+  expiryDate: string | null;
+  status: CertificationStatus;
+  lastAssessmentDate: string | null;
+  assessmentResult: string | null;
+  assessorId: string | null;
+  assessor?: User;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ConductRule {
+  id: string;
+  ruleId: string;
+  ruleType: string;
+  appliesTo: string;
+  title: string;
+  description: string;
+  examples: string | null;
+  reference: string | null;
+  createdAt: string;
+  updatedAt: string;
+  breaches?: ConductRuleBreach[];
+}
+
+export interface ConductRuleBreach {
+  id: string;
+  reference: string;
+  conductRuleId: string;
+  conductRule?: ConductRule;
+  userId: string;
+  user?: User;
+  dateIdentified: string;
+  description: string;
+  investigationNotes: string | null;
+  status: BreachStatus;
+  outcome: string | null;
+  disciplinaryAction: string | null;
+  reportedToFCA: boolean;
+  fcaReportDate: string | null;
+  reportedById: string | null;
+  reportedBy?: User;
+  closedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SMCRDocument {
+  id: string;
+  docId: string;
+  title: string;
+  description: string;
+  requiredFor: string | null;
+  template: string | null;
+  updateTrigger: string | null;
+  retention: string | null;
+  status: DocumentStatus;
+  lastUpdatedAt: string | null;
+  nextUpdateDue: string | null;
+  ownerId: string | null;
+  owner?: User;
+  storageUrl: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ── Permission Records ──────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ import PriorityEditor from "@/components/settings/PriorityEditor";
 import TemplatesPanel from "@/components/settings/TemplatesPanel";
 import ComponentsPanel from "@/components/settings/ComponentsPanel";
 import NotificationsEditor from "@/components/settings/NotificationsEditor";
+import RegulationManagementTab from "@/components/settings/RegulationManagementTab";
 import { cn } from "@/lib/utils";
 import { usePageTitle } from "@/lib/usePageTitle";
 
@@ -18,11 +19,12 @@ const TABS = [
   { id: "priorities", label: "Priorities" },
   { id: "templates", label: "Templates" },
   { id: "components", label: "Components" },
+  { id: "regulations", label: "Regulations" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
 
-const FULL_WIDTH_TABS: TabId[] = ["templates", "components"];
+const FULL_WIDTH_TABS: TabId[] = ["templates", "components", "regulations"];
 
 export default function SettingsPage() {
   usePageTitle("Settings");
@@ -66,6 +68,7 @@ export default function SettingsPage() {
         {activeTab === "priorities" && <PriorityEditor />}
         {activeTab === "templates" && <TemplatesPanel />}
         {activeTab === "components" && <ComponentsPanel />}
+        {activeTab === "regulations" && <RegulationManagementTab />}
       </div>
     </RoleGuard>
   );

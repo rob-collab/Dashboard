@@ -73,6 +73,18 @@ export default function ControlsLibraryTab() {
   const controlBusinessAreas = useAppStore((s) => s.controlBusinessAreas);
   const users = useAppStore((s) => s.users);
   const currentUser = useAppStore((s) => s.currentUser);
+  const policies = useAppStore((s) => s.policies);
+
+  // Reverse lookup: control ID → number of policies linked
+  const policyCountByControl = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const p of policies) {
+      for (const link of p.controlLinks ?? []) {
+        counts[link.controlId] = (counts[link.controlId] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }, [policies]);
   const addControl = useAppStore((s) => s.addControl);
   const updateControl = useAppStore((s) => s.updateControl);
   const hydrate = useAppStore((s) => s.hydrate);
@@ -432,6 +444,12 @@ export default function ControlsLibraryTab() {
                 <th className="px-4 py-3 text-center font-medium text-gray-500">
                   Risks
                 </th>
+                <th className="px-4 py-3 text-center font-medium text-gray-500">
+                  Policies
+                </th>
+                <th className="px-4 py-3 text-center font-medium text-gray-500">
+                  Regulations
+                </th>
                 {isCCRO && (
                   <th className="px-4 py-3 text-right font-medium text-gray-500">
                     Actions
@@ -443,7 +461,7 @@ export default function ControlsLibraryTab() {
               {filtered.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={isCCRO ? 11 : 10}
+                    colSpan={isCCRO ? 13 : 12}
                     className="px-4 py-12 text-center text-gray-400"
                   >
                     {showArchived
@@ -506,6 +524,24 @@ export default function ControlsLibraryTab() {
                         {(control.riskLinks?.length ?? 0) > 0 ? (
                           <span className="inline-flex items-center justify-center rounded-full bg-updraft-pale-purple/40 px-2 py-0.5 text-xs font-semibold text-updraft-deep">
                             {control.riskLinks!.length}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400">&mdash;</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {(policyCountByControl[control.id] ?? 0) > 0 ? (
+                          <span className="inline-flex items-center justify-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                            {policyCountByControl[control.id]}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400">&mdash;</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {(control.regulationLinks?.length ?? 0) > 0 ? (
+                          <span className="inline-flex items-center justify-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700">
+                            {control.regulationLinks!.length}
                           </span>
                         ) : (
                           <span className="text-xs text-gray-400">&mdash;</span>

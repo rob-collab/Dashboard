@@ -453,45 +453,149 @@ async function main() {
   await prisma.policyControlLink.deleteMany({ where: { policyId: "pol-finprom" } });
   await prisma.policyRegulatoryLink.deleteMany({ where: { policyId: "pol-finprom" } });
   await prisma.policy.deleteMany({ where: { id: "pol-finprom" } });
-  // Delete old regulations (both old FCA-xxx scheme and new REG-xxx if re-running)
+  // Delete old regulation links and regulations (both old FCA-xxx scheme and new CU-xxxx if re-running)
+  await prisma.regulationControlLink.deleteMany({});
   await prisma.regulation.deleteMany({});
   console.log("  ✓ Cleaned old policy review data");
 
-  // Seed 19 real regulations (REG-001 to REG-019)
-  const SEED_REGULATIONS: {
+  // ── Compliance Universe (75 regulations, 4-level hierarchy) ──────────────
+
+  // Helper type
+  type CUSeed = {
     id: string; reference: string; name: string; shortName: string | null;
     body: string; type: "HANDBOOK_RULE" | "PRINCIPLE" | "LEGISLATION" | "STATUTORY_INSTRUMENT" | "GUIDANCE" | "INDUSTRY_CODE";
     provisions: string | null; url: string | null; description: string | null;
-  }[] = [
-    { id: "reg-001", reference: "REG-001", name: "FCA Consumer Credit Sourcebook — Chapter 3", shortName: "CONC 3", body: "FCA", type: "HANDBOOK_RULE", provisions: "CONC 3.3, 3.5, 3.6, 3.7, 3.9", url: "https://www.handbook.fca.org.uk/handbook/CONC/3", description: "Detailed rules on financial promotions for consumer credit: content, form, prominence, and representative examples." },
-    { id: "reg-002", reference: "REG-002", name: "Consumer Duty — Principle 12", shortName: "PRIN 12", body: "FCA", type: "PRINCIPLE", provisions: "PRIN 2A.1–2A.5, FG22/5", url: "https://www.fca.org.uk/firms/consumer-duty", description: "Overarching duty to act to deliver good outcomes for retail customers, including consumer understanding." },
-    { id: "reg-003", reference: "REG-003", name: "Financial Services and Markets Act 2000 — Section 21", shortName: "FSMA s21", body: "Parliament", type: "LEGISLATION", provisions: "s21(1), s21(2), s25", url: "https://www.legislation.gov.uk/ukpga/2000/8/section/21", description: "The financial promotion restriction: only authorised persons may communicate financial promotions." },
-    { id: "reg-004", reference: "REG-004", name: "Financial Promotion Order 2005", shortName: "FPO 2005", body: "Parliament", type: "STATUTORY_INSTRUMENT", provisions: "Articles 15–73", url: "https://www.legislation.gov.uk/uksi/2005/1529", description: "Exemptions from the s21 restriction: categories of exempt communications." },
-    { id: "reg-005", reference: "REG-005", name: "Consumer Credit Act 1974 — Advertising", shortName: "CCA 1974 (Ads)", body: "Parliament", type: "LEGISLATION", provisions: "ss43–47", url: "https://www.legislation.gov.uk/ukpga/1974/39/part/IV", description: "Offences and requirements relating to credit advertisements." },
-    { id: "reg-006", reference: "REG-006", name: "FCA Principles for Businesses — Principle 7", shortName: "PRIN 7", body: "FCA", type: "PRINCIPLE", provisions: "Principle 7", url: "https://www.handbook.fca.org.uk/handbook/PRIN/2/1", description: "A firm must communicate information in a way which is clear, fair and not misleading." },
-    { id: "reg-007", reference: "REG-007", name: "FCA Senior Management Arrangements (SYSC)", shortName: "SYSC", body: "FCA", type: "HANDBOOK_RULE", provisions: "SYSC 3.1, 3.2, 4.1", url: "https://www.handbook.fca.org.uk/handbook/SYSC/3", description: "Systems and controls requirements including financial promotions oversight and record-keeping." },
-    { id: "reg-008", reference: "REG-008", name: "Consumer Credit Act 1974 — Agreements", shortName: "CCA 1974", body: "Parliament", type: "LEGISLATION", provisions: "ss60–65, 127", url: "https://www.legislation.gov.uk/ukpga/1974/39", description: "Pre-contractual information and agreement content requirements linked to advertising promises." },
-    { id: "reg-009", reference: "REG-009", name: "Financial Services and Markets Act 2000 — General", shortName: "FSMA 2000", body: "Parliament", type: "LEGISLATION", provisions: "ss137R, 138D", url: "https://www.legislation.gov.uk/ukpga/2000/8", description: "FCA rule-making powers for product intervention and financial promotion rules." },
-    { id: "reg-010", reference: "REG-010", name: "UK General Data Protection Regulation", shortName: "UK GDPR", body: "ICO", type: "LEGISLATION", provisions: "Articles 5, 6, 13, 14, 21", url: "https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/", description: "Lawful basis, transparency, and data subject rights for marketing data processing." },
-    { id: "reg-011", reference: "REG-011", name: "Privacy and Electronic Communications Regulations 2003", shortName: "PECR", body: "ICO", type: "STATUTORY_INSTRUMENT", provisions: "Regulations 21, 22, 23", url: "https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/", description: "Consent and opt-out rules for electronic direct marketing (email, SMS, calls)." },
-    { id: "reg-012", reference: "REG-012", name: "CAP Code (Non-Broadcast)", shortName: "CAP Code", body: "ASA", type: "INDUSTRY_CODE", provisions: "Sections 1, 3, 14", url: "https://www.asa.org.uk/codes-and-rulings/advertising-codes/non-broadcast-code.html", description: "Advertising standards for non-broadcast media including financial services rules." },
-    { id: "reg-013", reference: "REG-013", name: "BCAP Code (Broadcast)", shortName: "BCAP Code", body: "ASA", type: "INDUSTRY_CODE", provisions: "Sections 1, 3, 14", url: "https://www.asa.org.uk/codes-and-rulings/advertising-codes/broadcast-code.html", description: "Broadcast advertising code — TV and radio financial promotions." },
-    { id: "reg-014", reference: "REG-014", name: "Ofcom Broadcasting Code — Commercial References", shortName: "Ofcom Code", body: "Ofcom", type: "GUIDANCE", provisions: "Section Nine", url: "https://www.ofcom.org.uk/tv-radio-and-on-demand/broadcast-codes/broadcast-code", description: "Rules on commercial references in television and radio programmes." },
-    { id: "reg-015", reference: "REG-015", name: "FCA Senior Managers & Certification Regime", shortName: "SM&CR", body: "FCA", type: "HANDBOOK_RULE", provisions: "SYSC 24, 25, 26", url: "https://www.fca.org.uk/firms/senior-managers-certification-regime", description: "Accountability for SM&CR-designated financial promotions approver (SMF16/SMF24)." },
-    { id: "reg-016", reference: "REG-016", name: "Equality Act 2010 — Services", shortName: "EA 2010", body: "Parliament", type: "LEGISLATION", provisions: "Part 3, ss29–31", url: "https://www.legislation.gov.uk/ukpga/2010/15", description: "Prohibition of discrimination in the provision of services, including advertising." },
-    { id: "reg-017", reference: "REG-017", name: "FCA Conduct of Business Sourcebook (COBS 4)", shortName: "COBS 4", body: "FCA", type: "HANDBOOK_RULE", provisions: "COBS 4.1–4.12", url: "https://www.handbook.fca.org.uk/handbook/COBS/4", description: "Rules on communicating with clients: fair, clear and not misleading standard." },
-    { id: "reg-018", reference: "REG-018", name: "Consumer Rights Act 2015", shortName: "CRA 2015", body: "Parliament", type: "LEGISLATION", provisions: "Part 1, ss2–32; Part 3, ss61–76", url: "https://www.legislation.gov.uk/ukpga/2015/15", description: "Unfair terms, consumer contracts, and unfair trading provisions applicable to promotions." },
-    { id: "reg-019", reference: "REG-019", name: "FCA CONC 3 — Exclusions and Exemptions", shortName: "CONC 3 Exclusions", body: "FCA", type: "HANDBOOK_RULE", provisions: "CONC 3.1, 3.2", url: "https://www.handbook.fca.org.uk/handbook/CONC/3/1", description: "Activities and communications excluded from CONC 3 financial promotion rules." },
+    parentId: string | null; level: number;
+    regulatoryBody: string | null;
+    applicability: "CORE" | "HIGH" | "MEDIUM" | "LOW" | "N_A" | "ASSESS";
+    isApplicable: boolean;
+    primarySMF: string | null; secondarySMF: string | null;
+    complianceStatus: "COMPLIANT" | "PARTIALLY_COMPLIANT" | "NON_COMPLIANT" | "NOT_ASSESSED" | "GAP_IDENTIFIED";
+  };
+
+  const CU_SEED: CUSeed[] = [
+    // ═══ DOMAIN 1: FCA PRINCIPLES (PRIN) ═══
+    { id: "cu-0001", reference: "CU-0001", name: "FCA Principles for Businesses", shortName: "PRIN", body: "FCA", type: "PRINCIPLE", provisions: "PRIN 1-12", url: "https://www.handbook.fca.org.uk/handbook/PRIN", description: "The 12 Principles for Businesses that all authorised firms must comply with.", parentId: null, level: 1, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF1", secondarySMF: "SMF16", complianceStatus: "COMPLIANT" },
+    { id: "cu-0002", reference: "CU-0002", name: "Principle 1 — Integrity", shortName: "PRIN 1", body: "FCA", type: "PRINCIPLE", provisions: "PRIN 2.1.1R", url: null, description: "A firm must conduct its business with integrity.", parentId: "cu-0001", level: 2, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF1", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0003", reference: "CU-0003", name: "Principle 2 — Skill, Care and Diligence", shortName: "PRIN 2", body: "FCA", type: "PRINCIPLE", provisions: "PRIN 2.1.1R", url: null, description: "A firm must conduct its business with due skill, care and diligence.", parentId: "cu-0001", level: 2, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF1", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0004", reference: "CU-0004", name: "Principle 6 — Customers' Interests", shortName: "PRIN 6", body: "FCA", type: "PRINCIPLE", provisions: "PRIN 2.1.1R", url: null, description: "A firm must pay due regard to the interests of its customers and treat them fairly.", parentId: "cu-0001", level: 2, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF1", secondarySMF: "SMF16", complianceStatus: "COMPLIANT" },
+    { id: "cu-0005", reference: "CU-0005", name: "Principle 12 — Consumer Duty", shortName: "PRIN 12", body: "FCA", type: "PRINCIPLE", provisions: "PRIN 2A.1-2A.5", url: "https://www.fca.org.uk/firms/consumer-duty", description: "A firm must act to deliver good outcomes for retail customers.", parentId: "cu-0001", level: 2, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF1", secondarySMF: "SMF16", complianceStatus: "PARTIALLY_COMPLIANT" },
+    { id: "cu-0006", reference: "CU-0006", name: "Principle 7 — Communications", shortName: "PRIN 7", body: "FCA", type: "PRINCIPLE", provisions: "PRIN 2.1.1R", url: null, description: "A firm must pay due regard to the information needs of its clients, and communicate information to them in a way which is clear, fair and not misleading.", parentId: "cu-0001", level: 2, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0007", reference: "CU-0007", name: "Principle 3 — Management and Control", shortName: "PRIN 3", body: "FCA", type: "PRINCIPLE", provisions: "PRIN 2.1.1R", url: null, description: "A firm must take reasonable care to organise and control its affairs responsibly and effectively.", parentId: "cu-0001", level: 2, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF1", secondarySMF: "SMF16", complianceStatus: "COMPLIANT" },
+    { id: "cu-0008", reference: "CU-0008", name: "Principle 11 — Relations with Regulators", shortName: "PRIN 11", body: "FCA", type: "PRINCIPLE", provisions: "PRIN 2.1.1R", url: null, description: "A firm must deal with its regulators in an open and cooperative way.", parentId: "cu-0001", level: 2, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF1", secondarySMF: null, complianceStatus: "COMPLIANT" },
+
+    // ═══ DOMAIN 2: CONSUMER CREDIT SOURCEBOOK (CONC) ═══
+    { id: "cu-0010", reference: "CU-0010", name: "Consumer Credit Sourcebook", shortName: "CONC", body: "FCA", type: "HANDBOOK_RULE", provisions: "CONC 1-14", url: "https://www.handbook.fca.org.uk/handbook/CONC", description: "FCA rules specifically for consumer credit activities.", parentId: null, level: 1, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF16", secondarySMF: "SMF1", complianceStatus: "PARTIALLY_COMPLIANT" },
+    { id: "cu-0011", reference: "CU-0011", name: "CONC 1 — Application and Purpose", shortName: "CONC 1", body: "FCA", type: "HANDBOOK_RULE", provisions: "CONC 1.1-1.2", url: null, description: "Application, purpose and scope of CONC.", parentId: "cu-0010", level: 2, regulatoryBody: "FCA", applicability: "HIGH", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0012", reference: "CU-0012", name: "CONC 2 — Conduct of Business", shortName: "CONC 2", body: "FCA", type: "HANDBOOK_RULE", provisions: "CONC 2.1-2.10", url: null, description: "General conduct of business rules for consumer credit.", parentId: "cu-0010", level: 2, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0036", reference: "CU-0036", name: "CONC 3 — Financial Promotions", shortName: "CONC 3", body: "FCA", type: "HANDBOOK_RULE", provisions: "CONC 3.1-3.11", url: "https://www.handbook.fca.org.uk/handbook/CONC/3", description: "Rules on financial promotions for consumer credit.", parentId: "cu-0010", level: 2, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF16", secondarySMF: "SMF24", complianceStatus: "PARTIALLY_COMPLIANT" },
+    { id: "cu-0037", reference: "CU-0037", name: "CONC 3.3 — Content of Promotions", shortName: null, body: "FCA", type: "HANDBOOK_RULE", provisions: "CONC 3.3.1R-3.3.14G", url: null, description: "Content requirements for consumer credit financial promotions.", parentId: "cu-0036", level: 3, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "PARTIALLY_COMPLIANT" },
+    { id: "cu-0038", reference: "CU-0038", name: "CONC 3.5 — Representative APR", shortName: null, body: "FCA", type: "HANDBOOK_RULE", provisions: "CONC 3.5.1R-3.5.12G", url: null, description: "Rules for the display and calculation of representative APR.", parentId: "cu-0036", level: 3, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0039", reference: "CU-0039", name: "CONC 3.6 — Risk Warnings", shortName: null, body: "FCA", type: "HANDBOOK_RULE", provisions: "CONC 3.6.1R-3.6.8G", url: null, description: "Requirements for risk warnings and health warnings in promotions.", parentId: "cu-0036", level: 3, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0013", reference: "CU-0013", name: "CONC 4 — Pre-Contractual Requirements", shortName: "CONC 4", body: "FCA", type: "HANDBOOK_RULE", provisions: "CONC 4.1-4.3", url: null, description: "Pre-contractual information requirements.", parentId: "cu-0010", level: 2, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0014", reference: "CU-0014", name: "CONC 5 — Responsible Lending", shortName: "CONC 5", body: "FCA", type: "HANDBOOK_RULE", provisions: "CONC 5.1-5.5", url: null, description: "Responsible lending including creditworthiness assessment.", parentId: "cu-0010", level: 2, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF16", secondarySMF: "SMF1", complianceStatus: "COMPLIANT" },
+    { id: "cu-0015", reference: "CU-0015", name: "CONC 6 — Post-Contractual Requirements", shortName: "CONC 6", body: "FCA", type: "HANDBOOK_RULE", provisions: "CONC 6.1-6.8", url: null, description: "Post-contractual requirements for consumer credit.", parentId: "cu-0010", level: 2, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0016", reference: "CU-0016", name: "CONC 7 — Arrears, Default and Recovery", shortName: "CONC 7", body: "FCA", type: "HANDBOOK_RULE", provisions: "CONC 7.1-7.18", url: null, description: "Treatment of customers in financial difficulty, arrears and recovery.", parentId: "cu-0010", level: 2, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "PARTIALLY_COMPLIANT" },
+    { id: "cu-0017", reference: "CU-0017", name: "CONC 13 — Guidance on the Duty", shortName: "CONC 13", body: "FCA", type: "HANDBOOK_RULE", provisions: "CONC 13.1", url: null, description: "Guidance on Consumer Duty application to consumer credit.", parentId: "cu-0010", level: 2, regulatoryBody: "FCA", applicability: "HIGH", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "NOT_ASSESSED" },
+
+    // ═══ DOMAIN 3: SYSTEMS AND CONTROLS (SYSC) ═══
+    { id: "cu-0020", reference: "CU-0020", name: "Senior Management Arrangements, Systems and Controls", shortName: "SYSC", body: "FCA", type: "HANDBOOK_RULE", provisions: "SYSC 1-28", url: "https://www.handbook.fca.org.uk/handbook/SYSC", description: "Requirements for governance, systems and controls.", parentId: null, level: 1, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF1", secondarySMF: "SMF16", complianceStatus: "COMPLIANT" },
+    { id: "cu-0021", reference: "CU-0021", name: "SYSC 3 — Systems and Controls", shortName: "SYSC 3", body: "FCA", type: "HANDBOOK_RULE", provisions: "SYSC 3.1-3.2", url: null, description: "General organisational requirements for systems and controls.", parentId: "cu-0020", level: 2, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF1", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0022", reference: "CU-0022", name: "SYSC 4 — General Organisational Requirements", shortName: "SYSC 4", body: "FCA", type: "HANDBOOK_RULE", provisions: "SYSC 4.1-4.4", url: null, description: "Robust governance arrangements, effective processes.", parentId: "cu-0020", level: 2, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF1", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0023", reference: "CU-0023", name: "SYSC 5 — Employees, Agents and Other Relevant Persons", shortName: "SYSC 5", body: "FCA", type: "HANDBOOK_RULE", provisions: "SYSC 5.1", url: null, description: "Competence and skills requirements for staff.", parentId: "cu-0020", level: 2, regulatoryBody: "FCA", applicability: "HIGH", isApplicable: true, primarySMF: "SMF1", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0024", reference: "CU-0024", name: "SYSC 6 — Compliance, Internal Audit and Financial Crime", shortName: "SYSC 6", body: "FCA", type: "HANDBOOK_RULE", provisions: "SYSC 6.1-6.3", url: null, description: "Compliance function, internal audit, and financial crime systems.", parentId: "cu-0020", level: 2, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF16", secondarySMF: "SMF1", complianceStatus: "COMPLIANT" },
+    { id: "cu-0025", reference: "CU-0025", name: "SYSC 9 — Record Keeping", shortName: "SYSC 9", body: "FCA", type: "HANDBOOK_RULE", provisions: "SYSC 9.1", url: null, description: "Record-keeping requirements for regulated firms.", parentId: "cu-0020", level: 2, regulatoryBody: "FCA", applicability: "HIGH", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0026", reference: "CU-0026", name: "SYSC 10 — Conflicts of Interest", shortName: "SYSC 10", body: "FCA", type: "HANDBOOK_RULE", provisions: "SYSC 10.1-10.2", url: null, description: "Identifying, managing and disclosing conflicts of interest.", parentId: "cu-0020", level: 2, regulatoryBody: "FCA", applicability: "HIGH", isApplicable: true, primarySMF: "SMF1", secondarySMF: "SMF16", complianceStatus: "COMPLIANT" },
+    { id: "cu-0027", reference: "CU-0027", name: "SYSC 24-26 — SM&CR", shortName: "SM&CR", body: "FCA", type: "HANDBOOK_RULE", provisions: "SYSC 24-26", url: "https://www.fca.org.uk/firms/senior-managers-certification-regime", description: "Senior Managers and Certification Regime requirements.", parentId: "cu-0020", level: 2, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF1", secondarySMF: "SMF16", complianceStatus: "COMPLIANT" },
+    { id: "cu-0028", reference: "CU-0028", name: "SYSC 15A — Operational Resilience", shortName: "SYSC 15A", body: "FCA", type: "HANDBOOK_RULE", provisions: "SYSC 15A.1-15A.9", url: null, description: "Requirements for operational resilience and important business services.", parentId: "cu-0020", level: 2, regulatoryBody: "FCA", applicability: "HIGH", isApplicable: true, primarySMF: "SMF1", secondarySMF: null, complianceStatus: "PARTIALLY_COMPLIANT" },
+
+    // ═══ DOMAIN 4: FINANCIAL SERVICES LEGISLATION ═══
+    { id: "cu-0040", reference: "CU-0040", name: "Financial Services Legislation", shortName: "FS-LEG", body: "Parliament", type: "LEGISLATION", provisions: null, url: null, description: "Primary and secondary legislation governing financial services.", parentId: null, level: 1, regulatoryBody: "Parliament", applicability: "CORE", isApplicable: true, primarySMF: "SMF1", secondarySMF: "SMF16", complianceStatus: "COMPLIANT" },
+    { id: "cu-0041", reference: "CU-0041", name: "Financial Services and Markets Act 2000", shortName: "FSMA 2000", body: "Parliament", type: "LEGISLATION", provisions: "ss19-23, 137R, 138D", url: "https://www.legislation.gov.uk/ukpga/2000/8", description: "Primary legislation governing UK financial services regulation.", parentId: "cu-0040", level: 2, regulatoryBody: "Parliament", applicability: "CORE", isApplicable: true, primarySMF: "SMF1", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0042", reference: "CU-0042", name: "FSMA s21 — Financial Promotion Restriction", shortName: "FSMA s21", body: "Parliament", type: "LEGISLATION", provisions: "s21(1), s21(2), s25", url: null, description: "The financial promotion restriction: only authorised persons may communicate financial promotions.", parentId: "cu-0041", level: 3, regulatoryBody: "Parliament", applicability: "CORE", isApplicable: true, primarySMF: "SMF16", secondarySMF: "SMF24", complianceStatus: "COMPLIANT" },
+    { id: "cu-0043", reference: "CU-0043", name: "Financial Promotion Order 2005", shortName: "FPO 2005", body: "Parliament", type: "STATUTORY_INSTRUMENT", provisions: "Articles 15-73", url: "https://www.legislation.gov.uk/uksi/2005/1529", description: "Exemptions from the s21 restriction.", parentId: "cu-0040", level: 2, regulatoryBody: "Parliament", applicability: "HIGH", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "COMPLIANT" },
+
+    // ═══ DOMAIN 5: CONSUMER LEGISLATION ═══
+    { id: "cu-0050", reference: "CU-0050", name: "Consumer Legislation", shortName: "CONSUMER-LEG", body: "Parliament", type: "LEGISLATION", provisions: null, url: null, description: "Consumer protection legislation applicable to credit firms.", parentId: null, level: 1, regulatoryBody: "Parliament", applicability: "CORE", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0051", reference: "CU-0051", name: "Consumer Credit Act 1974", shortName: "CCA 1974", body: "Parliament", type: "LEGISLATION", provisions: "ss43-47, 60-65, 127", url: "https://www.legislation.gov.uk/ukpga/1974/39", description: "Primary consumer credit legislation covering agreements, advertising, and enforcement.", parentId: "cu-0050", level: 2, regulatoryBody: "Parliament", applicability: "CORE", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0052", reference: "CU-0052", name: "Consumer Rights Act 2015", shortName: "CRA 2015", body: "Parliament", type: "LEGISLATION", provisions: "Part 1, Part 3", url: "https://www.legislation.gov.uk/ukpga/2015/15", description: "Unfair terms, consumer contracts, and consumer protection.", parentId: "cu-0050", level: 2, regulatoryBody: "Parliament", applicability: "HIGH", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0053", reference: "CU-0053", name: "Consumer Protection from Unfair Trading Regulations 2008", shortName: "CPRs 2008", body: "Parliament", type: "STATUTORY_INSTRUMENT", provisions: "Regulations 2-12", url: "https://www.legislation.gov.uk/uksi/2008/1277", description: "Prohibits unfair commercial practices including misleading actions and omissions.", parentId: "cu-0050", level: 2, regulatoryBody: "Parliament", applicability: "HIGH", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0054", reference: "CU-0054", name: "Equality Act 2010", shortName: "EA 2010", body: "Parliament", type: "LEGISLATION", provisions: "Part 3", url: "https://www.legislation.gov.uk/ukpga/2010/15", description: "Prohibition of discrimination in provision of services.", parentId: "cu-0050", level: 2, regulatoryBody: "Parliament", applicability: "HIGH", isApplicable: true, primarySMF: "SMF1", secondarySMF: null, complianceStatus: "COMPLIANT" },
+
+    // ═══ DOMAIN 6: DATA PROTECTION ═══
+    { id: "cu-0060", reference: "CU-0060", name: "Data Protection", shortName: "DATA-PROT", body: "ICO", type: "LEGISLATION", provisions: null, url: null, description: "Data protection and privacy legislation.", parentId: null, level: 1, regulatoryBody: "ICO", applicability: "CORE", isApplicable: true, primarySMF: "SMF1", secondarySMF: "SMF16", complianceStatus: "COMPLIANT" },
+    { id: "cu-0061", reference: "CU-0061", name: "UK General Data Protection Regulation", shortName: "UK GDPR", body: "ICO", type: "LEGISLATION", provisions: "Articles 5, 6, 13-14, 21, 25, 30, 32-34", url: "https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/", description: "UK GDPR requirements for data processing, security, and subject rights.", parentId: "cu-0060", level: 2, regulatoryBody: "ICO", applicability: "CORE", isApplicable: true, primarySMF: "SMF1", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0062", reference: "CU-0062", name: "Data Protection Act 2018", shortName: "DPA 2018", body: "Parliament", type: "LEGISLATION", provisions: "Parts 1-7", url: "https://www.legislation.gov.uk/ukpga/2018/12", description: "UK implementation of GDPR with supplementary provisions.", parentId: "cu-0060", level: 2, regulatoryBody: "Parliament", applicability: "CORE", isApplicable: true, primarySMF: "SMF1", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0063", reference: "CU-0063", name: "Privacy and Electronic Communications Regulations 2003", shortName: "PECR", body: "ICO", type: "STATUTORY_INSTRUMENT", provisions: "Regulations 21-23", url: "https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/", description: "Consent and opt-out rules for electronic direct marketing.", parentId: "cu-0060", level: 2, regulatoryBody: "ICO", applicability: "HIGH", isApplicable: true, primarySMF: null, secondarySMF: null, complianceStatus: "COMPLIANT" },
+
+    // ═══ DOMAIN 7: FINANCIAL CRIME ═══
+    { id: "cu-0070", reference: "CU-0070", name: "Financial Crime Prevention", shortName: "FIN-CRIME", body: "FCA", type: "HANDBOOK_RULE", provisions: null, url: null, description: "Anti-money laundering, fraud prevention and sanctions.", parentId: null, level: 1, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF17", secondarySMF: "SMF1", complianceStatus: "COMPLIANT" },
+    { id: "cu-0071", reference: "CU-0071", name: "Money Laundering Regulations 2017", shortName: "MLR 2017", body: "Parliament", type: "STATUTORY_INSTRUMENT", provisions: "Parts 1-12", url: "https://www.legislation.gov.uk/uksi/2017/692", description: "AML/CTF regulations including CDD, EDD, and reporting.", parentId: "cu-0070", level: 2, regulatoryBody: "Parliament", applicability: "CORE", isApplicable: true, primarySMF: "SMF17", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0072", reference: "CU-0072", name: "Proceeds of Crime Act 2002", shortName: "POCA 2002", body: "Parliament", type: "LEGISLATION", provisions: "Parts 7-8", url: "https://www.legislation.gov.uk/ukpga/2002/29", description: "Suspicious activity reporting, tipping off offences.", parentId: "cu-0070", level: 2, regulatoryBody: "Parliament", applicability: "CORE", isApplicable: true, primarySMF: "SMF17", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0073", reference: "CU-0073", name: "Sanctions and Anti-Money Laundering Act 2018", shortName: "SAMLA 2018", body: "Parliament", type: "LEGISLATION", provisions: "Parts 1-3", url: null, description: "UK sanctions framework post-Brexit.", parentId: "cu-0070", level: 2, regulatoryBody: "Parliament", applicability: "HIGH", isApplicable: true, primarySMF: "SMF17", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0074", reference: "CU-0074", name: "Fraud Act 2006", shortName: "Fraud Act", body: "Parliament", type: "LEGISLATION", provisions: "ss1-11", url: null, description: "Criminal offences of fraud and obtaining services dishonestly.", parentId: "cu-0070", level: 2, regulatoryBody: "Parliament", applicability: "HIGH", isApplicable: true, primarySMF: "SMF17", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0075", reference: "CU-0075", name: "Terrorism Act 2000", shortName: "TA 2000", body: "Parliament", type: "LEGISLATION", provisions: "Parts I-III", url: null, description: "Counter-terrorism financing obligations.", parentId: "cu-0070", level: 2, regulatoryBody: "Parliament", applicability: "MEDIUM", isApplicable: true, primarySMF: "SMF17", secondarySMF: null, complianceStatus: "NOT_ASSESSED" },
+
+    // ═══ DOMAIN 8: EMPLOYMENT LAW ═══
+    { id: "cu-0080", reference: "CU-0080", name: "Employment Legislation", shortName: "EMPLOYMENT", body: "Parliament", type: "LEGISLATION", provisions: null, url: null, description: "Employment law requirements relevant to regulated firms.", parentId: null, level: 1, regulatoryBody: "Parliament", applicability: "MEDIUM", isApplicable: true, primarySMF: "SMF1", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0081", reference: "CU-0081", name: "Employment Rights Act 1996", shortName: "ERA 1996", body: "Parliament", type: "LEGISLATION", provisions: "Parts I-XIV", url: null, description: "Core employment rights including unfair dismissal and whistleblowing.", parentId: "cu-0080", level: 2, regulatoryBody: "Parliament", applicability: "MEDIUM", isApplicable: true, primarySMF: "SMF1", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0082", reference: "CU-0082", name: "Health and Safety at Work Act 1974", shortName: "HSWA 1974", body: "Parliament", type: "LEGISLATION", provisions: "ss2-9", url: null, description: "Health and safety duties for employers.", parentId: "cu-0080", level: 2, regulatoryBody: "Parliament", applicability: "MEDIUM", isApplicable: true, primarySMF: "SMF1", secondarySMF: null, complianceStatus: "COMPLIANT" },
+
+    // ═══ DOMAIN 9: CORPORATE LAW ═══
+    { id: "cu-0090", reference: "CU-0090", name: "Corporate Law", shortName: "CORPORATE", body: "Parliament", type: "LEGISLATION", provisions: null, url: null, description: "Company law requirements for regulated firms.", parentId: null, level: 1, regulatoryBody: "Parliament", applicability: "MEDIUM", isApplicable: true, primarySMF: "SMF1", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0091", reference: "CU-0091", name: "Companies Act 2006", shortName: "CA 2006", body: "Parliament", type: "LEGISLATION", provisions: "Parts 1-47", url: null, description: "Company formation, directors duties, reporting and auditing.", parentId: "cu-0090", level: 2, regulatoryBody: "Parliament", applicability: "MEDIUM", isApplicable: true, primarySMF: "SMF1", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0092", reference: "CU-0092", name: "Bribery Act 2010", shortName: "Bribery Act", body: "Parliament", type: "LEGISLATION", provisions: "ss1-14", url: null, description: "Offences of bribery and failure to prevent bribery.", parentId: "cu-0090", level: 2, regulatoryBody: "Parliament", applicability: "HIGH", isApplicable: true, primarySMF: "SMF1", secondarySMF: null, complianceStatus: "COMPLIANT" },
+
+    // ═══ DOMAIN 10: TAX AND REPORTING ═══
+    { id: "cu-0100", reference: "CU-0100", name: "Tax and Regulatory Reporting", shortName: "TAX", body: "HMRC", type: "LEGISLATION", provisions: null, url: null, description: "Tax compliance and regulatory reporting.", parentId: null, level: 1, regulatoryBody: "HMRC", applicability: "MEDIUM", isApplicable: true, primarySMF: "SMF1", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0101", reference: "CU-0101", name: "SUP 16 — Regulatory Reporting", shortName: "SUP 16", body: "FCA", type: "HANDBOOK_RULE", provisions: "SUP 16.1-16.12", url: null, description: "FCA regulatory reporting requirements including product sales data.", parentId: "cu-0100", level: 2, regulatoryBody: "FCA", applicability: "HIGH", isApplicable: true, primarySMF: "SMF1", secondarySMF: null, complianceStatus: "COMPLIANT" },
+
+    // ═══ DOMAIN 11: FCA GUIDANCE ═══
+    { id: "cu-0110", reference: "CU-0110", name: "FCA Guidance and Occasional Papers", shortName: "FCA-GUIDANCE", body: "FCA", type: "GUIDANCE", provisions: null, url: null, description: "FCA finalised guidance and occasional papers.", parentId: null, level: 1, regulatoryBody: "FCA", applicability: "HIGH", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "NOT_ASSESSED" },
+    { id: "cu-0111", reference: "CU-0111", name: "FG22/5 — Consumer Duty Finalised Guidance", shortName: "FG22/5", body: "FCA", type: "GUIDANCE", provisions: null, url: "https://www.fca.org.uk/publications/finalised-guidance/fg22-5-consumer-duty-guidance-firms", description: "Detailed guidance on the Consumer Duty implementation.", parentId: "cu-0110", level: 2, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "PARTIALLY_COMPLIANT" },
+    { id: "cu-0112", reference: "CU-0112", name: "FG21/1 — Guidance for Firms on Treatment of Vulnerable Customers", shortName: "FG21/1", body: "FCA", type: "GUIDANCE", provisions: null, url: null, description: "Guidance on fair treatment of vulnerable customers.", parentId: "cu-0110", level: 2, regulatoryBody: "FCA", applicability: "HIGH", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "COMPLIANT" },
+
+    // ═══ DOMAIN 12: INDUSTRY CODES ═══
+    { id: "cu-0120", reference: "CU-0120", name: "Industry Codes and Standards", shortName: "INDUSTRY", body: "Various", type: "INDUSTRY_CODE", provisions: null, url: null, description: "Industry self-regulatory codes and standards.", parentId: null, level: 1, regulatoryBody: null, applicability: "MEDIUM", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0121", reference: "CU-0121", name: "CAP Code (Non-Broadcast Advertising)", shortName: "CAP Code", body: "ASA", type: "INDUSTRY_CODE", provisions: "Sections 1, 3, 14", url: null, description: "Advertising standards for non-broadcast media.", parentId: "cu-0120", level: 2, regulatoryBody: null, applicability: "HIGH", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0122", reference: "CU-0122", name: "Lending Standards Board — Standards of Lending Practice", shortName: "LSB SLP", body: "LSB", type: "INDUSTRY_CODE", provisions: null, url: null, description: "Industry-wide voluntary lending standards.", parentId: "cu-0120", level: 2, regulatoryBody: null, applicability: "HIGH", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "COMPLIANT" },
+
+    // ═══ DOMAIN 13: OPERATIONAL RESILIENCE ═══
+    { id: "cu-0130", reference: "CU-0130", name: "Operational Resilience Requirements", shortName: "OP-RES", body: "FCA", type: "HANDBOOK_RULE", provisions: null, url: null, description: "Regulatory requirements for operational resilience.", parentId: null, level: 1, regulatoryBody: "FCA", applicability: "HIGH", isApplicable: true, primarySMF: "SMF1", secondarySMF: null, complianceStatus: "PARTIALLY_COMPLIANT" },
+    { id: "cu-0131", reference: "CU-0131", name: "FCA PS21/3 — Operational Resilience Policy Statement", shortName: "PS21/3", body: "FCA", type: "GUIDANCE", provisions: null, url: null, description: "Policy statement on operational resilience requirements.", parentId: "cu-0130", level: 2, regulatoryBody: "FCA", applicability: "HIGH", isApplicable: true, primarySMF: "SMF1", secondarySMF: null, complianceStatus: "PARTIALLY_COMPLIANT" },
+    { id: "cu-0132", reference: "CU-0132", name: "SYSC 15A — Important Business Services", shortName: "IBS", body: "FCA", type: "HANDBOOK_RULE", provisions: "SYSC 15A.2", url: null, description: "Identification of important business services and impact tolerances.", parentId: "cu-0130", level: 2, regulatoryBody: "FCA", applicability: "HIGH", isApplicable: true, primarySMF: "SMF1", secondarySMF: null, complianceStatus: "PARTIALLY_COMPLIANT" },
+
+    // ═══ DOMAIN 14: PAYMENTS ═══
+    { id: "cu-0140", reference: "CU-0140", name: "Payments Regulation", shortName: "PAYMENTS", body: "FCA", type: "LEGISLATION", provisions: null, url: null, description: "Payment services and electronic money regulations.", parentId: null, level: 1, regulatoryBody: "FCA", applicability: "LOW", isApplicable: false, primarySMF: null, secondarySMF: null, complianceStatus: "NOT_ASSESSED" },
+    { id: "cu-0141", reference: "CU-0141", name: "Payment Services Regulations 2017", shortName: "PSR 2017", body: "Parliament", type: "STATUTORY_INSTRUMENT", provisions: "Parts 1-10", url: null, description: "PSD2 implementation in the UK for payment services.", parentId: "cu-0140", level: 2, regulatoryBody: "Parliament", applicability: "LOW", isApplicable: false, primarySMF: null, secondarySMF: null, complianceStatus: "NOT_ASSESSED" },
+
+    // ═══ DOMAIN 15: FCA OTHER SOURCEBOOKS ═══
+    { id: "cu-0150", reference: "CU-0150", name: "Other FCA Sourcebooks", shortName: "FCA-OTHER", body: "FCA", type: "HANDBOOK_RULE", provisions: null, url: null, description: "Other FCA handbook sourcebooks applicable to the firm.", parentId: null, level: 1, regulatoryBody: "FCA", applicability: "HIGH", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0151", reference: "CU-0151", name: "COBS 4 — Communicating with Clients", shortName: "COBS 4", body: "FCA", type: "HANDBOOK_RULE", provisions: "COBS 4.1-4.12", url: null, description: "Rules on communicating with clients: fair, clear and not misleading.", parentId: "cu-0150", level: 2, regulatoryBody: "FCA", applicability: "HIGH", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0152", reference: "CU-0152", name: "DISP — Dispute Resolution", shortName: "DISP", body: "FCA", type: "HANDBOOK_RULE", provisions: "DISP 1-2", url: null, description: "Complaints handling and dispute resolution requirements.", parentId: "cu-0150", level: 2, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0153", reference: "CU-0153", name: "SUP 10C — FCA Senior Managers Regime", shortName: "SUP 10C", body: "FCA", type: "HANDBOOK_RULE", provisions: "SUP 10C.1-10C.16", url: null, description: "Approval process for senior manager functions.", parentId: "cu-0150", level: 2, regulatoryBody: "FCA", applicability: "CORE", isApplicable: true, primarySMF: "SMF1", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0154", reference: "CU-0154", name: "SUP 15 — Notifications", shortName: "SUP 15", body: "FCA", type: "HANDBOOK_RULE", provisions: "SUP 15.1-15.11", url: null, description: "FCA notification requirements for firms.", parentId: "cu-0150", level: 2, regulatoryBody: "FCA", applicability: "HIGH", isApplicable: true, primarySMF: "SMF1", secondarySMF: null, complianceStatus: "COMPLIANT" },
+    { id: "cu-0155", reference: "CU-0155", name: "GEN — General Provisions", shortName: "GEN", body: "FCA", type: "HANDBOOK_RULE", provisions: "GEN 1-6", url: null, description: "General provisions including firm naming and status disclosure.", parentId: "cu-0150", level: 2, regulatoryBody: "FCA", applicability: "MEDIUM", isApplicable: true, primarySMF: "SMF16", secondarySMF: null, complianceStatus: "COMPLIANT" },
   ];
 
-  for (const reg of SEED_REGULATIONS) {
-    await prisma.regulation.upsert({
-      where: { id: reg.id },
-      update: { name: reg.name, shortName: reg.shortName, body: reg.body, type: reg.type, provisions: reg.provisions, url: reg.url, description: reg.description },
-      create: reg,
-    });
+  // Insert level 1 first, then level 2, then level 3
+  for (const level of [1, 2, 3]) {
+    for (const reg of CU_SEED.filter(r => r.level === level)) {
+      await prisma.regulation.upsert({
+        where: { id: reg.id },
+        update: {
+          name: reg.name, shortName: reg.shortName, body: reg.body, type: reg.type,
+          provisions: reg.provisions, url: reg.url, description: reg.description,
+          parentId: reg.parentId, level: reg.level, regulatoryBody: reg.regulatoryBody,
+          applicability: reg.applicability, isApplicable: reg.isApplicable,
+          primarySMF: reg.primarySMF, secondarySMF: reg.secondarySMF,
+          complianceStatus: reg.complianceStatus,
+        },
+        create: reg,
+      });
+    }
   }
-  console.log(`  ✓ ${SEED_REGULATIONS.length} regulations (REG-001 to REG-019)`);
+  console.log(`  ✓ ${CU_SEED.length} compliance universe regulations`);
 
   // ── Financial Promotions Controls (FP-C001 to FP-C018) ────────────────
   // Create new business area for Financial Promotions
@@ -744,14 +848,14 @@ async function main() {
   });
   console.log("  ✓ 1 policy (POL-FINPROM, v4.1, OVERDUE)");
 
-  // Link all 19 regulations to policy
-  const regIds = SEED_REGULATIONS.map((r) => r.id);
-  for (const regId of regIds) {
+  // Link relevant regulations to policy (CONC 3 and its children, PRIN 7, PRIN 12, FSMA s21, PECR, UK GDPR, etc.)
+  const policyRegIds = ["cu-0005", "cu-0006", "cu-0036", "cu-0037", "cu-0038", "cu-0039", "cu-0042", "cu-0043", "cu-0051", "cu-0061", "cu-0063", "cu-0121"];
+  for (const regId of policyRegIds) {
     await prisma.policyRegulatoryLink.create({
       data: { policyId, regulationId: regId, linkedBy: "user-rob" },
     });
   }
-  console.log(`  ✓ ${regIds.length} policy-regulation links`);
+  console.log(`  ✓ ${policyRegIds.length} policy-regulation links`);
 
   // Link all 18 FP controls to policy
   for (const ctrlId of fpControlIds) {
@@ -821,6 +925,108 @@ async function main() {
     });
   }
   console.log(`  ✓ ${POLICY_AUDIT.length} policy audit entries (v4.1 history)`);
+
+  // ── SM&CR Reference Data ──────────────────────────────────────────────
+
+  // SMF Roles
+  const SMF_ROLES = [
+    { id: "smf-1", smfId: "SMF1", title: "Chief Executive Function", shortTitle: "CEO", description: "The function of having responsibility for carrying out the management of the conduct of the whole of the business (or relevant activities) of a firm.", fitsUpdraft: true, mandatory: true, currentHolderId: "user-ceo", status: "ACTIVE" as const, scope: "Overall management of the firm's business", keyDuties: "Strategic direction, Board leadership, regulatory relationship, risk appetite setting", regulatoryBasis: "SYSC 24", appointmentDate: new Date("2022-01-15") },
+    { id: "smf-3", smfId: "SMF3", title: "Executive Director Function", shortTitle: "ExDir", description: "The function of having responsibility for management of the conduct of the firm's business.", fitsUpdraft: true, mandatory: false, currentHolderId: null, status: "VACANT" as const, scope: "Management of specific business lines", keyDuties: "Business line management, P&L responsibility", regulatoryBasis: "SYSC 24", appointmentDate: null },
+    { id: "smf-9", smfId: "SMF9", title: "Chair of Governing Body", shortTitle: "Chair", description: "The function of chairing the governing body of a firm.", fitsUpdraft: false, mandatory: false, currentHolderId: null, status: "VACANT" as const, scope: "Board governance and oversight", keyDuties: "Chairing Board meetings, Board effectiveness", regulatoryBasis: "SYSC 24", appointmentDate: null },
+    { id: "smf-16", smfId: "SMF16", title: "Compliance Oversight Function", shortTitle: "Compliance", description: "The function of having responsibility for compliance with the regulatory system.", fitsUpdraft: true, mandatory: true, currentHolderId: "user-cath", status: "ACTIVE" as const, scope: "Regulatory compliance oversight for the firm", keyDuties: "Compliance monitoring, regulatory reporting, policy framework, CCRO reporting", regulatoryBasis: "SYSC 24, SYSC 6.1", appointmentDate: new Date("2022-03-01") },
+    { id: "smf-17", smfId: "SMF17", title: "Money Laundering Reporting Function", shortTitle: "MLRO", description: "The function of acting as the firm's nominated officer for AML/CTF.", fitsUpdraft: true, mandatory: true, currentHolderId: "user-cath", status: "ACTIVE" as const, scope: "AML/CTF compliance", keyDuties: "SAR reporting, AML policy, staff training, risk assessment", regulatoryBasis: "SYSC 24, MLR 2017 reg 21", appointmentDate: new Date("2022-03-01") },
+    { id: "smf-24", smfId: "SMF24", title: "Chief Operations Function", shortTitle: "COO", description: "The function of having responsibility for the internal operations and technology of the firm.", fitsUpdraft: true, mandatory: false, currentHolderId: null, status: "VACANT" as const, scope: "Operations and technology", keyDuties: "IT infrastructure, operational resilience, change management", regulatoryBasis: "SYSC 24", appointmentDate: null },
+    { id: "smf-27", smfId: "SMF27", title: "Partner Function", shortTitle: "Partner", description: "The function of being a partner in a firm which is a partnership.", fitsUpdraft: false, mandatory: false, currentHolderId: null, status: "VACANT" as const, scope: "N/A — Updraft is not a partnership", keyDuties: "N/A", regulatoryBasis: "SYSC 24", appointmentDate: null },
+    { id: "smf-29", smfId: "SMF29", title: "Limited Scope Function", shortTitle: "Limited", description: "Benchmark administrator or claims management.", fitsUpdraft: false, mandatory: false, currentHolderId: null, status: "VACANT" as const, scope: "N/A", keyDuties: "N/A", regulatoryBasis: "SYSC 24", appointmentDate: null },
+  ];
+
+  for (const r of SMF_ROLES) {
+    await prisma.sMFRole.upsert({
+      where: { id: r.id },
+      update: { ...r, appointmentDate: r.appointmentDate },
+      create: { ...r, appointmentDate: r.appointmentDate },
+    });
+  }
+  console.log(`  ✓ ${SMF_ROLES.length} SMF roles`);
+
+  // Prescribed Responsibilities
+  const PRESCRIBED_RESPS = [
+    { id: "pr-a", prId: "PR-A", reference: "PR-A", title: "Performance of the firm's obligations under the senior managers regime", description: "Responsibility for the firm's performance of its obligations under the SM&CR.", mandatoryFor: "All Core firms", suggestedSMF: "SMF16", assignedSMFId: "smf-16", scope: "SM&CR compliance", keyActivities: "Maintaining responsibilities map, ensuring SM applications, certification regime", linkedDomains: ["SYSC"] },
+    { id: "pr-b", prId: "PR-B", reference: "PR-B", title: "Performance of the firm's obligations under the Conduct Rules", description: "Responsibility for the firm's performance of its obligations under the Conduct Rules.", mandatoryFor: "All Core firms", suggestedSMF: "SMF16", assignedSMFId: "smf-16", scope: "Conduct Rules compliance", keyActivities: "Conduct rules training, breach identification, reporting", linkedDomains: ["SYSC"] },
+    { id: "pr-c", prId: "PR-C", reference: "PR-C", title: "Compliance with CASS", description: "Responsibility for compliance with the FCA's client money and assets rules.", mandatoryFor: "Firms holding client money", suggestedSMF: "SMF1", assignedSMFId: null, scope: "N/A — Updraft does not hold client money", keyActivities: "N/A", linkedDomains: [] },
+    { id: "pr-d", prId: "PR-D", reference: "PR-D", title: "Financial crime", description: "Responsibility for the firm's policies and procedures for countering the risk that the firm might be used to further financial crime.", mandatoryFor: "All Core firms", suggestedSMF: "SMF17", assignedSMFId: "smf-17", scope: "AML, fraud, sanctions", keyActivities: "AML framework, SAR reporting, sanctions screening, staff training", linkedDomains: ["FIN-CRIME"] },
+    { id: "pr-e", prId: "PR-E", reference: "PR-E", title: "Significant responsibilities map", description: "Responsibility for the firm's management responsibilities map.", mandatoryFor: "All Core firms", suggestedSMF: "SMF1", assignedSMFId: "smf-1", scope: "Governance documentation", keyActivities: "Maintaining and updating the responsibilities map", linkedDomains: ["SYSC"] },
+    { id: "pr-f", prId: "PR-F", reference: "PR-F", title: "Culture and standards", description: "Responsibility for developing and maintaining the firm's culture and standards.", mandatoryFor: "All Core firms", suggestedSMF: "SMF1", assignedSMFId: "smf-1", scope: "Firm culture", keyActivities: "Culture programme, whistleblowing, conduct standards", linkedDomains: ["SYSC", "EMPLOYMENT"] },
+    { id: "pr-fin", prId: "PR-FIN", reference: "PR-FIN", title: "Financial resources", description: "Responsibility for management of the firm's financial resources.", mandatoryFor: "All Core firms", suggestedSMF: "SMF1", assignedSMFId: "smf-1", scope: "Financial resources and capital adequacy", keyActivities: "Capital planning, liquidity management, regulatory capital returns", linkedDomains: ["TAX"] },
+  ];
+
+  for (const pr of PRESCRIBED_RESPS) {
+    await prisma.prescribedResponsibility.upsert({
+      where: { id: pr.id },
+      update: { ...pr },
+      create: { ...pr },
+    });
+  }
+  console.log(`  ✓ ${PRESCRIBED_RESPS.length} prescribed responsibilities`);
+
+  // Certification Functions
+  const CERT_FUNCTIONS = [
+    { id: "cf-sig", cfId: "CF-SIG", title: "Significant Management Function", description: "Persons who have a significant influence on the conduct of a firm's affairs.", fitsUpdraft: true, examples: "Department heads, senior managers not in SMF roles", assessmentFrequency: "Annual", fandpCriteria: "Honesty, integrity, competence, financial soundness" },
+    { id: "cf-cust", cfId: "CF-CUST", title: "Customer-Facing Function", description: "Persons whose role involves dealing with customers of the firm.", fitsUpdraft: true, examples: "Customer service team, collections agents, complaint handlers", assessmentFrequency: "Annual", fandpCriteria: "Competence in role, customer outcomes awareness, conduct rules" },
+    { id: "cf-mrt", cfId: "CF-MRT", title: "Material Risk Taker", description: "Persons whose activities could have a material impact on the firm's risk profile.", fitsUpdraft: true, examples: "Credit risk analysts with authority limits, senior underwriters", assessmentFrequency: "Annual", fandpCriteria: "Risk management competence, conduct, financial soundness" },
+    { id: "cf-algo", cfId: "CF-ALGO", title: "Algorithmic Trading Function", description: "Persons involved in algorithmic trading decisions.", fitsUpdraft: false, examples: "N/A — Updraft does not conduct algorithmic trading", assessmentFrequency: "Annual", fandpCriteria: "N/A" },
+  ];
+
+  for (const cf of CERT_FUNCTIONS) {
+    await prisma.certificationFunction.upsert({
+      where: { id: cf.id },
+      update: { ...cf },
+      create: { ...cf },
+    });
+  }
+  console.log(`  ✓ ${CERT_FUNCTIONS.length} certification functions`);
+
+  // Conduct Rules
+  const CONDUCT_RULES = [
+    { id: "cr-icr1", ruleId: "ICR-1", ruleType: "Individual", appliesTo: "All staff", title: "Act with integrity", description: "You must act with integrity.", examples: "Being honest in all dealings, not misleading customers or colleagues", reference: "COCON 2.1" },
+    { id: "cr-icr2", ruleId: "ICR-2", ruleType: "Individual", appliesTo: "All staff", title: "Act with due skill, care and diligence", description: "You must act with due skill, care and diligence.", examples: "Following processes correctly, keeping qualifications current", reference: "COCON 2.2" },
+    { id: "cr-icr3", ruleId: "ICR-3", ruleType: "Individual", appliesTo: "All staff", title: "Be open and cooperative with regulators", description: "You must be open and cooperative with the FCA, PRA and other regulators.", examples: "Responding promptly to regulatory requests, not concealing information", reference: "COCON 2.3" },
+    { id: "cr-icr4", ruleId: "ICR-4", ruleType: "Individual", appliesTo: "All staff", title: "Pay due regard to customer interests", description: "You must pay due regard to the interests of customers and treat them fairly.", examples: "Not pressuring vulnerable customers, providing balanced information", reference: "COCON 2.4" },
+    { id: "cr-icr5", ruleId: "ICR-5", ruleType: "Individual", appliesTo: "All staff", title: "Observe proper standards of market conduct", description: "You must observe proper standards of market conduct.", examples: "Not engaging in insider dealing, maintaining market integrity", reference: "COCON 2.5" },
+    { id: "cr-sc1", ruleId: "SC-1", ruleType: "Senior Manager", appliesTo: "SMFs only", title: "Take reasonable steps to ensure business is controlled effectively", description: "You must take reasonable steps to ensure that the business of the firm for which you are responsible is controlled effectively.", examples: "Maintaining adequate oversight, proper delegation, MI review", reference: "COCON 3.1" },
+    { id: "cr-sc2", ruleId: "SC-2", ruleType: "Senior Manager", appliesTo: "SMFs only", title: "Take reasonable steps to ensure compliance", description: "You must take reasonable steps to ensure that the business of the firm for which you are responsible complies with the relevant requirements and standards.", examples: "Compliance monitoring, risk escalation", reference: "COCON 3.2" },
+    { id: "cr-sc3", ruleId: "SC-3", ruleType: "Senior Manager", appliesTo: "SMFs only", title: "Take reasonable steps to ensure regulatory reporting", description: "You must take reasonable steps to ensure that any delegation of your responsibilities is to an appropriate person and that you oversee the discharge of the delegated responsibility effectively.", examples: "Proper delegation framework, oversight meetings", reference: "COCON 3.3" },
+    { id: "cr-sc4", ruleId: "SC-4", ruleType: "Senior Manager", appliesTo: "SMFs only", title: "Disclose information to the FCA", description: "You must disclose appropriately any information of which the FCA would reasonably expect notice.", examples: "Regulatory breach notification, material changes", reference: "COCON 3.4" },
+  ];
+
+  for (const cr of CONDUCT_RULES) {
+    await prisma.conductRule.upsert({
+      where: { id: cr.id },
+      update: { ...cr },
+      create: { ...cr },
+    });
+  }
+  console.log(`  ✓ ${CONDUCT_RULES.length} conduct rules`);
+
+  // SM&CR Documents
+  const SMCR_DOCS = [
+    { id: "doc-sor", docId: "DOC-SOR", title: "Statements of Responsibilities", description: "Individual Statements of Responsibilities for each SMF holder, setting out their areas of responsibility.", requiredFor: "Each SMF holder", template: "FCA template", updateTrigger: "Change of SMF holder, change of responsibilities, annual review", retention: "6 years after SMF ceases to hold the role", status: "DOC_CURRENT" as const, lastUpdatedAt: new Date("2025-11-15"), nextUpdateDue: new Date("2026-11-15"), ownerId: "user-rob" },
+    { id: "doc-mrm", docId: "DOC-MRM", title: "Management Responsibilities Map", description: "Comprehensive map showing governance structure, SMF holders, prescribed responsibilities, and committee structure.", requiredFor: "Firm-level", template: null, updateTrigger: "Change of SMF, restructure, annual review", retention: "Indefinite (current version plus 6 years history)", status: "DOC_CURRENT" as const, lastUpdatedAt: new Date("2025-12-01"), nextUpdateDue: new Date("2026-12-01"), ownerId: "user-rob" },
+    { id: "doc-cert", docId: "DOC-CERT", title: "Certification Register", description: "Register of all certified persons, their certification functions, assessment dates, and fitness and propriety status.", requiredFor: "All certified persons", template: null, updateTrigger: "New certification, annual assessment, role change", retention: "6 years after person leaves", status: "DOC_CURRENT" as const, lastUpdatedAt: new Date("2025-10-01"), nextUpdateDue: new Date("2026-04-01"), ownerId: "user-cath" },
+    { id: "doc-conduct", docId: "DOC-CONDUCT", title: "Conduct Rules Training Records", description: "Records of conduct rules training provided to all staff, including content, attendance, and assessment results.", requiredFor: "All staff", template: null, updateTrigger: "New starter, annual refresh, regulatory change", retention: "6 years", status: "DOC_CURRENT" as const, lastUpdatedAt: new Date("2026-01-15"), nextUpdateDue: new Date("2027-01-15"), ownerId: "user-cath" },
+    { id: "doc-fp", docId: "DOC-FP", title: "Fit and Proper Assessment Records", description: "Records of fitness and propriety assessments for SMF holders and certified persons.", requiredFor: "SMFs and certified persons", template: "Internal F&P assessment form", updateTrigger: "New appointment, annual certification, material change", retention: "6 years after person leaves", status: "DOC_DRAFT" as const, lastUpdatedAt: new Date("2025-09-01"), nextUpdateDue: new Date("2026-03-01"), ownerId: "user-rob" },
+    { id: "doc-breach", docId: "DOC-BREACH", title: "Conduct Rules Breach Register", description: "Register of identified or suspected conduct rule breaches, investigation outcomes, and disciplinary actions.", requiredFor: "Firm-level", template: null, updateTrigger: "New breach identified, investigation update, annual review", retention: "6 years", status: "DOC_CURRENT" as const, lastUpdatedAt: new Date("2026-02-01"), nextUpdateDue: new Date("2027-02-01"), ownerId: "user-rob" },
+    { id: "doc-dir", docId: "DOC-DIR", title: "FCA Directory Submissions", description: "Records of submissions to the FCA Financial Services Register including SMF approvals and directory person entries.", requiredFor: "All SMFs and directory persons", template: "FCA Connect", updateTrigger: "New appointment, role change, departure", retention: "Indefinite", status: "DOC_CURRENT" as const, lastUpdatedAt: new Date("2026-01-10"), nextUpdateDue: new Date("2026-07-10"), ownerId: "user-cath" },
+  ];
+
+  for (const doc of SMCR_DOCS) {
+    await prisma.sMCRDocument.upsert({
+      where: { id: doc.id },
+      update: { ...doc },
+      create: { ...doc },
+    });
+  }
+  console.log(`  ✓ ${SMCR_DOCS.length} SM&CR documents`);
 
   console.log("Seed complete!");
 }

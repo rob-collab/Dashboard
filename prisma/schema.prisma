@@ -89,6 +89,52 @@ enum MitigationStatus {
   COMPLETE
 }
 
+enum Applicability {
+  CORE
+  HIGH
+  MEDIUM
+  LOW
+  N_A
+  ASSESS
+}
+
+enum ComplianceStatus {
+  COMPLIANT
+  PARTIALLY_COMPLIANT
+  NON_COMPLIANT
+  NOT_ASSESSED
+  GAP_IDENTIFIED
+}
+
+enum SMFStatus {
+  ACTIVE
+  VACANT
+  PENDING_APPROVAL
+}
+
+enum CertificationStatus {
+  CURRENT
+  DUE
+  OVERDUE
+  LAPSED
+  REVOKED
+}
+
+enum BreachStatus {
+  IDENTIFIED
+  UNDER_INVESTIGATION
+  CLOSED_NO_ACTION
+  CLOSED_DISCIPLINARY
+  REPORTED_TO_FCA
+}
+
+enum DocumentStatus {
+  DOC_CURRENT
+  DOC_OVERDUE
+  DOC_DRAFT
+  DOC_NOT_STARTED
+}
+
 model User {
   id                  String    @id @default(cuid())
   email               String    @unique
@@ -148,6 +194,14 @@ model User {
 
   // Permissions
   permissions  UserPermission[]
+
+  // SM&CR Module
+  smfRoles           SMFRole[]              @relation("SMFHolder")
+  certifications     CertifiedPerson[]      @relation("CertifiedPersonUser")
+  certAssessments    CertifiedPerson[]      @relation("CertificationAssessor")
+  conductBreaches    ConductRuleBreach[]    @relation("BreachSubject")
+  breachReports      ConductRuleBreach[]    @relation("BreachReporter")
+  ownedDocuments     SMCRDocument[]         @relation("DocumentOwner")
 
   @@map("users")
 }
@@ -702,6 +756,7 @@ model Control {
   riskAcceptances     RiskAcceptance[]
   policyLinks         PolicyControlLink[]     @relation("PolicyControlLinks")
   riskLinks           RiskControlLink[]
+  regulationLinks     RegulationControlLink[]
 
   @@index([businessAreaId])
   @@index([controlOwnerId])
@@ -861,6 +916,7 @@ model Policy {
   exceptions          String?      @db.Text
   relatedPolicies     String[]
   storageUrl          String?
+  approvingBody       String?
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
 
@@ -887,9 +943,51 @@ model Regulation {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
-  policyLinks PolicyRegulatoryLink[]
+  // Hierarchy
+  parentId    String?
+  parent      Regulation?    @relation("RegulationHierarchy", fields: [parentId], references: [id])
+  children    Regulation[]   @relation("RegulationHierarchy")
+  level       Int            @default(1)
 
+  // Regulatory
+  regulatoryBody   String?
+  applicability    Applicability  @default(ASSESS)
+  applicabilityNotes String?     @db.Text
+  isApplicable     Boolean       @default(true)
+  isActive         Boolean       @default(true)
+
+  // SMF Accountability
+  primarySMF    String?
+  secondarySMF  String?
+  smfNotes      String?        @db.Text
+
+  // Compliance Assessment
+  complianceStatus  ComplianceStatus @default(NOT_ASSESSED)
+  lastAssessedAt    DateTime?
+  nextReviewDate    DateTime?
+  assessmentNotes   String?          @db.Text
+
+  policyLinks   PolicyRegulatoryLink[]
+  controlLinks  RegulationControlLink[]
+
+  @@index([parentId])
   @@map("regulations")
+}
+
+model RegulationControlLink {
+  id           String     @id @default(cuid())
+  regulationId String
+  regulation   Regulation @relation(fields: [regulationId], references: [id], onDelete: Cascade)
+  controlId    String
+  control      Control    @relation(fields: [controlId], references: [id], onDelete: Cascade)
+  notes        String?
+  linkedAt     DateTime   @default(now())
+  linkedBy     String
+
+  @@unique([regulationId, controlId])
+  @@index([regulationId])
+  @@index([controlId])
+  @@map("regulation_control_links")
 }
 
 model PolicyRegulatoryLink {
@@ -953,6 +1051,157 @@ model PolicyAuditLog {
   @@index([policyId])
   @@index([changedAt])
   @@map("policy_audit_log")
+}
+
+// ── SM&CR Module ──────────────────────────────────────────────────────────────
+
+model SMFRole {
+  id              String    @id @default(cuid())
+  smfId           String    @unique
+  title           String
+  shortTitle      String?
+  description     String    @db.Text
+  fitsUpdraft     Boolean   @default(true)
+  mandatory       Boolean   @default(false)
+  currentHolderId String?
+  currentHolder   User?     @relation("SMFHolder", fields: [currentHolderId], references: [id])
+  status          SMFStatus @default(VACANT)
+  scope           String?   @db.Text
+  keyDuties       String?   @db.Text
+  regulatoryBasis String?
+  notes           String?   @db.Text
+  appointmentDate DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  responsibilities PrescribedResponsibility[]
+
+  @@map("smf_roles")
+}
+
+model PrescribedResponsibility {
+  id            String   @id @default(cuid())
+  prId          String   @unique
+  reference     String
+  title         String
+  description   String   @db.Text
+  mandatoryFor  String?
+  suggestedSMF  String?
+  assignedSMFId String?
+  assignedSMF   SMFRole? @relation(fields: [assignedSMFId], references: [id])
+  scope         String?  @db.Text
+  keyActivities String?  @db.Text
+  linkedDomains String[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([assignedSMFId])
+  @@map("prescribed_responsibilities")
+}
+
+model CertificationFunction {
+  id                  String   @id @default(cuid())
+  cfId                String   @unique
+  title               String
+  description         String   @db.Text
+  fitsUpdraft         Boolean  @default(true)
+  examples            String?  @db.Text
+  assessmentFrequency String?
+  fandpCriteria       String?  @db.Text
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  certifiedPersons CertifiedPerson[]
+
+  @@map("certification_functions")
+}
+
+model CertifiedPerson {
+  id                      String              @id @default(cuid())
+  userId                  String
+  user                    User                @relation("CertifiedPersonUser", fields: [userId], references: [id])
+  certificationFunctionId String
+  certificationFunction   CertificationFunction @relation(fields: [certificationFunctionId], references: [id])
+  certifiedDate           DateTime?
+  expiryDate              DateTime?
+  status                  CertificationStatus @default(DUE)
+  lastAssessmentDate      DateTime?
+  assessmentResult        String?
+  assessorId              String?
+  assessor                User?               @relation("CertificationAssessor", fields: [assessorId], references: [id])
+  notes                   String?             @db.Text
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+
+  @@unique([userId, certificationFunctionId])
+  @@index([userId])
+  @@index([certificationFunctionId])
+  @@map("certified_persons")
+}
+
+model ConductRule {
+  id          String   @id @default(cuid())
+  ruleId      String   @unique
+  ruleType    String
+  appliesTo   String
+  title       String
+  description String   @db.Text
+  examples    String?  @db.Text
+  reference   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  breaches ConductRuleBreach[]
+
+  @@map("conduct_rules")
+}
+
+model ConductRuleBreach {
+  id                 String       @id @default(cuid())
+  reference          String       @unique
+  conductRuleId      String
+  conductRule        ConductRule  @relation(fields: [conductRuleId], references: [id])
+  userId             String
+  user               User         @relation("BreachSubject", fields: [userId], references: [id])
+  dateIdentified     DateTime
+  description        String       @db.Text
+  investigationNotes String?      @db.Text
+  status             BreachStatus @default(IDENTIFIED)
+  outcome            String?      @db.Text
+  disciplinaryAction String?      @db.Text
+  reportedToFCA      Boolean      @default(false)
+  fcaReportDate      DateTime?
+  reportedById       String?
+  reportedBy         User?        @relation("BreachReporter", fields: [reportedById], references: [id])
+  closedAt           DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@index([conductRuleId])
+  @@index([userId])
+  @@map("conduct_rule_breaches")
+}
+
+model SMCRDocument {
+  id            String         @id @default(cuid())
+  docId         String         @unique
+  title         String
+  description   String         @db.Text
+  requiredFor   String?
+  template      String?        @db.Text
+  updateTrigger String?        @db.Text
+  retention     String?
+  status        DocumentStatus @default(DOC_NOT_STARTED)
+  lastUpdatedAt DateTime?
+  nextUpdateDue DateTime?
+  ownerId       String?
+  owner         User?          @relation("DocumentOwner", fields: [ownerId], references: [id])
+  storageUrl    String?
+  notes         String?        @db.Text
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@map("smcr_documents")
 }
 
 // ── Risk Acceptance Module ──────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry, RiskAcceptance, Policy, Regulation, DashboardNotification, Role, RiskControlLink } from "./types";
+import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry, RiskAcceptance, Policy, Regulation, DashboardNotification, Role, RiskControlLink, SMFRole, PrescribedResponsibility, CertificationFunction, CertifiedPerson, ConductRule, ConductRuleBreach, SMCRDocument, ComplianceStatus } from "./types";
 import { api } from "./api-client";
 
 interface AppState {
@@ -161,6 +161,41 @@ interface AppState {
   approveEntity: (type: "risk" | "action" | "control", id: string) => void;
   rejectEntity: (type: "risk" | "action" | "control", id: string) => void;
 
+  // SM&CR Module
+  smfRoles: SMFRole[];
+  setSmfRoles: (roles: SMFRole[]) => void;
+  updateSmfRole: (id: string, data: Partial<SMFRole>) => void;
+
+  prescribedResponsibilities: PrescribedResponsibility[];
+  setPrescribedResponsibilities: (items: PrescribedResponsibility[]) => void;
+  updatePrescribedResponsibility: (id: string, data: Partial<PrescribedResponsibility>) => void;
+
+  certificationFunctions: CertificationFunction[];
+  setCertificationFunctions: (items: CertificationFunction[]) => void;
+
+  certifiedPersons: CertifiedPerson[];
+  setCertifiedPersons: (items: CertifiedPerson[]) => void;
+  addCertifiedPerson: (item: CertifiedPerson) => void;
+  updateCertifiedPerson: (id: string, data: Partial<CertifiedPerson>) => void;
+
+  conductRules: ConductRule[];
+  setConductRules: (items: ConductRule[]) => void;
+
+  conductRuleBreaches: ConductRuleBreach[];
+  setConductRuleBreaches: (items: ConductRuleBreach[]) => void;
+  addConductRuleBreach: (item: ConductRuleBreach) => void;
+  updateConductRuleBreach: (id: string, data: Partial<ConductRuleBreach>) => void;
+
+  smcrDocuments: SMCRDocument[];
+  setSmcrDocuments: (items: SMCRDocument[]) => void;
+  updateSmcrDocument: (id: string, data: Partial<SMCRDocument>) => void;
+
+  // Compliance actions
+  updateRegulationCompliance: (id: string, data: { complianceStatus?: ComplianceStatus; assessmentNotes?: string; nextReviewDate?: string }) => void;
+  toggleRegulationApplicability: (id: string, isApplicable: boolean) => void;
+  linkRegulationToControl: (regulationId: string, controlId: string, linkedBy: string, notes?: string) => void;
+  unlinkRegulationFromControl: (regulationId: string, controlId: string) => void;
+
   // UI State
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
@@ -211,7 +246,7 @@ export const useAppStore = create<AppState>((set) => ({
   _hydrateError: null,
   hydrate: async () => {
     try {
-      const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, permissionsData] = await Promise.all([
+      const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, permissionsData, smfRoles, prescribedResponsibilities, certificationFunctions, conductRules, conductRuleBreaches, smcrDocuments] = await Promise.all([
         api<User[]>("/api/users"),
         api<Report[]>("/api/reports"),
         api<ConsumerDutyOutcome[]>("/api/consumer-duty"),
@@ -228,11 +263,19 @@ export const useAppStore = create<AppState>((set) => ({
         api<TestingScheduleEntry[]>("/api/controls/testing-schedule?includeResults=true").catch(() => []),
         api<RiskAcceptance[]>("/api/risk-acceptances").catch(() => []),
         api<Policy[]>("/api/policies").catch(() => []),
-        api<Regulation[]>("/api/regulations").catch(() => []),
+        api<Regulation[]>("/api/compliance/regulations?showAll=true").catch(() => []),
         api<DashboardNotification[]>("/api/notifications").catch(() => []),
         api<{ rolePermissions: { role: Role; permission: string; granted: boolean }[]; userPermissions: { userId: string; permission: string; granted: boolean }[] }>("/api/permissions").catch(() => ({ rolePermissions: [], userPermissions: [] })),
+        api<SMFRole[]>("/api/compliance/smcr/roles").catch(() => []),
+        api<PrescribedResponsibility[]>("/api/compliance/smcr/responsibilities").catch(() => []),
+        api<CertificationFunction[]>("/api/compliance/smcr/certification").catch(() => []),
+        api<ConductRule[]>("/api/compliance/smcr/conduct-rules").catch(() => []),
+        api<ConductRuleBreach[]>("/api/compliance/smcr/breaches").catch(() => []),
+        api<SMCRDocument[]>("/api/compliance/smcr/documents").catch(() => []),
       ]);
-      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, rolePermissions: permissionsData.rolePermissions, userPermissions: permissionsData.userPermissions, _hydrated: true, _hydrateError: null });
+      // Extract certified persons from nested certification functions response
+      const allCertifiedPersons = certificationFunctions.flatMap((cf: CertificationFunction & { certifiedPersons?: CertifiedPerson[] }) => cf.certifiedPersons ?? []);
+      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, rolePermissions: permissionsData.rolePermissions, userPermissions: permissionsData.userPermissions, smfRoles, prescribedResponsibilities, certificationFunctions, certifiedPersons: allCertifiedPersons, conductRules, conductRuleBreaches, smcrDocuments, _hydrated: true, _hydrateError: null });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to connect to server";
       console.error("[hydrate] API unreachable:", message);
@@ -728,6 +771,100 @@ export const useAppStore = create<AppState>((set) => ({
       set((state) => ({ controls: state.controls.map((c) => (c.id === id ? { ...c, ...data } : c)) }));
       sync(() => api(`/api/controls/library/${id}`, { method: "PATCH", body: data }));
     }
+  },
+
+  // ── SM&CR Module ─────────────────────────────────────────────
+  smfRoles: [],
+  setSmfRoles: (roles) => set({ smfRoles: roles }),
+  updateSmfRole: (id, data) => {
+    set((state) => ({
+      smfRoles: state.smfRoles.map((r) => (r.id === id ? { ...r, ...data } : r)),
+    }));
+    sync(() => api(`/api/compliance/smcr/roles/${id}`, { method: "PATCH", body: data }));
+  },
+
+  prescribedResponsibilities: [],
+  setPrescribedResponsibilities: (items) => set({ prescribedResponsibilities: items }),
+  updatePrescribedResponsibility: (id, data) => {
+    set((state) => ({
+      prescribedResponsibilities: state.prescribedResponsibilities.map((r) => (r.id === id ? { ...r, ...data } : r)),
+    }));
+    sync(() => api(`/api/compliance/smcr/responsibilities/${id}`, { method: "PATCH", body: data }));
+  },
+
+  certificationFunctions: [],
+  setCertificationFunctions: (items) => set({ certificationFunctions: items }),
+
+  certifiedPersons: [],
+  setCertifiedPersons: (items) => set({ certifiedPersons: items }),
+  addCertifiedPerson: (item) => {
+    set((state) => ({ certifiedPersons: [item, ...state.certifiedPersons] }));
+    sync(() => api("/api/compliance/smcr/certification", { method: "POST", body: item }));
+  },
+  updateCertifiedPerson: (id, data) => {
+    set((state) => ({
+      certifiedPersons: state.certifiedPersons.map((p) => (p.id === id ? { ...p, ...data } : p)),
+    }));
+    sync(() => api(`/api/compliance/smcr/certification/${id}`, { method: "PATCH", body: data }));
+  },
+
+  conductRules: [],
+  setConductRules: (items) => set({ conductRules: items }),
+
+  conductRuleBreaches: [],
+  setConductRuleBreaches: (items) => set({ conductRuleBreaches: items }),
+  addConductRuleBreach: (item) => {
+    set((state) => ({ conductRuleBreaches: [item, ...state.conductRuleBreaches] }));
+    sync(() => api("/api/compliance/smcr/breaches", { method: "POST", body: item }));
+  },
+  updateConductRuleBreach: (id, data) => {
+    set((state) => ({
+      conductRuleBreaches: state.conductRuleBreaches.map((b) => (b.id === id ? { ...b, ...data } : b)),
+    }));
+    sync(() => api(`/api/compliance/smcr/breaches/${id}`, { method: "PATCH", body: data }));
+  },
+
+  smcrDocuments: [],
+  setSmcrDocuments: (items) => set({ smcrDocuments: items }),
+  updateSmcrDocument: (id, data) => {
+    set((state) => ({
+      smcrDocuments: state.smcrDocuments.map((d) => (d.id === id ? { ...d, ...data } : d)),
+    }));
+    sync(() => api(`/api/compliance/smcr/documents/${id}`, { method: "PATCH", body: data }));
+  },
+
+  // ── Compliance Actions ────────────────────────────────────────
+  updateRegulationCompliance: (id, data) => {
+    set((state) => ({
+      regulations: state.regulations.map((r) => (r.id === id ? { ...r, ...data } : r)),
+    }));
+    sync(() => api(`/api/compliance/regulations/${id}`, { method: "PATCH", body: data }));
+  },
+  toggleRegulationApplicability: (id, isApplicable) => {
+    set((state) => ({
+      regulations: state.regulations.map((r) => (r.id === id ? { ...r, isApplicable } : r)),
+    }));
+    sync(() => api(`/api/compliance/regulations/${id}`, { method: "PATCH", body: { isApplicable } }));
+  },
+  linkRegulationToControl: (regulationId, controlId, linkedBy, notes) => {
+    set((state) => ({
+      regulations: state.regulations.map((r) =>
+        r.id === regulationId
+          ? { ...r, controlLinks: [...(r.controlLinks ?? []), { id: `temp-${Date.now()}`, regulationId, controlId, linkedAt: new Date().toISOString(), linkedBy, notes: notes ?? null }] }
+          : r
+      ),
+    }));
+    sync(() => api(`/api/compliance/regulations/${regulationId}/control-links`, { method: "POST", body: { controlId, notes } }));
+  },
+  unlinkRegulationFromControl: (regulationId, controlId) => {
+    set((state) => ({
+      regulations: state.regulations.map((r) =>
+        r.id === regulationId
+          ? { ...r, controlLinks: (r.controlLinks ?? []).filter((l) => l.controlId !== controlId) }
+          : r
+      ),
+    }));
+    sync(() => api(`/api/compliance/regulations/${regulationId}/control-links`, { method: "DELETE", body: { controlId } }));
   },
 
   // ── UI State ───────────────────────────────────────────────

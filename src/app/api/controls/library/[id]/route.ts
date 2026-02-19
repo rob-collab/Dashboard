@@ -33,6 +33,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           orderBy: { createdAt: "desc" },
         },
         riskLinks: { include: { risk: { select: { id: true, reference: true, name: true, residualLikelihood: true, residualImpact: true } } } },
+        regulationLinks: { include: { regulation: { select: { id: true, reference: true, name: true, complianceStatus: true } } } },
       },
     });
 

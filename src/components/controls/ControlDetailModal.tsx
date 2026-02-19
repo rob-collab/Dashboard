@@ -8,7 +8,7 @@ import ActionFormDialog from "@/components/actions/ActionFormDialog";
 import { deriveTestingStatus } from "@/lib/controls-utils";
 import { api } from "@/lib/api-client";
 import { useAppStore } from "@/lib/store";
-import type { ControlRecord, Action, ControlChange } from "@/lib/types";
+import type { ControlRecord, Action, ControlChange, RegulationControlLink } from "@/lib/types";
 import {
   CD_OUTCOME_LABELS,
   CONTROL_FREQUENCY_LABELS,
@@ -30,6 +30,8 @@ import {
   Trash2,
   Link2,
   Search,
+  FileText,
+  Scale,
 } from "lucide-react";
 import { cn, formatDateShort } from "@/lib/utils";
 import ScoreBadge from "@/components/risk-register/ScoreBadge";
@@ -59,6 +61,7 @@ export default function ControlDetailModal({
   const users = useAppStore((s) => s.users);
   const reports = useAppStore((s) => s.reports);
   const allActions = useAppStore((s) => s.actions);
+  const policies = useAppStore((s) => s.policies);
   const addAction = useAppStore((s) => s.addAction);
   const isCCRO = currentUser?.role === "CCRO_TEAM";
   const canEditActions = currentUser?.role === "CCRO_TEAM" || currentUser?.role === "OWNER";
@@ -450,6 +453,65 @@ export default function ControlDetailModal({
                         size="sm"
                       />
                     )}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Policies Supported ── */}
+          {(() => {
+            const linkedPolicies = policies.filter((p) =>
+              (p.controlLinks ?? []).some((link) => link.controlId === control.id)
+            );
+            return linkedPolicies.length > 0 ? (
+              <div className="bento-card p-4">
+                <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-3">
+                  <FileText size={14} className="text-blue-600" />
+                  Policies Supported
+                  <span className="text-xs font-normal text-gray-400">({linkedPolicies.length})</span>
+                </h4>
+                <div className="space-y-1.5">
+                  {linkedPolicies.map((p) => (
+                    <a
+                      key={p.id}
+                      href={`/compliance?tab=policies`}
+                      className="flex items-center gap-3 p-2 rounded-lg bg-gray-50 hover:bg-blue-50/40 transition-colors"
+                    >
+                      <span className="font-mono text-[10px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded shrink-0">
+                        {p.reference}
+                      </span>
+                      <span className="text-xs text-gray-700 truncate flex-1 min-w-0">
+                        {p.name}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ) : null;
+          })()}
+
+          {/* ── Regulations Addressed ── */}
+          {(control.regulationLinks ?? []).length > 0 && (
+            <div className="bento-card p-4">
+              <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-3">
+                <Scale size={14} className="text-green-600" />
+                Regulations Addressed
+                <span className="text-xs font-normal text-gray-400">({control.regulationLinks!.length})</span>
+              </h4>
+              <div className="space-y-1.5">
+                {control.regulationLinks!.map((link: RegulationControlLink) => (
+                  <a
+                    key={link.id}
+                    href={`/compliance?tab=regulatory-universe`}
+                    className="flex items-center gap-3 p-2 rounded-lg bg-gray-50 hover:bg-green-50/40 transition-colors"
+                  >
+                    <span className="font-mono text-[10px] font-bold text-green-700 bg-green-50 px-1.5 py-0.5 rounded shrink-0">
+                      {link.regulation?.reference ?? "Reg"}
+                    </span>
+                    <span className="text-xs text-gray-700 truncate flex-1 min-w-0">
+                      {link.regulation?.name ?? "Unknown Regulation"}
+                    </span>
                   </a>
                 ))}
               </div>
