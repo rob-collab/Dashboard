@@ -9,7 +9,7 @@ import {
   type Regulation,
   type RegulationType,
 } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, naturalCompare } from "@/lib/utils";
 import {
   Search,
   X,
@@ -40,7 +40,7 @@ export default function RegulationManagementTab() {
       if (r.regulatoryBody) bodies.add(r.regulatoryBody);
       if (r.body) bodies.add(r.body);
     }
-    return Array.from(bodies).sort();
+    return Array.from(bodies).sort(naturalCompare);
   }, [regulations]);
 
   // Build filtered list

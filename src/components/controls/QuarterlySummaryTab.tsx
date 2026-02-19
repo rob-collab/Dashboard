@@ -12,6 +12,7 @@ import {
   TEST_RESULT_COLOURS,
   TEST_RESULT_LABELS,
 } from "@/lib/types";
+import { naturalCompare } from "@/lib/utils";
 import {
   Calendar,
   Save,
@@ -663,7 +664,7 @@ export default function QuarterlySummaryTab() {
         <div className="space-y-4">
           {activeEntries
             .sort((a, b) =>
-              (a.control?.controlRef ?? "").localeCompare(b.control?.controlRef ?? ""),
+              naturalCompare(a.control?.controlRef ?? "", b.control?.controlRef ?? ""),
             )
             .map((entry) => {
               const summary = summaryByEntry.get(entry.id);

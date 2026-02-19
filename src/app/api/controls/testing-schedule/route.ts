@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
+import { prisma, naturalCompare, requireCCRORole, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 export async function GET(request: NextRequest) {
@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
       },
       orderBy: { control: { controlRef: "asc" } },
     });
+    entries.sort((a, b) => naturalCompare(a.control.controlRef, b.control.controlRef));
 
     return jsonResponse(serialiseDates(entries));
   } catch (err) {

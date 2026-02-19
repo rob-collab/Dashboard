@@ -14,6 +14,7 @@ import {
   TESTING_FREQUENCY_LABELS,
   CONTROL_FREQUENCY_LABELS,
 } from "@/lib/types";
+import { naturalCompare } from "@/lib/utils";
 import {
   ArrowLeft,
   ChevronDown,
@@ -778,7 +779,7 @@ export default function ControlDetailView({
           <div className="divide-y divide-gray-100">
             {quarterlySummaries
               .slice()
-              .sort((a, b) => b.quarter.localeCompare(a.quarter))
+              .sort((a, b) => naturalCompare(b.quarter, a.quarter))
               .map((summary: QuarterlySummaryRecord) => {
                 const isExpanded = expandedSummaries.has(summary.id);
                 const authorName =

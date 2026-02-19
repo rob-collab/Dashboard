@@ -1257,6 +1257,25 @@ async function main() {
   }
   console.log(`  ✓ ${SMCR_DOCS.length} SM&CR documents`);
 
+  // ── Fix Consumer Duty measure positions ───────────────────────────────
+  // Measures imported via CSV all get position: 0. Fix positions to match
+  // the numeric order of the measureId within each outcome.
+  // e.g. measureId "1.1" → position 0, "1.2" → position 1, etc.
+  const allMeasures = await prisma.consumerDutyMeasure.findMany();
+  let measuresFixed = 0;
+  for (const m of allMeasures) {
+    const parts = m.measureId.split(".");
+    const pos = parseInt(parts[1], 10) - 1; // 1.1→0, 1.2→1, etc.
+    if (!isNaN(pos) && m.position !== pos) {
+      await prisma.consumerDutyMeasure.update({
+        where: { id: m.id },
+        data: { position: pos },
+      });
+      measuresFixed++;
+    }
+  }
+  console.log(`  ✓ Fixed ${measuresFixed} measure positions (${allMeasures.length} total measures checked)`);
+
   console.log("Seed complete!");
 }
 

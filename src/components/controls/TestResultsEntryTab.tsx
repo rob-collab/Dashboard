@@ -26,6 +26,7 @@ import {
   Plus,
   ShieldQuestion,
 } from "lucide-react";
+import { naturalCompare } from "@/lib/utils";
 import CardViewTestEntry from "./CardViewTestEntry";
 import BulkHistoricalEntry from "./BulkHistoricalEntry";
 import ActionFormDialog from "@/components/actions/ActionFormDialog";
@@ -144,7 +145,8 @@ export default function TestResultsEntryTab() {
         .map(([area, entries]) => [
           area,
           entries.sort((a, b) =>
-            (a.control?.controlRef ?? "").localeCompare(
+            naturalCompare(
+              a.control?.controlRef ?? "",
               b.control?.controlRef ?? "",
             ),
           ),

@@ -72,6 +72,28 @@ export function statusLabel(status: ReportStatus): string {
   }
 }
 
+/**
+ * Natural sort comparator — sorts strings containing numbers in numeric order.
+ * e.g. "CONC 2" < "CONC 10", "R1" < "R2" < "R10", "1.2" < "1.10"
+ */
+export function naturalCompare(a: string, b: string): number {
+  const ax: (string | number)[] = [];
+  const bx: (string | number)[] = [];
+  a.replace(/(\d+)|(\D+)/g, (_, n, s) => { ax.push(n ? parseInt(n, 10) : s); return ""; });
+  b.replace(/(\d+)|(\D+)/g, (_, n, s) => { bx.push(n ? parseInt(n, 10) : s); return ""; });
+  for (let i = 0; i < Math.max(ax.length, bx.length); i++) {
+    const ai = ax[i] ?? "";
+    const bi = bx[i] ?? "";
+    if (typeof ai === "number" && typeof bi === "number") {
+      if (ai !== bi) return ai - bi;
+    } else {
+      const cmp = String(ai).localeCompare(String(bi));
+      if (cmp !== 0) return cmp;
+    }
+  }
+  return 0;
+}
+
 export function generateId(): string {
   return crypto.randomUUID?.() || Math.random().toString(36).substring(2, 15);
 }

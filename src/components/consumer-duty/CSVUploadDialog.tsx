@@ -139,6 +139,9 @@ export default function CSVUploadDialog({
       const validRows = validated.filter((v) => v.errors.length === 0 && v.mapped);
       const items = validRows.map((v) => {
         const m = v.mapped!;
+        // Derive position from measureId: "1.2" → 1 (second part minus 1)
+        const idParts = m.measureId.split(".");
+        const pos = idParts.length >= 2 ? parseInt(idParts[1], 10) - 1 : 0;
         return {
           outcomeId: m.outcomeId,
           measure: {
@@ -149,7 +152,7 @@ export default function CSVUploadDialog({
             owner: m.owner || null,
             summary: m.summary,
             ragStatus: m.ragStatus,
-            position: 0,
+            position: isNaN(pos) ? 0 : pos,
             lastUpdatedAt: new Date().toISOString(),
             updatedById: null,
             metrics: [],

@@ -7,7 +7,7 @@ import { L1_CATEGORY_COLOURS, L1_CATEGORIES as FALLBACK_L1, getRiskScore } from 
 import ScoreBadge from "./ScoreBadge";
 import DirectionArrow from "./DirectionArrow";
 import { EmptyState } from "@/components/common/EmptyState";
-import { formatDateShort } from "@/lib/utils";
+import { formatDateShort, naturalCompare } from "@/lib/utils";
 import { ChevronUp, ChevronDown, Search, Filter, ShieldAlert, Star } from "lucide-react";
 import { useHasPermission } from "@/lib/usePermission";
 
@@ -59,7 +59,7 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
     return [...filtered].sort((a, b) => {
       let cmp = 0;
       switch (sortField) {
-        case "reference": cmp = a.reference.localeCompare(b.reference); break;
+        case "reference": cmp = naturalCompare(a.reference, b.reference); break;
         case "name": cmp = a.name.localeCompare(b.name); break;
         case "categoryL1": cmp = a.categoryL1.localeCompare(b.categoryL1); break;
         case "owner": cmp = getOwnerName(a).localeCompare(getOwnerName(b)); break;

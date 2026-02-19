@@ -11,7 +11,7 @@ import {
   type ComplianceStatus,
   type Applicability,
 } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, naturalCompare } from "@/lib/utils";
 import RegulationDetailPanel from "./RegulationDetailPanel";
 import { ChevronRight, ChevronDown, Search, X } from "lucide-react";
 
@@ -63,7 +63,7 @@ export default function RegulatoryUniverseTab() {
       if (r.primarySMF) set.add(r.primarySMF);
       if (r.secondarySMF) set.add(r.secondarySMF);
     }
-    return Array.from(set).sort();
+    return Array.from(set).sort(naturalCompare);
   }, [regulations]);
 
   const toggleExpand = (id: string) => {

@@ -26,7 +26,7 @@ import {
 import { toast } from "sonner";
 import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
-import { formatDate, ragBgColor } from "@/lib/utils";
+import { formatDate, ragBgColor, naturalCompare } from "@/lib/utils";
 import { getActionLabel } from "@/lib/audit";
 import { getRiskScore } from "@/lib/risk-categories";
 import type { ActionPriority, ActionChange, ControlChange, RiskChange } from "@/lib/types";
@@ -436,7 +436,7 @@ export default function DashboardHome() {
     if (!currentUser || currentUser.assignedMeasures.length === 0) return [];
     return outcomes.flatMap((o) =>
       (o.measures ?? []).filter((m) => currentUser.assignedMeasures.includes(m.measureId))
-    );
+    ).sort((a, b) => naturalCompare(a.measureId, b.measureId));
   }, [outcomes, currentUser]);
 
   const myRisksNeedingReview = useMemo(() => {
@@ -453,7 +453,7 @@ export default function DashboardHome() {
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         return lastUpdate < thirtyDaysAgo;
       })
-    );
+    ).sort((a, b) => naturalCompare(a.measureId, b.measureId));
   }, [outcomes]);
 
   // Risks in Focus — visible to all roles

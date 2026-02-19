@@ -5,7 +5,7 @@ import { useAppStore } from "@/lib/store";
 import { usePermissionSet } from "@/lib/usePermission";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
-import { formatDateShort, cn } from "@/lib/utils";
+import { formatDateShort, cn, naturalCompare } from "@/lib/utils";
 import {
   BookOpen,
   CheckCircle2,
@@ -93,7 +93,7 @@ export default function PoliciesTab() {
       let cmp = 0;
       switch (sortBy) {
         case "reference":
-          cmp = a.reference.localeCompare(b.reference);
+          cmp = naturalCompare(a.reference, b.reference);
           break;
         case "name":
           cmp = a.name.localeCompare(b.name);

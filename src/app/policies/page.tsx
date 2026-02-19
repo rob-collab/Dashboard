@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
-import { formatDate, cn } from "@/lib/utils";
+import { formatDate, cn, naturalCompare } from "@/lib/utils";
 import {
   BookOpen,
   CheckCircle2,
@@ -84,7 +84,7 @@ export default function PoliciesPage() {
     items.sort((a, b) => {
       let cmp = 0;
       switch (sortBy) {
-        case "reference": cmp = a.reference.localeCompare(b.reference); break;
+        case "reference": cmp = naturalCompare(a.reference, b.reference); break;
         case "name": cmp = a.name.localeCompare(b.name); break;
         case "owner": cmp = (a.owner?.name ?? "").localeCompare(b.owner?.name ?? ""); break;
         case "status": cmp = a.status.localeCompare(b.status); break;

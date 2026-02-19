@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, jsonResponse, errorResponse, validateQuery } from "@/lib/api-helpers";
+import { prisma, naturalCompare, jsonResponse, errorResponse, validateQuery } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const querySchema = z.object({
@@ -24,6 +24,8 @@ export async function GET(request: NextRequest) {
       },
       orderBy: { reference: "asc" },
     });
+
+    regulations.sort((a, b) => naturalCompare(a.reference, b.reference));
 
     return jsonResponse(serialiseDates(regulations));
   } catch (err) {

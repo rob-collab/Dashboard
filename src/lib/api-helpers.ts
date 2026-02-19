@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "./prisma";
 import { resolvePermission, type PermissionCode } from "./permissions";
+import { naturalCompare } from "./utils";
 
-export { prisma };
+export { prisma, naturalCompare };
 
 /**
  * Returns the real authenticated user ID.
@@ -116,11 +117,15 @@ export async function generateReference(
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const table = (prisma as any)[model];
-    const last = await table.findFirst({
-      orderBy: { [refField]: "desc" },
+    // Fetch all references and find the true max using natural sort
+    // (Prisma orderBy "desc" is lexicographic, so "CTRL-9" > "CTRL-10")
+    const allRefs: { [key: string]: string }[] = await table.findMany({
       select: { [refField]: true },
+      where: { [refField]: { not: null } },
     });
-    const lastRef = last?.[refField] as string | undefined;
+    const refs = allRefs.map((r) => r[refField]).filter(Boolean);
+    refs.sort((a: string, b: string) => naturalCompare(a, b));
+    const lastRef = refs.length > 0 ? refs[refs.length - 1] : undefined;
     const nextNum = lastRef
       ? parseInt(lastRef.replace(prefix, ""), 10) + 1 + attempt
       : 1 + attempt;

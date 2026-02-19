@@ -14,7 +14,7 @@ import CSVUploadDialog from "@/components/consumer-duty/CSVUploadDialog";
 import MIImportDialog from "@/components/consumer-duty/MIImportDialog";
 import AdminRAGPanel from "@/components/consumer-duty/AdminRAGPanel";
 import RiskDetailModal from "@/components/consumer-duty/RiskDetailModal";
-import { cn, ragBgColor, ragLabelShort } from "@/lib/utils";
+import { cn, ragBgColor, ragLabelShort, naturalCompare } from "@/lib/utils";
 import type { ConsumerDutyMeasure, ConsumerDutyOutcome, ConsumerDutyMI, RAGStatus } from "@/lib/types";
 import { usePageTitle } from "@/lib/usePageTitle";
 
@@ -104,7 +104,7 @@ function ConsumerDutyContent() {
     const assigned = currentUser.assignedMeasures;
     return outcomes.flatMap((o) =>
       (o.measures ?? []).filter((m) => assigned.includes(m.measureId))
-    );
+    ).sort((a, b) => naturalCompare(a.measureId, b.measureId));
   }, [outcomes, currentUser]);
 
   const filteredOutcomes = useMemo(() => {
@@ -138,15 +138,7 @@ function ConsumerDutyContent() {
   // All measures flattened — sorted by measureId using natural sort (1.1 < 1.2 < 1.10 < 2.1)
   const allMeasures = useMemo(() => {
     const flat = outcomes.flatMap((o) => (o.measures ?? []).map((m) => ({ ...m, outcomeName: o.name })));
-    return flat.sort((a, b) => {
-      const aParts = a.measureId.split(".").map(Number);
-      const bParts = b.measureId.split(".").map(Number);
-      for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
-        const diff = (aParts[i] ?? 0) - (bParts[i] ?? 0);
-        if (diff !== 0) return diff;
-      }
-      return 0;
-    });
+    return flat.sort((a, b) => naturalCompare(a.measureId, b.measureId));
   }, [outcomes]);
   const totalMeasures = allMeasures.length;
 
@@ -696,15 +688,8 @@ function ConsumerDutyContent() {
                 <tbody>
                   {outcomes.flatMap((outcome) =>
                     (outcome.measures ?? []).map((measure) => ({ measure, outcome }))
-                  ).sort((a, b) => {
-                    const aParts = a.measure.measureId.split(".").map(Number);
-                    const bParts = b.measure.measureId.split(".").map(Number);
-                    for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
-                      const diff = (aParts[i] ?? 0) - (bParts[i] ?? 0);
-                      if (diff !== 0) return diff;
-                    }
-                    return 0;
-                  }).map(({ measure, outcome }) => (
+                  ).sort((a, b) => naturalCompare(a.measure.measureId, b.measure.measureId))
+                  .map(({ measure, outcome }) => (
                       <tr
                         key={measure.id}
                         className="hover:bg-gray-50/50 cursor-pointer group"

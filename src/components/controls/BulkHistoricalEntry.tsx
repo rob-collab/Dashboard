@@ -5,6 +5,7 @@ import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
 import type { TestResultValue, TestingScheduleEntry } from "@/lib/types";
 import { TEST_RESULT_LABELS, TEST_RESULT_COLOURS } from "@/lib/types";
+import { naturalCompare } from "@/lib/utils";
 import { Upload, Clipboard, Zap, X, AlertTriangle, CheckCircle2, FileText } from "lucide-react";
 
 /* ── Types ──────────────────────────────────────────────────────────────────── */
@@ -211,7 +212,7 @@ export default function BulkHistoricalEntry({ open, onClose, onSuccess }: BulkHi
         .map(([area, entries]) => [
           area,
           entries.sort((a, b) =>
-            (a.control?.controlRef ?? "").localeCompare(b.control?.controlRef ?? "")
+            naturalCompare(a.control?.controlRef ?? "", b.control?.controlRef ?? "")
           ),
         ] as [string, TestingScheduleEntry[]])
     );

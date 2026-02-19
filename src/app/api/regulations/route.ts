@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody, auditLog } from "@/lib/api-helpers";
+import { prisma, naturalCompare, requireCCRORole, jsonResponse, errorResponse, validateBody, auditLog } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const createSchema = z.object({
@@ -20,6 +20,7 @@ export async function GET() {
       include: { _count: { select: { policyLinks: true } } },
       orderBy: { reference: "asc" },
     });
+    regulations.sort((a, b) => naturalCompare(a.reference, b.reference));
 
     return jsonResponse(serialiseDates(regulations));
   } catch (err) {
@@ -41,8 +42,13 @@ export async function POST(request: NextRequest) {
     // Generate reference if not provided
     let reference = data.reference;
     if (!reference) {
-      const lastReg = await prisma.regulation.findFirst({ orderBy: { reference: "desc" } });
-      const nextNum = lastReg ? parseInt(lastReg.reference.replace("REG-", ""), 10) + 1 : 1;
+      // Fetch all references and find the true max using natural sort
+      // (Prisma orderBy "desc" is lexicographic, so "REG-9" > "REG-10")
+      const allRegs = await prisma.regulation.findMany({ select: { reference: true } });
+      const refs = allRegs.map((r) => r.reference).filter(Boolean);
+      refs.sort((a, b) => naturalCompare(a, b));
+      const lastRef = refs.length > 0 ? refs[refs.length - 1] : undefined;
+      const nextNum = lastRef ? parseInt(lastRef.replace("REG-", ""), 10) + 1 : 1;
       reference = `REG-${String(nextNum).padStart(3, "0")}`;
     }
 

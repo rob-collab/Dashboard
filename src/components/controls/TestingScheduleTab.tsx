@@ -22,6 +22,7 @@ import {
   FlaskConical,
   AlertCircle,
 } from "lucide-react";
+import { naturalCompare } from "@/lib/utils";
 import BulkScheduleActions from "./BulkScheduleActions";
 
 /* ─── Reusable style constants ────────────────────────────────────────────── */
@@ -508,7 +509,7 @@ function AddToScheduleDialog({
           c.businessArea?.name?.toLowerCase().includes(q)
       );
     }
-    return list.sort((a, b) => a.controlRef.localeCompare(b.controlRef));
+    return list.sort((a, b) => naturalCompare(a.controlRef, b.controlRef));
   }, [controls, scheduledControlIds, search]);
 
   function toggleSelect(id: string) {

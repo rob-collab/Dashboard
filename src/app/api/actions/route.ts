@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse, getUserId, validateQuery, validateBody, generateReference, checkPermission } from "@/lib/api-helpers";
+import { prisma, naturalCompare, jsonResponse, errorResponse, getUserId, validateQuery, validateBody, generateReference, checkPermission } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 import { sendActionAssigned } from "@/lib/email";
 import { ActionQuerySchema, CreateActionSchema } from "@/lib/schemas/actions";
@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
     },
     orderBy: { reference: "asc" },
   });
+  actions.sort((a, b) => naturalCompare(a.reference, b.reference));
   return jsonResponse(serialiseDates(actions));
 }
 

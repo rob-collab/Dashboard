@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, jsonResponse, errorResponse, validateBody, getUserId } from "@/lib/api-helpers";
+import { prisma, naturalCompare, jsonResponse, errorResponse, validateBody, getUserId } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const createOutcomeSchema = z.object({
@@ -34,6 +34,12 @@ export async function GET(request: NextRequest) {
       },
     },
   });
+  // Secondary sort: within each outcome, sort measures by position then measureId naturally
+  for (const o of outcomes) {
+    if (o.measures) {
+      o.measures.sort((a, b) => a.position - b.position || naturalCompare(a.measureId, b.measureId));
+    }
+  }
   return jsonResponse(serialiseDates(outcomes));
 }
 

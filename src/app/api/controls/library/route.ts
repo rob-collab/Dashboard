@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, jsonResponse, errorResponse, validateBody, validateQuery, auditLog, checkPermission } from "@/lib/api-helpers";
+import { prisma, naturalCompare, jsonResponse, errorResponse, validateBody, validateQuery, auditLog, checkPermission } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const querySchema = z.object({
@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
       },
       orderBy: { controlRef: "asc" },
     });
+    controls.sort((a, b) => naturalCompare(a.controlRef, b.controlRef));
 
     return jsonResponse(serialiseDates(controls));
   } catch (err) {
@@ -77,11 +78,15 @@ export async function POST(request: NextRequest) {
     const bypassCheck = await checkPermission(request, "can:bypass-approval");
     const approvalStatus = bypassCheck.granted ? "APPROVED" : "PENDING_APPROVAL";
 
-    // Generate next CTRL-NNN reference
-    const lastControl = await prisma.control.findFirst({ orderBy: { controlRef: "desc" } });
+    // Generate next CTRL-NNN reference using natural sort to find true max
+    // (Prisma orderBy "desc" is lexicographic, so "CTRL-9" > "CTRL-10")
+    const allControls = await prisma.control.findMany({ select: { controlRef: true } });
+    const ctrlRefs = allControls.map((c) => c.controlRef).filter(Boolean);
+    ctrlRefs.sort((a, b) => naturalCompare(a, b));
     let nextNum = 1;
-    if (lastControl) {
-      const match = lastControl.controlRef.match(/CTRL-(\d+)/);
+    if (ctrlRefs.length > 0) {
+      const lastRef = ctrlRefs[ctrlRefs.length - 1];
+      const match = lastRef.match(/CTRL-(\d+)/);
       if (match) nextNum = parseInt(match[1], 10) + 1;
     }
     const controlRef = `CTRL-${String(nextNum).padStart(3, "0")}`;
