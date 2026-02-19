@@ -718,6 +718,7 @@ export interface Policy {
   relatedPolicies: string[];
   storageUrl: string | null;
   approvingBody: string | null;
+  consumerDutyOutcomes: string[];
   createdAt: string;
   updatedAt: string;
   regulatoryLinks?: PolicyRegulatoryLink[];
@@ -738,6 +739,20 @@ export const POLICY_STATUS_COLOURS: Record<PolicyStatus, { bg: string; text: str
   OVERDUE: { bg: "bg-red-100", text: "text-red-700" },
   UNDER_REVIEW: { bg: "bg-amber-100", text: "text-amber-700" },
   ARCHIVED: { bg: "bg-gray-100", text: "text-gray-600" },
+};
+
+export const CONSUMER_DUTY_OUTCOME_LABELS: Record<string, string> = {
+  "products-services": "Products & Services",
+  "price-value": "Price & Value",
+  "consumer-understanding": "Consumer Understanding",
+  "consumer-support": "Consumer Support",
+};
+
+export const CONSUMER_DUTY_OUTCOME_COLOURS: Record<string, { bg: string; text: string; icon: string }> = {
+  "products-services": { bg: "bg-blue-100", text: "text-blue-700", icon: "text-blue-500" },
+  "price-value": { bg: "bg-emerald-100", text: "text-emerald-700", icon: "text-emerald-500" },
+  "consumer-understanding": { bg: "bg-purple-100", text: "text-purple-700", icon: "text-purple-500" },
+  "consumer-support": { bg: "bg-amber-100", text: "text-amber-700", icon: "text-amber-500" },
 };
 
 export const REGULATION_TYPE_LABELS: Record<RegulationType, string> = {

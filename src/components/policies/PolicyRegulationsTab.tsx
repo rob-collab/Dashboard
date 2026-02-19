@@ -1,12 +1,19 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ExternalLink, Link2, Plus, Search, Unlink } from "lucide-react";
+import { ChevronDown, ChevronRight, ExternalLink, Link2, Plus, Search, Shield, Unlink } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
-import type { Policy, Regulation, PolicyRegulatoryLink } from "@/lib/types";
-import { REGULATION_TYPE_LABELS, REGULATION_TYPE_COLOURS } from "@/lib/types";
+import type { Policy, Regulation, PolicyRegulatoryLink, ControlRecord, TestResultValue } from "@/lib/types";
+import {
+  REGULATION_TYPE_LABELS,
+  REGULATION_TYPE_COLOURS,
+  COMPLIANCE_STATUS_LABELS,
+  COMPLIANCE_STATUS_COLOURS,
+  TEST_RESULT_LABELS,
+  TEST_RESULT_COLOURS,
+} from "@/lib/types";
 import { cn } from "@/lib/utils";
 import RegulationFormDialog from "./RegulationFormDialog";
 
@@ -29,6 +36,7 @@ interface Props {
 export default function PolicyRegulationsTab({ policy, onUpdate }: Props) {
   const currentUser = useAppStore((s) => s.currentUser);
   const regulations = useAppStore((s) => s.regulations);
+  const controls = useAppStore((s) => s.controls);
   const addRegulation = useAppStore((s) => s.addRegulation);
   const isCCRO = currentUser?.role === "CCRO_TEAM";
 
@@ -36,6 +44,7 @@ export default function PolicyRegulationsTab({ policy, onUpdate }: Props) {
   const [pickerSearch, setPickerSearch] = useState("");
   const [showRegForm, setShowRegForm] = useState(false);
   const [linking, setLinking] = useState<string | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const linked = policy.regulatoryLinks ?? [];
   const linkedIds = new Set(linked.map((l) => l.regulationId));
@@ -52,6 +61,40 @@ export default function PolicyRegulationsTab({ policy, onUpdate }: Props) {
     }
     return bodies.size;
   }, [linked]);
+
+  function toggleExpanded(id: string) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  /** Find controls from the store that have a regulationLink matching a given regulation ID */
+  function getLinkedControls(regulationId: string): ControlRecord[] {
+    return controls.filter((c) =>
+      c.regulationLinks?.some((rl) => rl.regulationId === regulationId)
+    );
+  }
+
+  /** Get the latest test result for a control */
+  function getLatestResult(ctrl: ControlRecord): { result: TestResultValue; date: string } | null {
+    const schedule = ctrl.testingSchedule;
+    if (!schedule?.testResults?.length) return null;
+    const sorted = [...schedule.testResults].sort(
+      (a, b) => new Date(b.testedDate).getTime() - new Date(a.testedDate).getTime()
+    );
+    return { result: sorted[0].result, date: sorted[0].testedDate };
+  }
+
+  function ragDot(result: TestResultValue | null) {
+    if (!result) return "bg-gray-300";
+    if (result === "PASS") return "bg-green-500";
+    if (result === "FAIL") return "bg-red-500";
+    if (result === "PARTIALLY") return "bg-amber-500";
+    return "bg-gray-300";
+  }
 
   async function handleLink(regulationId: string) {
     setLinking(regulationId);
@@ -154,61 +197,134 @@ export default function PolicyRegulationsTab({ policy, onUpdate }: Props) {
         </div>
       )}
 
-      {/* Linked Regulations Table */}
+      {/* Linked Regulations */}
       {linked.length === 0 ? (
         <p className="text-sm text-gray-400 text-center py-8">No regulations linked yet</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-2 px-2 font-medium text-gray-500 text-xs">Reference</th>
-                <th className="text-left py-2 px-2 font-medium text-gray-500 text-xs">Name</th>
-                <th className="text-left py-2 px-2 font-medium text-gray-500 text-xs">Body</th>
-                <th className="text-left py-2 px-2 font-medium text-gray-500 text-xs">Type</th>
-                <th className="text-left py-2 px-2 font-medium text-gray-500 text-xs">Provisions</th>
-                <th className="text-right py-2 px-2 font-medium text-gray-500 text-xs">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {linked.map((link) => {
-                const reg = link.regulation;
-                if (!reg) return null;
-                const bc = getBodyColour(reg.body);
-                return (
-                  <tr key={link.id} className="border-b border-gray-100 hover:bg-updraft-pale-purple/10 transition-colors">
-                    <td className="py-2.5 px-2 font-mono text-xs font-bold text-updraft-deep">{reg.reference}</td>
-                    <td className="py-2.5 px-2 text-xs text-gray-800 max-w-[180px]">{reg.shortName ?? reg.name}</td>
-                    <td className="py-2.5 px-2">
-                      <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border", bc.bg, bc.text, bc.border)}>
-                        {reg.body}
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-2">
-                      <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", REGULATION_TYPE_COLOURS[reg.type].bg, REGULATION_TYPE_COLOURS[reg.type].text)}>
-                        {REGULATION_TYPE_LABELS[reg.type]}
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-2 text-xs text-gray-500 max-w-[140px] truncate">{reg.provisions ?? "—"}</td>
-                    <td className="py-2.5 px-2 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {reg.url && (
-                          <a href={reg.url} target="_blank" rel="noopener noreferrer" className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-blue-600 transition-colors" title="View source">
-                            <ExternalLink size={12} />
-                          </a>
-                        )}
-                        {isCCRO && (
-                          <button onClick={() => handleUnlink(reg.id)} className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Unlink">
-                            <Unlink size={12} />
-                          </button>
-                        )}
+        <div className="space-y-2">
+          {linked.map((link) => {
+            const reg = link.regulation;
+            if (!reg) return null;
+            const bc = getBodyColour(reg.body);
+            const isExpanded = expandedIds.has(link.id);
+            const linkedCtrls = getLinkedControls(reg.id);
+            const cc = COMPLIANCE_STATUS_COLOURS[reg.complianceStatus];
+
+            return (
+              <div key={link.id} className="rounded-xl border border-gray-200 bg-white overflow-hidden hover:border-gray-300 transition-colors">
+                {/* Row header */}
+                <button
+                  onClick={() => toggleExpanded(link.id)}
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-gray-50/50 transition-colors"
+                >
+                  {/* Compliance RAG dot */}
+                  <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", cc?.dot ?? "bg-gray-300")} />
+                  {isExpanded ? <ChevronDown size={14} className="text-gray-400 shrink-0" /> : <ChevronRight size={14} className="text-gray-400 shrink-0" />}
+                  <span className="font-mono text-xs font-bold text-updraft-deep w-24 shrink-0">{reg.reference}</span>
+                  <span className="flex-1 text-xs text-gray-800 truncate">{reg.shortName ?? reg.name}</span>
+                  <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border shrink-0", bc.bg, bc.text, bc.border)}>
+                    {reg.body}
+                  </span>
+                  <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium shrink-0", REGULATION_TYPE_COLOURS[reg.type].bg, REGULATION_TYPE_COLOURS[reg.type].text)}>
+                    {REGULATION_TYPE_LABELS[reg.type]}
+                  </span>
+                  {linkedCtrls.length > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-updraft-pale-purple/40 px-2 py-0.5 text-[10px] font-medium text-updraft-deep shrink-0">
+                      <Shield size={10} /> {linkedCtrls.length}
+                    </span>
+                  )}
+                  <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    {reg.url && (
+                      <a href={reg.url} target="_blank" rel="noopener noreferrer" className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-blue-600 transition-colors" title="View source">
+                        <ExternalLink size={12} />
+                      </a>
+                    )}
+                    {isCCRO && (
+                      <button onClick={() => handleUnlink(reg.id)} className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Unlink">
+                        <Unlink size={12} />
+                      </button>
+                    )}
+                  </div>
+                </button>
+
+                {/* Expanded details */}
+                {isExpanded && (
+                  <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-3 animate-fade-in space-y-3">
+                    {/* Info cards row */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                      {/* Compliance status */}
+                      <div className="rounded-lg bg-white border border-gray-100 p-2.5">
+                        <span className="text-gray-400 block text-[10px] uppercase font-semibold mb-0.5">Compliance Status</span>
+                        <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium", cc?.bg, cc?.text)}>
+                          <span className={cn("w-1.5 h-1.5 rounded-full", cc?.dot)} />
+                          {COMPLIANCE_STATUS_LABELS[reg.complianceStatus]}
+                        </span>
                       </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      {/* Provisions */}
+                      <div className="rounded-lg bg-white border border-gray-100 p-2.5">
+                        <span className="text-gray-400 block text-[10px] uppercase font-semibold mb-0.5">Provisions</span>
+                        <span className="text-gray-700 font-medium">{reg.provisions ?? "—"}</span>
+                      </div>
+                      {/* Controls count */}
+                      <div className="rounded-lg bg-white border border-gray-100 p-2.5">
+                        <span className="text-gray-400 block text-[10px] uppercase font-semibold mb-0.5">Linked Controls</span>
+                        <span className="text-gray-700 font-medium">{linkedCtrls.length}</span>
+                      </div>
+                    </div>
+
+                    {/* Relevant Sections */}
+                    {link.policySections && (
+                      <div className="rounded-lg bg-white border border-gray-100 p-2.5">
+                        <span className="text-gray-400 block text-[10px] uppercase font-semibold mb-0.5">Relevant Sections</span>
+                        <span className="text-gray-700 text-xs leading-relaxed">{link.policySections}</span>
+                      </div>
+                    )}
+
+                    {/* Notes */}
+                    {link.notes && (
+                      <div className="rounded-lg bg-white border border-gray-100 p-2.5">
+                        <span className="text-gray-400 block text-[10px] uppercase font-semibold mb-0.5">Notes</span>
+                        <span className="text-gray-600 text-xs leading-relaxed">{link.notes}</span>
+                      </div>
+                    )}
+
+                    {/* Linked Controls subsection */}
+                    {linkedCtrls.length > 0 && (
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] uppercase font-semibold text-gray-400">Linked Controls</p>
+                        <div className="space-y-1">
+                          {linkedCtrls.map((ctrl) => {
+                            const latest = getLatestResult(ctrl);
+                            const rc = latest ? TEST_RESULT_COLOURS[latest.result] : null;
+                            return (
+                              <div
+                                key={ctrl.id}
+                                className="flex items-center gap-2.5 rounded-lg bg-white border border-gray-100 px-3 py-2"
+                              >
+                                <span className={cn("w-2 h-2 rounded-full shrink-0", ragDot(latest?.result ?? null))} />
+                                <span className="font-mono text-xs font-bold text-updraft-deep w-20 shrink-0">{ctrl.controlRef}</span>
+                                <span className="flex-1 text-xs text-gray-700 truncate">{ctrl.controlName}</span>
+                                {latest && rc ? (
+                                  <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium shrink-0", rc.bg, rc.text)}>
+                                    {TEST_RESULT_LABELS[latest.result]}
+                                  </span>
+                                ) : (
+                                  <span className="rounded-full px-2 py-0.5 text-[10px] font-medium shrink-0 bg-gray-100 text-gray-400">Not Tested</span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {linkedCtrls.length === 0 && (
+                      <p className="text-xs text-gray-400 italic">No controls linked to this regulation</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 

@@ -10,15 +10,17 @@ import PolicyRegulationsTab from "./PolicyRegulationsTab";
 import PolicyControlsTab from "./PolicyControlsTab";
 import PolicyObligationsTab from "./PolicyObligationsTab";
 import PolicyAuditTab from "./PolicyAuditTab";
+import PolicyConsumerDutyTab from "./PolicyConsumerDutyTab";
 import PolicyFormDialog from "./PolicyFormDialog";
 
-type TabKey = "overview" | "regulations" | "controls" | "obligations" | "audit";
+type TabKey = "overview" | "regulations" | "controls" | "obligations" | "consumer-duty" | "audit";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "overview", label: "Overview" },
   { key: "regulations", label: "Regulatory Mapping" },
   { key: "controls", label: "Controls & Testing" },
   { key: "obligations", label: "Obligations" },
+  { key: "consumer-duty", label: "Consumer Duty" },
   { key: "audit", label: "Audit History" },
 ];
 
@@ -140,6 +142,9 @@ export default function PolicyDetailPanel({ policy, onClose, onUpdate }: Props) 
               {t.key === "obligations" && (policy.obligations?.length ?? 0) > 0 && (
                 <span className="ml-1.5 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">{policy.obligations?.length}</span>
               )}
+              {t.key === "consumer-duty" && (policy.consumerDutyOutcomes?.length ?? 0) > 0 && (
+                <span className="ml-1.5 rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-medium text-purple-600">{policy.consumerDutyOutcomes?.length}</span>
+              )}
             </button>
           ))}
         </div>
@@ -150,6 +155,7 @@ export default function PolicyDetailPanel({ policy, onClose, onUpdate }: Props) 
           {tab === "regulations" && <PolicyRegulationsTab policy={policy} onUpdate={onUpdate} />}
           {tab === "controls" && <PolicyControlsTab policy={policy} onUpdate={onUpdate} />}
           {tab === "obligations" && <PolicyObligationsTab policy={policy} onUpdate={onUpdate} />}
+          {tab === "consumer-duty" && <PolicyConsumerDutyTab policy={policy} onUpdate={onUpdate} />}
           {tab === "audit" && <PolicyAuditTab policy={policy} />}
         </div>
       </div>

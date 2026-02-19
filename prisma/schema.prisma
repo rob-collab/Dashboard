@@ -914,9 +914,10 @@ model Policy {
   scope               String?      @db.Text
   applicability       String?      @db.Text
   exceptions          String?      @db.Text
-  relatedPolicies     String[]
-  storageUrl          String?
-  approvingBody       String?
+  relatedPolicies       String[]
+  storageUrl            String?
+  approvingBody         String?
+  consumerDutyOutcomes  String[]
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
 

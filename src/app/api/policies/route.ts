@@ -33,6 +33,7 @@ const createSchema = z.object({
   exceptions: z.string().optional().nullable(),
   relatedPolicies: z.array(z.string()).optional(),
   storageUrl: z.string().optional().nullable(),
+  consumerDutyOutcomes: z.array(z.string()).optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -95,6 +96,7 @@ export async function POST(request: NextRequest) {
         exceptions: data.exceptions ?? null,
         relatedPolicies: data.relatedPolicies ?? [],
         storageUrl: data.storageUrl ?? null,
+        consumerDutyOutcomes: data.consumerDutyOutcomes ?? [],
       },
       include: POLICY_INCLUDE,
     });

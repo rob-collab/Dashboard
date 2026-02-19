@@ -252,7 +252,7 @@ export const useAppStore = create<AppState>((set) => ({
         api<ConsumerDutyOutcome[]>("/api/consumer-duty"),
         api<Template[]>("/api/templates"),
         api<ImportedComponent[]>("/api/components"),
-        api<{ data: AuditLogEntry[] }>("/api/audit?limit=50").then((r) => r.data),
+        api<{ data: AuditLogEntry[] }>("/api/audit?limit=500").then((r) => r.data),
         api<Action[]>("/api/actions"),
         api<Risk[]>("/api/risks"),
         api<SiteSettings>("/api/settings").catch(() => null),

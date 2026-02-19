@@ -28,6 +28,7 @@ const updateSchema = z.object({
   exceptions: z.string().optional().nullable(),
   relatedPolicies: z.array(z.string()).optional(),
   storageUrl: z.string().optional().nullable(),
+  consumerDutyOutcomes: z.array(z.string()).optional(),
 });
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

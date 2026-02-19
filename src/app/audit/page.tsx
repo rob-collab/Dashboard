@@ -79,6 +79,8 @@ export default function AuditPage() {
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
   const [showFilters, setShowFilters] = useState(false);
   const [statFilter, setStatFilter] = useState<"all" | "reports">("all");
+  const [page, setPage] = useState(1);
+  const pageSize = 50;
 
   const uniqueActions = useMemo(
     () => Array.from(new Set(auditLogs.map((l) => l.action))),
@@ -112,6 +114,17 @@ export default function AuditPage() {
 
     return logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [auditLogs, users, actionFilter, roleFilter, searchQuery, statFilter]);
+
+  // Reset page to 1 when filters change
+  const filterKey = `${actionFilter}-${roleFilter}-${searchQuery}-${statFilter}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
+    setPage(1);
+  }
+
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / pageSize));
+  const paginatedLogs = filteredLogs.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <RoleGuard permission="page:audit">
@@ -252,7 +265,7 @@ export default function AuditPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredLogs.map((log) => {
+              {paginatedLogs.map((log) => {
                 const user = users.find((u) => u.id === log.userId);
                 const report = log.reportId ? reports.find((r) => r.id === log.reportId) : null;
                 const badge = actionBadge(log.action);
@@ -313,6 +326,59 @@ export default function AuditPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination controls */}
+        {filteredLogs.length > 0 && (
+          <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
+            <p className="text-sm text-gray-600">
+              Showing{" "}
+              <span className="font-medium text-updraft-deep">
+                {(page - 1) * pageSize + 1}
+              </span>
+              {" "}to{" "}
+              <span className="font-medium text-updraft-deep">
+                {Math.min(page * pageSize, filteredLogs.length)}
+              </span>
+              {" "}of{" "}
+              <span className="font-medium text-updraft-deep">
+                {filteredLogs.length}
+              </span>
+              {" "}entries
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className={cn(
+                  "rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium transition-colors",
+                  page === 1
+                    ? "opacity-50 cursor-not-allowed text-gray-400"
+                    : "text-gray-700 hover:bg-gray-50"
+                )}
+              >
+                Previous
+              </button>
+              <span className="text-sm text-gray-600">
+                Page{" "}
+                <span className="font-medium text-updraft-bright-purple">{page}</span>
+                {" "}of{" "}
+                <span className="font-medium text-gray-700">{totalPages}</span>
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className={cn(
+                  "rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium transition-colors",
+                  page === totalPages
+                    ? "opacity-50 cursor-not-allowed text-gray-400"
+                    : "text-gray-700 hover:bg-gray-50"
+                )}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
 
         {filteredLogs.length === 0 && (
           <div className="text-center py-12">

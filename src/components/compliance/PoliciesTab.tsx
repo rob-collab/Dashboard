@@ -16,6 +16,7 @@ import {
   Plus,
   Search,
   X,
+  Download,
 } from "lucide-react";
 import type { Policy, PolicyStatus } from "@/lib/types";
 import {
@@ -177,6 +178,150 @@ export default function PoliciesTab() {
     }
   }
 
+  function downloadTemplate() {
+    const headers = [
+      "reference",
+      "name",
+      "description",
+      "status",
+      "version",
+      "ownerEmail",
+      "approvedBy",
+      "classification",
+      "reviewFrequencyDays",
+      "effectiveDate",
+      "lastReviewedDate",
+      "nextReviewDate",
+      "scope",
+      "applicability",
+      "exceptions",
+      "storageUrl",
+      "approvingBody",
+      "consumerDutyOutcomes",
+      "regulationReferences",
+      "controlReferences",
+    ];
+
+    // Example row to guide the user
+    const example = [
+      "POL-001",
+      "Financial Promotions Policy",
+      "Policy governing the approval and communication of financial promotions under FCA CONC 3",
+      "CURRENT",
+      "1.0",
+      "rob@fairscore.com",
+      "Board",
+      "Internal Only",
+      "365",
+      "2024-01-15",
+      "2025-01-15",
+      "2026-01-15",
+      "All financial promotions issued by Updraft",
+      "All staff involved in marketing and communications",
+      "",
+      "",
+      "Board",
+      "products-services;consumer-understanding",
+      "CU-0036;CU-0037;CU-0038",
+      "CTRL-001;CTRL-002",
+    ];
+
+    const escapeCSV = (val: string) => {
+      if (val.includes(",") || val.includes('"') || val.includes("\n")) {
+        return `"${val.replace(/"/g, '""')}"`;
+      }
+      return val;
+    };
+
+    const csv = [
+      headers.join(","),
+      example.map(escapeCSV).join(","),
+    ].join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "policy-upload-template.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function downloadPolicyData() {
+    const headers = [
+      "reference",
+      "name",
+      "description",
+      "status",
+      "version",
+      "ownerEmail",
+      "approvedBy",
+      "classification",
+      "reviewFrequencyDays",
+      "effectiveDate",
+      "lastReviewedDate",
+      "nextReviewDate",
+      "scope",
+      "applicability",
+      "exceptions",
+      "storageUrl",
+      "approvingBody",
+      "consumerDutyOutcomes",
+      "regulationReferences",
+      "controlReferences",
+    ];
+
+    const escapeCSV = (val: string | null | undefined | boolean | number): string => {
+      if (val === null || val === undefined) return "";
+      const s = String(val);
+      if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+        return `"${s.replace(/"/g, '""')}"`;
+      }
+      return s;
+    };
+
+    const sorted = [...policies].sort((a, b) => naturalCompare(a.reference, b.reference));
+
+    const rows = sorted.map((p) => {
+      const owner = p.owner ?? users.find((u) => u.id === p.ownerId);
+      const regRefs = (p.regulatoryLinks ?? []).map((l) => l.regulation?.reference ?? "").filter(Boolean).join(";");
+      const ctrlRefs = (p.controlLinks ?? []).map((l) => l.control?.controlRef ?? "").filter(Boolean).join(";");
+      const cdOutcomes = (p.consumerDutyOutcomes ?? []).join(";");
+
+      return [
+        escapeCSV(p.reference),
+        escapeCSV(p.name),
+        escapeCSV(p.description),
+        escapeCSV(p.status),
+        escapeCSV(p.version),
+        escapeCSV(owner?.email ?? ""),
+        escapeCSV(p.approvedBy),
+        escapeCSV(p.classification),
+        escapeCSV(p.reviewFrequencyDays),
+        escapeCSV(p.effectiveDate),
+        escapeCSV(p.lastReviewedDate),
+        escapeCSV(p.nextReviewDate),
+        escapeCSV(p.scope),
+        escapeCSV(p.applicability),
+        escapeCSV(p.exceptions),
+        escapeCSV(p.storageUrl),
+        escapeCSV(p.approvingBody),
+        escapeCSV(cdOutcomes),
+        escapeCSV(regRefs),
+        escapeCSV(ctrlRefs),
+      ].join(",");
+    });
+
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `policies-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="space-y-6">
       {/* Summary stats + actions */}
@@ -195,24 +340,40 @@ export default function PoliciesTab() {
             </span>
           )}
         </div>
-        {canCreate && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowImport(true)}
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              <FileUp size={14} />
-              Import CSV
-            </button>
-            <button
-              onClick={() => setShowForm(true)}
-              className="inline-flex items-center gap-2 rounded-lg bg-updraft-deep text-white px-4 py-2 text-sm font-medium hover:bg-updraft-bar transition-colors"
-            >
-              <Plus size={14} />
-              New Policy
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={downloadTemplate}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            <Download size={13} />
+            Template
+          </button>
+          <button
+            onClick={downloadPolicyData}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <Download size={13} />
+            Download CSV
+          </button>
+          {canCreate && (
+            <>
+              <button
+                onClick={() => setShowImport(true)}
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <FileUp size={14} />
+                Import CSV
+              </button>
+              <button
+                onClick={() => setShowForm(true)}
+                className="inline-flex items-center gap-2 rounded-lg bg-updraft-deep text-white px-4 py-2 text-sm font-medium hover:bg-updraft-bar transition-colors"
+              >
+                <Plus size={14} />
+                New Policy
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Summary Cards */}

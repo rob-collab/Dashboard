@@ -100,6 +100,7 @@ export default function PolicyFormDialog({ open, onClose, onSave, editPolicy }: 
       relatedPolicies: relatedPolicies ? relatedPolicies.split(",").map((s) => s.trim()).filter(Boolean) : [],
       storageUrl: storageUrl || null,
       approvingBody: editPolicy?.approvingBody ?? null,
+      consumerDutyOutcomes: editPolicy?.consumerDutyOutcomes ?? [],
       createdAt: editPolicy?.createdAt ?? now,
       updatedAt: now,
       owner: users.find((u) => u.id === ownerId),

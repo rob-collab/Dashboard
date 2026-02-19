@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ChevronDown, ChevronRight, Link2, Search, Unlink } from "lucide-react";
+import { ChevronDown, ChevronRight, Link2, Search, Unlink, ShieldCheck, BookOpen } from "lucide-react";
 import {
   PieChart,
   Pie,
@@ -11,8 +11,8 @@ import {
 import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
-import type { Policy, PolicyControlLink, ControlRecord, TestResultValue } from "@/lib/types";
-import { TEST_RESULT_COLOURS, TEST_RESULT_LABELS, CONTROL_FREQUENCY_LABELS } from "@/lib/types";
+import type { Policy, PolicyControlLink, ControlRecord, TestResultValue, ControlTestResult } from "@/lib/types";
+import { TEST_RESULT_COLOURS, TEST_RESULT_LABELS, CONTROL_FREQUENCY_LABELS, REGULATION_TYPE_COLOURS } from "@/lib/types";
 import { cn, formatDate } from "@/lib/utils";
 
 const DONUT_COLOURS: Record<string, string> = {
@@ -22,6 +22,40 @@ const DONUT_COLOURS: Record<string, string> = {
   "Not Tested": "#d1d5db",
 };
 
+type EffectivenessRating = "Effective" | "Mostly Effective" | "Partially Effective" | "Ineffective" | "Not Assessed";
+
+const EFFECTIVENESS_STYLES: Record<EffectivenessRating, { bg: string; text: string }> = {
+  "Effective":           { bg: "bg-green-100",  text: "text-green-700" },
+  "Mostly Effective":    { bg: "bg-emerald-100", text: "text-emerald-700" },
+  "Partially Effective": { bg: "bg-amber-100",  text: "text-amber-700" },
+  "Ineffective":         { bg: "bg-red-100",    text: "text-red-700" },
+  "Not Assessed":        { bg: "bg-gray-100",   text: "text-gray-500" },
+};
+
+function calcEffectiveness(ctrl: ControlRecord): EffectivenessRating {
+  const results = ctrl.testingSchedule?.testResults;
+  if (!results || results.length === 0) return "Not Assessed";
+  const sorted = [...results].sort(
+    (a, b) => new Date(b.testedDate).getTime() - new Date(a.testedDate).getTime(),
+  );
+  const latest = sorted[0].result;
+  if (latest === "FAIL") return "Ineffective";
+  if (latest === "PARTIALLY") return "Partially Effective";
+  if (latest === "PASS") {
+    const hasHistoricalFail = sorted.slice(1).some((r) => r.result === "FAIL");
+    return hasHistoricalFail ? "Mostly Effective" : "Effective";
+  }
+  return "Not Assessed";
+}
+
+function getTestHistory(ctrl: ControlRecord, count = 3): ControlTestResult[] {
+  const results = ctrl.testingSchedule?.testResults;
+  if (!results || results.length === 0) return [];
+  return [...results]
+    .sort((a, b) => new Date(b.testedDate).getTime() - new Date(a.testedDate).getTime())
+    .slice(0, count);
+}
+
 interface Props {
   policy: Policy;
   onUpdate: (policy: Policy) => void;
@@ -30,6 +64,7 @@ interface Props {
 export default function PolicyControlsTab({ policy, onUpdate }: Props) {
   const currentUser = useAppStore((s) => s.currentUser);
   const controls = useAppStore((s) => s.controls);
+  const regulations = useAppStore((s) => s.regulations);
   const isCCRO = currentUser?.role === "CCRO_TEAM";
 
   const [showPicker, setShowPicker] = useState(false);
@@ -43,6 +78,46 @@ export default function PolicyControlsTab({ policy, onUpdate }: Props) {
   const filteredUnlinked = pickerSearch
     ? unlinked.filter((c) => c.controlName.toLowerCase().includes(pickerSearch.toLowerCase()) || c.controlRef.toLowerCase().includes(pickerSearch.toLowerCase()))
     : unlinked;
+
+  // Build a lookup: controlId → regulation references this control addresses
+  // We check both the control's own regulationLinks AND the policy's regulatoryLinks
+  const regulationsByControl = useMemo(() => {
+    const map = new Map<string, { id: string; reference: string; name: string; type?: string }[]>();
+
+    for (const link of linked) {
+      const ctrl = link.control;
+      if (!ctrl) continue;
+      const regs: { id: string; reference: string; name: string; type?: string }[] = [];
+      const seenIds = new Set<string>();
+
+      // From the control's own regulationLinks
+      for (const rl of ctrl.regulationLinks ?? []) {
+        const reg = rl.regulation ?? regulations.find((r) => r.id === rl.regulationId);
+        if (reg && !seenIds.has(reg.id)) {
+          seenIds.add(reg.id);
+          regs.push({ id: reg.id, reference: reg.reference, name: reg.shortName ?? reg.name, type: reg.type });
+        }
+      }
+
+      // Also include policy-level regulations that are shared (policy regs where this control is relevant)
+      for (const prl of policy.regulatoryLinks ?? []) {
+        if (!seenIds.has(prl.regulationId)) {
+          const reg = prl.regulation ?? regulations.find((r) => r.id === prl.regulationId);
+          if (reg) {
+            // Check if the regulation also links to this control
+            const regLinksToControl = (reg.controlLinks ?? []).some((cl) => cl.controlId === ctrl.id);
+            if (regLinksToControl) {
+              seenIds.add(reg.id);
+              regs.push({ id: reg.id, reference: reg.reference, name: reg.shortName ?? reg.name, type: reg.type });
+            }
+          }
+        }
+      }
+
+      map.set(ctrl.id, regs);
+    }
+    return map;
+  }, [linked, regulations, policy.regulatoryLinks]);
 
   // Mini donut data
   const healthStats = useMemo(() => {
@@ -208,6 +283,10 @@ export default function PolicyControlsTab({ policy, onUpdate }: Props) {
             const latest = getLatestResult(ctrl);
             const isExpanded = expandedId === link.id;
             const rc = latest ? TEST_RESULT_COLOURS[latest.result] : null;
+            const effectiveness = calcEffectiveness(ctrl);
+            const effStyle = EFFECTIVENESS_STYLES[effectiveness];
+            const ctrlRegs = regulationsByControl.get(ctrl.id) ?? [];
+            const testHistory = getTestHistory(ctrl, 3);
 
             return (
               <div key={link.id} className="rounded-xl border border-gray-200 bg-white overflow-hidden hover:border-gray-300 transition-colors">
@@ -220,8 +299,26 @@ export default function PolicyControlsTab({ policy, onUpdate }: Props) {
                   <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", ragDot(latest?.result ?? null))} />
                   {isExpanded ? <ChevronDown size={14} className="text-gray-400 shrink-0" /> : <ChevronRight size={14} className="text-gray-400 shrink-0" />}
                   <span className="font-mono text-xs font-bold text-updraft-deep w-20 shrink-0">{ctrl.controlRef}</span>
-                  <span className="flex-1 text-xs text-gray-800 truncate">{ctrl.controlName}</span>
+                  {/* Name + regulation count */}
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs text-gray-800 truncate block">{ctrl.controlName}</span>
+                    {ctrlRegs.length > 0 && (
+                      <span className="flex items-center gap-1 mt-0.5">
+                        <BookOpen size={10} className="text-gray-400 shrink-0" />
+                        <span className="text-[10px] text-gray-400 truncate">
+                          {ctrlRegs.length === 1
+                            ? ctrlRegs[0].reference
+                            : `${ctrlRegs[0].reference} +${ctrlRegs.length - 1} more`}
+                        </span>
+                      </span>
+                    )}
+                  </div>
                   <span className="text-[10px] text-gray-400 shrink-0">{CONTROL_FREQUENCY_LABELS[ctrl.controlFrequency]}</span>
+                  {/* Effectiveness badge */}
+                  <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0", effStyle.bg, effStyle.text)}>
+                    {effectiveness}
+                  </span>
+                  {/* Test result badge */}
                   {latest && rc && (
                     <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium shrink-0", rc.bg, rc.text)}>
                       {TEST_RESULT_LABELS[latest.result]}
@@ -243,7 +340,15 @@ export default function PolicyControlsTab({ policy, onUpdate }: Props) {
 
                 {/* Expanded Details — Card Layout */}
                 {isExpanded && (
-                  <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-3">
+                  <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-3 space-y-3">
+                    {/* Overall Effectiveness Banner */}
+                    <div className={cn("flex items-center gap-2 rounded-lg px-3 py-2", effStyle.bg)}>
+                      <ShieldCheck size={14} className={effStyle.text} />
+                      <span className={cn("text-xs font-semibold", effStyle.text)}>
+                        Overall Effectiveness: {effectiveness}
+                      </span>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       <div className="rounded-lg bg-white border border-gray-100 p-2.5">
                         <span className="text-gray-400 block text-[10px] uppercase font-semibold mb-0.5">Owner</span>
@@ -262,10 +367,65 @@ export default function PolicyControlsTab({ policy, onUpdate }: Props) {
                         <span className="text-gray-700 font-medium">{ctrl.controlType ?? "—"}</span>
                       </div>
                     </div>
+
                     {ctrl.controlDescription && (
-                      <div className="mt-2.5 rounded-lg bg-white border border-gray-100 p-2.5">
+                      <div className="rounded-lg bg-white border border-gray-100 p-2.5">
                         <span className="text-gray-400 block text-[10px] uppercase font-semibold mb-0.5">Description</span>
                         <span className="text-gray-600 text-xs leading-relaxed">{ctrl.controlDescription}</span>
+                      </div>
+                    )}
+
+                    {/* Regulations Addressed */}
+                    {ctrlRegs.length > 0 && (
+                      <div className="rounded-lg bg-white border border-gray-100 p-2.5">
+                        <span className="text-gray-400 block text-[10px] uppercase font-semibold mb-1.5">Regulations Addressed</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {ctrlRegs.map((reg) => {
+                            const regTypeColour = reg.type && REGULATION_TYPE_COLOURS[reg.type as keyof typeof REGULATION_TYPE_COLOURS];
+                            return (
+                              <span
+                                key={reg.id}
+                                className={cn(
+                                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                                  regTypeColour ? regTypeColour.bg : "bg-gray-100",
+                                  regTypeColour ? regTypeColour.text : "text-gray-600",
+                                )}
+                                title={reg.name}
+                              >
+                                <span className="font-mono">{reg.reference}</span>
+                                <span className="font-normal truncate max-w-[140px]">{reg.name}</span>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Test History (last 3) */}
+                    {testHistory.length > 0 && (
+                      <div className="rounded-lg bg-white border border-gray-100 p-2.5">
+                        <span className="text-gray-400 block text-[10px] uppercase font-semibold mb-1.5">Test History</span>
+                        <div className="space-y-1">
+                          {testHistory.map((tr, i) => {
+                            const trc = TEST_RESULT_COLOURS[tr.result];
+                            return (
+                              <div key={tr.id ?? i} className="flex items-center gap-2 text-xs">
+                                <span className={cn("w-2 h-2 rounded-full shrink-0", trc.dot)} />
+                                <span className="text-gray-500 font-mono text-[10px] w-20 shrink-0">{formatDate(tr.testedDate)}</span>
+                                <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", trc.bg, trc.text)}>
+                                  {TEST_RESULT_LABELS[tr.result]}
+                                </span>
+                                {tr.notes && <span className="text-gray-400 text-[10px] truncate flex-1" title={tr.notes}>{tr.notes}</span>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {testHistory.length === 0 && (
+                      <div className="rounded-lg bg-white border border-gray-100 p-2.5">
+                        <span className="text-gray-400 block text-[10px] uppercase font-semibold mb-0.5">Test History</span>
+                        <span className="text-gray-400 text-xs">No test results recorded</span>
                       </div>
                     )}
                   </div>
