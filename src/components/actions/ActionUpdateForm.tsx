@@ -103,7 +103,7 @@ export default function ActionUpdateForm({
           <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2">
             <Paperclip size={14} className="text-updraft-bright-purple shrink-0" />
             <span className="text-xs text-gray-700 truncate flex-1">{fileName}</span>
-            <button type="button" onClick={removeFile} className="text-gray-400 hover:text-gray-600">
+            <button type="button" onClick={removeFile} className="text-gray-400 hover:text-gray-600" aria-label="Remove file">
               <X size={14} />
             </button>
           </div>

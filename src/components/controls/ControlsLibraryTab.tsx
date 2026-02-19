@@ -583,6 +583,7 @@ export default function ControlsLibraryTab() {
                   setEditingControl(null);
                 }}
                 className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colours"
+                aria-label="Close"
               >
                 <X className="h-5 w-5" />
               </button>

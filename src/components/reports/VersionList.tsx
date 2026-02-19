@@ -174,7 +174,7 @@ export default function VersionList({
                           "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
                           version.htmlExport
                             ? "border-gray-200 text-gray-700 hover:bg-gray-50"
-                            : "cursor-not-allowed border-gray-100 text-gray-300"
+                            : "cursor-not-allowed border-gray-100 text-gray-400"
                         )}
                       >
                         <Download size={13} />

@@ -560,7 +560,7 @@ export default function ExcoDashboardTab() {
                         {outcome.label}
                       </div>
                       {outcome.total === 0 ? (
-                        <div className="flex items-center justify-center h-32 text-xs text-gray-300">
+                        <div className="flex items-center justify-center h-32 text-xs text-gray-400">
                           No controls
                         </div>
                       ) : (
@@ -810,7 +810,7 @@ export default function ExcoDashboardTab() {
 
           {/* ── Footer ──────────────────────────────────────────────────────── */}
           <div className="text-center pt-4 pb-8">
-            <p className="text-xs text-gray-300 font-inter">
+            <p className="text-xs text-gray-400 font-inter">
               Updraft Controls Assurance &mdash; {periodLabel} &mdash;
               Generated for ExCo/Board review
             </p>

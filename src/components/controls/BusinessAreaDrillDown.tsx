@@ -387,7 +387,7 @@ export default function BusinessAreaDrillDown({
                         <span
                           className={`w-3 h-3 rounded-full ${dotColour.dot}`}
                         />
-                        <span className="text-[8px] text-gray-300 leading-none">
+                        <span className="text-[8px] text-gray-400 leading-none">
                           {monthLabel.slice(0, 1)}
                           {yearLabel}
                         </span>

@@ -757,7 +757,7 @@ function ActionsPageContent() {
                             <p className="text-sm text-gray-400 italic">No description provided.</p>
                           )}
                           {!isCCRO && (
-                            <p className="text-[10px] text-gray-300 mt-2 italic">Only the CCRO team can edit the description</p>
+                            <p className="text-[10px] text-gray-400 mt-2 italic">Only the CCRO team can edit the description</p>
                           )}
                         </div>
 

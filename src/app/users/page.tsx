@@ -302,7 +302,7 @@ export default function UsersPage() {
                           className={cn(
                             "rounded-lg p-1.5 transition-colors",
                             user.id === currentUser?.id
-                              ? "text-gray-200 cursor-not-allowed"
+                              ? "text-gray-400 cursor-not-allowed"
                               : "text-gray-400 hover:bg-red-50 hover:text-red-600"
                           )}
                           title={user.id === currentUser?.id ? "Cannot delete yourself" : "Delete user"}

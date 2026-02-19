@@ -206,7 +206,7 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
                 </div>
               )}
             </div>
-            <button onClick={onClose} className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors shrink-0 ml-2">
+            <button onClick={onClose} className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors shrink-0 ml-2" aria-label="Close">
               <X size={20} />
             </button>
           </div>
@@ -422,6 +422,7 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
                   onClick={handleComment}
                   disabled={sendingComment || !newComment.trim()}
                   className="rounded-lg bg-updraft-deep text-white px-3 py-2 text-sm hover:bg-updraft-bar transition-colors disabled:opacity-50"
+                  aria-label="Send comment"
                 >
                   <Send size={14} />
                 </button>

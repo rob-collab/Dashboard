@@ -757,7 +757,7 @@ export default function TrendAnalysisTab() {
                             </span>
                           </td>
                           <td className="py-2.5 text-gray-500 text-xs max-w-[200px] truncate" title={f.lastNotes ?? ""}>
-                            {f.lastNotes || <span className="text-gray-300">---</span>}
+                            {f.lastNotes || <span className="text-gray-400">---</span>}
                           </td>
                         </tr>
                       ))}

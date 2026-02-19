@@ -563,7 +563,7 @@ export default function ControlsDashboardTab() {
                   {outcome.label}
                 </div>
                 {outcome.total === 0 ? (
-                  <div className="flex items-center justify-center h-28 text-xs text-gray-300">
+                  <div className="flex items-center justify-center h-28 text-xs text-gray-400">
                     No controls
                   </div>
                 ) : (

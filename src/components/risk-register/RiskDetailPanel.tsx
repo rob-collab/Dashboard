@@ -226,7 +226,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                 History
               </button>
             )}
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Close">
               <X className="w-5 h-5 text-gray-500" />
             </button>
           </div>
@@ -385,6 +385,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                 <button
                   onClick={() => setControls(controls.filter((_, j) => j !== i))}
                   className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                  aria-label="Delete control"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -569,6 +570,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                   <button
                     onClick={() => setMitigations(mitigations.filter((_, j) => j !== i))}
                     className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                    aria-label="Delete mitigation"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
