@@ -322,6 +322,56 @@ export default function PoliciesTab() {
     URL.revokeObjectURL(url);
   }
 
+  function downloadRequirementsTemplate() {
+    const headers = [
+      "policyReference",
+      "requirementCategory",
+      "requirementDescription",
+      "regulationReferences",
+      "controlReferences",
+      "notes",
+    ];
+
+    const examples = [
+      [
+        "POL-001",
+        "Promotions Approval",
+        "All financial promotions must be approved by an authorised person before publication",
+        "CU-0036;CU-0037",
+        "CTRL-001;CTRL-002",
+        "Includes digital, print, social media",
+      ],
+      [
+        "POL-001",
+        "Content Standards",
+        "Financial promotions must be fair, clear and not misleading with representative APR where applicable",
+        "CU-0036;CU-0039",
+        "CTRL-001;CTRL-003",
+        "",
+      ],
+    ];
+
+    const escapeCSV = (val: string) => {
+      if (val.includes(",") || val.includes('"') || val.includes("\n")) {
+        return `"${val.replace(/"/g, '""')}"`;
+      }
+      return val;
+    };
+
+    const csv = [
+      headers.join(","),
+      ...examples.map((row) => row.map(escapeCSV).join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "policy-requirements-template.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="space-y-6">
       {/* Summary stats + actions */}
@@ -344,9 +394,18 @@ export default function PoliciesTab() {
           <button
             onClick={downloadTemplate}
             className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+            title="Download blank policy CSV template with example rows"
           >
             <Download size={13} />
-            Template
+            Policy Template
+          </button>
+          <button
+            onClick={downloadRequirementsTemplate}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+            title="Download blank requirements CSV template linking policy sections to regulations and controls"
+          >
+            <Download size={13} />
+            Requirements Template
           </button>
           <button
             onClick={downloadPolicyData}

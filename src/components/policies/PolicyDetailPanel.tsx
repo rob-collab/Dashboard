@@ -19,7 +19,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "overview", label: "Overview" },
   { key: "regulations", label: "Regulatory Mapping" },
   { key: "controls", label: "Controls & Testing" },
-  { key: "obligations", label: "Obligations" },
+  { key: "obligations", label: "Requirements" },
   { key: "consumer-duty", label: "Consumer Duty" },
   { key: "audit", label: "Audit History" },
 ];
@@ -116,7 +116,7 @@ export default function PolicyDetailPanel({ policy, onClose, onUpdate }: Props) 
             </span>
             <span className="inline-flex items-center gap-1">
               <BookOpen size={12} />
-              {healthSummary.obligations} obligations
+              {healthSummary.obligations} requirements
             </span>
           </div>
         </div>
