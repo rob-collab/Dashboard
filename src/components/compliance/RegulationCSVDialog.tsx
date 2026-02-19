@@ -5,7 +5,7 @@ import { Upload, X, AlertTriangle, CheckCircle2, ArrowRight } from "lucide-react
 import { toast } from "sonner";
 import { api } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
-import type { Regulation, Applicability, ComplianceStatus } from "@/lib/types";
+import type { Regulation } from "@/lib/types";
 
 interface FieldChange {
   field: string;
