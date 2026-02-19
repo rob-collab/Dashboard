@@ -96,12 +96,14 @@ function PendingChangesPanel({
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [processedIds, setProcessedIds] = useState<Set<string>>(new Set());
+  const [reviewErrors, setReviewErrors] = useState<Record<string, string>>({});
 
   const handleReview = useCallback(async (
     change: PendingItem,
     decision: "APPROVED" | "REJECTED"
   ) => {
     setReviewingId(change.id);
+    setReviewErrors((prev) => { const next = { ...prev }; delete next[change.id]; return next; });
     try {
       const note = reviewNotes[change.id] || undefined;
       if (change._type === "action") {
@@ -133,7 +135,9 @@ function PendingChangesPanel({
       setProcessedIds((prev) => { const next = new Set(prev); next.add(change.id); return next; });
       toast.success(decision === "APPROVED" ? "Change approved" : "Change rejected");
     } catch (err) {
-      toast.error("Failed to process change", { description: err instanceof Error ? err.message : "Unknown error" });
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      setReviewErrors((prev) => ({ ...prev, [change.id]: msg }));
+      toast.error("Failed to process change", { description: msg });
     } finally {
       setReviewingId(null);
     }
@@ -243,6 +247,12 @@ function PendingChangesPanel({
 
                 {/* Review note input + action buttons */}
                 <div className="pt-2 border-t border-gray-100 space-y-2">
+                  {reviewErrors[c.id] && (
+                    <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                      <span>Failed to process change: {reviewErrors[c.id]}</span>
+                    </div>
+                  )}
                   <textarea
                     className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple/30 outline-none resize-none"
                     rows={2}

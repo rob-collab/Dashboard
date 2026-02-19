@@ -35,7 +35,11 @@ body::before {
 
 body > * {
   position: relative;
-  z-index: 1;
+}
+
+/* Ensure Sonner toast portal is always on top of all content */
+[data-sonner-toaster] {
+  z-index: 99999 !important;
 }
 
 /* Tiptap Editor Styles */
