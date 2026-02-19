@@ -70,9 +70,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-updraft-deep to-updraft-bright-purple">
-            <span className="font-poppins text-xl font-bold text-white">U</span>
-          </div>
+          <img src="/loading-logo.jpeg" alt="Updraft" className="h-14 w-14 rounded-xl object-cover" />
           {hydrateError ? (
             <>
               <p className="text-sm font-medium text-red-600">Failed to load data</p>
