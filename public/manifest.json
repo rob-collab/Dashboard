@@ -1,0 +1,13 @@
+{
+  "name": "Updraft CCRO Dashboard",
+  "short_name": "CCRO",
+  "description": "Chief Compliance & Risk Officer Dashboard",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#311B92",
+  "background_color": "#F8F7F4",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

@@ -8,6 +8,7 @@ import { useAppStore } from "@/lib/store";
 import { generateHTMLExport } from "@/lib/export-html";
 import { ReportCard } from "@/components/reports/ReportCard";
 import type { Report, ReportStatus } from "@/lib/types";
+import { usePageTitle } from "@/lib/usePageTitle";
 
 function ReportsPageContent() {
   const router = useRouter();
@@ -153,6 +154,7 @@ function ReportsPageContent() {
 }
 
 export default function ReportsPage() {
+  usePageTitle("Reports");
   return (
     <Suspense>
       <ReportsPageContent />

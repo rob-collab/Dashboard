@@ -16,6 +16,7 @@ import { useAppStore } from "@/lib/store";
 import RoleGuard from "@/components/common/RoleGuard";
 import { cn, formatDate } from "@/lib/utils";
 import type { Role } from "@/lib/types";
+import { usePageTitle } from "@/lib/usePageTitle";
 
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {
   create_report: { label: "Create Report", color: "bg-green-100 text-green-700" },
@@ -66,6 +67,7 @@ function getEntityLink(entityType: string, entityId: string | null, reportId: st
 }
 
 export default function AuditPage() {
+  usePageTitle("Audit Trail");
   const router = useRouter();
   const auditLogs = useAppStore((s) => s.auditLogs);
   const reports = useAppStore((s) => s.reports);

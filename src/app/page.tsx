@@ -30,6 +30,7 @@ import { getRiskScore } from "@/lib/risk-categories";
 import type { ActionPriority, ActionChange, ControlChange, RiskChange } from "@/lib/types";
 import ScoreBadge from "@/components/risk-register/ScoreBadge";
 import DirectionArrow from "@/components/risk-register/DirectionArrow";
+import { usePageTitle } from "@/lib/usePageTitle";
 
 function daysUntilDue(dueDate: string | null): number | null {
   if (!dueDate) return null;
@@ -274,6 +275,7 @@ function PendingChangesPanel({
 }
 
 export default function DashboardHome() {
+  usePageTitle("Dashboard");
   const hydrated = useAppStore((s) => s._hydrated);
   const currentUser = useAppStore((s) => s.currentUser);
   const branding = useAppStore((s) => s.branding);
@@ -692,7 +694,7 @@ export default function DashboardHome() {
               </div>
               <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-updraft-bright-purple transition-colors" />
             </div>
-            <div className="grid grid-cols-4 gap-2 mb-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
               <div className="rounded-lg bg-surface-muted border border-[#E8E6E1] p-2 text-center">
                 <p className="text-lg font-bold font-poppins text-gray-600">{raStats.expired}</p>
                 <p className="text-[10px] text-text-secondary">Expired</p>

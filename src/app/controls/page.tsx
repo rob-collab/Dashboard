@@ -22,6 +22,7 @@ import QuarterlySummaryTab from "@/components/controls/QuarterlySummaryTab";
 import TrendAnalysisTab from "@/components/controls/TrendAnalysisTab";
 import ExcoConfigTab from "@/components/controls/ExcoConfigTab";
 import ExcoDashboardTab from "@/components/controls/ExcoDashboardTab";
+import { usePageTitle } from "@/lib/usePageTitle";
 
 type Tab =
   | "library"
@@ -47,6 +48,7 @@ const TABS: { id: Tab; label: string; icon: typeof Library; roles: string[] }[] 
 ];
 
 export default function ControlsPage() {
+  usePageTitle("Controls Testing");
   const currentUser = useAppStore((s) => s.currentUser);
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
 

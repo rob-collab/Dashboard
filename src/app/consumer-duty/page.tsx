@@ -16,6 +16,7 @@ import AdminRAGPanel from "@/components/consumer-duty/AdminRAGPanel";
 import RiskDetailModal from "@/components/consumer-duty/RiskDetailModal";
 import { cn, ragBgColor, ragLabelShort } from "@/lib/utils";
 import type { ConsumerDutyMeasure, ConsumerDutyOutcome, ConsumerDutyMI, RAGStatus } from "@/lib/types";
+import { usePageTitle } from "@/lib/usePageTitle";
 
 type RagFilterValue = RAGStatus | "ALL" | "ATTENTION";
 
@@ -827,6 +828,7 @@ function ConsumerDutyContent() {
 }
 
 export default function ConsumerDutyPage() {
+  usePageTitle("Consumer Duty");
   return (
     <Suspense>
       <ConsumerDutyContent />

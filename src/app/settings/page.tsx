@@ -9,6 +9,7 @@ import TemplatesPanel from "@/components/settings/TemplatesPanel";
 import ComponentsPanel from "@/components/settings/ComponentsPanel";
 import NotificationsEditor from "@/components/settings/NotificationsEditor";
 import { cn } from "@/lib/utils";
+import { usePageTitle } from "@/lib/usePageTitle";
 
 const TABS = [
   { id: "branding", label: "Branding" },
@@ -24,6 +25,7 @@ type TabId = (typeof TABS)[number]["id"];
 const FULL_WIDTH_TABS: TabId[] = ["templates", "components"];
 
 export default function SettingsPage() {
+  usePageTitle("Settings");
   const [activeTab, setActiveTab] = useState<TabId>("branding");
 
   const isFullWidth = FULL_WIDTH_TABS.includes(activeTab);

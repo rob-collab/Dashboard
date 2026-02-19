@@ -20,6 +20,7 @@ import UserDeleteDialog from "@/components/users/UserDeleteDialog";
 import { cn, formatDate } from "@/lib/utils";
 import type { Role, User } from "@/lib/types";
 import { logAuditEvent } from "@/lib/audit";
+import { usePageTitle } from "@/lib/usePageTitle";
 
 function useOwnedRiskCounts() {
   const risks = useAppStore((s) => s.risks);
@@ -49,6 +50,7 @@ const ROLE_CONFIG: Record<Role, { label: string; color: string; description: str
 };
 
 export default function UsersPage() {
+  usePageTitle("Users");
   const users = useAppStore((s) => s.users);
   const currentUser = useAppStore((s) => s.currentUser);
   const addUser = useAppStore((s) => s.addUser);

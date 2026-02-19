@@ -13,6 +13,7 @@ import { Grid3X3, List, Plus, Download, Upload, ShieldAlert, TrendingDown, Trend
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
 import RiskCSVUploadDialog from "@/components/risk-register/RiskCSVUploadDialog";
+import { usePageTitle } from "@/lib/usePageTitle";
 
 type ViewTab = "heatmap" | "table";
 type ScoreMode = "inherent" | "residual" | "overlay";
@@ -24,6 +25,7 @@ function getScore(risk: Risk, mode: ScoreMode): number {
 }
 
 export default function RiskRegisterPage() {
+  usePageTitle("Risk Register");
   const { risks, setRisks, addRisk, updateRisk, deleteRisk, currentUser, users } = useAppStore();
   const [viewTab, setViewTab] = useState<ViewTab>("heatmap");
   const [selectedRisk, setSelectedRisk] = useState<Risk | null>(null);
@@ -222,6 +224,7 @@ export default function RiskRegisterPage() {
 
   const handleDelete = useCallback(
     (id: string) => {
+      if (!confirm("Are you sure you want to delete this risk? This cannot be undone.")) return;
       deleteRisk(id);
       setPanelOpen(false);
       setSelectedRisk(null);
@@ -530,7 +533,7 @@ export default function RiskRegisterPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {cards.map((card) => {
           const isActive = cardFilter === card.key;
           const Icon = card.key === "WORSENING" ? TrendingDown : card.key === "IMPROVING" ? TrendingUp : null;

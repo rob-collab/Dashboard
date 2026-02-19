@@ -119,12 +119,15 @@ export async function POST(request: NextRequest) {
 
       // Auto-create linked Actions for each mitigation
       if (risk.mitigations.length > 0) {
+        // Batch-resolve owner names to user IDs (avoids N+1 queries)
+        const ownerNames = Array.from(new Set(risk.mitigations.map((m) => m.owner).filter(Boolean))) as string[];
+        const ownerUsers = ownerNames.length > 0
+          ? await tx.user.findMany({ where: { name: { in: ownerNames, mode: "insensitive" } } })
+          : [];
+        const ownerMap = new Map(ownerUsers.map((u) => [u.name.toLowerCase(), u.id]));
+
         for (const mit of risk.mitigations) {
-          let assigneeId = userId;
-          if (mit.owner) {
-            const ownerUser = await tx.user.findFirst({ where: { name: { equals: mit.owner, mode: "insensitive" } } });
-            if (ownerUser) assigneeId = ownerUser.id;
-          }
+          const assigneeId = mit.owner ? (ownerMap.get(mit.owner.toLowerCase()) ?? userId) : userId;
           const actionRef = await generateReference("ACT-", "action");
           const linkedAction = await tx.action.create({
             data: {

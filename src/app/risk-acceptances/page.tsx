@@ -13,6 +13,7 @@ import RiskAcceptanceFormDialog from "@/components/risk-acceptances/RiskAcceptan
 import RiskAcceptanceDetailPanel from "@/components/risk-acceptances/RiskAcceptanceDetailPanel";
 import type { RiskAcceptance, RiskAcceptanceStatus, RiskAcceptanceSource } from "@/lib/types";
 import { RISK_ACCEPTANCE_STATUS_LABELS, RISK_ACCEPTANCE_STATUS_COLOURS, RISK_ACCEPTANCE_SOURCE_LABELS } from "@/lib/types";
+import { usePageTitle } from "@/lib/usePageTitle";
 
 const ALL_STATUSES: RiskAcceptanceStatus[] = ["PROPOSED", "CCRO_REVIEW", "AWAITING_APPROVAL", "APPROVED", "REJECTED", "RETURNED", "EXPIRED"];
 const ALL_SOURCES: RiskAcceptanceSource[] = ["RISK_REGISTER", "CONTROL_TESTING", "INCIDENT", "AD_HOC"];
@@ -20,6 +21,7 @@ const ALL_SOURCES: RiskAcceptanceSource[] = ["RISK_REGISTER", "CONTROL_TESTING",
 type TabKey = "all" | "needs_action" | "active" | "audit";
 
 export default function RiskAcceptancesPage() {
+  usePageTitle("Risk Acceptances");
   const hydrated = useAppStore((s) => s._hydrated);
   const riskAcceptances = useAppStore((s) => s.riskAcceptances);
   const updateRiskAcceptance = useAppStore((s) => s.updateRiskAcceptance);

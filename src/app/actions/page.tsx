@@ -39,6 +39,7 @@ import ActionUpdateForm from "@/components/actions/ActionUpdateForm";
 import dynamic from "next/dynamic";
 
 const RichTextEditor = dynamic(() => import("@/components/common/RichTextEditor"), { ssr: false });
+import { usePageTitle } from "@/lib/usePageTitle";
 
 const STATUS_CONFIG: Record<ActionStatus, { label: string; color: string; bgColor: string; icon: typeof Circle }> = {
   OPEN: { label: "Open", color: "text-blue-600", bgColor: "bg-blue-100 text-blue-700", icon: Circle },
@@ -419,7 +420,7 @@ function ActionsPageContent() {
       </div>
 
       {/* Priority cards */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {priorityCards.map((p) => (
           <button
             key={p.filterKey}
@@ -1067,6 +1068,7 @@ function ActionsPageContent() {
 }
 
 export default function ActionsPage() {
+  usePageTitle("Actions");
   return (
     <Suspense>
       <ActionsPageContent />

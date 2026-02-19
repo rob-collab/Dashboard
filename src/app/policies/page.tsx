@@ -21,12 +21,14 @@ import PolicyFormDialog from "@/components/policies/PolicyFormDialog";
 import PolicyDetailPanel from "@/components/policies/PolicyDetailPanel";
 import CSVImportPanel from "@/components/policies/CSVImportPanel";
 import PolicyComplianceCharts from "@/components/policies/PolicyComplianceCharts";
+import { usePageTitle } from "@/lib/usePageTitle";
 
 type TabKey = "all" | "CURRENT" | "OVERDUE" | "UNDER_REVIEW" | "ARCHIVED";
 
 type SortKey = "reference" | "name" | "owner" | "status" | "nextReviewDate";
 
 export default function PoliciesPage() {
+  usePageTitle("Policies");
   const hydrated = useAppStore((s) => s._hydrated);
   const currentUser = useAppStore((s) => s.currentUser);
   const policies = useAppStore((s) => s.policies);

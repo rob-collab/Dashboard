@@ -135,7 +135,13 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <title>Updraft CCRO Dashboard</title>
-        <meta name="description" content="CCRO Report Management System" />
+        <meta name="description" content="Chief Compliance & Risk Officer Dashboard — governance, risk and controls management" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta property="og:title" content="Updraft CCRO Dashboard" />
+        <meta property="og:description" content="Chief Compliance & Risk Officer Dashboard" />
+        <meta property="og:type" content="website" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#311B92" />
       </head>
       <body className="font-inter antialiased bg-bg-light text-text-primary">
         <SessionProvider>

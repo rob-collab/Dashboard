@@ -111,8 +111,8 @@ export default function ActionFormDialog({
     const newErrors: Record<string, string> = {};
     if (!title.trim()) newErrors.title = "Title is required";
     if (!assignedTo) newErrors.assignedTo = "Owner is required";
-    const cleanedDesc = description === "<p></p>" ? "" : description;
-    if (!cleanedDesc.trim()) newErrors.description = "Description is required";
+    const cleanedDesc = description.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
+    if (!cleanedDesc) newErrors.description = "Description is required";
     if (!dueDate) newErrors.dueDate = "Due date is required";
     if (!priority) newErrors.priority = "Priority is required";
     setErrors(newErrors);
@@ -287,6 +287,7 @@ export default function ActionFormDialog({
               id="action-due"
               type="date"
               value={dueDate}
+              min={new Date().toISOString().split("T")[0]}
               onChange={(e) => setDueDate(e.target.value)}
               className={inputClasses}
             />
