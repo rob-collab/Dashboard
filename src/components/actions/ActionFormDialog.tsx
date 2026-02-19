@@ -6,6 +6,7 @@ import Modal from "@/components/common/Modal";
 import type { Action, ActionStatus, ActionPriority, Report, User } from "@/lib/types";
 import { generateId, cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
+import { useHasPermission } from "@/lib/usePermission";
 
 const RichTextEditor = dynamic(() => import("@/components/common/RichTextEditor"), { ssr: false });
 
@@ -50,6 +51,7 @@ export default function ActionFormDialog({
 }: ActionFormDialogProps) {
   const isEdit = Boolean(action);
   const priorityDefinitions = useAppStore((s) => s.priorityDefinitions);
+  const canBypassApproval = useHasPermission("can:bypass-approval");
 
   // Build priority options from DB definitions, fallback to hardcoded
   const PRIORITY_OPTIONS: { value: ActionPriority; label: string }[] =
@@ -143,6 +145,7 @@ export default function ActionFormDialog({
       description: cleanDesc,
       issueDescription: cleanIssue || null,
       status,
+      approvalStatus: action?.approvalStatus ?? "APPROVED",
       priority: priority || null,
       assignedTo,
       createdBy: action?.createdBy ?? currentUserId,
@@ -179,9 +182,11 @@ export default function ActionFormDialog({
           <button
             type="submit"
             form="action-form"
-            className="rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colors"
+            className={`rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors ${
+              !isEdit && !canBypassApproval ? "bg-amber-600 hover:bg-amber-700" : "bg-updraft-bright-purple hover:bg-updraft-deep"
+            }`}
           >
-            {isEdit ? "Save Changes" : "Create Action"}
+            {isEdit ? "Save Changes" : !canBypassApproval ? "Submit for Approval" : "Create Action"}
           </button>
         </>
       }

@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody, validateQuery, auditLog } from "@/lib/api-helpers";
+import { prisma, jsonResponse, errorResponse, validateBody, validateQuery, auditLog, checkPermission } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const querySchema = z.object({
@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
           include: { proposer: true, reviewer: true },
           orderBy: { proposedAt: "desc" },
         },
+        riskLinks: { include: { risk: { select: { id: true, reference: true, name: true, residualLikelihood: true, residualImpact: true } } } },
       },
       orderBy: { controlRef: "asc" },
     });
@@ -63,12 +64,17 @@ const createSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireCCRORole(request);
-    if ("error" in auth) return auth.error;
+    const permCheck = await checkPermission(request, "create:control");
+    if (!permCheck.granted) return permCheck.error;
+    const userId = permCheck.userId;
 
     const body = await request.json();
     const result = validateBody(createSchema, body);
     if ("error" in result) return result.error;
+
+    // Check bypass-approval permission
+    const bypassCheck = await checkPermission(request, "can:bypass-approval");
+    const approvalStatus = bypassCheck.granted ? "APPROVED" : "PENDING_APPROVAL";
 
     // Generate next CTRL-NNN reference
     const lastControl = await prisma.control.findFirst({ orderBy: { controlRef: "desc" } });
@@ -91,7 +97,8 @@ export async function POST(request: NextRequest) {
         internalOrThirdParty: result.data.internalOrThirdParty ?? "INTERNAL",
         controlType: result.data.controlType ?? null,
         standingComments: result.data.standingComments ?? null,
-        createdById: auth.userId,
+        approvalStatus: approvalStatus as never,
+        createdById: userId,
       },
       include: {
         businessArea: true,
@@ -99,7 +106,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    auditLog({ userId: auth.userId, action: "create_control", entityType: "control", entityId: control.id, changes: { controlRef, controlName: result.data.controlName } });
+    auditLog({ userId, action: "create_control", entityType: "control", entityId: control.id, changes: { controlRef, controlName: result.data.controlName } });
     return jsonResponse(serialiseDates(control), 201);
   } catch (err) {
     console.error("[POST /api/controls/library]", err);

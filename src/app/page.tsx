@@ -20,6 +20,7 @@ import {
   FlaskConical,
   Loader2,
   Info,
+  Star,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAppStore } from "@/lib/store";
@@ -28,6 +29,7 @@ import { formatDate, ragBgColor } from "@/lib/utils";
 import { getActionLabel } from "@/lib/audit";
 import { getRiskScore } from "@/lib/risk-categories";
 import type { ActionPriority, ActionChange, ControlChange, RiskChange } from "@/lib/types";
+import { useHasPermission } from "@/lib/usePermission";
 import ScoreBadge from "@/components/risk-register/ScoreBadge";
 import DirectionArrow from "@/components/risk-register/DirectionArrow";
 import { usePageTitle } from "@/lib/usePageTitle";
@@ -291,24 +293,32 @@ export default function DashboardHome() {
   const updateAction = useAppStore((s) => s.updateAction);
   const updateControl = useAppStore((s) => s.updateControl);
   const updateRisk = useAppStore((s) => s.updateRisk);
+  const approveEntity = useAppStore((s) => s.approveEntity);
+  const rejectEntity = useAppStore((s) => s.rejectEntity);
   const notifications = useAppStore((s) => s.notifications);
+  const canApproveEntities = useHasPermission("can:approve-entities");
+  const canViewPending = useHasPermission("can:view-pending");
+  const hasActionsPage = useHasPermission("page:actions");
+  const hasConsumerDutyPage = useHasPermission("page:consumer-duty");
+  const hasReportsPage = useHasPermission("page:reports");
+  const hasAuditPage = useHasPermission("page:audit");
+  const hasRiskRegisterPage = useHasPermission("page:risk-register");
 
   const role = currentUser?.role;
   const isCCRO = role === "CCRO_TEAM";
-  const isOwner = role === "OWNER";
 
   // (Stats computed inline where needed per role)
 
-  // Priority action stats — filtered by role
+  // Priority action stats — CCRO/admin sees all, others see own
   const priorityStats = useMemo(() => {
-    const pool = (isCCRO ? actions : isOwner ? actions.filter((a) => a.assignedTo === currentUser?.id) : actions)
+    const pool = (canViewPending ? actions : actions.filter((a) => a.assignedTo === currentUser?.id))
       .filter((a) => a.status !== "COMPLETED");
     return {
       P1: pool.filter((a) => a.priority === "P1"),
       P2: pool.filter((a) => a.priority === "P2"),
       P3: pool.filter((a) => a.priority === "P3"),
     };
-  }, [actions, isCCRO, isOwner, currentUser?.id]);
+  }, [actions, canViewPending, currentUser?.id]);
 
   const actionStats = useMemo(() => {
     const open = actions.filter((a) => a.status === "OPEN" || a.status === "IN_PROGRESS").length;
@@ -440,6 +450,31 @@ export default function DashboardHome() {
     );
   }, [outcomes]);
 
+  // Risks in Focus — visible to all roles
+  const focusRisks = useMemo(() => risks.filter((r) => r.inFocus), [risks]);
+
+  // Pending new entities — for users with can:approve-entities
+  const pendingNewEntities = useMemo(() => {
+    if (!canApproveEntities) return [];
+    const items: { type: "risk" | "action" | "control"; id: string; reference: string; name: string; createdBy: string; createdAt: string }[] = [];
+    for (const r of risks) {
+      if (r.approvalStatus === "PENDING_APPROVAL") {
+        items.push({ type: "risk", id: r.id, reference: r.reference, name: r.name, createdBy: r.createdBy ?? r.ownerId, createdAt: r.createdAt });
+      }
+    }
+    for (const a of actions) {
+      if (a.approvalStatus === "PENDING_APPROVAL") {
+        items.push({ type: "action", id: a.id, reference: a.reference, name: a.title, createdBy: a.createdBy, createdAt: a.createdAt });
+      }
+    }
+    for (const c of controls) {
+      if (c.approvalStatus === "PENDING_APPROVAL") {
+        items.push({ type: "control", id: c.id, reference: c.controlRef, name: c.controlName, createdBy: c.controlOwnerId, createdAt: c.createdAt ?? "" });
+      }
+    }
+    return items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [risks, actions, controls, canApproveEntities]);
+
   // Published reports for non-CCRO users
   const publishedReports = useMemo(() => reports.filter((r) => r.status === "PUBLISHED"), [reports]);
 
@@ -519,10 +554,10 @@ export default function DashboardHome() {
               Updraft CCRO Report Management Dashboard
             </p>
 
-            {/* Notification pills — role-specific */}
-            {isCCRO && (myOverdueActions.length > 0 || myDueThisMonthActions.length > 0 || risksNeedingReview.length > 0 || allPendingChanges.length > 0 || overdueMetrics.length > 0) && (
+            {/* Notification pills — unified, permission-based */}
+            {(myOverdueActions.length > 0 || myDueThisMonthActions.length > 0 || (canViewPending && (risksNeedingReview.length > 0 || allPendingChanges.length > 0)) || myRisksNeedingReview.length > 0 || (hasConsumerDutyPage && overdueMetrics.length > 0)) && (
               <div className="mt-3 flex flex-wrap gap-2">
-                {overdueMetrics.length > 0 && (
+                {hasConsumerDutyPage && overdueMetrics.length > 0 && (
                   <Link href="/consumer-duty?rag=ATTENTION" className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 transition-colors">
                     <BarChart3 className="h-3 w-3 text-red-300" />
                     {overdueMetrics.length} overdue metric{overdueMetrics.length > 1 ? "s" : ""}
@@ -540,13 +575,19 @@ export default function DashboardHome() {
                     {myDueThisMonthActions.length} due this month
                   </Link>
                 )}
-                {risksNeedingReview.length > 0 && (
+                {canViewPending && risksNeedingReview.length > 0 && (
                   <Link href="/risk-register" className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 transition-colors">
                     <ShieldAlert className="h-3 w-3 text-updraft-pale-purple" />
                     {risksNeedingReview.length} risk{risksNeedingReview.length > 1 ? "s" : ""} due for review
                   </Link>
                 )}
-                {allPendingChanges.length > 0 && (
+                {!canViewPending && myRisksNeedingReview.length > 0 && (
+                  <Link href="/risk-register" className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 transition-colors">
+                    <ShieldAlert className="h-3 w-3 text-updraft-pale-purple" />
+                    {myRisksNeedingReview.length} risk{myRisksNeedingReview.length > 1 ? "s" : ""} due for review
+                  </Link>
+                )}
+                {canViewPending && allPendingChanges.length > 0 && (
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-1 text-xs font-semibold text-white">
                     <Bell className="h-3 w-3 text-blue-300" />
                     {allPendingChanges.length} pending approval{allPendingChanges.length > 1 ? "s" : ""}
@@ -554,31 +595,6 @@ export default function DashboardHome() {
                 )}
               </div>
             )}
-
-            {isOwner && (myOverdueActions.length > 0 || myDueThisMonthActions.length > 0 || myRisksNeedingReview.length > 0) && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {myOverdueActions.length > 0 && (
-                  <Link href="/actions?status=OVERDUE" className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 transition-colors">
-                    <AlertTriangle className="h-3 w-3 text-red-300" />
-                    {myOverdueActions.length} overdue action{myOverdueActions.length > 1 ? "s" : ""}
-                  </Link>
-                )}
-                {myDueThisMonthActions.length > 0 && (
-                  <Link href="/actions" className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 transition-colors">
-                    <Clock className="h-3 w-3 text-amber-300" />
-                    {myDueThisMonthActions.length} due this month
-                  </Link>
-                )}
-                {myRisksNeedingReview.length > 0 && (
-                  <Link href="/risk-register" className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 transition-colors">
-                    <ShieldAlert className="h-3 w-3 text-updraft-pale-purple" />
-                    {myRisksNeedingReview.length} risk{myRisksNeedingReview.length > 1 ? "s" : ""} due for review
-                  </Link>
-                )}
-              </div>
-            )}
-
-            {/* VIEWER: no notification pills */}
 
             {/* Action buttons — only CCRO gets New Report */}
             <div className="mt-4 flex gap-3">
@@ -765,187 +781,476 @@ export default function DashboardHome() {
         </div>
       )}
 
-      {/* ═══════════════ CCRO_TEAM Dashboard ═══════════════ */}
-      {isCCRO && (
-        <>
-          {/* Proposed Changes — Full Detail Panel */}
-          {allPendingChanges.length > 0 && (
-            <PendingChangesPanel
-              changes={allPendingChanges}
-              users={users}
-              updateAction={updateAction}
-              updateControl={updateControl}
-              updateRisk={(id, data) => updateRisk(id, data as Partial<import("@/lib/types").Risk>)}
-            />
-          )}
-
-          {/* Action Tracking stats */}
-          <div className="card-entrance card-entrance-6">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-bold text-updraft-deep font-poppins">Action Tracking</h2>
-              <Link href="/actions" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-                View All <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
+      {/* ── Risks in Focus (ALL roles) ── */}
+      {focusRisks.length > 0 && (
+        <div className="bento-card border-2 border-amber-200/60">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Star className="h-5 w-5 text-amber-400 fill-amber-400" />
+              <h2 className="text-lg font-bold text-updraft-deep font-poppins">Risks in Focus</h2>
+              <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-bold">{focusRisks.length}</span>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <Link href="/actions?status=OPEN" className="rounded-xl border border-blue-100 p-3 cursor-pointer hover:border-blue-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #EFF6FF 0%, #F0F7FF 100%)" }}>
-                <p className="text-xs text-text-secondary">Open</p>
-                <p className="text-2xl font-bold font-poppins text-blue-700">{actionStats.open}</p>
-              </Link>
-              <Link href="/actions?status=OVERDUE" className="rounded-xl border border-red-100 p-3 cursor-pointer hover:border-red-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #FEF2F2 0%, #FFF5F5 100%)" }}>
-                <p className="text-xs text-text-secondary">Overdue</p>
-                <p className="text-2xl font-bold font-poppins text-red-700">{actionStats.overdue}</p>
-              </Link>
-              <Link href="/actions" className="rounded-xl border border-amber-100 p-3 cursor-pointer hover:border-amber-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEFCE8 100%)" }}>
-                <p className="text-xs text-text-secondary">Due This Month</p>
-                <p className="text-2xl font-bold font-poppins text-amber-700">{actionStats.dueThisMonth}</p>
-              </Link>
-              <Link href="/actions?status=COMPLETED" className="rounded-xl border border-blue-100 p-3 cursor-pointer hover:border-blue-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #EFF6FF 0%, #F0F7FF 100%)" }}>
-                <p className="text-xs text-text-secondary">Completed</p>
-                <p className="text-2xl font-bold font-poppins text-blue-700">{actionStats.completed}</p>
-              </Link>
+            <Link href="/risk-register" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
+              Risk Register <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {focusRisks.map((r) => {
+              const ownerName = r.riskOwner?.name ?? users.find((u) => u.id === r.ownerId)?.name ?? "Unknown";
+              return (
+                <Link
+                  key={r.id}
+                  href={`/risk-register?risk=${r.id}`}
+                  className="flex items-center gap-4 p-3 rounded-lg bg-amber-50/40 hover:bg-amber-50 transition-colors"
+                >
+                  <Star className="w-4 h-4 text-amber-400 fill-amber-400 shrink-0" />
+                  <span className="text-xs font-mono font-bold text-updraft-deep shrink-0">{r.reference}</span>
+                  <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{r.name}</span>
+                  <ScoreBadge likelihood={r.residualLikelihood} impact={r.residualImpact} size="sm" />
+                  <DirectionArrow direction={r.directionOfTravel} />
+                  <span className="text-xs text-gray-500 shrink-0">{ownerName}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Pending New Entities (can:approve-entities) ── */}
+      {canApproveEntities && pendingNewEntities.length > 0 && (
+        <div className="bento-card border-2 border-amber-200">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-amber-500" />
+              <h2 className="text-lg font-bold text-updraft-deep font-poppins">Pending Approvals</h2>
+              <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-bold">{pendingNewEntities.length}</span>
             </div>
           </div>
+          <div className="space-y-2">
+            {pendingNewEntities.map((item) => {
+              const creatorName = users.find((u) => u.id === item.createdBy)?.name ?? "Unknown";
+              const href = item.type === "risk" ? `/risk-register?risk=${item.id}` : item.type === "action" ? `/actions?edit=${item.id}` : `/controls?control=${item.id}`;
+              return (
+                <div key={`${item.type}-${item.id}`} className="flex items-center gap-3 p-3 rounded-lg bg-amber-50/40 border border-amber-100">
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                    item.type === "risk" ? "bg-red-100 text-red-700" :
+                    item.type === "action" ? "bg-blue-100 text-blue-700" :
+                    "bg-purple-100 text-purple-700"
+                  }`}>
+                    {item.type === "risk" ? "Risk" : item.type === "action" ? "Action" : "Control"}
+                  </span>
+                  <span className="text-xs font-mono font-bold text-updraft-deep shrink-0">{item.reference}</span>
+                  <Link href={href} className="text-sm text-gray-800 truncate flex-1 min-w-0 hover:text-updraft-bright-purple transition-colors">
+                    {item.name}
+                  </Link>
+                  <span className="text-xs text-gray-500 shrink-0">{creatorName}</span>
+                  <span className="text-xs text-gray-400 shrink-0">{formatDate(item.createdAt)}</span>
+                  <button
+                    onClick={() => rejectEntity(item.type, item.id)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-semibold text-red-700 hover:bg-red-100 transition-colors shrink-0"
+                  >
+                    <XCircle className="h-3 w-3" />
+                    Reject
+                  </button>
+                  <button
+                    onClick={() => approveEntity(item.type, item.id)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-green-200 bg-green-50 px-2 py-1 text-[10px] font-semibold text-green-700 hover:bg-green-100 transition-colors shrink-0"
+                  >
+                    <CheckCircle2 className="h-3 w-3" />
+                    Approve
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
-          {/* Consumer Duty Overview */}
-          <div className="bento-card">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-updraft-deep">Consumer Duty Overview</h2>
-              <Link href="/consumer-duty" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-                View Dashboard <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
+      {/* ═══════════════ Unified Permission-Based Sections ═══════════════ */}
+
+      {/* Proposed Changes — for users who can approve */}
+      {canViewPending && allPendingChanges.length > 0 && (
+        <PendingChangesPanel
+          changes={allPendingChanges}
+          users={users}
+          updateAction={updateAction}
+          updateControl={updateControl}
+          updateRisk={(id, data) => updateRisk(id, data as Partial<import("@/lib/types").Risk>)}
+        />
+      )}
+
+      {/* ── Action Tracking (page:actions) ── */}
+      {hasActionsPage && (
+        <div className="card-entrance card-entrance-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold text-updraft-deep font-poppins">Action Tracking</h2>
+            <Link href="/actions" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
+              View All <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Link href="/actions?status=OPEN" className="rounded-xl border border-blue-100 p-3 cursor-pointer hover:border-blue-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #EFF6FF 0%, #F0F7FF 100%)" }}>
+              <p className="text-xs text-text-secondary">Open</p>
+              <p className="text-2xl font-bold font-poppins text-blue-700">{actionStats.open}</p>
+            </Link>
+            <Link href="/actions?status=OVERDUE" className="rounded-xl border border-red-100 p-3 cursor-pointer hover:border-red-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #FEF2F2 0%, #FFF5F5 100%)" }}>
+              <p className="text-xs text-text-secondary">Overdue</p>
+              <p className="text-2xl font-bold font-poppins text-red-700">{actionStats.overdue}</p>
+            </Link>
+            <Link href="/actions" className="rounded-xl border border-amber-100 p-3 cursor-pointer hover:border-amber-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEFCE8 100%)" }}>
+              <p className="text-xs text-text-secondary">Due This Month</p>
+              <p className="text-2xl font-bold font-poppins text-amber-700">{actionStats.dueThisMonth}</p>
+            </Link>
+            <Link href="/actions?status=COMPLETED" className="rounded-xl border border-blue-100 p-3 cursor-pointer hover:border-blue-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #EFF6FF 0%, #F0F7FF 100%)" }}>
+              <p className="text-xs text-text-secondary">Completed</p>
+              <p className="text-2xl font-bold font-poppins text-blue-700">{actionStats.completed}</p>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* ── Overdue Metrics Alert (page:consumer-duty) ── */}
+      {hasConsumerDutyPage && overdueMetrics.length > 0 && (
+        <div className="bento-card border-2 border-red-200 bg-red-50/30">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              <h2 className="text-lg font-bold text-red-700 font-poppins">Overdue Metrics</h2>
+              <span className="rounded-full bg-red-100 text-red-700 px-2 py-0.5 text-xs font-bold">{overdueMetrics.length}</span>
             </div>
-            <div className="space-y-3">
-              {outcomes.map((outcome) => (
-                <Link key={outcome.id} href={`/consumer-duty?outcome=${outcome.id}`} className="block rounded-xl bg-surface-muted p-3 hover:bg-surface-warm hover:-translate-y-0.5 transition-all cursor-pointer border border-transparent hover:border-[#E8E6E1]">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`h-3 w-3 rounded-full ${ragBgColor(outcome.ragStatus)}`} />
-                      <div>
-                        <p className="text-sm font-medium">{outcome.name}</p>
-                        <p className="text-xs text-fca-gray">{outcome.shortDesc}</p>
-                      </div>
-                    </div>
+            <Link href="/consumer-duty" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
+              View All <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          <p className="text-xs text-red-600/70 mb-3">These metrics have not been updated in over 30 days and require attention.</p>
+          <div className="space-y-2">
+            {overdueMetrics.slice(0, 8).map((m) => (
+              <Link
+                key={m.id}
+                href={`/consumer-duty?measure=${m.id}`}
+                className="flex items-center justify-between p-2.5 rounded-lg bg-white/80 hover:bg-white transition-colors"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-gray-800 truncate">{m.measureId} — {m.name}</p>
+                  <p className="text-[10px] text-gray-400">
+                    {m.lastUpdatedAt
+                      ? `Last updated ${Math.floor((Date.now() - new Date(m.lastUpdatedAt).getTime()) / 86400000)}d ago`
+                      : "Never updated"}
+                  </p>
+                </div>
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700 shrink-0 ml-2">
+                  <AlertTriangle className="h-2.5 w-2.5" />
+                  Overdue
+                </span>
+              </Link>
+            ))}
+            {overdueMetrics.length > 8 && (
+              <p className="text-[10px] text-red-500 text-center">+{overdueMetrics.length - 8} more overdue metrics</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Tasks & Reviews (can:view-pending shows all reviews, otherwise own) ── */}
+      {((canViewPending && risksNeedingReview.length > 0) || (!canViewPending && myRisksNeedingReview.length > 0) || myOverdueActions.length > 0) && (
+        <div>
+          <h2 className="text-lg font-bold text-updraft-deep font-poppins mb-3">Tasks & Reviews</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="bento-card">
+              <div className="flex items-center gap-2 mb-3">
+                <ShieldAlert className="h-4 w-4 text-updraft-bright-purple" />
+                <h3 className="text-sm font-semibold text-gray-700">Risks Due for Review</h3>
+              </div>
+              {(() => {
+                const reviewList = canViewPending ? risksNeedingReview : myRisksNeedingReview;
+                return reviewList.length === 0 ? (
+                  <p className="text-xs text-gray-400">No reviews due</p>
+                ) : (
+                  <div className="space-y-2">
+                    {reviewList.slice(0, 5).map((r) => {
+                      const nextReview = new Date(r.lastReviewed);
+                      nextReview.setDate(nextReview.getDate() + (r.reviewFrequencyDays ?? 90));
+                      const daysUntil = Math.ceil((nextReview.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                      return (
+                        <Link key={r.id} href={`/risk-register?risk=${r.id}`} className="flex items-center justify-between p-2 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-gray-800 truncate">{r.reference}: {r.name}</p>
+                            <p className="text-[10px] text-gray-400">Owner: {r.riskOwner?.name ?? users.find(u => u.id === r.ownerId)?.name ?? "Unknown"}</p>
+                          </div>
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ml-2 ${
+                            r.reviewRequested ? "bg-updraft-pale-purple/50 text-updraft-deep" :
+                            daysUntil <= 0 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
+                          }`}>
+                            {r.reviewRequested ? "Requested" : daysUntil <= 0 ? "Overdue" : `${daysUntil}d`}
+                          </span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div className="bento-card">
+              <div className="flex items-center gap-2 mb-3">
+                <ListChecks className="h-4 w-4 text-red-500" />
+                <h3 className="text-sm font-semibold text-gray-700">My Overdue Actions</h3>
+              </div>
+              {myOverdueActions.length === 0 ? (
+                <p className="text-xs text-gray-400">No overdue actions</p>
+              ) : (
+                <div className="space-y-2">
+                  {myOverdueActions.slice(0, 5).map((a) => (
+                    <Link key={a.id} href={`/actions?edit=${a.id}`} className="flex items-center justify-between p-2 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
+                      <p className="text-xs font-medium text-gray-800 truncate flex-1 min-w-0">{a.title}</p>
+                      <span className="text-[10px] font-semibold text-red-600 shrink-0 ml-2">
+                        {a.dueDate ? `${Math.abs(daysUntilDue(a.dueDate) ?? 0)}d overdue` : "Overdue"}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── My Risks (shown when user owns risks) ── */}
+      {myRisks.length > 0 && (
+        <div className="bento-card">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-updraft-bright-purple" />
+              <h2 className="text-lg font-bold text-updraft-deep font-poppins">My Risks</h2>
+              <span className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5 text-xs font-bold">{myRisks.length}</span>
+            </div>
+            <Link href="/risk-register" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
+              Risk Register <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {myRisks.map((r) => {
+              const nextReview = new Date(r.lastReviewed);
+              nextReview.setDate(nextReview.getDate() + (r.reviewFrequencyDays ?? 90));
+              return (
+                <Link key={r.id} href={`/risk-register?risk=${r.id}`} className="flex items-center gap-4 p-3 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
+                  <span className="text-xs font-mono font-bold text-updraft-deep shrink-0">{r.reference}</span>
+                  <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{r.name}</span>
+                  <ScoreBadge likelihood={r.residualLikelihood} impact={r.residualImpact} size="sm" />
+                  <DirectionArrow direction={r.directionOfTravel} />
+                  <span className="text-[10px] text-gray-400 shrink-0">{nextReview.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── My Due Actions (shown when user has assigned actions) ── */}
+      {myActions.length > 0 && (
+        <div className="bento-card">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <ListChecks className="h-5 w-5 text-updraft-bright-purple" />
+              <h2 className="text-lg font-bold text-updraft-deep font-poppins">My Due Actions</h2>
+              <span className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5 text-xs font-bold">{myActions.length}</span>
+            </div>
+            <Link href="/actions" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
+              All Actions <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {myActions.slice(0, 8).map((a) => {
+              const days = daysUntilDue(a.dueDate);
+              const isOverdue = days !== null && days <= 0;
+              return (
+                <Link key={a.id} href={`/actions?edit=${a.id}`} className="flex items-center gap-3 p-3 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
+                  {a.priority && (
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                      a.priority === "P1" ? "bg-red-100 text-red-700" :
+                      a.priority === "P2" ? "bg-amber-100 text-amber-700" :
+                      "bg-slate-100 text-slate-600"
+                    }`}>{a.priority}</span>
+                  )}
+                  <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{a.title}</span>
+                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${
+                    a.status === "IN_PROGRESS" ? "bg-amber-100 text-amber-700" :
+                    a.status === "OVERDUE" || isOverdue ? "bg-red-100 text-red-700" :
+                    "bg-blue-100 text-blue-700"
+                  }`}>
+                    {a.status === "OVERDUE" || isOverdue ? "Overdue" : a.status === "IN_PROGRESS" ? "In Progress" : "Open"}
+                  </span>
+                  <span className={`text-xs shrink-0 ${isOverdue ? "text-red-600 font-semibold" : "text-gray-500"}`}>
+                    {a.dueDate ? new Date(a.dueDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "No date"}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── My Metrics (shown when user has assigned measures) ── */}
+      {myMetrics.length > 0 && (
+        <div className="bento-card">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-updraft-bright-purple" />
+              <h2 className="text-lg font-bold text-updraft-deep font-poppins">My Metrics</h2>
+              <span className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5 text-xs font-bold">{myMetrics.length}</span>
+            </div>
+            <Link href="/consumer-duty" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
+              Consumer Duty <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {myMetrics.map((m) => {
+              const isOverdue = !m.lastUpdatedAt || new Date(m.lastUpdatedAt) < new Date(Date.now() - 30 * 86400000);
+              return (
+                <Link
+                  key={m.id}
+                  href={`/consumer-duty?measure=${m.id}`}
+                  className="flex items-center justify-between p-3 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors cursor-pointer"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-gray-800 truncate">{m.name}</p>
+                    <p className="text-xs text-gray-500">{m.measureId}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    {isOverdue && (
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">
+                        <AlertTriangle className="h-2.5 w-2.5" />
+                        Overdue
+                      </span>
+                    )}
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                      outcome.ragStatus === "GOOD" ? "bg-green-100 text-risk-green" :
-                      outcome.ragStatus === "WARNING" ? "bg-amber-100 text-risk-amber" :
+                      m.ragStatus === "GOOD" ? "bg-green-100 text-risk-green" :
+                      m.ragStatus === "WARNING" ? "bg-amber-100 text-risk-amber" :
                       "bg-red-100 text-risk-red"
                     }`}>
-                      {outcome.ragStatus === "GOOD" ? "Green" : outcome.ragStatus === "WARNING" ? "Amber" : "Red"}
+                      {m.ragStatus === "GOOD" ? "Green" : m.ragStatus === "WARNING" ? "Amber" : "Red"}
                     </span>
+                    <ArrowRight className="h-3.5 w-3.5 text-gray-400" />
                   </div>
-                  {/* Inline measures with RAG colours */}
-                  {(outcome.measures ?? []).length > 0 && (
-                    <div className="mt-2 ml-6 space-y-1">
-                      {(outcome.measures ?? []).map((m) => (
-                        <Link
-                          key={m.id}
-                          href={`/consumer-duty?measure=${m.id}`}
-                          className="flex items-center gap-2 text-xs py-1 px-2 rounded hover:bg-white/60 transition-colors"
-                        >
-                          <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${ragBgColor(m.ragStatus)}`} />
-                          <span className="text-gray-600 truncate flex-1 min-w-0">{m.measureId} — {m.name}</span>
-                          <span className={`font-semibold shrink-0 ${
-                            m.ragStatus === "GOOD" ? "text-risk-green" :
-                            m.ragStatus === "WARNING" ? "text-risk-amber" :
-                            "text-risk-red"
-                          }`}>
-                            {m.ragStatus === "GOOD" ? "Green" : m.ragStatus === "WARNING" ? "Amber" : "Red"}
-                          </span>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
                 </Link>
-              ))}
-            </div>
+              );
+            })}
           </div>
+        </div>
+      )}
 
-          {/* Tasks & Reviews */}
-          {(risksNeedingReview.length > 0 || myOverdueActions.length > 0) && (
-            <div>
-              <h2 className="text-lg font-bold text-updraft-deep font-poppins mb-3">Tasks & Reviews</h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="bento-card">
-                  <div className="flex items-center gap-2 mb-3">
-                    <ShieldAlert className="h-4 w-4 text-updraft-bright-purple" />
-                    <h3 className="text-sm font-semibold text-gray-700">Risks Due for Review</h3>
-                  </div>
-                  {risksNeedingReview.length === 0 ? (
-                    <p className="text-xs text-gray-400">No reviews due</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {risksNeedingReview.slice(0, 5).map((r) => {
-                        const nextReview = new Date(r.lastReviewed);
-                        nextReview.setDate(nextReview.getDate() + (r.reviewFrequencyDays ?? 90));
-                        const daysUntil = Math.ceil((nextReview.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-                        return (
-                          <Link key={r.id} href={`/risk-register?risk=${r.id}`} className="flex items-center justify-between p-2 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
-                            <div className="min-w-0">
-                              <p className="text-xs font-medium text-gray-800 truncate">{r.reference}: {r.name}</p>
-                              <p className="text-[10px] text-gray-400">Owner: {r.riskOwner?.name ?? users.find(u => u.id === r.ownerId)?.name ?? "Unknown"}</p>
-                            </div>
-                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ml-2 ${
-                              r.reviewRequested ? "bg-updraft-pale-purple/50 text-updraft-deep" :
-                              daysUntil <= 0 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
-                            }`}>
-                              {r.reviewRequested ? "Requested" : daysUntil <= 0 ? "Overdue" : `${daysUntil}d`}
-                            </span>
-                          </Link>
-                        );
-                      })}
+      {/* ── Consumer Duty Overview (page:consumer-duty) ── */}
+      {hasConsumerDutyPage && (
+        <div className="bento-card">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-updraft-deep">Consumer Duty Overview</h2>
+            <Link href="/consumer-duty" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
+              View Dashboard <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {outcomes.map((outcome) => (
+              <Link key={outcome.id} href={`/consumer-duty?outcome=${outcome.id}`} className="block rounded-xl bg-surface-muted p-3 hover:bg-surface-warm hover:-translate-y-0.5 transition-all cursor-pointer border border-transparent hover:border-[#E8E6E1]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`h-3 w-3 rounded-full ${ragBgColor(outcome.ragStatus)}`} />
+                    <div>
+                      <p className="text-sm font-medium">{outcome.name}</p>
+                      <p className="text-xs text-fca-gray">{outcome.shortDesc}</p>
                     </div>
-                  )}
-                </div>
-
-                <div className="bento-card">
-                  <div className="flex items-center gap-2 mb-3">
-                    <ListChecks className="h-4 w-4 text-red-500" />
-                    <h3 className="text-sm font-semibold text-gray-700">My Overdue Actions</h3>
                   </div>
-                  {myOverdueActions.length === 0 ? (
-                    <p className="text-xs text-gray-400">No overdue actions</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {myOverdueActions.slice(0, 5).map((a) => (
-                        <Link key={a.id} href={`/actions?edit=${a.id}`} className="flex items-center justify-between p-2 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
-                          <p className="text-xs font-medium text-gray-800 truncate flex-1 min-w-0">{a.title}</p>
-                          <span className="text-[10px] font-semibold text-red-600 shrink-0 ml-2">
-                            {a.dueDate ? `${Math.abs(daysUntilDue(a.dueDate) ?? 0)}d overdue` : "Overdue"}
-                          </span>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                    outcome.ragStatus === "GOOD" ? "bg-green-100 text-risk-green" :
+                    outcome.ragStatus === "WARNING" ? "bg-amber-100 text-risk-amber" :
+                    "bg-red-100 text-risk-red"
+                  }`}>
+                    {outcome.ragStatus === "GOOD" ? "Green" : outcome.ragStatus === "WARNING" ? "Amber" : "Red"}
+                  </span>
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* Reports Table — all reports */}
-          <div className="bento-card">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-updraft-deep">Reports</h2>
-              <Link href="/reports" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-                View All <ArrowRight className="h-3.5 w-3.5" />
+                {(outcome.measures ?? []).length > 0 && (
+                  <div className="mt-2 ml-6 space-y-1">
+                    {(outcome.measures ?? []).map((m) => (
+                      <Link
+                        key={m.id}
+                        href={`/consumer-duty?measure=${m.id}`}
+                        className="flex items-center gap-2 text-xs py-1 px-2 rounded hover:bg-white/60 transition-colors"
+                      >
+                        <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${ragBgColor(m.ragStatus)}`} />
+                        <span className="text-gray-600 truncate flex-1 min-w-0">{m.measureId} — {m.name}</span>
+                        <span className={`font-semibold shrink-0 ${
+                          m.ragStatus === "GOOD" ? "text-risk-green" :
+                          m.ragStatus === "WARNING" ? "text-risk-amber" :
+                          "text-risk-red"
+                        }`}>
+                          {m.ragStatus === "GOOD" ? "Green" : m.ragStatus === "WARNING" ? "Amber" : "Red"}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </Link>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-2 px-3 font-medium text-fca-gray">Report</th>
-                    <th className="text-left py-2 px-3 font-medium text-fca-gray">Period</th>
-                    <th className="text-left py-2 px-3 font-medium text-fca-gray">Status</th>
-                    <th className="text-left py-2 px-3 font-medium text-fca-gray">Updated</th>
-                    <th className="text-right py-2 px-3 font-medium text-fca-gray">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reports.map((report) => (
-                    <tr key={report.id} className="border-b border-[#E8E6E1]/50 hover:bg-surface-muted">
-                      <td className="py-3 px-3 font-medium">{report.title}</td>
-                      <td className="py-3 px-3 text-fca-gray">{report.period}</td>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Risk Summary (page:risk-register) ── */}
+      {hasRiskRegisterPage && (
+        <div className="card-entrance card-entrance-5">
+          <h2 className="text-lg font-bold text-updraft-deep font-poppins mb-3">Risk Summary</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Link href="/risk-register" className="rounded-xl border border-[#E8E6E1] bg-surface-warm p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all">
+              <p className="text-xs text-text-secondary">Total Risks</p>
+              <p className="text-2xl font-bold font-poppins text-updraft-deep">{risks.length}</p>
+            </Link>
+            <Link href="/risk-register" className="rounded-xl border border-green-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%)" }}>
+              <p className="text-xs text-text-secondary">Low Risk</p>
+              <p className="text-2xl font-bold font-poppins text-green-700">
+                {risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) <= 4).length}
+              </p>
+            </Link>
+            <Link href="/risk-register" className="rounded-xl border border-amber-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEFCE8 100%)" }}>
+              <p className="text-xs text-text-secondary">Medium Risk</p>
+              <p className="text-2xl font-bold font-poppins text-amber-700">
+                {risks.filter((r) => { const s = getRiskScore(r.residualLikelihood, r.residualImpact); return s > 4 && s <= 12; }).length}
+              </p>
+            </Link>
+            <Link href="/risk-register" className="rounded-xl border border-red-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #FEF2F2 0%, #FFF5F5 100%)" }}>
+              <p className="text-xs text-text-secondary">High Risk</p>
+              <p className="text-2xl font-bold font-poppins text-red-700">
+                {risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) > 12).length}
+              </p>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* ── Reports (page:reports) — CCRO sees all with edit, others see published ── */}
+      {hasReportsPage && (
+        <div className="bento-card">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-updraft-deep">{isCCRO ? "Reports" : "Published Reports"}</h2>
+            <Link href="/reports" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
+              View All <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-2 px-3 font-medium text-fca-gray">Report</th>
+                  <th className="text-left py-2 px-3 font-medium text-fca-gray">Period</th>
+                  {isCCRO && <th className="text-left py-2 px-3 font-medium text-fca-gray">Status</th>}
+                  <th className="text-left py-2 px-3 font-medium text-fca-gray">Updated</th>
+                  <th className="text-right py-2 px-3 font-medium text-fca-gray"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {(isCCRO ? reports : publishedReports).map((report) => (
+                  <tr key={report.id} className="border-b border-[#E8E6E1]/50 hover:bg-surface-muted">
+                    <td className="py-3 px-3 font-medium">{report.title}</td>
+                    <td className="py-3 px-3 text-fca-gray">{report.period}</td>
+                    {isCCRO && (
                       <td className="py-3 px-3">
                         <span className={`text-xs font-medium px-2 py-1 rounded-full ${
                           report.status === "DRAFT" ? "bg-red-100 text-red-700" :
@@ -955,501 +1260,50 @@ export default function DashboardHome() {
                           {report.status === "DRAFT" ? "Draft" : report.status === "PUBLISHED" ? "Published" : "Archived"}
                         </span>
                       </td>
-                      <td className="py-3 px-3 text-fca-gray text-xs">{formatDate(report.updatedAt)}</td>
-                      <td className="py-3 px-3 text-right">
-                        <Link href={`/reports/${report.id}/edit`} className="text-updraft-bright-purple hover:text-updraft-deep text-xs font-medium mr-3">Edit</Link>
-                        <Link href={`/reports/${report.id}`} className="text-fca-gray hover:text-fca-dark-gray text-xs font-medium">View</Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Recent Activity */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-bold text-updraft-deep font-poppins">Recent Activity</h2>
-              <Link href="/audit" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-                View All <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-            <div className="flex gap-3 overflow-x-auto pb-2">
-              {auditLogs.slice(0, 20).map((log) => {
-                const logUser = users.find((u) => u.id === log.userId);
-                return (
-                  <Link key={log.id} href="/audit" className="flex-shrink-0 w-64 rounded-xl border border-[#E8E6E1] bg-surface-warm p-3 hover:border-updraft-light-purple hover:-translate-y-0.5 hover:shadow-bento transition-all cursor-pointer">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-updraft-pale-purple/40 text-[10px] font-semibold text-updraft-bright-purple">
-                        {(logUser?.name ?? "?").charAt(0).toUpperCase()}
-                      </div>
-                      <span className="text-xs font-medium text-gray-800 truncate">{logUser?.name || log.userId}</span>
-                    </div>
-                    <p className="text-xs text-fca-gray truncate">{getActionLabel(log.action)}</p>
-                    <p className="text-[10px] text-gray-400 mt-1">{formatDate(log.timestamp)}</p>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* ═══════════════ OWNER Dashboard ═══════════════ */}
-      {isOwner && (
-        <>
-          {/* My Risks */}
-          <div className="bento-card">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-updraft-bright-purple" />
-                <h2 className="text-lg font-bold text-updraft-deep font-poppins">My Risks</h2>
-                <span className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5 text-xs font-bold">{myRisks.length}</span>
-              </div>
-              <Link href="/risk-register" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-                Risk Register <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-            {myRisks.length === 0 ? (
-              <p className="text-sm text-gray-400">No risks assigned to you</p>
-            ) : (
-              <div className="space-y-2">
-                {myRisks.map((r) => {
-                  const nextReview = new Date(r.lastReviewed);
-                  nextReview.setDate(nextReview.getDate() + (r.reviewFrequencyDays ?? 90));
-                  return (
-                    <Link key={r.id} href={`/risk-register?risk=${r.id}`} className="flex items-center gap-4 p-3 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
-                      <span className="text-xs font-mono font-bold text-updraft-deep shrink-0">{r.reference}</span>
-                      <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{r.name}</span>
-                      <ScoreBadge likelihood={r.residualLikelihood} impact={r.residualImpact} size="sm" />
-                      <DirectionArrow direction={r.directionOfTravel} />
-                      <span className="text-[10px] text-gray-400 shrink-0">{nextReview.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* My Due Actions */}
-          <div className="bento-card">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <ListChecks className="h-5 w-5 text-updraft-bright-purple" />
-                <h2 className="text-lg font-bold text-updraft-deep font-poppins">My Due Actions</h2>
-                <span className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5 text-xs font-bold">{myActions.length}</span>
-              </div>
-              <Link href="/actions" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-                All Actions <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-            {myActions.length === 0 ? (
-              <p className="text-sm text-gray-400">No active actions assigned to you</p>
-            ) : (
-              <div className="space-y-2">
-                {myActions.slice(0, 8).map((a) => {
-                  const days = daysUntilDue(a.dueDate);
-                  const isOverdue = days !== null && days <= 0;
-                  return (
-                    <Link key={a.id} href={`/actions?edit=${a.id}`} className="flex items-center gap-3 p-3 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
-                      {a.priority && (
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                          a.priority === "P1" ? "bg-red-100 text-red-700" :
-                          a.priority === "P2" ? "bg-amber-100 text-amber-700" :
-                          "bg-slate-100 text-slate-600"
-                        }`}>{a.priority}</span>
-                      )}
-                      <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{a.title}</span>
-                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${
-                        a.status === "IN_PROGRESS" ? "bg-amber-100 text-amber-700" :
-                        a.status === "OVERDUE" || isOverdue ? "bg-red-100 text-red-700" :
-                        "bg-blue-100 text-blue-700"
-                      }`}>
-                        {a.status === "OVERDUE" || isOverdue ? "Overdue" : a.status === "IN_PROGRESS" ? "In Progress" : "Open"}
-                      </span>
-                      <span className={`text-xs shrink-0 ${isOverdue ? "text-red-600 font-semibold" : "text-gray-500"}`}>
-                        {a.dueDate ? new Date(a.dueDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "No date"}
-                      </span>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* My Metrics */}
-          {myMetrics.length > 0 && (
-            <div className="bento-card">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-updraft-bright-purple" />
-                  <h2 className="text-lg font-bold text-updraft-deep font-poppins">My Metrics</h2>
-                  <span className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5 text-xs font-bold">{myMetrics.length}</span>
-                </div>
-                <Link href="/consumer-duty" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-                  Consumer Duty <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-              <div className="space-y-2">
-                {myMetrics.map((m) => {
-                  const isOverdue = !m.lastUpdatedAt || new Date(m.lastUpdatedAt) < new Date(Date.now() - 30 * 86400000);
-                  return (
-                    <Link
-                      key={m.id}
-                      href={`/consumer-duty?measure=${m.id}`}
-                      className="flex items-center justify-between p-3 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors cursor-pointer"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-gray-800 truncate">{m.name}</p>
-                        <p className="text-xs text-gray-500">{m.measureId}</p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0 ml-2">
-                        {isOverdue && (
-                          <span className="inline-flex items-center gap-0.5 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">
-                            <AlertTriangle className="h-2.5 w-2.5" />
-                            Overdue
-                          </span>
-                        )}
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                          m.ragStatus === "GOOD" ? "bg-green-100 text-risk-green" :
-                          m.ragStatus === "WARNING" ? "bg-amber-100 text-risk-amber" :
-                          "bg-red-100 text-risk-red"
-                        }`}>
-                          {m.ragStatus === "GOOD" ? "Green" : m.ragStatus === "WARNING" ? "Amber" : "Red"}
-                        </span>
-                        <ArrowRight className="h-3.5 w-3.5 text-gray-400" />
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Consumer Duty Overview */}
-          <div className="bento-card">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-updraft-deep">Consumer Duty Overview</h2>
-              <Link href="/consumer-duty" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-                View Dashboard <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-            <div className="space-y-3">
-              {outcomes.map((outcome) => (
-                <Link key={outcome.id} href={`/consumer-duty?outcome=${outcome.id}`} className="block rounded-xl bg-surface-muted p-3 hover:bg-surface-warm hover:-translate-y-0.5 transition-all cursor-pointer border border-transparent hover:border-[#E8E6E1]">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`h-3 w-3 rounded-full ${ragBgColor(outcome.ragStatus)}`} />
-                      <div>
-                        <p className="text-sm font-medium">{outcome.name}</p>
-                        <p className="text-xs text-fca-gray">{outcome.shortDesc}</p>
-                      </div>
-                    </div>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                      outcome.ragStatus === "GOOD" ? "bg-green-100 text-risk-green" :
-                      outcome.ragStatus === "WARNING" ? "bg-amber-100 text-risk-amber" :
-                      "bg-red-100 text-risk-red"
-                    }`}>
-                      {outcome.ragStatus === "GOOD" ? "Green" : outcome.ragStatus === "WARNING" ? "Amber" : "Red"}
-                    </span>
-                  </div>
-                  {(outcome.measures ?? []).length > 0 && (
-                    <div className="mt-2 ml-6 space-y-1">
-                      {(outcome.measures ?? []).map((m) => (
-                        <Link
-                          key={m.id}
-                          href={`/consumer-duty?measure=${m.id}`}
-                          className="flex items-center gap-2 text-xs py-1 px-2 rounded hover:bg-white/60 transition-colors"
-                        >
-                          <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${ragBgColor(m.ragStatus)}`} />
-                          <span className="text-gray-600 truncate flex-1 min-w-0">{m.measureId} — {m.name}</span>
-                          <span className={`font-semibold shrink-0 ${
-                            m.ragStatus === "GOOD" ? "text-risk-green" :
-                            m.ragStatus === "WARNING" ? "text-risk-amber" :
-                            "text-risk-red"
-                          }`}>
-                            {m.ragStatus === "GOOD" ? "Green" : m.ragStatus === "WARNING" ? "Amber" : "Red"}
-                          </span>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* Published Reports only */}
-          <div className="bento-card">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-updraft-deep">Published Reports</h2>
-              <Link href="/reports" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-                View All <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-2 px-3 font-medium text-fca-gray">Report</th>
-                    <th className="text-left py-2 px-3 font-medium text-fca-gray">Period</th>
-                    <th className="text-left py-2 px-3 font-medium text-fca-gray">Updated</th>
-                    <th className="text-right py-2 px-3 font-medium text-fca-gray"></th>
+                    )}
+                    <td className="py-3 px-3 text-fca-gray text-xs">{formatDate(report.updatedAt)}</td>
+                    <td className="py-3 px-3 text-right">
+                      {isCCRO && <Link href={`/reports/${report.id}/edit`} className="text-updraft-bright-purple hover:text-updraft-deep text-xs font-medium mr-3">Edit</Link>}
+                      <Link href={`/reports/${report.id}`} className="text-fca-gray hover:text-fca-dark-gray text-xs font-medium">View</Link>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {publishedReports.map((report) => (
-                    <tr key={report.id} className="border-b border-[#E8E6E1]/50 hover:bg-surface-muted">
-                      <td className="py-3 px-3 font-medium">{report.title}</td>
-                      <td className="py-3 px-3 text-fca-gray">{report.period}</td>
-                      <td className="py-3 px-3 text-fca-gray text-xs">{formatDate(report.updatedAt)}</td>
-                      <td className="py-3 px-3 text-right">
-                        <Link href={`/reports/${report.id}`} className="text-updraft-bright-purple hover:text-updraft-deep text-xs font-medium">View</Link>
-                      </td>
-                    </tr>
-                  ))}
-                  {publishedReports.length === 0 && (
-                    <tr><td colSpan={4} className="py-6 text-center text-sm text-gray-400">No published reports yet</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* ═══════════════ VIEWER Dashboard ═══════════════ */}
-      {!isCCRO && !isOwner && (
-        <>
-          {/* Overdue Metrics Alert */}
-          {overdueMetrics.length > 0 && (
-            <div className="bento-card border-2 border-red-200 bg-red-50/30">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-red-500" />
-                  <h2 className="text-lg font-bold text-red-700 font-poppins">Overdue Metrics</h2>
-                  <span className="rounded-full bg-red-100 text-red-700 px-2 py-0.5 text-xs font-bold">{overdueMetrics.length}</span>
-                </div>
-                <Link href="/consumer-duty" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-                  View All <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-              <p className="text-xs text-red-600/70 mb-3">These metrics have not been updated in over 30 days and require attention.</p>
-              <div className="space-y-2">
-                {overdueMetrics.slice(0, 8).map((m) => (
-                  <Link
-                    key={m.id}
-                    href={`/consumer-duty?measure=${m.id}`}
-                    className="flex items-center justify-between p-2.5 rounded-lg bg-white/80 hover:bg-white transition-colors"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-800 truncate">{m.measureId} — {m.name}</p>
-                      <p className="text-[10px] text-gray-400">
-                        {m.lastUpdatedAt
-                          ? `Last updated ${Math.floor((Date.now() - new Date(m.lastUpdatedAt).getTime()) / 86400000)}d ago`
-                          : "Never updated"}
-                      </p>
-                    </div>
-                    <span className="inline-flex items-center gap-0.5 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700 shrink-0 ml-2">
-                      <AlertTriangle className="h-2.5 w-2.5" />
-                      Overdue
-                    </span>
-                  </Link>
                 ))}
-                {overdueMetrics.length > 8 && (
-                  <p className="text-[10px] text-red-500 text-center">+{overdueMetrics.length - 8} more overdue metrics</p>
+                {(isCCRO ? reports : publishedReports).length === 0 && (
+                  <tr><td colSpan={isCCRO ? 5 : 4} className="py-6 text-center text-sm text-gray-400">No {isCCRO ? "" : "published "}reports yet</td></tr>
                 )}
-              </div>
-            </div>
-          )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
-          {/* My Risks (items VIEWER owns) */}
-          {myRisks.length > 0 && (
-            <div className="bento-card">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-updraft-bright-purple" />
-                  <h2 className="text-lg font-bold text-updraft-deep font-poppins">My Risks</h2>
-                  <span className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5 text-xs font-bold">{myRisks.length}</span>
-                </div>
-                <Link href="/risk-register" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-                  Risk Register <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-              <div className="space-y-2">
-                {myRisks.map((r) => (
-                  <Link key={r.id} href={`/risk-register?risk=${r.id}`} className="flex items-center gap-4 p-3 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
-                    <span className="text-xs font-mono font-bold text-updraft-deep shrink-0">{r.reference}</span>
-                    <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{r.name}</span>
-                    <ScoreBadge likelihood={r.residualLikelihood} impact={r.residualImpact} size="sm" />
-                    <DirectionArrow direction={r.directionOfTravel} />
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* My Actions (items VIEWER owns) */}
-          {myActions.length > 0 && (
-            <div className="bento-card">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <ListChecks className="h-5 w-5 text-updraft-bright-purple" />
-                  <h2 className="text-lg font-bold text-updraft-deep font-poppins">My Actions</h2>
-                  <span className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5 text-xs font-bold">{myActions.length}</span>
-                </div>
-                <Link href="/actions" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-                  All Actions <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-              <div className="space-y-2">
-                {myActions.slice(0, 5).map((a) => {
-                  const days = daysUntilDue(a.dueDate);
-                  const isOverdue = days !== null && days <= 0;
-                  return (
-                    <Link key={a.id} href={`/actions?edit=${a.id}`} className="flex items-center gap-3 p-3 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
-                      {a.priority && (
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                          a.priority === "P1" ? "bg-red-100 text-red-700" :
-                          a.priority === "P2" ? "bg-amber-100 text-amber-700" :
-                          "bg-slate-100 text-slate-600"
-                        }`}>{a.priority}</span>
-                      )}
-                      <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{a.title}</span>
-                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${
-                        a.status === "OVERDUE" || isOverdue ? "bg-red-100 text-red-700" :
-                        a.status === "IN_PROGRESS" ? "bg-amber-100 text-amber-700" :
-                        "bg-blue-100 text-blue-700"
-                      }`}>
-                        {a.status === "OVERDUE" || isOverdue ? "Overdue" : a.status === "IN_PROGRESS" ? "In Progress" : "Open"}
-                      </span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Consumer Duty Overview */}
-          <div className="bento-card">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-updraft-deep">Consumer Duty Overview</h2>
-              <Link href="/consumer-duty" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-                View Dashboard <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-            <div className="space-y-3">
-              {outcomes.map((outcome) => (
-                <Link key={outcome.id} href={`/consumer-duty?outcome=${outcome.id}`} className="block rounded-xl bg-surface-muted p-3 hover:bg-surface-warm hover:-translate-y-0.5 transition-all cursor-pointer border border-transparent hover:border-[#E8E6E1]">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`h-3 w-3 rounded-full ${ragBgColor(outcome.ragStatus)}`} />
-                      <div>
-                        <p className="text-sm font-medium">{outcome.name}</p>
-                        <p className="text-xs text-fca-gray">{outcome.shortDesc}</p>
-                      </div>
+      {/* ── Recent Activity (page:audit) ── */}
+      {hasAuditPage && auditLogs.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold text-updraft-deep font-poppins">Recent Activity</h2>
+            <Link href="/audit" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
+              View All <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {auditLogs.slice(0, 20).map((log) => {
+              const logUser = users.find((u) => u.id === log.userId);
+              return (
+                <Link key={log.id} href="/audit" className="flex-shrink-0 w-64 rounded-xl border border-[#E8E6E1] bg-surface-warm p-3 hover:border-updraft-light-purple hover:-translate-y-0.5 hover:shadow-bento transition-all cursor-pointer">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-updraft-pale-purple/40 text-[10px] font-semibold text-updraft-bright-purple">
+                      {(logUser?.name ?? "?").charAt(0).toUpperCase()}
                     </div>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                      outcome.ragStatus === "GOOD" ? "bg-green-100 text-risk-green" :
-                      outcome.ragStatus === "WARNING" ? "bg-amber-100 text-risk-amber" :
-                      "bg-red-100 text-risk-red"
-                    }`}>
-                      {outcome.ragStatus === "GOOD" ? "Green" : outcome.ragStatus === "WARNING" ? "Amber" : "Red"}
-                    </span>
+                    <span className="text-xs font-medium text-gray-800 truncate">{logUser?.name || log.userId}</span>
                   </div>
-                  {(outcome.measures ?? []).length > 0 && (
-                    <div className="mt-2 ml-6 space-y-1">
-                      {(outcome.measures ?? []).map((m) => (
-                        <Link
-                          key={m.id}
-                          href={`/consumer-duty?measure=${m.id}`}
-                          className="flex items-center gap-2 text-xs py-1 px-2 rounded hover:bg-white/60 transition-colors"
-                        >
-                          <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${ragBgColor(m.ragStatus)}`} />
-                          <span className="text-gray-600 truncate flex-1 min-w-0">{m.measureId} — {m.name}</span>
-                          <span className={`font-semibold shrink-0 ${
-                            m.ragStatus === "GOOD" ? "text-risk-green" :
-                            m.ragStatus === "WARNING" ? "text-risk-amber" :
-                            "text-risk-red"
-                          }`}>
-                            {m.ragStatus === "GOOD" ? "Green" : m.ragStatus === "WARNING" ? "Amber" : "Red"}
-                          </span>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
+                  <p className="text-xs text-fca-gray truncate">{getActionLabel(log.action)}</p>
+                  <p className="text-[10px] text-gray-400 mt-1">{formatDate(log.timestamp)}</p>
                 </Link>
-              ))}
-            </div>
+              );
+            })}
           </div>
-
-          {/* Risk Summary Stats */}
-          <div className="card-entrance card-entrance-5">
-            <h2 className="text-lg font-bold text-updraft-deep font-poppins mb-3">Risk Summary</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <Link href="/risk-register" className="rounded-xl border border-[#E8E6E1] bg-surface-warm p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all">
-                <p className="text-xs text-text-secondary">Total Risks</p>
-                <p className="text-2xl font-bold font-poppins text-updraft-deep">{risks.length}</p>
-              </Link>
-              <Link href="/risk-register" className="rounded-xl border border-green-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%)" }}>
-                <p className="text-xs text-text-secondary">Low Risk</p>
-                <p className="text-2xl font-bold font-poppins text-green-700">
-                  {risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) <= 4).length}
-                </p>
-              </Link>
-              <Link href="/risk-register" className="rounded-xl border border-amber-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEFCE8 100%)" }}>
-                <p className="text-xs text-text-secondary">Medium Risk</p>
-                <p className="text-2xl font-bold font-poppins text-amber-700">
-                  {risks.filter((r) => { const s = getRiskScore(r.residualLikelihood, r.residualImpact); return s > 4 && s <= 12; }).length}
-                </p>
-              </Link>
-              <Link href="/risk-register" className="rounded-xl border border-red-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #FEF2F2 0%, #FFF5F5 100%)" }}>
-                <p className="text-xs text-text-secondary">High Risk</p>
-                <p className="text-2xl font-bold font-poppins text-red-700">
-                  {risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) > 12).length}
-                </p>
-              </Link>
-            </div>
-          </div>
-
-          {/* Published Reports only */}
-          <div className="bento-card">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-updraft-deep">Published Reports</h2>
-              <Link href="/reports" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-                View All <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-2 px-3 font-medium text-fca-gray">Report</th>
-                    <th className="text-left py-2 px-3 font-medium text-fca-gray">Period</th>
-                    <th className="text-left py-2 px-3 font-medium text-fca-gray">Updated</th>
-                    <th className="text-right py-2 px-3 font-medium text-fca-gray"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {publishedReports.map((report) => (
-                    <tr key={report.id} className="border-b border-[#E8E6E1]/50 hover:bg-surface-muted">
-                      <td className="py-3 px-3 font-medium">{report.title}</td>
-                      <td className="py-3 px-3 text-fca-gray">{report.period}</td>
-                      <td className="py-3 px-3 text-fca-gray text-xs">{formatDate(report.updatedAt)}</td>
-                      <td className="py-3 px-3 text-right">
-                        <Link href={`/reports/${report.id}`} className="text-updraft-bright-purple hover:text-updraft-deep text-xs font-medium">View</Link>
-                      </td>
-                    </tr>
-                  ))}
-                  {publishedReports.length === 0 && (
-                    <tr><td colSpan={4} className="py-6 text-center text-sm text-gray-400">No published reports yet</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </>
+        </div>
       )}
     </div>
   );

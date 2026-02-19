@@ -14,6 +14,7 @@ interface UserFormDialogProps {
 
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: "CCRO_TEAM", label: "CCRO Team" },
+  { value: "CEO", label: "CEO" },
   { value: "OWNER", label: "Owner" },
   { value: "VIEWER", label: "Viewer" },
 ];

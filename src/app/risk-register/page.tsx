@@ -14,6 +14,7 @@ import { api } from "@/lib/api-client";
 import { toast } from "sonner";
 import RiskCSVUploadDialog from "@/components/risk-register/RiskCSVUploadDialog";
 import { usePageTitle } from "@/lib/usePageTitle";
+import { useHasPermission } from "@/lib/usePermission";
 
 type ViewTab = "heatmap" | "table";
 type ScoreMode = "inherent" | "residual" | "overlay";
@@ -60,6 +61,7 @@ export default function RiskRegisterPage() {
     }
   }, [searchParams, risks]);
 
+  const canBypassApproval = useHasPermission("can:bypass-approval");
   const isCCROTeam = currentUser?.role === "CCRO_TEAM";
   const isOwner = currentUser?.role === "OWNER";
   const isReadOnly = currentUser?.role === "VIEWER";
@@ -171,6 +173,8 @@ export default function RiskRegisterPage() {
           directionOfTravel: data.directionOfTravel ?? "STABLE",
           reviewFrequencyDays: data.reviewFrequencyDays ?? 90,
           reviewRequested: false,
+          inFocus: false,
+          approvalStatus: canBypassApproval ? "APPROVED" : "PENDING_APPROVAL",
           lastReviewed: data.lastReviewed ?? new Date().toISOString().split("T")[0],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),

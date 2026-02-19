@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, getUserId, jsonResponse, errorResponse, validateBody, validateQuery, generateReference } from "@/lib/api-helpers";
+import { prisma, getUserId, jsonResponse, errorResponse, validateBody, validateQuery, generateReference, checkPermission } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const querySchema = z.object({
@@ -22,6 +22,7 @@ const createSchema = z.object({
   controlEffectiveness: z.enum(["EFFECTIVE", "PARTIALLY_EFFECTIVE", "INEFFECTIVE"]).nullable().optional(),
   riskAppetite: z.enum(["VERY_LOW", "LOW", "LOW_TO_MODERATE", "MODERATE"]).nullable().optional(),
   directionOfTravel: z.enum(["IMPROVING", "STABLE", "DETERIORATING"]).optional(),
+  inFocus: z.boolean().optional(),
   lastReviewed: z.string().optional(),
   controls: z.array(z.object({
     description: z.string().min(1),
@@ -53,6 +54,7 @@ export async function GET(request: NextRequest) {
         mitigations: { orderBy: { createdAt: "asc" } },
         riskOwner: true,
         changes: { include: { proposer: true, reviewer: true }, orderBy: { proposedAt: "desc" } },
+        controlLinks: { include: { control: { select: { id: true, controlRef: true, controlName: true, businessArea: true } } } },
       },
       orderBy: { reference: "asc" },
     });
@@ -74,6 +76,10 @@ export async function POST(request: NextRequest) {
     if ("error" in result) return result.error;
     const { controls, mitigations, ...data } = result.data;
 
+    // Check bypass-approval permission to determine approval status
+    const bypassCheck = await checkPermission(request, "can:bypass-approval");
+    const approvalStatus = bypassCheck.granted ? "APPROVED" : "PENDING_APPROVAL";
+
     // Generate next reference number (collision-safe)
     const reference = await generateReference("R", "risk");
 
@@ -90,6 +96,8 @@ export async function POST(request: NextRequest) {
         data: {
           ...data,
           reference,
+          approvalStatus: approvalStatus as never,
+          inFocus: data.inFocus ?? false,
           lastReviewed: data.lastReviewed ? new Date(data.lastReviewed) : new Date(),
           directionOfTravel: data.directionOfTravel ?? "STABLE",
           createdBy: userId,

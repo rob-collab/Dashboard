@@ -22,6 +22,7 @@ import {
   ChevronDown,
   ChevronRight,
   ShieldCheck,
+  ShieldAlert,
   Clock,
   Pencil,
   Plus,
@@ -31,6 +32,7 @@ import {
   Search,
 } from "lucide-react";
 import { cn, formatDateShort } from "@/lib/utils";
+import ScoreBadge from "@/components/risk-register/ScoreBadge";
 
 interface ControlDetailModalProps {
   controlId: string | null;
@@ -419,6 +421,40 @@ export default function ControlDetailModal({
               <p className="text-xs text-gray-400">This control is not in the testing schedule.</p>
             )}
           </div>
+
+          {/* ── Linked Risks ── */}
+          {(control.riskLinks ?? []).length > 0 && (
+            <div className="bento-card p-4">
+              <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-3">
+                <ShieldAlert size={14} className="text-updraft-bright-purple" />
+                Linked Risks
+                <span className="text-xs font-normal text-gray-400">({control.riskLinks!.length})</span>
+              </h4>
+              <div className="space-y-1.5">
+                {control.riskLinks!.map((link) => (
+                  <a
+                    key={link.id}
+                    href={`/risk-register?risk=${link.riskId}`}
+                    className="flex items-center gap-3 p-2 rounded-lg bg-gray-50 hover:bg-updraft-pale-purple/20 transition-colors"
+                  >
+                    <span className="font-mono text-[10px] font-bold text-updraft-deep bg-updraft-pale-purple/30 px-1.5 py-0.5 rounded shrink-0">
+                      {link.risk?.reference ?? "Risk"}
+                    </span>
+                    <span className="text-xs text-gray-700 truncate flex-1 min-w-0">
+                      {link.risk?.name ?? "Unknown Risk"}
+                    </span>
+                    {link.risk && (
+                      <ScoreBadge
+                        likelihood={link.risk.residualLikelihood ?? 1}
+                        impact={link.risk.residualImpact ?? 1}
+                        size="sm"
+                      />
+                    )}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* ── Associated Actions ── */}
           <div className="bento-card p-4">

@@ -144,7 +144,7 @@ export default function RiskHeatmap({
                                   }}
                                   className={`relative w-6 h-6 rounded-full border-2 cursor-pointer transition-transform ${
                                     isHovered ? "scale-125 z-10" : ""
-                                  }`}
+                                  } ${risk.inFocus ? "ring-2 ring-amber-400 ring-offset-1" : ""}`}
                                   style={{
                                     backgroundColor: isInherentInOverlay ? "transparent" : (catColour?.fill ?? "#888"),
                                     borderColor: catColour?.stroke ?? "#666",

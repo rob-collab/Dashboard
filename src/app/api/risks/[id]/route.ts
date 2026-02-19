@@ -19,6 +19,8 @@ const updateSchema = z.object({
   directionOfTravel: z.enum(["IMPROVING", "STABLE", "DETERIORATING"]).optional(),
   reviewFrequencyDays: z.number().int().min(1).optional(),
   reviewRequested: z.boolean().optional(),
+  inFocus: z.boolean().optional(),
+  approvalStatus: z.enum(["APPROVED", "PENDING_APPROVAL", "REJECTED"]).optional(),
   lastReviewed: z.string().optional(),
   controls: z.array(z.object({
     id: z.string().optional(),
@@ -50,6 +52,7 @@ export async function GET(
         auditTrail: { orderBy: { changedAt: "desc" }, take: 50 },
         riskOwner: true,
         changes: { include: { proposer: true, reviewer: true }, orderBy: { proposedAt: "desc" } },
+        controlLinks: { include: { control: { select: { id: true, controlRef: true, controlName: true, businessArea: true } } } },
       },
     });
 
@@ -167,6 +170,7 @@ export async function PATCH(
           mitigations: { orderBy: { createdAt: "asc" } },
           riskOwner: true,
           changes: { include: { proposer: true, reviewer: true }, orderBy: { proposedAt: "desc" } },
+          controlLinks: { include: { control: { select: { id: true, controlRef: true, controlName: true, businessArea: true } } } },
         },
       });
     });

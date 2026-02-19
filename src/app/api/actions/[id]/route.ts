@@ -71,6 +71,7 @@ export async function PATCH(
     if (validatedData.sectionId !== undefined) data.sectionId = validatedData.sectionId;
     if (validatedData.sectionTitle !== undefined) data.sectionTitle = validatedData.sectionTitle;
     if (validatedData.controlId !== undefined) data.controlId = validatedData.controlId;
+    if (validatedData.approvalStatus !== undefined) data.approvalStatus = validatedData.approvalStatus;
 
     const updated = await prisma.action.update({
       where: { id },

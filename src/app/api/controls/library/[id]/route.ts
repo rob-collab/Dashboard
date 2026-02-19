@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody, auditLog } from "@/lib/api-helpers";
+import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody, auditLog, checkPermission } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -32,6 +32,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           include: { assignee: true },
           orderBy: { createdAt: "desc" },
         },
+        riskLinks: { include: { risk: { select: { id: true, reference: true, name: true, residualLikelihood: true, residualImpact: true } } } },
       },
     });
 
@@ -54,12 +55,13 @@ const updateSchema = z.object({
   controlType: z.enum(["PREVENTATIVE", "DETECTIVE", "CORRECTIVE", "DIRECTIVE"]).nullable().optional(),
   standingComments: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
+  approvalStatus: z.enum(["APPROVED", "PENDING_APPROVAL", "REJECTED"]).optional(),
 });
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await requireCCRORole(request);
-    if ("error" in auth) return auth.error;
+    const auth = await checkPermission(request, "edit:control");
+    if (!auth.granted) return auth.error;
     const { id } = await params;
 
     const body = await request.json();
@@ -93,6 +95,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return errorResponse("Internal server error", 500);
   }
 }
+
+// Keep using requireCCRORole for DELETE since it's a destructive operation
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {

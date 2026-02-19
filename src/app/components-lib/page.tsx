@@ -7,7 +7,7 @@ import { usePageTitle } from "@/lib/usePageTitle";
 export default function ComponentsLibPage() {
   usePageTitle("Component Library");
   return (
-    <RoleGuard allowedRoles={["CCRO_TEAM"]}>
+    <RoleGuard permission="page:settings">
       <ComponentsPanel />
     </RoleGuard>
   );

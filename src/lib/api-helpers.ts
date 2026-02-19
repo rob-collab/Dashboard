@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "./prisma";
+import { resolvePermission, type PermissionCode } from "./permissions";
 
 export { prisma };
 
@@ -134,6 +135,40 @@ export async function generateReference(
   }
   // Fallback: use timestamp-based reference
   return `${prefix}${Date.now().toString(36).toUpperCase()}`;
+}
+
+/**
+ * Server-side permission check. Fetches user + permission overrides from DB and resolves.
+ * Returns { granted: true, userId } or { granted: false, error: NextResponse }.
+ */
+export async function checkPermission(
+  request: Request,
+  permission: PermissionCode,
+): Promise<{ granted: true; userId: string } | { granted: false; error: NextResponse }> {
+  const userId = getUserId(request);
+  if (!userId) {
+    return { granted: false, error: errorResponse("Unauthorised", 401) };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  });
+  if (!user) {
+    return { granted: false, error: errorResponse("User not found", 404) };
+  }
+
+  const [rolePerms, userPerms] = await Promise.all([
+    prisma.rolePermission.findMany({ where: { role: user.role } }),
+    prisma.userPermission.findMany({ where: { userId } }),
+  ]);
+
+  const allowed = resolvePermission(permission, user.role as Parameters<typeof resolvePermission>[1], rolePerms, userPerms);
+  if (!allowed) {
+    return { granted: false, error: errorResponse(`Forbidden - missing permission: ${permission}`, 403) };
+  }
+
+  return { granted: true, userId };
 }
 
 export function validateQuery<T>(schema: z.ZodSchema<T>, params: URLSearchParams): { data: T } | { error: NextResponse } {

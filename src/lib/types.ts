@@ -1,4 +1,5 @@
-export type Role = "CCRO_TEAM" | "OWNER" | "VIEWER";
+export type Role = "CCRO_TEAM" | "CEO" | "OWNER" | "VIEWER";
+export type ApprovalStatus = "APPROVED" | "PENDING_APPROVAL" | "REJECTED";
 export type ReportStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 export type RAGStatus = "GOOD" | "WARNING" | "HARM";
 export type SectionType =
@@ -210,6 +211,7 @@ export interface Action {
   description: string;
   issueDescription: string | null;
   status: ActionStatus;
+  approvalStatus: ApprovalStatus;
   priority: ActionPriority | null;
   assignedTo: string;
   assignee?: User;
@@ -330,6 +332,8 @@ export interface Risk {
   reviewFrequencyDays: number;
   reviewRequested: boolean;
   lastReviewed: string;
+  inFocus: boolean;
+  approvalStatus: ApprovalStatus;
   createdAt: string;
   updatedAt: string;
   createdBy: string;
@@ -339,6 +343,7 @@ export interface Risk {
   auditTrail?: RiskAuditEntry[];
   snapshots?: RiskSnapshot[];
   changes?: RiskChange[];
+  controlLinks?: RiskControlLink[];
 }
 
 export interface RiskChange {
@@ -484,6 +489,7 @@ export interface ControlRecord {
   internalOrThirdParty: InternalOrThirdParty;
   controlType: ControlType | null;
   isActive: boolean;
+  approvalStatus: ApprovalStatus;
   standingComments: string | null;
   createdAt: string;
   createdById: string;
@@ -493,6 +499,7 @@ export interface ControlRecord {
   attestations?: ControlAttestation[];
   changes?: ControlChange[];
   actions?: Action[];
+  riskLinks?: RiskControlLink[];
 }
 
 export interface ControlAttestation {
@@ -824,3 +831,46 @@ export const RISK_ACCEPTANCE_SOURCE_LABELS: Record<RiskAcceptanceSource, string>
   INCIDENT: "Incident",
   AD_HOC: "Ad Hoc",
 };
+
+// ── Approval Status (entity-level) ─────────────────────────────────────────
+
+export const APPROVAL_STATUS_LABELS: Record<ApprovalStatus, string> = {
+  APPROVED: "Approved",
+  PENDING_APPROVAL: "Pending Approval",
+  REJECTED: "Rejected",
+};
+
+export const APPROVAL_STATUS_COLOURS: Record<ApprovalStatus, { bg: string; text: string }> = {
+  APPROVED: { bg: "bg-green-100", text: "text-green-700" },
+  PENDING_APPROVAL: { bg: "bg-amber-100", text: "text-amber-700" },
+  REJECTED: { bg: "bg-red-100", text: "text-red-700" },
+};
+
+// ── Risk ↔ Control Library Link ─────────────────────────────────────────────
+
+export interface RiskControlLink {
+  id: string;
+  riskId: string;
+  controlId: string;
+  control?: Pick<ControlRecord, "id" | "controlRef" | "controlName"> & { businessArea?: ControlBusinessArea };
+  risk?: Pick<Risk, "id" | "reference" | "name" | "residualLikelihood" | "residualImpact">;
+  linkedAt: string;
+  linkedBy: string;
+  notes: string | null;
+}
+
+// ── Permission Records ──────────────────────────────────────────────────────
+
+export interface RolePermissionRecord {
+  id: string;
+  role: Role;
+  permission: string;
+  granted: boolean;
+}
+
+export interface UserPermissionRecord {
+  id: string;
+  userId: string;
+  permission: string;
+  granted: boolean;
+}

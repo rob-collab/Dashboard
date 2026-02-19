@@ -31,7 +31,7 @@ export default function SettingsPage() {
   const isFullWidth = FULL_WIDTH_TABS.includes(activeTab);
 
   return (
-    <RoleGuard allowedRoles={["CCRO_TEAM"]}>
+    <RoleGuard permission="page:settings">
       <div className={cn(!isFullWidth && "max-w-3xl mx-auto")}>
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-updraft-deep font-poppins">Settings</h1>

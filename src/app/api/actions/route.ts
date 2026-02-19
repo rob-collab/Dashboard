@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse, getUserId, validateQuery, validateBody, generateReference } from "@/lib/api-helpers";
+import { prisma, jsonResponse, errorResponse, getUserId, validateQuery, validateBody, generateReference, checkPermission } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 import { sendActionAssigned } from "@/lib/email";
 import { ActionQuerySchema, CreateActionSchema } from "@/lib/schemas/actions";
@@ -58,10 +58,15 @@ export async function POST(request: NextRequest) {
   // Auto-generate action reference (collision-safe)
   const reference = await generateReference("ACT-", "action");
 
+  // Check bypass-approval permission
+  const bypassCheck = await checkPermission(request, "can:bypass-approval");
+  const approvalStatus = bypassCheck.granted ? "APPROVED" : "PENDING_APPROVAL";
+
   const action = await prisma.action.create({
     data: {
       id: data.id,
       reference,
+      approvalStatus: approvalStatus as never,
       ...(data.reportId && { reportId: data.reportId }),
       ...(report && { reportPeriod: `${report.title} — ${report.period}` }),
       ...(data.source && { source: data.source }),

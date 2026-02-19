@@ -41,6 +41,7 @@ const ACTION_LABELS: Record<string, { label: string; color: string }> = {
 
 const ROLE_LABELS: Record<Role, string> = {
   CCRO_TEAM: "CCRO Team",
+  CEO: "CEO",
   OWNER: "Owner",
   VIEWER: "Viewer",
 };
@@ -113,7 +114,7 @@ export default function AuditPage() {
   }, [auditLogs, users, actionFilter, roleFilter, searchQuery, statFilter]);
 
   return (
-    <RoleGuard allowedRoles={["CCRO_TEAM"]}>
+    <RoleGuard permission="page:audit">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">

@@ -31,6 +31,7 @@ import ControlDetailModal from "./ControlDetailModal";
 import ControlCSVUploadDialog from "./ControlCSVUploadDialog";
 import { api } from "@/lib/api-client";
 import { deriveTestingStatus } from "@/lib/controls-utils";
+import { useHasPermission } from "@/lib/usePermission";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -77,6 +78,8 @@ export default function ControlsLibraryTab() {
   const hydrate = useAppStore((s) => s.hydrate);
 
   const isCCRO = currentUser?.role === "CCRO_TEAM";
+  const canCreateControl = useHasPermission("create:control");
+  const canBypassApproval = useHasPermission("can:bypass-approval");
 
   // ── Detail modal state ──────────────────────────────────────
   const [selectedControlId, setSelectedControlId] = useState<string | null>(null);
@@ -279,7 +282,6 @@ export default function ControlsLibraryTab() {
             Export CSV
           </button>
           {isCCRO && (
-            <>
             <button
               onClick={() => setShowImportDialog(true)}
               className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colours"
@@ -287,17 +289,20 @@ export default function ControlsLibraryTab() {
               <Upload className="h-4 w-4" />
               Bulk Import
             </button>
+          )}
+          {canCreateControl && (
             <button
               onClick={() => {
                 setEditingControl(null);
                 setShowDialog(true);
               }}
-              className="inline-flex items-center gap-2 rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colours"
+              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colours ${
+                !canBypassApproval ? "bg-amber-600 hover:bg-amber-700" : "bg-updraft-bright-purple hover:bg-updraft-deep"
+              }`}
             >
               <Plus className="h-4 w-4" />
-              Add Control
+              {canBypassApproval ? "Add Control" : "Submit Control"}
             </button>
-            </>
           )}
         </div>
       </div>
@@ -424,6 +429,9 @@ export default function ControlsLibraryTab() {
                 <th className="px-4 py-3 text-left font-medium text-gray-500">
                   Testing Status
                 </th>
+                <th className="px-4 py-3 text-center font-medium text-gray-500">
+                  Risks
+                </th>
                 {isCCRO && (
                   <th className="px-4 py-3 text-right font-medium text-gray-500">
                     Actions
@@ -435,7 +443,7 @@ export default function ControlsLibraryTab() {
               {filtered.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={isCCRO ? 10 : 9}
+                    colSpan={isCCRO ? 11 : 10}
                     className="px-4 py-12 text-center text-gray-400"
                   >
                     {showArchived
@@ -493,6 +501,15 @@ export default function ControlsLibraryTab() {
                           />
                           {testing.label}
                         </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {(control.riskLinks?.length ?? 0) > 0 ? (
+                          <span className="inline-flex items-center justify-center rounded-full bg-updraft-pale-purple/40 px-2 py-0.5 text-xs font-semibold text-updraft-deep">
+                            {control.riskLinks!.length}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400">&mdash;</span>
+                        )}
                       </td>
                       {isCCRO && (
                         <td className="px-4 py-3 text-right">

@@ -7,7 +7,7 @@ import { usePageTitle } from "@/lib/usePageTitle";
 export default function TemplatesPage() {
   usePageTitle("Templates");
   return (
-    <RoleGuard allowedRoles={["CCRO_TEAM"]}>
+    <RoleGuard permission="page:settings">
       <TemplatesPanel />
     </RoleGuard>
   );

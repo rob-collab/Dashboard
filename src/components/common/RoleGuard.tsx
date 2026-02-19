@@ -2,18 +2,18 @@
 
 import Link from "next/link";
 import { ShieldAlert, ArrowLeft } from "lucide-react";
-import { useAppStore } from "@/lib/store";
-import type { Role } from "@/lib/types";
+import { useHasPermission } from "@/lib/usePermission";
+import type { PermissionCode } from "@/lib/permissions";
 
 interface RoleGuardProps {
-  allowedRoles: Role[];
+  permission: PermissionCode;
   children: React.ReactNode;
 }
 
-export default function RoleGuard({ allowedRoles, children }: RoleGuardProps) {
-  const currentUser = useAppStore((s) => s.currentUser);
+export default function RoleGuard({ permission, children }: RoleGuardProps) {
+  const hasPermission = useHasPermission(permission);
 
-  if (!currentUser || !allowedRoles.includes(currentUser.role)) {
+  if (!hasPermission) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <div className="rounded-xl bg-risk-red/10 p-4 mb-4">

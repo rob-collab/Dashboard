@@ -17,10 +17,12 @@ import { useAppStore } from "@/lib/store";
 import RoleGuard from "@/components/common/RoleGuard";
 import UserFormDialog from "@/components/users/UserFormDialog";
 import UserDeleteDialog from "@/components/users/UserDeleteDialog";
+import PermissionsPanel from "@/components/users/PermissionsPanel";
 import { cn, formatDate } from "@/lib/utils";
 import type { Role, User } from "@/lib/types";
 import { logAuditEvent } from "@/lib/audit";
 import { usePageTitle } from "@/lib/usePageTitle";
+import { useHasPermission } from "@/lib/usePermission";
 
 function useOwnedRiskCounts() {
   const risks = useAppStore((s) => s.risks);
@@ -36,6 +38,11 @@ const ROLE_CONFIG: Record<Role, { label: string; color: string; description: str
     label: "CCRO Team",
     color: "bg-purple-100 text-purple-700",
     description: "Full access to reports, publishing, and all measures",
+  },
+  CEO: {
+    label: "CEO",
+    color: "bg-amber-100 text-amber-700",
+    description: "Executive view with read access and Risk in Focus toggle",
   },
   OWNER: {
     label: "Owner",
@@ -57,7 +64,9 @@ export default function UsersPage() {
   const updateUser = useAppStore((s) => s.updateUser);
   const deleteUser = useAppStore((s) => s.deleteUser);
   const ownedRiskCounts = useOwnedRiskCounts();
+  const canManageUsers = useHasPermission("can:manage-users");
 
+  const [activeTab, setActiveTab] = useState<"users" | "permissions">("users");
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<Role | "ALL">("ALL");
   const [showInactive, setShowInactive] = useState(false);
@@ -88,6 +97,7 @@ export default function UsersPage() {
 
   const roleCounts = useMemo(() => ({
     CCRO_TEAM: users.filter((u) => u.role === "CCRO_TEAM").length,
+    CEO: users.filter((u) => u.role === "CEO").length,
     OWNER: users.filter((u) => u.role === "OWNER").length,
     VIEWER: users.filter((u) => u.role === "VIEWER").length,
   }), [users]);
@@ -129,7 +139,7 @@ export default function UsersPage() {
   );
 
   return (
-    <RoleGuard allowedRoles={["CCRO_TEAM"]}>
+    <RoleGuard permission="page:users">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
@@ -139,20 +149,49 @@ export default function UsersPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-updraft-deep font-poppins">User Management</h1>
-            <p className="text-sm text-fca-gray mt-0.5">Manage team members and their roles</p>
+            <p className="text-sm text-fca-gray mt-0.5">Manage team members, roles, and permissions</p>
           </div>
         </div>
-        <button
-          onClick={handleOpenAdd}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colors"
-        >
-          <Plus size={16} /> Add User
-        </button>
+        {activeTab === "users" && (
+          <button
+            onClick={handleOpenAdd}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colors"
+          >
+            <Plus size={16} /> Add User
+          </button>
+        )}
       </div>
 
+      {/* Tab bar */}
+      {canManageUsers && (
+        <div className="flex gap-1 border-b border-gray-200">
+          {[
+            { id: "users" as const, label: "Users" },
+            { id: "permissions" as const, label: "Permissions" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px",
+                activeTab === tab.id
+                  ? "border-updraft-bright-purple text-updraft-deep"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {activeTab === "permissions" && canManageUsers ? (
+        <PermissionsPanel />
+      ) : (
+      <>
       {/* Role summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {(["CCRO_TEAM", "OWNER", "VIEWER"] as Role[]).map((role) => {
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        {(["CCRO_TEAM", "CEO", "OWNER", "VIEWER"] as Role[]).map((role) => {
           const config = ROLE_CONFIG[role];
           return (
             <button
@@ -348,6 +387,8 @@ export default function UsersPage() {
           logAuditEvent({ action: "delete_user", entityType: "user", entityId: userId, changes: { name: deletingUser?.name } });
         }}
       />
+      </>
+      )}
     </div>
     </RoleGuard>
   );

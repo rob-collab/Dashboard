@@ -15,9 +15,10 @@ import {
   getL2Categories as getFallbackL2,
 } from "@/lib/risk-categories";
 import ScoreBadge from "./ScoreBadge";
-import { X, Plus, Trash2, AlertTriangle, ChevronRight, ChevronDown, History, Link2, ShieldQuestion } from "lucide-react";
+import { X, Plus, Trash2, AlertTriangle, ChevronRight, ChevronDown, History, Link2, ShieldQuestion, Star } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api-client";
+import { useHasPermission } from "@/lib/usePermission";
 
 interface RiskDetailPanelProps {
   risk: Risk | null;
@@ -51,7 +52,14 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
   const storeCategories = useAppStore((s) => s.riskCategories);
   const priorityDefinitions = useAppStore((s) => s.priorityDefinitions);
   const riskAcceptances = useAppStore((s) => s.riskAcceptances);
+  const storeControls = useAppStore((s) => s.controls);
+  const toggleRiskInFocus = useAppStore((s) => s.toggleRiskInFocus);
+  const linkControlToRisk = useAppStore((s) => s.linkControlToRisk);
+  const unlinkControlFromRisk = useAppStore((s) => s.unlinkControlFromRisk);
   const isCCRO = currentUser?.role === "CCRO_TEAM";
+  const canToggleFocus = useHasPermission("can:toggle-risk-focus");
+  const canEditRisk = useHasPermission("edit:risk");
+  const canBypassApproval = useHasPermission("can:bypass-approval");
 
   const activeUsers = users.filter((u) => u.isActive !== false);
   const PRIORITY_OPTIONS: { value: ActionPriority; label: string }[] =
@@ -92,6 +100,8 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
   const [mitigations, setMitigations] = useState<FormMitigation[]>([]);
   const [controlsOpen, setControlsOpen] = useState(false);
   const [mitigationsOpen, setMitigationsOpen] = useState(false);
+  const [libraryControlsOpen, setLibraryControlsOpen] = useState(false);
+  const [libCtrlSearch, setLibCtrlSearch] = useState("");
 
   // Populate form when risk changes
   useEffect(() => {
@@ -209,6 +219,24 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                 <span className="inline-block font-mono text-[11px] font-bold text-updraft-deep bg-updraft-pale-purple/30 px-1.5 py-0.5 rounded">
                   {risk.reference}
                 </span>
+                {canToggleFocus && (
+                  <button
+                    onClick={() => toggleRiskInFocus(risk.id, !risk.inFocus)}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium transition-colors hover:bg-amber-50"
+                    title={risk.inFocus ? "Remove from Focus" : "Mark as Risk in Focus"}
+                  >
+                    <Star className={`w-3.5 h-3.5 ${risk.inFocus ? "text-amber-400 fill-amber-400" : "text-gray-400"}`} />
+                    <span className={risk.inFocus ? "text-amber-600" : "text-gray-400"}>
+                      {risk.inFocus ? "In Focus" : "Focus"}
+                    </span>
+                  </button>
+                )}
+                {!canToggleFocus && risk.inFocus && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium text-amber-600 bg-amber-50">
+                    <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                    In Focus
+                  </span>
+                )}
                 <span className="text-xs text-gray-400">
                   Last updated {new Date(risk.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                 </span>
@@ -233,6 +261,16 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
         </div>
 
         <div className="p-6 space-y-6">
+          {/* Approval info banner */}
+          {isNew && !canBypassApproval && (
+            <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+              <span className="text-xs text-amber-700">
+                This risk will be submitted for CCRO approval before becoming visible to all users.
+              </span>
+            </div>
+          )}
+
           {/* Basic Info */}
           <section className="space-y-3">
             <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
@@ -412,6 +450,104 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
             </div>
             </>)}
           </section>
+
+          {/* Library Controls — linked from control library */}
+          {risk && !isNew && (
+          <section className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setLibraryControlsOpen(!libraryControlsOpen)}
+              className="w-full text-sm font-semibold text-gray-700 flex items-center gap-2"
+            >
+              <span className="w-6 h-6 rounded-full bg-teal-500 text-white flex items-center justify-center text-xs">3b</span>
+              Library Controls
+              <span className="rounded-full bg-teal-100 text-teal-700 px-1.5 py-0.5 text-[10px] font-bold">{risk.controlLinks?.length ?? 0}</span>
+              <span className="text-[10px] text-gray-400 font-normal">linked from control library</span>
+              <span className="ml-auto">
+                {libraryControlsOpen ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+              </span>
+            </button>
+            {libraryControlsOpen && (
+              <>
+                {/* Linked controls list */}
+                {(risk.controlLinks ?? []).length > 0 && (
+                  <div className="space-y-1.5">
+                    {risk.controlLinks!.map((link) => (
+                      <div key={link.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg group">
+                        <span className="font-mono text-[10px] font-bold text-updraft-deep bg-updraft-pale-purple/30 px-1.5 py-0.5 rounded shrink-0">
+                          {link.control?.controlRef ?? "CTRL"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => router.push(`/controls?control=${link.controlId}`)}
+                          className="text-xs text-gray-700 hover:text-updraft-bright-purple truncate flex-1 text-left transition-colors"
+                        >
+                          {link.control?.controlName ?? "Control"}
+                        </button>
+                        {link.control?.businessArea?.name && (
+                          <span className="text-[10px] text-gray-400 shrink-0">{link.control.businessArea.name}</span>
+                        )}
+                        {canEditRisk && (
+                          <button
+                            type="button"
+                            onClick={() => unlinkControlFromRisk(risk.id, link.controlId)}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all"
+                            title="Unlink control"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Search + link */}
+                {canEditRisk && (
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={libCtrlSearch}
+                        onChange={(e) => setLibCtrlSearch(e.target.value)}
+                        placeholder="Search control library to link..."
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30 pl-9"
+                      />
+                      <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    </div>
+                    {libCtrlSearch.trim() && (
+                      <div className="max-h-40 overflow-y-auto space-y-1 rounded-lg border border-gray-200 bg-white p-2">
+                        {(() => {
+                          const q = libCtrlSearch.toLowerCase();
+                          const linkedIds = new Set((risk.controlLinks ?? []).map((l) => l.controlId));
+                          const matches = storeControls.filter(
+                            (c) => c.isActive && !linkedIds.has(c.id) && (c.controlRef.toLowerCase().includes(q) || c.controlName.toLowerCase().includes(q))
+                          ).slice(0, 10);
+                          if (matches.length === 0) return <p className="text-xs text-gray-400 py-2 text-center">No matching controls found</p>;
+                          return matches.map((c) => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => {
+                                linkControlToRisk(risk.id, c.id, currentUser?.id ?? "");
+                                setLibCtrlSearch("");
+                              }}
+                              className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-xs hover:bg-updraft-pale-purple/20 rounded-md transition-colors"
+                            >
+                              <span className="font-mono font-medium text-updraft-deep whitespace-nowrap">{c.controlRef}</span>
+                              <span className="text-gray-600 truncate">{c.controlName}</span>
+                              <Plus className="w-3.5 h-3.5 ml-auto text-gray-400 shrink-0" />
+                            </button>
+                          ));
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+          )}
 
           {/* Residual Assessment */}
           <section className="space-y-3">
@@ -723,9 +859,11 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
               <button
                 onClick={handleSave}
                 disabled={!canSave}
-                className="px-4 py-2 text-sm font-medium text-white bg-updraft-deep rounded-lg hover:bg-updraft-bar disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className={`px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+                  isNew && !canBypassApproval ? "bg-amber-600 hover:bg-amber-700" : "bg-updraft-deep hover:bg-updraft-bar"
+                }`}
               >
-                {isNew ? "Create Risk" : "Save Changes"}
+                {isNew && !canBypassApproval ? "Submit for Approval" : isNew ? "Create Risk" : "Save Changes"}
               </button>
             )}
           </div>

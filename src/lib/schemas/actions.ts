@@ -26,6 +26,7 @@ export const UpdateActionSchema = z.object({
   assignedTo: z.string().optional(),
   dueDate: z.string().nullable().optional(),
   status: ActionStatus.optional(),
+  approvalStatus: z.enum(["APPROVED", "PENDING_APPROVAL", "REJECTED"]).optional(),
   completedAt: z.string().nullable().optional(),
   sectionId: z.string().nullable().optional(),
   sectionTitle: z.string().nullable().optional(),

@@ -636,7 +636,19 @@ function ActionsPageContent() {
                       </span>
                     </div>
 
-                    {/* Pending badge */}
+                    {/* Approval status badge */}
+                    {action.approvalStatus === "PENDING_APPROVAL" && (
+                      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-semibold">
+                        Awaiting Approval
+                      </span>
+                    )}
+                    {action.approvalStatus === "REJECTED" && (
+                      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-red-100 text-red-700 px-2 py-0.5 text-[10px] font-semibold">
+                        Rejected
+                      </span>
+                    )}
+
+                    {/* Pending changes badge */}
                     {action.changes && action.changes.filter((c) => c.status === "PENDING").length > 0 && (
                       <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-semibold">
                         {action.changes.filter((c) => c.status === "PENDING").length} pending

@@ -8,7 +8,8 @@ import ScoreBadge from "./ScoreBadge";
 import DirectionArrow from "./DirectionArrow";
 import { EmptyState } from "@/components/common/EmptyState";
 import { formatDateShort } from "@/lib/utils";
-import { ChevronUp, ChevronDown, Search, Filter, ShieldAlert } from "lucide-react";
+import { ChevronUp, ChevronDown, Search, Filter, ShieldAlert, Star } from "lucide-react";
+import { useHasPermission } from "@/lib/usePermission";
 
 type SortField = "reference" | "name" | "categoryL1" | "owner" | "inherent" | "residual" | "direction" | "lastReviewed";
 type SortDir = "asc" | "desc";
@@ -21,6 +22,8 @@ interface RiskTableProps {
 export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
   const storeUsers = useAppStore((s) => s.users);
   const storeCategories = useAppStore((s) => s.riskCategories);
+  const toggleRiskInFocus = useAppStore((s) => s.toggleRiskInFocus);
+  const canToggleFocus = useHasPermission("can:toggle-risk-focus");
   const L1_CATEGORIES = storeCategories.length > 0 ? storeCategories.map((c) => c.name) : FALLBACK_L1;
   const getOwnerName = (risk: Risk) => risk.riskOwner?.name ?? storeUsers.find(u => u.id === risk.ownerId)?.name ?? "Unknown";
   const [sortField, setSortField] = useState<SortField>("reference");
@@ -153,6 +156,7 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
+              <th className="px-2 py-2.5 w-8" />
               {[
                 { field: "reference" as SortField, label: "Ref", width: "w-16" },
                 { field: "name" as SortField, label: "Risk Name", width: "" },
@@ -185,12 +189,37 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
                   onClick={() => onRiskClick(risk)}
                   className="hover:bg-updraft-pale-purple/10 cursor-pointer transition-colors"
                 >
+                  <td className="px-2 py-3 text-center">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (canToggleFocus) toggleRiskInFocus(risk.id, !risk.inFocus);
+                      }}
+                      className={`transition-colors ${canToggleFocus ? "cursor-pointer hover:scale-110" : "cursor-default"}`}
+                      title={canToggleFocus ? (risk.inFocus ? "Remove from Focus" : "Mark as Risk in Focus") : "Risk in Focus"}
+                      aria-label={risk.inFocus ? "Remove from Focus" : "Mark as Risk in Focus"}
+                    >
+                      <Star
+                        className={`w-4 h-4 ${risk.inFocus ? "text-amber-400 fill-amber-400" : "text-gray-300"}`}
+                      />
+                    </button>
+                  </td>
                   <td className="px-3 py-3">
                     <span className="inline-flex items-center rounded bg-updraft-pale-purple/30 px-1.5 py-0.5 font-mono text-xs font-bold text-updraft-deep">
                       {risk.reference}
                     </span>
                   </td>
-                  <td className="px-3 py-3 font-medium text-gray-800">{risk.name}</td>
+                  <td className="px-3 py-3 font-medium text-gray-800">
+                    <span className="inline-flex items-center gap-1.5">
+                      {risk.name}
+                      {risk.approvalStatus === "PENDING_APPROVAL" && (
+                        <span className="rounded-full bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[9px] font-semibold shrink-0">Pending</span>
+                      )}
+                      {risk.approvalStatus === "REJECTED" && (
+                        <span className="rounded-full bg-red-100 text-red-700 px-1.5 py-0.5 text-[9px] font-semibold shrink-0">Rejected</span>
+                      )}
+                    </span>
+                  </td>
                   <td className="px-3 py-3">
                     <span
                       className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium text-white"
@@ -217,7 +246,7 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
             })}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={8}>
+                <td colSpan={9}>
                   <EmptyState
                     icon={<ShieldAlert className="h-7 w-7" />}
                     heading={risks.length === 0 ? "No risks registered" : "No risks match the current filters"}

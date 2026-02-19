@@ -7,7 +7,7 @@ const prisma = new PrismaClient({ adapter });
 
 // ── Users ──────────────────────────────────────────────────────────────────
 const SEED_USERS: {
-  id: string; email: string; name: string; role: "CCRO_TEAM" | "OWNER" | "VIEWER";
+  id: string; email: string; name: string; role: "CCRO_TEAM" | "CEO" | "OWNER" | "VIEWER";
   assignedMeasures: string[]; isActive: boolean;
 }[] = [
   { id: "user-rob", email: "rob@updraft.com", name: "Rob", role: "CCRO_TEAM", assignedMeasures: [], isActive: true },
@@ -15,7 +15,7 @@ const SEED_USERS: {
   { id: "user-ash", email: "ash@updraft.com", name: "Ash", role: "OWNER", assignedMeasures: ["1.1","1.3","1.4","3.1","3.6","3.7"], isActive: true },
   { id: "user-chris", email: "chris@updraft.com", name: "Chris", role: "OWNER", assignedMeasures: ["1.5","1.8","3.3","3.4","3.5","4.2","4.3","4.4","4.5","4.6","4.7","4.8","4.9","4.10"], isActive: true },
   { id: "user-micha", email: "micha@updraft.com", name: "Micha", role: "OWNER", assignedMeasures: ["1.2","1.6","1.7","2.1","2.2","2.3","2.4","2.5","2.6","2.7"], isActive: true },
-  { id: "user-ceo", email: "Aseem@updraft.com", name: "Aseem", role: "OWNER", assignedMeasures: [], isActive: true },
+  { id: "user-ceo", email: "Aseem@updraft.com", name: "Aseem", role: "CEO", assignedMeasures: [], isActive: true },
   { id: "user-david", email: "david@updraft.com", name: "David", role: "OWNER", assignedMeasures: [], isActive: true },
 ];
 

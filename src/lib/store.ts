@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry, RiskAcceptance, Policy, Regulation, DashboardNotification } from "./types";
+import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry, RiskAcceptance, Policy, Regulation, DashboardNotification, Role, RiskControlLink } from "./types";
 import { api } from "./api-client";
 
 interface AppState {
@@ -142,6 +142,25 @@ interface AppState {
   addTestingScheduleEntries: (entries: TestingScheduleEntry[]) => void;
   updateTestingScheduleEntry: (id: string, data: Partial<TestingScheduleEntry>) => void;
 
+  // Permissions
+  rolePermissions: { role: Role; permission: string; granted: boolean }[];
+  userPermissions: { userId: string; permission: string; granted: boolean }[];
+  setRolePermissions: (perms: { role: Role; permission: string; granted: boolean }[]) => void;
+  setUserPermissions: (perms: { userId: string; permission: string; granted: boolean }[]) => void;
+  updateRolePermissions: (role: Role, perms: Record<string, boolean>) => void;
+  updateUserPermissions: (userId: string, perms: Record<string, boolean | null>) => void;
+
+  // Risk in Focus
+  toggleRiskInFocus: (riskId: string, inFocus: boolean) => void;
+
+  // Risk ↔ Control linking
+  linkControlToRisk: (riskId: string, controlId: string, linkedBy: string, notes?: string) => void;
+  unlinkControlFromRisk: (riskId: string, controlId: string) => void;
+
+  // Entity approval
+  approveEntity: (type: "risk" | "action" | "control", id: string) => void;
+  rejectEntity: (type: "risk" | "action" | "control", id: string) => void;
+
   // UI State
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
@@ -192,7 +211,7 @@ export const useAppStore = create<AppState>((set) => ({
   _hydrateError: null,
   hydrate: async () => {
     try {
-      const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications] = await Promise.all([
+      const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, permissionsData] = await Promise.all([
         api<User[]>("/api/users"),
         api<Report[]>("/api/reports"),
         api<ConsumerDutyOutcome[]>("/api/consumer-duty"),
@@ -211,8 +230,9 @@ export const useAppStore = create<AppState>((set) => ({
         api<Policy[]>("/api/policies").catch(() => []),
         api<Regulation[]>("/api/regulations").catch(() => []),
         api<DashboardNotification[]>("/api/notifications").catch(() => []),
+        api<{ rolePermissions: { role: Role; permission: string; granted: boolean }[]; userPermissions: { userId: string; permission: string; granted: boolean }[] }>("/api/permissions").catch(() => ({ rolePermissions: [], userPermissions: [] })),
       ]);
-      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, _hydrated: true, _hydrateError: null });
+      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, rolePermissions: permissionsData.rolePermissions, userPermissions: permissionsData.userPermissions, _hydrated: true, _hydrateError: null });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to connect to server";
       console.error("[hydrate] API unreachable:", message);
@@ -602,6 +622,112 @@ export const useAppStore = create<AppState>((set) => ({
       testingSchedule: state.testingSchedule.map((e) => (e.id === id ? { ...e, ...data } : e)),
     }));
     sync(() => api(`/api/controls/testing-schedule/${id}`, { method: "PATCH", body: data }));
+  },
+
+  // ── Permissions ──────────────────────────────────────────────
+  rolePermissions: [],
+  userPermissions: [],
+  setRolePermissions: (perms) => set({ rolePermissions: perms }),
+  setUserPermissions: (perms) => set({ userPermissions: perms }),
+  updateRolePermissions: (role, perms) => {
+    set((state) => {
+      const updated = state.rolePermissions.filter((rp) => rp.role !== role || !(rp.permission in perms));
+      for (const [perm, granted] of Object.entries(perms)) {
+        updated.push({ role, permission: perm, granted });
+      }
+      return { rolePermissions: updated };
+    });
+    sync(() => api("/api/permissions", { method: "PUT", body: { role, permissions: perms } }));
+  },
+  updateUserPermissions: (userId, perms) => {
+    set((state) => {
+      const updated = state.userPermissions.filter((up) => up.userId !== userId || !(up.permission in perms));
+      for (const [perm, granted] of Object.entries(perms)) {
+        if (granted !== null) {
+          updated.push({ userId, permission: perm, granted });
+        }
+        // null = remove override (already filtered out above)
+      }
+      return { userPermissions: updated };
+    });
+    sync(() => api(`/api/permissions/users/${userId}`, { method: "PUT", body: { permissions: perms } }));
+  },
+
+  // ── Risk in Focus ──────────────────────────────────────────
+  toggleRiskInFocus: (riskId, inFocus) => {
+    set((state) => ({
+      risks: state.risks.map((r) => (r.id === riskId ? { ...r, inFocus } : r)),
+    }));
+    sync(() => api(`/api/risks/${riskId}`, { method: "PATCH", body: { inFocus } }));
+  },
+
+  // ── Risk ↔ Control linking ─────────────────────────────────
+  linkControlToRisk: (riskId, controlId, linkedBy, notes) => {
+    const tempLink: RiskControlLink = {
+      id: `temp-${Date.now()}`,
+      riskId,
+      controlId,
+      linkedAt: new Date().toISOString(),
+      linkedBy,
+      notes: notes ?? null,
+    };
+    set((state) => ({
+      risks: state.risks.map((r) =>
+        r.id === riskId ? { ...r, controlLinks: [...(r.controlLinks ?? []), tempLink] } : r
+      ),
+    }));
+    sync(async () => {
+      const link = await api<RiskControlLink>(`/api/risks/${riskId}/control-links`, {
+        method: "POST",
+        body: { controlId, notes },
+      });
+      // Replace temp with real
+      set((state) => ({
+        risks: state.risks.map((r) =>
+          r.id === riskId
+            ? { ...r, controlLinks: (r.controlLinks ?? []).map((l) => l.id === tempLink.id ? link : l) }
+            : r
+        ),
+      }));
+    });
+  },
+  unlinkControlFromRisk: (riskId, controlId) => {
+    set((state) => ({
+      risks: state.risks.map((r) =>
+        r.id === riskId
+          ? { ...r, controlLinks: (r.controlLinks ?? []).filter((l) => l.controlId !== controlId) }
+          : r
+      ),
+    }));
+    sync(() => api(`/api/risks/${riskId}/control-links`, { method: "DELETE", body: { controlId } }));
+  },
+
+  // ── Entity approval ─────────────────────────────────────────
+  approveEntity: (type, id) => {
+    const data = { approvalStatus: "APPROVED" as const };
+    if (type === "risk") {
+      set((state) => ({ risks: state.risks.map((r) => (r.id === id ? { ...r, ...data } : r)) }));
+      sync(() => api(`/api/risks/${id}`, { method: "PATCH", body: data }));
+    } else if (type === "action") {
+      set((state) => ({ actions: state.actions.map((a) => (a.id === id ? { ...a, ...data } : a)) }));
+      sync(() => api(`/api/actions/${id}`, { method: "PATCH", body: data }));
+    } else {
+      set((state) => ({ controls: state.controls.map((c) => (c.id === id ? { ...c, ...data } : c)) }));
+      sync(() => api(`/api/controls/library/${id}`, { method: "PATCH", body: data }));
+    }
+  },
+  rejectEntity: (type, id) => {
+    const data = { approvalStatus: "REJECTED" as const };
+    if (type === "risk") {
+      set((state) => ({ risks: state.risks.map((r) => (r.id === id ? { ...r, ...data } : r)) }));
+      sync(() => api(`/api/risks/${id}`, { method: "PATCH", body: data }));
+    } else if (type === "action") {
+      set((state) => ({ actions: state.actions.map((a) => (a.id === id ? { ...a, ...data } : a)) }));
+      sync(() => api(`/api/actions/${id}`, { method: "PATCH", body: data }));
+    } else {
+      set((state) => ({ controls: state.controls.map((c) => (c.id === id ? { ...c, ...data } : c)) }));
+      sync(() => api(`/api/controls/library/${id}`, { method: "PATCH", body: data }));
+    }
   },
 
   // ── UI State ───────────────────────────────────────────────

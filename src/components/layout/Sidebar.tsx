@@ -26,8 +26,10 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import type { User, Role } from "@/lib/types";
+import type { User } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { usePermissionSet } from "@/lib/usePermission";
+import type { PermissionCode } from "@/lib/permissions";
 
 interface SidebarProps {
   currentUser: User;
@@ -38,18 +40,18 @@ interface SidebarProps {
 
 const ROB_EMAIL = "rob@updraft.com";
 
-const NAV_ITEMS: { label: string; href: string; icon: typeof LayoutDashboard; roles: Role[]; badgeKey?: string }[] = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard, roles: ["CCRO_TEAM", "OWNER", "VIEWER"], badgeKey: "dashboard" },
-  { label: "Actions", href: "/actions", icon: ListChecks, roles: ["CCRO_TEAM", "OWNER", "VIEWER"], badgeKey: "actions" },
-  { label: "Audit Trail", href: "/audit", icon: ClipboardList, roles: ["CCRO_TEAM"] },
-  { label: "Consumer Duty", href: "/consumer-duty", icon: ShieldCheck, roles: ["CCRO_TEAM", "OWNER", "VIEWER"] },
-  { label: "Controls Testing", href: "/controls", icon: FlaskConical, roles: ["CCRO_TEAM", "OWNER"], badgeKey: "controls" },
-  { label: "Policies", href: "/policies", icon: BookOpen, roles: ["CCRO_TEAM", "OWNER", "VIEWER"] },
-  { label: "Reports", href: "/reports", icon: FileText, roles: ["CCRO_TEAM", "OWNER", "VIEWER"] },
-  { label: "Risk Acceptance", href: "/risk-acceptances", icon: ShieldQuestion, roles: ["CCRO_TEAM", "OWNER", "VIEWER"], badgeKey: "riskAcceptance" },
-  { label: "Risk Register", href: "/risk-register", icon: ShieldAlert, roles: ["CCRO_TEAM", "OWNER", "VIEWER"], badgeKey: "riskRegister" },
-  { label: "Settings", href: "/settings", icon: Settings, roles: ["CCRO_TEAM"] },
-  { label: "Users", href: "/users", icon: Users, roles: ["CCRO_TEAM"] },
+const NAV_ITEMS: { label: string; href: string; icon: typeof LayoutDashboard; permission: PermissionCode; badgeKey?: string }[] = [
+  { label: "Dashboard", href: "/", icon: LayoutDashboard, permission: "page:dashboard", badgeKey: "dashboard" },
+  { label: "Actions", href: "/actions", icon: ListChecks, permission: "page:actions", badgeKey: "actions" },
+  { label: "Audit Trail", href: "/audit", icon: ClipboardList, permission: "page:audit" },
+  { label: "Consumer Duty", href: "/consumer-duty", icon: ShieldCheck, permission: "page:consumer-duty" },
+  { label: "Controls Testing", href: "/controls", icon: FlaskConical, permission: "page:controls", badgeKey: "controls" },
+  { label: "Policies", href: "/policies", icon: BookOpen, permission: "page:policies" },
+  { label: "Reports", href: "/reports", icon: FileText, permission: "page:reports" },
+  { label: "Risk Acceptance", href: "/risk-acceptances", icon: ShieldQuestion, permission: "page:risk-acceptances", badgeKey: "riskAcceptance" },
+  { label: "Risk Register", href: "/risk-register", icon: ShieldAlert, permission: "page:risk-register", badgeKey: "riskRegister" },
+  { label: "Settings", href: "/settings", icon: Settings, permission: "page:settings" },
+  { label: "Users", href: "/users", icon: Users, permission: "page:users" },
 ];
 
 
@@ -66,12 +68,11 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
   const controls = useAppStore((s) => s.controls);
   const risks = useAppStore((s) => s.risks);
   const riskAcceptances = useAppStore((s) => s.riskAcceptances);
+  const permissionSet = usePermissionSet();
 
-  // Badge counts — role-aware, computed via useMemo to avoid infinite re-renders
-  // CCRO users see a single aggregated badge on Dashboard (total items needing review).
-  // Non-CCRO users see badges on individual section nav items.
+  // Badge counts — permission-aware
   const badges: Record<string, number> = useMemo(() => {
-    const isCCRO = currentUser.role === "CCRO_TEAM";
+    const canViewPending = permissionSet.has("can:view-pending");
     const isOwner = currentUser.role === "OWNER";
 
     const overdueActions = actions.filter((a) => {
@@ -81,7 +82,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
       return new Date(a.dueDate) < new Date();
     }).length;
 
-    const pendingControlChanges = isCCRO
+    const pendingControlChanges = canViewPending
       ? controls.reduce((n, c) => n + (c.changes ?? []).filter((ch) => ch.status === "PENDING").length, 0)
       : 0;
 
@@ -89,19 +90,17 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
       ["PROPOSED", "CCRO_REVIEW", "AWAITING_APPROVAL", "EXPIRED"].includes(ra.status)
     ).length;
 
-    const pendingRiskChanges = isCCRO
+    const pendingRiskChanges = canViewPending
       ? risks.reduce((n, r) => n + (r.changes ?? []).filter((ch) => ch.status === "PENDING").length, 0)
       : 0;
 
-    if (isCCRO) {
-      // Aggregate all review items onto the Dashboard badge
+    if (canViewPending) {
       const total = overdueActions + pendingControlChanges + riskAcceptance + pendingRiskChanges;
       return { dashboard: total } as Record<string, number>;
     }
 
-    // Non-CCRO: badges on individual sections
     return { actions: overdueActions, riskAcceptance } as Record<string, number>;
-  }, [actions, controls, risks, riskAcceptances, currentUser]);
+  }, [actions, controls, risks, riskAcceptances, currentUser, permissionSet]);
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -192,7 +191,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-0.5">
-        {NAV_ITEMS.filter((item) => item.roles.includes(currentUser.role)).map((item) => {
+        {NAV_ITEMS.filter((item) => permissionSet.has(item.permission)).map((item) => {
           const active = isActive(item.href);
           const Icon = item.icon;
           return (
