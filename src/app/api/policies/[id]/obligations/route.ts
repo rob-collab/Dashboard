@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
+import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody, generateReference } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const createSchema = z.object({
@@ -26,9 +26,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if ("error" in result) return result.error;
     const data = result.data;
 
-    // Generate obligation reference within policy scope
-    const existingCount = await prisma.policyObligation.count({ where: { policyId } });
-    const reference = `${policy.reference}-OBL-${String(existingCount + 1).padStart(2, "0")}`;
+    // Generate obligation reference (collision-safe)
+    const reference = await generateReference(`${policy.reference}-OBL-`, "policyObligation", "reference", 2);
 
     const obligation = await prisma.policyObligation.create({
       data: {

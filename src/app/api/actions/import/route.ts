@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse, getUserId } from "@/lib/api-helpers";
+import { prisma, jsonResponse, errorResponse, getUserId, generateReference } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 interface ImportRow {
@@ -178,12 +178,6 @@ export async function POST(request: NextRequest) {
   let updatedCount = 0;
   let createdCount = 0;
 
-  // Get the last action reference for generating new references
-  const lastAction = await prisma.action.findFirst({ orderBy: { reference: "desc" } });
-  let nextActionNum = lastAction?.reference
-    ? parseInt(lastAction.reference.replace("ACT-", ""), 10) + 1
-    : 1;
-
   for (const result of results) {
     if (result.errors.length > 0) continue;
 
@@ -193,8 +187,7 @@ export async function POST(request: NextRequest) {
                        userByEmail.get(result.newAction.assignedTo.toLowerCase());
       if (!assignee) continue;
 
-      const reference = `ACT-${String(nextActionNum).padStart(3, "0")}`;
-      nextActionNum++;
+      const reference = await generateReference("ACT-", "action");
 
       await prisma.action.create({
         data: {

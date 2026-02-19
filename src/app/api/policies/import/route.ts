@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
+import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody, generateReference } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const importSchema = z.object({
@@ -39,10 +39,6 @@ export async function POST(request: NextRequest) {
     const errors: string[] = [];
 
     if (type === "policies") {
-      // Get last reference
-      const lastPolicy = await prisma.policy.findFirst({ orderBy: { reference: "desc" } });
-      let nextNum = lastPolicy ? parseInt(lastPolicy.reference.replace("POL-", ""), 10) + 1 : 1;
-
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         if (!row.name || !row.description || !row.ownerId) {
@@ -50,7 +46,7 @@ export async function POST(request: NextRequest) {
           continue;
         }
         try {
-          const reference = `POL-${String(nextNum++).padStart(3, "0")}`;
+          const reference = await generateReference("POL-", "policy");
           await prisma.policy.create({
             data: {
               reference,
@@ -71,9 +67,6 @@ export async function POST(request: NextRequest) {
         }
       }
     } else if (type === "regulations") {
-      const lastReg = await prisma.regulation.findFirst({ orderBy: { reference: "desc" } });
-      let nextNum = lastReg ? parseInt(lastReg.reference.replace("REG-", ""), 10) + 1 : 1;
-
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         if (!row.name || !row.body || !row.type) {
@@ -81,7 +74,7 @@ export async function POST(request: NextRequest) {
           continue;
         }
         try {
-          const reference = row.reference || `REG-${String(nextNum++).padStart(3, "0")}`;
+          const reference = row.reference || await generateReference("REG-", "regulation");
           await prisma.regulation.upsert({
             where: { reference },
             update: {
@@ -114,9 +107,6 @@ export async function POST(request: NextRequest) {
       const policy = await prisma.policy.findUnique({ where: { id: policyId } });
       if (!policy) return errorResponse("Policy not found", 404);
 
-      const existingCount = await prisma.policyObligation.count({ where: { policyId } });
-      let oblNum = existingCount + 1;
-
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         if (!row.category || !row.description) {
@@ -124,7 +114,7 @@ export async function POST(request: NextRequest) {
           continue;
         }
         try {
-          const reference = `${policy.reference}-OBL-${String(oblNum++).padStart(2, "0")}`;
+          const reference = await generateReference(`${policy.reference}-OBL-`, "policyObligation", "reference", 2);
           await prisma.policyObligation.create({
             data: {
               policyId,

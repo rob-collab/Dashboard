@@ -200,6 +200,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
         {/* Header */}
         <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <div className="min-w-0 flex-1">
+            <p className="text-[10px] uppercase tracking-wider text-gray-400 font-medium mb-0.5">Risk Register {risk && !isNew ? `› ${risk.reference}` : ""}</p>
             <h2 className="text-lg font-poppins font-semibold text-gray-900 truncate">
               {isNew ? "Add New Risk" : `Edit: ${risk?.name ?? risk?.reference}`}
             </h2>

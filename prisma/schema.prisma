@@ -881,7 +881,7 @@ model PolicyObligation {
   id             String   @id @default(cuid())
   policyId       String
   policy         Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
-  reference      String
+  reference      String   @unique
   category       String
   description    String   @db.Text
   regulationRefs String[]

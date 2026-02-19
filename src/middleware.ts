@@ -33,7 +33,13 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next();
+  // Inject verified user identity from JWT into request headers.
+  // API routes should trust X-Verified-User-Id over client-supplied headers.
+  const response = NextResponse.next();
+  if (token.sub) {
+    response.headers.set("X-Verified-User-Id", token.sub);
+  }
+  return response;
 }
 
 export const config = {

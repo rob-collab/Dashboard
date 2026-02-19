@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse, getUserId } from "@/lib/api-helpers";
+import { prisma, jsonResponse, errorResponse, getUserId, generateReference } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 interface ImportRow {
@@ -165,10 +165,6 @@ export async function POST(request: NextRequest) {
   // Commit — create risks
   let createdCount = 0;
 
-  // Get last risk reference
-  const lastRisk = await prisma.risk.findFirst({ orderBy: { reference: "desc" } });
-  let nextNum = lastRisk ? parseInt(lastRisk.reference.replace("R", ""), 10) + 1 : 1;
-
   const now = new Date();
   const monthStart = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
 
@@ -191,8 +187,7 @@ export async function POST(request: NextRequest) {
       categories.find((c) => c.level === 2 && c.name.toLowerCase().includes(row.categoryL2.toLowerCase()))?.name ||
       row.categoryL2;
 
-    const reference = `R${String(nextNum).padStart(3, "0")}`;
-    nextNum++;
+    const reference = await generateReference("R", "risk");
 
     const risk = await prisma.risk.create({
       data: {

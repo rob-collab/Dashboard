@@ -293,7 +293,7 @@ export const useAppStore = create<AppState>((set) => ({
   },
   deleteOutcome: (id) => {
     set((state) => ({ outcomes: state.outcomes.filter((o) => o.id !== id) }));
-    // Outcome deletion would need a route; for now rely on cascade from report
+    sync(() => api(`/api/consumer-duty/outcomes/${id}`, { method: "DELETE" }));
   },
   addMeasure: (outcomeId, measure) => {
     set((state) => ({

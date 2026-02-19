@@ -174,6 +174,7 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
         <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
+              <p className="text-[10px] uppercase tracking-wider text-gray-400 font-medium mb-1">Risk Acceptances › {acceptance.reference}</p>
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-xs font-mono font-bold text-updraft-deep">{acceptance.reference}</span>
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColours.bg} ${statusColours.text}`}>

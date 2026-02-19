@@ -82,6 +82,7 @@ export default function PolicyDetailPanel({ policy, onClose, onUpdate }: Props) 
             </svg>
           </div>
 
+          <p className="text-[10px] uppercase tracking-wider text-white/50 font-medium mb-2">Policy Review › {policy.reference}</p>
           <div className="relative flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
               <span className="font-mono text-xs font-bold rounded-md bg-white/20 text-white px-2.5 py-1">{policy.reference}</span>

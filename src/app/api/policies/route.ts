@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody, validateQuery } from "@/lib/api-helpers";
+import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody, validateQuery, generateReference } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const POLICY_INCLUDE = {
@@ -73,12 +73,8 @@ export async function POST(request: NextRequest) {
     if ("error" in result) return result.error;
     const data = result.data;
 
-    // Generate next reference
-    const lastPolicy = await prisma.policy.findFirst({ orderBy: { reference: "desc" } });
-    const nextNum = lastPolicy
-      ? parseInt(lastPolicy.reference.replace("POL-", ""), 10) + 1
-      : 1;
-    const reference = `POL-${String(nextNum).padStart(3, "0")}`;
+    // Generate next reference (collision-safe)
+    const reference = await generateReference("POL-", "policy");
 
     const policy = await prisma.policy.create({
       data: {

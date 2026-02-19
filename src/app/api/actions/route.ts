@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse, getUserId, validateQuery, validateBody } from "@/lib/api-helpers";
+import { prisma, jsonResponse, errorResponse, getUserId, validateQuery, validateBody, generateReference } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 import { sendActionAssigned } from "@/lib/email";
 import { ActionQuerySchema, CreateActionSchema } from "@/lib/schemas/actions";
@@ -55,12 +55,8 @@ export async function POST(request: NextRequest) {
   const creator = await prisma.user.findUnique({ where: { id: userId } });
   if (!creator) return errorResponse(`Current user not found in DB: ${userId}`, 404);
 
-  // Auto-generate action reference
-  const lastAction = await prisma.action.findFirst({ orderBy: { reference: "desc" } });
-  const nextNum = lastAction?.reference
-    ? parseInt(lastAction.reference.replace("ACT-", ""), 10) + 1
-    : 1;
-  const reference = `ACT-${String(nextNum).padStart(3, "0")}`;
+  // Auto-generate action reference (collision-safe)
+  const reference = await generateReference("ACT-", "action");
 
   const action = await prisma.action.create({
     data: {

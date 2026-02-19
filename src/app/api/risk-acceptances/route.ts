@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, getUserId, jsonResponse, errorResponse, validateBody, validateQuery } from "@/lib/api-helpers";
+import { prisma, getUserId, jsonResponse, errorResponse, validateBody, validateQuery, generateReference } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const querySchema = z.object({
@@ -73,12 +73,8 @@ export async function POST(request: NextRequest) {
     if ("error" in result) return result.error;
     const data = result.data;
 
-    // Generate next reference number
-    const lastAcceptance = await prisma.riskAcceptance.findFirst({ orderBy: { reference: "desc" } });
-    const nextNum = lastAcceptance
-      ? parseInt(lastAcceptance.reference.replace("RA-", ""), 10) + 1
-      : 1;
-    const reference = `RA-${String(nextNum).padStart(3, "0")}`;
+    // Generate next reference number (collision-safe)
+    const reference = await generateReference("RA-", "riskAcceptance");
 
     const acceptance = await prisma.riskAcceptance.create({
       data: {

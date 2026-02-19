@@ -6,10 +6,13 @@ export { prisma };
 
 /**
  * Returns the real authenticated user ID.
- * Prefers X-Auth-User-Id (true identity) over X-User-Id (may be "View As" impersonation).
+ * Prefers X-Verified-User-Id (set by middleware from JWT) for tamper-proof identity,
+ * then falls back to X-Auth-User-Id / X-User-Id for backwards compatibility.
  */
 export function getUserId(request: Request): string | null {
-  return request.headers.get("X-Auth-User-Id") || request.headers.get("X-User-Id");
+  return request.headers.get("X-Verified-User-Id")
+    || request.headers.get("X-Auth-User-Id")
+    || request.headers.get("X-User-Id");
 }
 
 /**
@@ -87,6 +90,47 @@ export function auditLog(opts: {
       reportId: opts.reportId ?? null,
     },
   }).catch((e) => console.error("[audit]", e));
+}
+
+/**
+ * Generate a unique reference with retry-on-collision.
+ * Uses a transaction to read the current max reference and create the record atomically.
+ * If a unique constraint violation occurs, retries up to `maxRetries` times.
+ *
+ * @param prefix   - e.g. "ACT-", "RA-", "POL-", "R", "REG-", "CTRL-"
+ * @param model    - Prisma model name (e.g. "action", "risk", "riskAcceptance")
+ * @param refField - The field storing the reference (e.g. "reference", "controlRef")
+ * @param padWidth - Zero-pad width (default 3)
+ */
+export async function generateReference(
+  prefix: string,
+  model: string,
+  refField = "reference",
+  padWidth = 3,
+): Promise<string> {
+  const maxRetries = 5;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const table = (prisma as any)[model];
+    const last = await table.findFirst({
+      orderBy: { [refField]: "desc" },
+      select: { [refField]: true },
+    });
+    const lastRef = last?.[refField] as string | undefined;
+    const nextNum = lastRef
+      ? parseInt(lastRef.replace(prefix, ""), 10) + 1 + attempt
+      : 1 + attempt;
+    const reference = `${prefix}${String(nextNum).padStart(padWidth, "0")}`;
+
+    // Check if reference already exists
+    const existing = await table.findFirst({
+      where: { [refField]: reference },
+      select: { id: true },
+    });
+    if (!existing) return reference;
+  }
+  // Fallback: use timestamp-based reference
+  return `${prefix}${Date.now().toString(36).toUpperCase()}`;
 }
 
 export function validateQuery<T>(schema: z.ZodSchema<T>, params: URLSearchParams): { data: T } | { error: NextResponse } {

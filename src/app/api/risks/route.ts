@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, getUserId, jsonResponse, errorResponse, validateBody, validateQuery } from "@/lib/api-helpers";
+import { prisma, getUserId, jsonResponse, errorResponse, validateBody, validateQuery, generateReference } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const querySchema = z.object({
@@ -74,10 +74,8 @@ export async function POST(request: NextRequest) {
     if ("error" in result) return result.error;
     const { controls, mitigations, ...data } = result.data;
 
-    // Generate next reference number
-    const lastRisk = await prisma.risk.findFirst({ orderBy: { reference: "desc" } });
-    const nextNum = lastRisk ? parseInt(lastRisk.reference.replace("R", ""), 10) + 1 : 1;
-    const reference = `R${String(nextNum).padStart(3, "0")}`;
+    // Generate next reference number (collision-safe)
+    const reference = await generateReference("R", "risk");
 
     // Map mitigation status to action status
     const mitigationToActionStatus = (ms: string): "OPEN" | "IN_PROGRESS" | "COMPLETED" => {
@@ -121,19 +119,13 @@ export async function POST(request: NextRequest) {
 
       // Auto-create linked Actions for each mitigation
       if (risk.mitigations.length > 0) {
-        const lastAction = await tx.action.findFirst({ orderBy: { reference: "desc" } });
-        let actionNum = lastAction?.reference
-          ? parseInt(lastAction.reference.replace("ACT-", ""), 10) + 1
-          : 1;
-
         for (const mit of risk.mitigations) {
           let assigneeId = userId;
           if (mit.owner) {
             const ownerUser = await tx.user.findFirst({ where: { name: { equals: mit.owner, mode: "insensitive" } } });
             if (ownerUser) assigneeId = ownerUser.id;
           }
-          const actionRef = `ACT-${String(actionNum).padStart(3, "0")}`;
-          actionNum++;
+          const actionRef = await generateReference("ACT-", "action");
           const linkedAction = await tx.action.create({
             data: {
               title: mit.action,

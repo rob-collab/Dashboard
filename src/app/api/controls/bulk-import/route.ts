@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma, requireCCRORole, jsonResponse, errorResponse } from "@/lib/api-helpers";
+import { prisma, requireCCRORole, jsonResponse, errorResponse, generateReference } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 /* ------------------------------------------------------------------ */
@@ -141,14 +141,6 @@ export async function POST(request: NextRequest) {
     const userByEmail = new Map(allUsers.map((u) => [u.email.toLowerCase(), u]));
     const areaByName = new Map(allAreas.map((a) => [a.name.toLowerCase(), a]));
 
-    // Determine next CTRL-NNN
-    const lastCtrl = await prisma.control.findFirst({ orderBy: { controlRef: "desc" } });
-    let nextNum = 1;
-    if (lastCtrl) {
-      const m = lastCtrl.controlRef.match(/CTRL-(\d+)/);
-      if (m) nextNum = parseInt(m[1], 10) + 1;
-    }
-
     // Validate all rows first
     const errors: RowError[] = [];
     const validatedRows: {
@@ -165,7 +157,6 @@ export async function POST(request: NextRequest) {
       assignedTesterId: string | null;
       summaryOfTest: string | null;
       testResults: { year: number; month: number; result: string; notes: string | null }[];
-      controlRef: string;
     }[] = [];
 
     for (let r = 0; r < dataRows.length; r++) {
@@ -254,8 +245,6 @@ export async function POST(request: NextRequest) {
         errors.push({ row: rowNum, field: "Testing Frequency", message: "Testing schedule fields are required when test results are provided" });
       }
 
-      const controlRef = `CTRL-${String(nextNum + r).padStart(3, "0")}`;
-
       validatedRows.push({
         controlName,
         controlDescription,
@@ -270,7 +259,6 @@ export async function POST(request: NextRequest) {
         assignedTesterId: testerEmail ? (userByEmail.get(testerEmail.toLowerCase())?.id ?? "") : null,
         summaryOfTest,
         testResults,
-        controlRef,
       });
     }
 
@@ -280,8 +268,8 @@ export async function POST(request: NextRequest) {
         valid: errors.length === 0,
         rowCount: dataRows.length,
         errors,
-        controls: validatedRows.map((r) => ({
-          controlRef: r.controlRef,
+        controls: validatedRows.map((r, idx) => ({
+          controlRef: `CTRL-${String(idx + 1).padStart(3, "0")}`,
           controlName: r.controlName,
           businessArea: dataRows[validatedRows.indexOf(r)]?.[iArea]?.trim(),
           testResultCount: r.testResults.length,
@@ -319,10 +307,13 @@ export async function POST(request: NextRequest) {
     const createdControls = [];
 
     for (const row of validatedRows) {
+      // Generate collision-safe reference at creation time
+      const controlRef = await generateReference("CTRL-", "control", "controlRef");
+
       // Create control
       const control = await prisma.control.create({
         data: {
-          controlRef: row.controlRef,
+          controlRef,
           controlName: row.controlName,
           controlDescription: row.controlDescription,
           businessAreaId: row.businessAreaId,
