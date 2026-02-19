@@ -7,6 +7,7 @@ import { Toaster } from "sonner";
 import { SessionProvider, useSession } from "@/lib/auth";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import { ScrollToTop } from "@/components/common/ScrollToTop";
 import { useAppStore } from "@/lib/store";
 import type { User } from "@/lib/types";
 
@@ -119,6 +120,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
             </Suspense>
           </ErrorBoundary>
         </main>
+        <ScrollToTop />
       </div>
     </>
   );

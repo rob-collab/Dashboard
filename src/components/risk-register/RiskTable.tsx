@@ -6,7 +6,9 @@ import { useAppStore } from "@/lib/store";
 import { L1_CATEGORY_COLOURS, L1_CATEGORIES as FALLBACK_L1, getRiskScore } from "@/lib/risk-categories";
 import ScoreBadge from "./ScoreBadge";
 import DirectionArrow from "./DirectionArrow";
-import { ChevronUp, ChevronDown, Search, Filter } from "lucide-react";
+import { EmptyState } from "@/components/common/EmptyState";
+import { formatDateShort } from "@/lib/utils";
+import { ChevronUp, ChevronDown, Search, Filter, ShieldAlert } from "lucide-react";
 
 type SortField = "reference" | "name" | "categoryL1" | "owner" | "inherent" | "residual" | "direction" | "lastReviewed";
 type SortDir = "asc" | "desc";
@@ -204,15 +206,19 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
                     <DirectionArrow direction={risk.directionOfTravel} />
                   </td>
                   <td className="px-3 py-3 text-gray-500 text-xs">
-                    {new Date(risk.lastReviewed).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                    {formatDateShort(risk.lastReviewed)}
                   </td>
                 </tr>
               );
             })}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-3 py-8 text-center text-gray-400">
-                  No risks match the current filters.
+                <td colSpan={8}>
+                  <EmptyState
+                    icon={<ShieldAlert className="h-7 w-7" />}
+                    heading={risks.length === 0 ? "No risks registered" : "No risks match the current filters"}
+                    description={risks.length === 0 ? "Add your first risk to begin building the risk register." : "Try adjusting the search or filter criteria."}
+                  />
                 </td>
               </tr>
             )}

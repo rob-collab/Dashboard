@@ -9,7 +9,7 @@ import RiskHeatmap from "@/components/risk-register/RiskHeatmap";
 import RiskTable from "@/components/risk-register/RiskTable";
 import RiskDetailPanel from "@/components/risk-register/RiskDetailPanel";
 import RiskHistoryChart from "@/components/risk-register/RiskHistoryChart";
-import { Grid3X3, List, Plus, Download, Upload, ShieldAlert, TrendingDown, TrendingUp, FileText, Bell } from "lucide-react";
+import { Grid3X3, List, Plus, Download, Upload, ShieldAlert, TrendingDown, TrendingUp, FileText, Bell, Search } from "lucide-react";
 import { api } from "@/lib/api-client";
 import RiskCSVUploadDialog from "@/components/risk-register/RiskCSVUploadDialog";
 
@@ -35,6 +35,7 @@ export default function RiskRegisterPage() {
   // Filter state
   const [cardFilter, setCardFilter] = useState<CardFilter>("ALL");
   const [activeCategoryL1, setActiveCategoryL1] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // History chart state
   const [historyRisk, setHistoryRisk] = useState<Risk | null>(null);
@@ -107,8 +108,21 @@ export default function RiskRegisterPage() {
       result = result.filter((r) => r.categoryL1 === activeCategoryL1);
     }
 
+    // Text search
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((r) =>
+        r.reference.toLowerCase().includes(q) ||
+        r.name.toLowerCase().includes(q) ||
+        r.description.toLowerCase().includes(q) ||
+        r.categoryL1.toLowerCase().includes(q) ||
+        r.categoryL2.toLowerCase().includes(q) ||
+        (r.riskOwner?.name ?? "").toLowerCase().includes(q)
+      );
+    }
+
     return result;
-  }, [risks, cardFilter, activeCategoryL1, effectiveMode]);
+  }, [risks, cardFilter, activeCategoryL1, effectiveMode, searchQuery]);
 
   const handleCardClick = useCallback((filter: CardFilter) => {
     setCardFilter((prev) => (prev === filter ? "ALL" : filter));
@@ -500,6 +514,18 @@ export default function RiskRegisterPage() {
             </button>
           )}
         </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search risks by reference, name, description, category, or owner..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm text-gray-700 placeholder:text-gray-400 focus:border-updraft-bright-purple focus:outline-none focus:ring-1 focus:ring-updraft-bright-purple/30"
+        />
       </div>
 
       {/* Summary Cards */}

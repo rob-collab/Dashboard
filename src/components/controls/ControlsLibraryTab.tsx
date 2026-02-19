@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   Clock,
   Upload,
+  Download,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import type {
@@ -241,6 +242,27 @@ export default function ControlsLibraryTab() {
   // ── Active areas for the filter ────────────────────────────
   const activeAreas = controlBusinessAreas.filter((a) => a.isActive);
 
+  // ── CSV Export ───────────────────────────────────────────────
+  function handleExportCSV() {
+    const headers = ["Ref", "Name", "Description", "Business Area", "Owner", "CD Outcome", "Frequency", "Type", "Internal/3rd Party", "Active"];
+    const rows = filtered.map((c) => [
+      c.controlRef, c.controlName, c.controlDescription,
+      areaName(c.businessAreaId), ownerName(c.controlOwnerId),
+      CD_OUTCOME_LABELS[c.consumerDutyOutcome] ?? c.consumerDutyOutcome,
+      CONTROL_FREQUENCY_LABELS[c.controlFrequency] ?? c.controlFrequency,
+      c.controlType ? (CONTROL_TYPE_LABELS[c.controlType] ?? c.controlType) : "",
+      c.internalOrThirdParty ?? "", c.isActive ? "Active" : "Archived",
+    ]);
+    const csv = [headers, ...rows].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `controls-library-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="space-y-4">
       {/* ── Header ──────────────────────────────────────────── */}
@@ -248,8 +270,16 @@ export default function ControlsLibraryTab() {
         <h2 className="text-xl font-semibold font-poppins text-updraft-deep">
           Controls Library
         </h2>
-        {isCCRO && (
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportCSV}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colours"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </button>
+          {isCCRO && (
+            <>
             <button
               onClick={() => setShowImportDialog(true)}
               className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colours"
@@ -267,8 +297,9 @@ export default function ControlsLibraryTab() {
               <Plus className="h-4 w-4" />
               Add Control
             </button>
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
       {/* ── Filters ─────────────────────────────────────────── */}

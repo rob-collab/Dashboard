@@ -6,7 +6,8 @@ import { useAppStore } from "@/lib/store";
 import { toast } from "sonner";
 import { formatDate, cn } from "@/lib/utils";
 import { getRiskScore, calculateBreach } from "@/lib/risk-categories";
-import { ChevronRight, Download, Plus, Search, ShieldQuestion, AlertTriangle, Clock, Check } from "lucide-react";
+import { ChevronRight, Download, Plus, Search, ShieldQuestion, AlertTriangle, Clock, Check, ShieldOff } from "lucide-react";
+import { EmptyState } from "@/components/common/EmptyState";
 import ScoreBadge from "@/components/risk-register/ScoreBadge";
 import RiskAcceptanceFormDialog from "@/components/risk-acceptances/RiskAcceptanceFormDialog";
 import RiskAcceptanceDetailPanel from "@/components/risk-acceptances/RiskAcceptanceDetailPanel";
@@ -342,7 +343,15 @@ export default function RiskAcceptancesPage() {
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={9} className="py-12 text-center text-sm text-gray-400">No risk acceptances found</td></tr>
+                <tr>
+                  <td colSpan={9}>
+                    <EmptyState
+                      icon={<ShieldOff className="h-7 w-7" />}
+                      heading={riskAcceptances.length === 0 ? "No risk acceptances" : "No acceptances match your filters"}
+                      description={riskAcceptances.length === 0 ? "Propose a risk acceptance to begin the approval workflow." : "Try adjusting the search or status filter."}
+                    />
+                  </td>
+                </tr>
               )}
               {filtered.map((ra) => {
                 const risk = ra.risk ?? risks.find((r) => r.id === ra.riskId);

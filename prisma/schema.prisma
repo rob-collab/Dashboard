@@ -201,6 +201,7 @@ model ConsumerDutyOutcome {
   riskAcceptances RiskAcceptance[]
 
   @@unique([reportId, outcomeId])
+  @@index([reportId])
   @@map("consumer_duty_outcomes")
 }
 
@@ -660,6 +661,7 @@ model Control {
 
   @@index([businessAreaId])
   @@index([controlOwnerId])
+  @@index([businessAreaId, isActive])
   @@map("controls_library")
 }
 
