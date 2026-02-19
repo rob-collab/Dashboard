@@ -11,6 +11,7 @@ import RiskDetailPanel from "@/components/risk-register/RiskDetailPanel";
 import RiskHistoryChart from "@/components/risk-register/RiskHistoryChart";
 import { Grid3X3, List, Plus, Download, Upload, ShieldAlert, TrendingDown, TrendingUp, FileText, Bell, Search } from "lucide-react";
 import { api } from "@/lib/api-client";
+import { toast } from "sonner";
 import RiskCSVUploadDialog from "@/components/risk-register/RiskCSVUploadDialog";
 
 type ViewTab = "heatmap" | "table";
@@ -452,7 +453,7 @@ export default function RiskRegisterPage() {
       const refreshed = await api<Risk[]>("/api/risks");
       setRisks(refreshed);
     } catch {
-      // Fallback: keep current state
+      toast.error("Failed to refresh risks after import");
     }
   }, [setRisks]);
 
@@ -471,7 +472,7 @@ export default function RiskRegisterPage() {
       {/* Page Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-poppins font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-2xl font-poppins font-bold text-updraft-deep flex items-center gap-2">
             <ShieldAlert className="w-7 h-7 text-updraft-deep" />
             Risk Register
           </h1>

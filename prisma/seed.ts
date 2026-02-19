@@ -362,6 +362,29 @@ async function main() {
   }
   console.log(`  ✓ ${RA_SEED.length} risk acceptances`);
 
+  // Link some existing actions to risk acceptances
+  const existingActions = await prisma.action.findMany({ take: 6, orderBy: { reference: "asc" } });
+  if (existingActions.length >= 3) {
+    // RA-001 (EXPIRED) — link 2 actions (monitoring-related)
+    await prisma.riskAcceptance.update({
+      where: { id: "ra-001" },
+      data: { linkedActionIds: [existingActions[0].id, existingActions[1].id] },
+    });
+    // RA-005 (APPROVED) — link 1 action
+    await prisma.riskAcceptance.update({
+      where: { id: "ra-005" },
+      data: { linkedActionIds: [existingActions[2].id] },
+    });
+    // RA-006 (APPROVED) — link 2 actions
+    if (existingActions.length >= 5) {
+      await prisma.riskAcceptance.update({
+        where: { id: "ra-006" },
+        data: { linkedActionIds: [existingActions[3].id, existingActions[4].id] },
+      });
+    }
+    console.log("  ✓ Linked actions to risk acceptances");
+  }
+
   // Risk Acceptance Comments
   const RA_COMMENTS: { id: string; acceptanceId: string; userId: string; content: string; createdAt: Date }[] = [
     { id: "rac-001", acceptanceId: "ra-001", userId: "user-rob", content: "Impairment provisioning has been increased by 15% as a precautionary measure.", createdAt: new Date("2025-09-10") },

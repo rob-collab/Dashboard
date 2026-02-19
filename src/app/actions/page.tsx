@@ -31,6 +31,7 @@ import { useAppStore } from "@/lib/store";
 import { cn, formatDateShort } from "@/lib/utils";
 import type { Action, ActionStatus, ActionPriority } from "@/lib/types";
 import { api } from "@/lib/api-client";
+import { toast } from "sonner";
 import ActionFormDialog from "@/components/actions/ActionFormDialog";
 import ActionChangePanel from "@/components/actions/ActionChangePanel";
 import ActionCSVUploadDialog from "@/components/actions/ActionCSVUploadDialog";
@@ -302,7 +303,7 @@ function ActionsPageContent() {
       const refreshed = await api<Action[]>("/api/actions");
       setActions(refreshed);
     } catch {
-      // Fallback: keep current state
+      toast.error("Failed to refresh actions after import");
     }
   }, [setActions]);
 

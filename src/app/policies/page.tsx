@@ -152,7 +152,9 @@ export default function PoliciesPage() {
     try {
       const fresh = await api<Policy[]>("/api/policies");
       setPolicies(fresh);
-    } catch { /* ignore */ }
+    } catch {
+      toast.error("Failed to refresh policies after import");
+    }
   }
 
   if (!hydrated) {
@@ -370,7 +372,9 @@ export default function PoliciesPage() {
                   <td className="py-3 px-3">
                     <span className={cn("inline-block w-2.5 h-2.5 rounded-full", dotColour)} />
                   </td>
-                  <td className="py-3 px-3 font-mono text-xs font-bold text-updraft-deep">{p.reference}</td>
+                  <td className="py-3 px-3">
+                    <span className="inline-flex items-center rounded bg-updraft-pale-purple/30 px-1.5 py-0.5 font-mono text-xs font-bold text-updraft-deep">{p.reference}</span>
+                  </td>
                   <td className="py-3 px-3 text-sm text-gray-800 max-w-[200px] truncate">{p.name}</td>
                   <td className="py-3 px-3 text-xs text-gray-600">{owner?.name ?? "—"}</td>
                   <td className="py-3 px-3">

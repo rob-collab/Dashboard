@@ -185,7 +185,11 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
                   onClick={() => onRiskClick(risk)}
                   className="hover:bg-updraft-pale-purple/10 cursor-pointer transition-colors"
                 >
-                  <td className="px-3 py-3 font-mono font-bold text-updraft-deep">{risk.reference}</td>
+                  <td className="px-3 py-3">
+                    <span className="inline-flex items-center rounded bg-updraft-pale-purple/30 px-1.5 py-0.5 font-mono text-xs font-bold text-updraft-deep">
+                      {risk.reference}
+                    </span>
+                  </td>
                   <td className="px-3 py-3 font-medium text-gray-800">{risk.name}</td>
                   <td className="px-3 py-3">
                     <span

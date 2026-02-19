@@ -367,7 +367,7 @@ export default function RiskAcceptancesPage() {
                     className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
                   >
                     <td className="py-3 px-3">
-                      <p className="font-mono text-xs font-bold text-updraft-deep">{ra.reference}</p>
+                      <span className="inline-flex items-center rounded bg-updraft-pale-purple/30 px-1.5 py-0.5 font-mono text-xs font-bold text-updraft-deep">{ra.reference}</span>
                       <p className="text-sm text-gray-800 truncate max-w-[200px]">{ra.title}</p>
                     </td>
                     <td className="py-3 px-3">
