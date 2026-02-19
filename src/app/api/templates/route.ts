@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse, requireCCRORole, validateBody } from "@/lib/api-helpers";
+import { prisma, jsonResponse, errorResponse, requireCCRORole, validateBody, auditLog } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 import { CreateTemplateSchema } from "@/lib/schemas/templates";
 
@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
       },
       include: { creator: true },
     });
+    auditLog({ userId, action: "create_template", entityType: "template", entityId: template.id, changes: { name: data.name } });
     return jsonResponse(serialiseDates(template), 201);
   } catch (error) {
     console.error('[API Error]', error);

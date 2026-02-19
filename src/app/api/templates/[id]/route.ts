@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse, requireCCRORole, validateBody } from "@/lib/api-helpers";
+import { prisma, jsonResponse, errorResponse, requireCCRORole, validateBody, auditLog } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 import { UpdateTemplateSchema } from "@/lib/schemas/templates";
 
@@ -36,6 +36,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       data,
       include: { creator: true },
     });
+    auditLog({ userId: authResult.userId, action: "update_template", entityType: "template", entityId: id, changes: data as Record<string, unknown> });
     return jsonResponse(serialiseDates(template));
   } catch (error) {
     console.error('[API Error]', error);
@@ -49,6 +50,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     const authResult = await requireCCRORole(_req);
     if ('error' in authResult) return authResult.error;
     await prisma.template.delete({ where: { id } });
+    auditLog({ userId: authResult.userId, action: "delete_template", entityType: "template", entityId: id });
     return jsonResponse({ deleted: true });
   } catch (error) {
     console.error('[API Error]', error);

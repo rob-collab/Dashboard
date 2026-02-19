@@ -165,7 +165,21 @@ export async function PATCH(
       }).catch((e) => console.error("[audit]", e));
     }
 
-    // Handle field edits (non-transition)
+    // Handle field edits (non-transition) — require authorisation
+    const hasFieldEdits = Object.keys(fieldUpdates).some(
+      (k) => fieldUpdates[k as keyof typeof fieldUpdates] !== undefined
+    );
+    if (hasFieldEdits && !transition) {
+      const editUser = await prisma.user.findUnique({ where: { id: authUserId ?? userId }, select: { role: true } });
+      const isEditCCRO = editUser?.role === "CCRO_TEAM";
+      const isProposer = existing.proposerId === (authUserId ?? userId);
+      const editableStatuses = ["PROPOSED", "RETURNED"];
+
+      if (!isEditCCRO && !(isProposer && editableStatuses.includes(existing.status))) {
+        return errorResponse("Only CCRO or the original proposer (in PROPOSED/RETURNED status) can edit fields", 403);
+      }
+    }
+
     if (fieldUpdates.title !== undefined) updateData.title = fieldUpdates.title;
     if (fieldUpdates.description !== undefined) updateData.description = fieldUpdates.description;
     if (fieldUpdates.proposedRationale !== undefined) updateData.proposedRationale = fieldUpdates.proposedRationale;

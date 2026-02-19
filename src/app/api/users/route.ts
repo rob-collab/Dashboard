@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
+import { prisma, jsonResponse, errorResponse, validateBody, requireCCRORole } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 import { CreateUserSchema } from "@/lib/schemas/users";
 
@@ -21,6 +21,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireCCRORole(request);
+    if ("error" in auth) return auth.error;
+
     const body = await request.json();
     const validation = validateBody(CreateUserSchema, body);
     if ('error' in validation) return validation.error;

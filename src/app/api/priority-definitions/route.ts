@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse } from "@/lib/api-helpers";
+import { prisma, jsonResponse, errorResponse, requireCCRORole } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 export async function GET() {
@@ -19,6 +19,9 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
+    const auth = await requireCCRORole(request);
+    if ("error" in auth) return auth.error;
+
     const body = await request.json();
     const { code, label, description } = body;
 

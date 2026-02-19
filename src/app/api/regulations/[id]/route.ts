@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, getUserId, requireCCRORole, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
+import { prisma, getUserId, requireCCRORole, jsonResponse, errorResponse, validateBody, auditLog } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const updateSchema = z.object({
@@ -51,6 +51,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       include: { _count: { select: { policyLinks: true } } },
     });
 
+    auditLog({ userId: auth.userId, action: "update_regulation", entityType: "regulation", entityId: id, changes: result.data as Record<string, unknown> });
     return jsonResponse(serialiseDates(updated));
   } catch (err) {
     console.error("[PATCH /api/regulations/[id]]", err);
@@ -74,6 +75,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
 
     await prisma.regulation.delete({ where: { id } });
+    auditLog({ userId: auth.userId, action: "delete_regulation", entityType: "regulation", entityId: id, changes: { reference: existing.reference, name: existing.name } });
     return jsonResponse({ success: true });
   } catch (err) {
     console.error("[DELETE /api/regulations/[id]]", err);

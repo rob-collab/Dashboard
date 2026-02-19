@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
+import { prisma, jsonResponse, errorResponse, validateBody, getUserId } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 import { UpdateReportSchema } from "@/lib/schemas/reports";
 
@@ -35,6 +35,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
 export async function PATCH(request: NextRequest, { params }: Params) {
   try {
+    const userId = getUserId(request);
+    if (!userId) return errorResponse("Unauthorised", 401);
+
     const { id } = await params;
     const body = await request.json();
     const validation = validateBody(UpdateReportSchema, body);
@@ -53,8 +56,11 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(request: NextRequest, { params }: Params) {
   try {
+    const userId = getUserId(request);
+    if (!userId) return errorResponse("Unauthorised", 401);
+
     const { id } = await params;
     await prisma.report.delete({ where: { id } });
     return jsonResponse({ deleted: true });

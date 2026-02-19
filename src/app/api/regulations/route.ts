@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
+import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody, auditLog } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const createSchema = z.object({
@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
       include: { _count: { select: { policyLinks: true } } },
     });
 
+    auditLog({ userId: auth.userId, action: "create_regulation", entityType: "regulation", entityId: regulation.id, changes: { reference, name: data.name } });
     return jsonResponse(serialiseDates(regulation), 201);
   } catch (err) {
     console.error("[POST /api/regulations]", err);

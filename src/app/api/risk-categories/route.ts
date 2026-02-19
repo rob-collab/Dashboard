@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse } from "@/lib/api-helpers";
+import { prisma, jsonResponse, errorResponse, requireCCRORole } from "@/lib/api-helpers";
+import { serialiseDates } from "@/lib/serialise";
 
 export async function GET() {
   try {
@@ -12,7 +13,7 @@ export async function GET() {
       },
       orderBy: { name: "asc" },
     });
-    return jsonResponse(categories);
+    return jsonResponse(serialiseDates(categories));
   } catch (error) {
     console.error("[GET /api/risk-categories]", error);
     return errorResponse(
@@ -24,6 +25,9 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
+    const auth = await requireCCRORole(request);
+    if ("error" in auth) return auth.error;
+
     const body = await request.json();
     const { id, name, definition } = body;
 
@@ -39,7 +43,7 @@ export async function PUT(request: NextRequest) {
       },
     });
 
-    return jsonResponse(updated);
+    return jsonResponse(serialiseDates(updated));
   } catch (error) {
     console.error("[PUT /api/risk-categories]", error);
     return errorResponse(
@@ -51,6 +55,9 @@ export async function PUT(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireCCRORole(request);
+    if ("error" in auth) return auth.error;
+
     const body = await request.json();
     const { parentId, name, definition } = body;
 
@@ -78,7 +85,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return jsonResponse(category, 201);
+    return jsonResponse(serialiseDates(category), 201);
   } catch (error) {
     console.error("[POST /api/risk-categories]", error);
     return errorResponse(
@@ -90,6 +97,9 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const auth = await requireCCRORole(request);
+    if ("error" in auth) return auth.error;
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 

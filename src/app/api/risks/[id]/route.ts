@@ -87,97 +87,93 @@ export async function PATCH(
       }
     }
 
-    // Update risk
+    // Update risk + controls + mitigations atomically
     const updateData: Record<string, unknown> = { ...data, updatedBy: userId };
     if (data.lastReviewed) updateData.lastReviewed = new Date(data.lastReviewed);
 
-    // Handle controls replacement
-    if (controls) {
-      await prisma.riskControl.deleteMany({ where: { riskId: id } });
-      await prisma.riskControl.createMany({
-        data: controls.map((c, i) => ({
-          riskId: id,
-          description: c.description,
-          controlOwner: c.controlOwner ?? null,
-          sortOrder: c.sortOrder ?? i,
-        })),
-      });
-    }
+    const risk = await prisma.$transaction(async (tx) => {
+      // Handle controls replacement
+      if (controls) {
+        await tx.riskControl.deleteMany({ where: { riskId: id } });
+        await tx.riskControl.createMany({
+          data: controls.map((c, i) => ({
+            riskId: id,
+            description: c.description,
+            controlOwner: c.controlOwner ?? null,
+            sortOrder: c.sortOrder ?? i,
+          })),
+        });
+      }
 
-    // Handle mitigations replacement with linked action sync
-    if (mitigations) {
-      // Fetch existing mitigations with their actionIds
-      const existingMits = await prisma.riskMitigation.findMany({ where: { riskId: id } });
+      // Handle mitigations replacement with linked action sync
+      if (mitigations) {
+        const existingMits = await tx.riskMitigation.findMany({ where: { riskId: id } });
 
-      // Delete linked actions and then all existing mitigations
-      for (const em of existingMits) {
-        if (em.actionId) {
-          await prisma.action.delete({ where: { id: em.actionId } }).catch(() => {});
+        for (const em of existingMits) {
+          if (em.actionId) {
+            await tx.action.delete({ where: { id: em.actionId } }).catch(() => {});
+          }
+        }
+        await tx.riskMitigation.deleteMany({ where: { riskId: id } });
+
+        const resolveOwner = async (ownerName: string | null | undefined): Promise<string> => {
+          if (!ownerName) return userId;
+          const user = await tx.user.findFirst({ where: { name: { equals: ownerName, mode: "insensitive" } } });
+          return user?.id ?? userId;
+        };
+
+        const mitToActionStatus = (ms: string): "OPEN" | "IN_PROGRESS" | "COMPLETED" => {
+          if (ms === "COMPLETE") return "COMPLETED";
+          if (ms === "IN_PROGRESS") return "IN_PROGRESS";
+          return "OPEN";
+        };
+
+        const lastAction = await tx.action.findFirst({ orderBy: { reference: "desc" } });
+        let actionNum = lastAction?.reference
+          ? parseInt(lastAction.reference.replace("ACT-", ""), 10) + 1
+          : 1;
+
+        for (const m of mitigations) {
+          const assigneeId = await resolveOwner(m.owner);
+          const actionRef = `ACT-${String(actionNum).padStart(3, "0")}`;
+          actionNum++;
+          const linkedAction = await tx.action.create({
+            data: {
+              reference: actionRef,
+              title: m.action,
+              description: `Mitigation action from Risk ${existing.reference}: ${existing.name}`,
+              source: "Risk Register",
+              status: mitToActionStatus(m.status ?? "OPEN"),
+              priority: m.priority ?? null,
+              assignedTo: assigneeId,
+              createdBy: userId,
+              dueDate: m.deadline ? new Date(m.deadline) : null,
+            },
+          });
+          await tx.riskMitigation.create({
+            data: {
+              riskId: id,
+              action: m.action,
+              owner: m.owner ?? null,
+              deadline: m.deadline ? new Date(m.deadline) : null,
+              status: m.status ?? "OPEN",
+              priority: m.priority ?? null,
+              actionId: linkedAction.id,
+            },
+          });
         }
       }
-      await prisma.riskMitigation.deleteMany({ where: { riskId: id } });
 
-      // Helper: resolve owner name to user ID
-      const resolveOwner = async (ownerName: string | null | undefined): Promise<string> => {
-        if (!ownerName) return userId;
-        const user = await prisma.user.findFirst({ where: { name: { equals: ownerName, mode: "insensitive" } } });
-        return user?.id ?? userId;
-      };
-
-      // Map mitigation status to action status
-      const mitToActionStatus = (ms: string): "OPEN" | "IN_PROGRESS" | "COMPLETED" => {
-        if (ms === "COMPLETE") return "COMPLETED";
-        if (ms === "IN_PROGRESS") return "IN_PROGRESS";
-        return "OPEN";
-      };
-
-      // Get last action reference for generating new references
-      const lastAction = await prisma.action.findFirst({ orderBy: { reference: "desc" } });
-      let actionNum = lastAction?.reference
-        ? parseInt(lastAction.reference.replace("ACT-", ""), 10) + 1
-        : 1;
-
-      // Create new mitigations with linked actions
-      for (const m of mitigations) {
-        const assigneeId = await resolveOwner(m.owner);
-        const actionRef = `ACT-${String(actionNum).padStart(3, "0")}`;
-        actionNum++;
-        const linkedAction = await prisma.action.create({
-          data: {
-            reference: actionRef,
-            title: m.action,
-            description: `Mitigation action from Risk ${existing.reference}: ${existing.name}`,
-            source: "Risk Register",
-            status: mitToActionStatus(m.status ?? "OPEN"),
-            priority: m.priority ?? null,
-            assignedTo: assigneeId,
-            createdBy: userId,
-            dueDate: m.deadline ? new Date(m.deadline) : null,
-          },
-        });
-        await prisma.riskMitigation.create({
-          data: {
-            riskId: id,
-            action: m.action,
-            owner: m.owner ?? null,
-            deadline: m.deadline ? new Date(m.deadline) : null,
-            status: m.status ?? "OPEN",
-            priority: m.priority ?? null,
-            actionId: linkedAction.id,
-          },
-        });
-      }
-    }
-
-    const risk = await prisma.risk.update({
-      where: { id },
-      data: updateData,
-      include: {
-        controls: { orderBy: { sortOrder: "asc" } },
-        mitigations: { orderBy: { createdAt: "asc" } },
-        riskOwner: true,
-        changes: { include: { proposer: true, reviewer: true }, orderBy: { proposedAt: "desc" } },
-      },
+      return tx.risk.update({
+        where: { id },
+        data: updateData,
+        include: {
+          controls: { orderBy: { sortOrder: "asc" } },
+          mitigations: { orderBy: { createdAt: "asc" } },
+          riskOwner: true,
+          changes: { include: { proposer: true, reviewer: true }, orderBy: { proposedAt: "desc" } },
+        },
+      });
     });
 
     // Write audit entries to risk-specific log

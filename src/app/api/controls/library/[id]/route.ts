@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
+import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody, auditLog } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -86,6 +86,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       },
     });
 
+    auditLog({ userId: auth.userId, action: "update_control", entityType: "control", entityId: id, changes: result.data as Record<string, unknown> });
     return jsonResponse(serialiseDates(control));
   } catch (err) {
     console.error("[PATCH /api/controls/library/:id]", err);
@@ -105,6 +106,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       data: { isActive: false, archivedAt: new Date() },
     });
 
+    auditLog({ userId: auth.userId, action: "archive_control", entityType: "control", entityId: id });
     return jsonResponse(serialiseDates(control));
   } catch (err) {
     console.error("[DELETE /api/controls/library/:id]", err);

@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse, requireCCRORole } from "@/lib/api-helpers";
+import { prisma, jsonResponse, errorResponse, requireCCRORole, auditLog } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 export async function GET() {
@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
       },
       include: { creator: true },
     });
+    auditLog({ userId, action: "create_component", entityType: "component", entityId: component.id, changes: { name } });
     return jsonResponse(serialiseDates(component), 201);
   } catch (error) {
     console.error('[API Error]', error);

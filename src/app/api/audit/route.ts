@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse } from "@/lib/api-helpers";
+import { prisma, jsonResponse, errorResponse, getUserId, getAuthUserId } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 import { getPaginationParams, paginatedResponse } from "@/lib/schemas/pagination";
 
@@ -27,17 +27,25 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Derive userId from session headers — never trust client-supplied identity
+    const authUserId = getAuthUserId(request);
+    const userId = authUserId || getUserId(request);
+    if (!userId) return errorResponse("Unauthorised", 401);
+
+    // Look up the user's actual role
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+
     const body = await request.json();
-    const { userId, userRole, action, entityType } = body;
-    if (!userId || !action || !entityType) {
-      return errorResponse("userId, action, and entityType are required");
+    const { action, entityType } = body;
+    if (!action || !entityType) {
+      return errorResponse("action and entityType are required", 400);
     }
 
     const log = await prisma.auditLog.create({
       data: {
         id: body.id || undefined,
         userId,
-        userRole: userRole || "VIEWER",
+        userRole: user?.role ?? "VIEWER",
         action,
         entityType,
         entityId: body.entityId ?? null,

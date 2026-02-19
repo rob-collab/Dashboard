@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody, validateQuery } from "@/lib/api-helpers";
+import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody, validateQuery, auditLog } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const querySchema = z.object({
@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    auditLog({ userId: auth.userId, action: "create_control", entityType: "control", entityId: control.id, changes: { controlRef, controlName: result.data.controlName } });
     return jsonResponse(serialiseDates(control), 201);
   } catch (err) {
     console.error("[POST /api/controls/library]", err);

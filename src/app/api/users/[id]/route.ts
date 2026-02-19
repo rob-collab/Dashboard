@@ -20,6 +20,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
 export async function PATCH(request: NextRequest, { params }: Params) {
   try {
+    const auth = await requireCCRORole(request);
+    if ("error" in auth) return auth.error;
+
     const { id } = await params;
     const body = await request.json();
     const validation = validateBody(UpdateUserSchema, body);

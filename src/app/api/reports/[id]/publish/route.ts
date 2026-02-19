@@ -10,6 +10,16 @@ export async function POST(request: NextRequest, { params }: Params) {
     const userId = getUserId(request);
     if (!userId) return errorResponse("Unauthorised", 401);
 
+    // Verify the user is the report creator or CCRO
+    const [report, user] = await Promise.all([
+      prisma.report.findUnique({ where: { id: reportId }, select: { createdBy: true } }),
+      prisma.user.findUnique({ where: { id: userId }, select: { role: true } }),
+    ]);
+    if (!report) return errorResponse("Report not found", 404);
+    if (report.createdBy !== userId && user?.role !== "CCRO_TEAM") {
+      return errorResponse("Only the report creator or CCRO team can publish", 403);
+    }
+
     const body = await request.json().catch(() => ({}));
     const publishNote = body.publishNote || null;
 
@@ -20,7 +30,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       });
       const nextVersion = (latest?.version ?? 0) + 1;
 
-      const report = await tx.report.findUnique({
+      const fullReport = await tx.report.findUnique({
         where: { id: reportId },
         include: {
           sections: { orderBy: { position: "asc" } },
@@ -29,13 +39,13 @@ export async function POST(request: NextRequest, { params }: Params) {
           },
         },
       });
-      if (!report) throw new Error("Report not found");
+      if (!fullReport) throw new Error("Report not found");
 
       const version = await tx.reportVersion.create({
         data: {
           reportId,
           version: nextVersion,
-          snapshotData: JSON.parse(JSON.stringify(report)),
+          snapshotData: JSON.parse(JSON.stringify(fullReport)),
           publishedBy: userId,
           publishNote,
         },

@@ -1,6 +1,21 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse } from "@/lib/api-helpers";
+import { z } from "zod";
+import { prisma, jsonResponse, errorResponse, validateBody, getUserId } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
+
+const createOutcomeSchema = z.object({
+  id: z.string().optional(),
+  reportId: z.string().nullable().optional(),
+  outcomeId: z.string().min(1),
+  name: z.string().min(1),
+  shortDesc: z.string().min(1),
+  detailedDescription: z.string().nullable().optional(),
+  previousRAG: z.string().nullable().optional(),
+  monthlySummary: z.string().nullable().optional(),
+  icon: z.string().nullable().optional(),
+  ragStatus: z.string().optional(),
+  position: z.number().int().optional(),
+});
 
 export async function GET(request: NextRequest) {
   const includeSnapshots = request.nextUrl.searchParams.get("includeSnapshots") === "true";
@@ -23,29 +38,36 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const { outcomeId, name, shortDesc } = body;
-  if (!outcomeId || !name || !shortDesc) {
-    return errorResponse("outcomeId, name, and shortDesc are required");
-  }
+  try {
+    const userId = getUserId(request);
+    if (!userId) return errorResponse("Unauthorised", 401);
 
-  const outcome = await prisma.consumerDutyOutcome.create({
-    data: {
-      id: body.id || undefined,
-      reportId: body.reportId || null,
-      outcomeId,
-      name,
-      shortDesc,
-      detailedDescription: body.detailedDescription ?? null,
-      previousRAG: body.previousRAG ?? null,
-      monthlySummary: body.monthlySummary ?? null,
-      icon: body.icon ?? null,
-      ragStatus: body.ragStatus || "GOOD",
-      position: body.position ?? 0,
-    },
-    include: {
-      measures: { include: { metrics: true } },
-    },
-  });
-  return jsonResponse(serialiseDates(outcome), 201);
+    const body = await request.json();
+    const result = validateBody(createOutcomeSchema, body);
+    if ("error" in result) return result.error;
+    const data = result.data;
+
+    const outcome = await prisma.consumerDutyOutcome.create({
+      data: {
+        id: data.id || undefined,
+        reportId: data.reportId || null,
+        outcomeId: data.outcomeId,
+        name: data.name,
+        shortDesc: data.shortDesc,
+        detailedDescription: data.detailedDescription ?? null,
+        previousRAG: (data.previousRAG ?? null) as never,
+        monthlySummary: data.monthlySummary ?? null,
+        icon: data.icon ?? null,
+        ragStatus: (data.ragStatus || "GOOD") as never,
+        position: data.position ?? 0,
+      },
+      include: {
+        measures: { include: { metrics: true } },
+      },
+    });
+    return jsonResponse(serialiseDates(outcome), 201);
+  } catch (error) {
+    console.error("[POST /api/consumer-duty]", error);
+    return errorResponse(error instanceof Error ? error.message : "Operation failed", 500);
+  }
 }

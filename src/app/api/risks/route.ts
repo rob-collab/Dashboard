@@ -86,110 +86,114 @@ export async function POST(request: NextRequest) {
       return "OPEN";
     };
 
-    const risk = await prisma.risk.create({
-      data: {
-        ...data,
-        reference,
-        lastReviewed: data.lastReviewed ? new Date(data.lastReviewed) : new Date(),
-        directionOfTravel: data.directionOfTravel ?? "STABLE",
-        createdBy: userId,
-        updatedBy: userId,
-        controls: controls ? {
-          create: controls.map((c, i) => ({
-            description: c.description,
-            controlOwner: c.controlOwner ?? null,
-            sortOrder: c.sortOrder ?? i,
-          })),
-        } : undefined,
-        mitigations: mitigations ? {
-          create: mitigations.map((m) => ({
-            action: m.action,
-            owner: m.owner ?? null,
-            deadline: m.deadline ? new Date(m.deadline) : null,
-            status: m.status ?? "OPEN",
-          })),
-        } : undefined,
-      },
-      include: {
-        controls: { orderBy: { sortOrder: "asc" } },
-        mitigations: { orderBy: { createdAt: "asc" } },
-        riskOwner: true,
-      },
-    });
+    // Wrap risk + linked action creation in a transaction for atomicity
+    const refreshedRisk = await prisma.$transaction(async (tx) => {
+      const risk = await tx.risk.create({
+        data: {
+          ...data,
+          reference,
+          lastReviewed: data.lastReviewed ? new Date(data.lastReviewed) : new Date(),
+          directionOfTravel: data.directionOfTravel ?? "STABLE",
+          createdBy: userId,
+          updatedBy: userId,
+          controls: controls ? {
+            create: controls.map((c, i) => ({
+              description: c.description,
+              controlOwner: c.controlOwner ?? null,
+              sortOrder: c.sortOrder ?? i,
+            })),
+          } : undefined,
+          mitigations: mitigations ? {
+            create: mitigations.map((m) => ({
+              action: m.action,
+              owner: m.owner ?? null,
+              deadline: m.deadline ? new Date(m.deadline) : null,
+              status: m.status ?? "OPEN",
+            })),
+          } : undefined,
+        },
+        include: {
+          controls: { orderBy: { sortOrder: "asc" } },
+          mitigations: { orderBy: { createdAt: "asc" } },
+          riskOwner: true,
+        },
+      });
 
-    // Auto-create linked Actions for each mitigation
-    if (risk.mitigations.length > 0) {
-      // Get the last action reference to continue the sequence
-      const lastAction = await prisma.action.findFirst({ orderBy: { reference: "desc" } });
-      let actionNum = lastAction?.reference
-        ? parseInt(lastAction.reference.replace("ACT-", ""), 10) + 1
-        : 1;
+      // Auto-create linked Actions for each mitigation
+      if (risk.mitigations.length > 0) {
+        const lastAction = await tx.action.findFirst({ orderBy: { reference: "desc" } });
+        let actionNum = lastAction?.reference
+          ? parseInt(lastAction.reference.replace("ACT-", ""), 10) + 1
+          : 1;
 
-      for (const mit of risk.mitigations) {
-        let assigneeId = userId;
-        if (mit.owner) {
-          const ownerUser = await prisma.user.findFirst({ where: { name: { equals: mit.owner, mode: "insensitive" } } });
-          if (ownerUser) assigneeId = ownerUser.id;
+        for (const mit of risk.mitigations) {
+          let assigneeId = userId;
+          if (mit.owner) {
+            const ownerUser = await tx.user.findFirst({ where: { name: { equals: mit.owner, mode: "insensitive" } } });
+            if (ownerUser) assigneeId = ownerUser.id;
+          }
+          const actionRef = `ACT-${String(actionNum).padStart(3, "0")}`;
+          actionNum++;
+          const linkedAction = await tx.action.create({
+            data: {
+              title: mit.action,
+              description: `Mitigation action from Risk ${reference}: ${risk.name}`,
+              source: "Risk Register",
+              reference: actionRef,
+              status: mitigationToActionStatus(mit.status),
+              assignedTo: assigneeId,
+              createdBy: userId,
+              dueDate: mit.deadline,
+            },
+          });
+          await tx.riskMitigation.update({
+            where: { id: mit.id },
+            data: { actionId: linkedAction.id },
+          });
         }
-        const actionRef = `ACT-${String(actionNum).padStart(3, "0")}`;
-        actionNum++;
-        const linkedAction = await prisma.action.create({
-          data: {
-            title: mit.action,
-            description: `Mitigation action from Risk ${reference}: ${risk.name}`,
-            source: "Risk Register",
-            reference: actionRef,
-            status: mitigationToActionStatus(mit.status),
-            assignedTo: assigneeId,
-            createdBy: userId,
-            dueDate: mit.deadline,
-          },
-        });
-        await prisma.riskMitigation.update({
-          where: { id: mit.id },
-          data: { actionId: linkedAction.id },
-        });
       }
-    }
 
-    // Re-fetch to include actionIds in mitigations
-    const refreshedRisk = await prisma.risk.findUnique({
-      where: { id: risk.id },
-      include: {
-        controls: { orderBy: { sortOrder: "asc" } },
-        mitigations: { orderBy: { createdAt: "asc" } },
-        riskOwner: true,
-      },
+      // Re-fetch to include actionIds in mitigations
+      return tx.risk.findUnique({
+        where: { id: risk.id },
+        include: {
+          controls: { orderBy: { sortOrder: "asc" } },
+          mitigations: { orderBy: { createdAt: "asc" } },
+          riskOwner: true,
+        },
+      });
     });
 
-    // Audit log
+    if (!refreshedRisk) return errorResponse("Failed to create risk", 500);
+
+    // Audit log (fire-and-forget, outside transaction)
     await prisma.riskAuditLog.create({
-      data: { riskId: risk.id, userId, action: "created", fieldChanged: null, oldValue: null, newValue: risk.name },
+      data: { riskId: refreshedRisk.id, userId, action: "created", fieldChanged: null, oldValue: null, newValue: refreshedRisk.name },
     }).catch((e) => console.error("[risk audit]", e));
 
     // Auto-create snapshot for the current month
     const now = new Date();
     const monthStart = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
     await prisma.riskSnapshot.upsert({
-      where: { riskId_month: { riskId: risk.id, month: monthStart } },
+      where: { riskId_month: { riskId: refreshedRisk.id, month: monthStart } },
       update: {
-        residualLikelihood: risk.residualLikelihood,
-        residualImpact: risk.residualImpact,
-        inherentLikelihood: risk.inherentLikelihood,
-        inherentImpact: risk.inherentImpact,
-        directionOfTravel: risk.directionOfTravel,
+        residualLikelihood: refreshedRisk.residualLikelihood,
+        residualImpact: refreshedRisk.residualImpact,
+        inherentLikelihood: refreshedRisk.inherentLikelihood,
+        inherentImpact: refreshedRisk.inherentImpact,
+        directionOfTravel: refreshedRisk.directionOfTravel,
       },
       create: {
-        riskId: risk.id, month: monthStart,
-        residualLikelihood: risk.residualLikelihood,
-        residualImpact: risk.residualImpact,
-        inherentLikelihood: risk.inherentLikelihood,
-        inherentImpact: risk.inherentImpact,
-        directionOfTravel: risk.directionOfTravel,
+        riskId: refreshedRisk.id, month: monthStart,
+        residualLikelihood: refreshedRisk.residualLikelihood,
+        residualImpact: refreshedRisk.residualImpact,
+        inherentLikelihood: refreshedRisk.inherentLikelihood,
+        inherentImpact: refreshedRisk.inherentImpact,
+        directionOfTravel: refreshedRisk.directionOfTravel,
       },
     }).catch((e) => console.error("[risk snapshot]", e));
 
-    return jsonResponse(serialiseDates(refreshedRisk ?? risk), 201);
+    return jsonResponse(serialiseDates(refreshedRisk), 201);
   } catch (err) {
     console.error("[POST /api/risks]", err);
     return errorResponse("Internal server error", 500);

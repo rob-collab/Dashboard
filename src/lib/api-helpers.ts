@@ -4,12 +4,25 @@ import prisma from "./prisma";
 
 export { prisma };
 
+/**
+ * Returns the real authenticated user ID.
+ * Prefers X-Auth-User-Id (true identity) over X-User-Id (may be "View As" impersonation).
+ */
 export function getUserId(request: Request): string | null {
-  return request.headers.get("X-User-Id");
+  return request.headers.get("X-Auth-User-Id") || request.headers.get("X-User-Id");
 }
 
+/**
+ * Returns the "View As" user ID (X-User-Id), or falls back to the real user.
+ * Use only for read-scoped operations where the viewed perspective matters.
+ */
+export function getViewAsUserId(request: Request): string | null {
+  return request.headers.get("X-User-Id") || request.headers.get("X-Auth-User-Id");
+}
+
+/** @deprecated Use getUserId() — now always returns real identity */
 export function getAuthUserId(request: Request): string | null {
-  return request.headers.get("X-Auth-User-Id") || getUserId(request);
+  return getUserId(request);
 }
 
 export async function requireCCRORole(request: Request): Promise<{ userId: string } | { error: NextResponse }> {
@@ -49,6 +62,31 @@ export function validateBody<T>(schema: z.ZodSchema<T>, body: unknown): { data: 
     }
     return { error: errorResponse("Invalid request body", 400) };
   }
+}
+
+/**
+ * Fire-and-forget audit log entry. Errors are caught and logged but never block the response.
+ */
+export function auditLog(opts: {
+  userId: string;
+  userRole?: string;
+  action: string;
+  entityType: string;
+  entityId?: string | null;
+  changes?: Record<string, unknown> | null;
+  reportId?: string | null;
+}) {
+  prisma.auditLog.create({
+    data: {
+      userId: opts.userId,
+      userRole: (opts.userRole ?? "CCRO_TEAM") as never,
+      action: opts.action,
+      entityType: opts.entityType,
+      entityId: opts.entityId ?? null,
+      changes: (opts.changes ?? null) as never,
+      reportId: opts.reportId ?? null,
+    },
+  }).catch((e) => console.error("[audit]", e));
 }
 
 export function validateQuery<T>(schema: z.ZodSchema<T>, params: URLSearchParams): { data: T } | { error: NextResponse } {

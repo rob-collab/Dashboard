@@ -511,14 +511,17 @@ export const useAppStore = create<AppState>((set) => ({
   setRiskAcceptances: (items) => set({ riskAcceptances: items }),
   addRiskAcceptance: (item) => {
     set((state) => ({ riskAcceptances: [item, ...state.riskAcceptances] }));
+    sync(() => api("/api/risk-acceptances", { method: "POST", body: item }));
   },
   updateRiskAcceptance: (id, data) => {
     set((state) => ({
       riskAcceptances: state.riskAcceptances.map((ra) => (ra.id === id ? { ...ra, ...data } : ra)),
     }));
+    sync(() => api(`/api/risk-acceptances/${id}`, { method: "PATCH", body: data }));
   },
   deleteRiskAcceptance: (id) => {
     set((state) => ({ riskAcceptances: state.riskAcceptances.filter((ra) => ra.id !== id) }));
+    sync(() => api(`/api/risk-acceptances/${id}`, { method: "DELETE" }));
   },
 
   // ── Policy Review Module ────────────────────────────────
@@ -580,21 +583,25 @@ export const useAppStore = create<AppState>((set) => ({
   setControls: (controls) => set({ controls }),
   addControl: (control) => {
     set((state) => ({ controls: [...state.controls, control] }));
+    sync(() => api("/api/controls/library", { method: "POST", body: control }));
   },
   updateControl: (id, data) => {
     set((state) => ({
       controls: state.controls.map((c) => (c.id === id ? { ...c, ...data } : c)),
     }));
+    sync(() => api(`/api/controls/library/${id}`, { method: "PATCH", body: data }));
   },
   testingSchedule: [],
   setTestingSchedule: (entries) => set({ testingSchedule: entries }),
   addTestingScheduleEntries: (entries) => {
     set((state) => ({ testingSchedule: [...state.testingSchedule, ...entries] }));
+    sync(() => api("/api/controls/testing-schedule", { method: "POST", body: { entries } }));
   },
   updateTestingScheduleEntry: (id, data) => {
     set((state) => ({
       testingSchedule: state.testingSchedule.map((e) => (e.id === id ? { ...e, ...data } : e)),
     }));
+    sync(() => api(`/api/controls/testing-schedule/${id}`, { method: "PATCH", body: data }));
   },
 
   // ── UI State ───────────────────────────────────────────────
