@@ -35,9 +35,12 @@ export async function middleware(req: NextRequest) {
 
   // Inject verified user identity from JWT into request headers.
   // API routes should trust X-Verified-User-Id over client-supplied headers.
+  // Prefer token.id (custom claim — always the DB user ID) over token.sub
+  // (which may still hold the Google OAuth provider ID for existing sessions).
   const requestHeaders = new Headers(req.headers);
-  if (token.sub) {
-    requestHeaders.set("X-Verified-User-Id", token.sub);
+  const dbUserId = (token.id as string) || token.sub;
+  if (dbUserId) {
+    requestHeaders.set("X-Verified-User-Id", dbUserId);
   }
   return NextResponse.next({ request: { headers: requestHeaders } });
 }
