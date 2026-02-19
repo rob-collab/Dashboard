@@ -16,15 +16,6 @@ export type ActionStatus = "OPEN" | "IN_PROGRESS" | "COMPLETED" | "OVERDUE" | "P
 export type ActionPriority = "P1" | "P2" | "P3";
 export type ChangeStatus = "PENDING" | "APPROVED" | "REJECTED";
 
-export interface ImageBlockContent {
-  src: string;
-  alt: string;
-  caption: string;
-  width: number | null;
-  alignment: "left" | "center" | "right";
-  objectFit: "contain" | "cover" | "fill";
-}
-
 export interface BrandingConfig {
   logoSrc: string | null;
   logoAlt: string;

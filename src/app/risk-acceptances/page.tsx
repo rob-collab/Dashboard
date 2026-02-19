@@ -21,7 +21,6 @@ type TabKey = "all" | "needs_action" | "active" | "audit";
 
 export default function RiskAcceptancesPage() {
   const hydrated = useAppStore((s) => s._hydrated);
-  const currentUser = useAppStore((s) => s.currentUser);
   const riskAcceptances = useAppStore((s) => s.riskAcceptances);
   const updateRiskAcceptance = useAppStore((s) => s.updateRiskAcceptance);
   const addRiskAcceptance = useAppStore((s) => s.addRiskAcceptance);

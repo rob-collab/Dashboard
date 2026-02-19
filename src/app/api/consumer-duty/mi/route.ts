@@ -1,6 +1,24 @@
 import { NextRequest } from "next/server";
-import { prisma, getAuthUserId, jsonResponse, errorResponse } from "@/lib/api-helpers";
+import { z } from "zod";
+import { prisma, getAuthUserId, validateBody, jsonResponse } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
+
+const metricSchema = z.object({
+  id: z.string().optional(),
+  metric: z.string().min(1),
+  current: z.string().default(""),
+  previous: z.string().default(""),
+  change: z.string().default(""),
+  ragStatus: z.enum(["GOOD", "WARNING", "HARM"]).default("GOOD"),
+  appetite: z.string().nullable().default(null),
+  appetiteOperator: z.string().nullable().default(null),
+});
+
+const putSchema = z.object({
+  measureId: z.string().min(1),
+  metrics: z.array(metricSchema).min(1),
+  month: z.string().optional(),
+});
 
 function monthStart(): Date {
   const d = new Date();
@@ -9,10 +27,9 @@ function monthStart(): Date {
 
 export async function PUT(request: NextRequest) {
   const body = await request.json();
-  const { measureId, metrics, month: monthParam } = body;
-  if (!measureId || !Array.isArray(metrics)) {
-    return errorResponse("measureId and metrics[] are required");
-  }
+  const result = validateBody(putSchema, body);
+  if ("error" in result) return result.error;
+  const { measureId, metrics, month: monthParam } = result.data;
 
   const userId = getAuthUserId(request);
 
@@ -24,15 +41,15 @@ export async function PUT(request: NextRequest) {
     for (const m of metrics) {
       const mi = await tx.consumerDutyMI.create({
         data: {
-          id: m.id || undefined,
+          ...(m.id && { id: m.id }),
           measureId,
           metric: m.metric,
-          current: m.current ?? "",
-          previous: m.previous ?? "",
-          change: m.change ?? "",
-          ragStatus: m.ragStatus || "GOOD",
-          appetite: m.appetite ?? null,
-          appetiteOperator: m.appetiteOperator ?? null,
+          current: m.current,
+          previous: m.previous,
+          change: m.change,
+          ragStatus: m.ragStatus,
+          appetite: m.appetite,
+          appetiteOperator: m.appetiteOperator,
         },
       });
       // Auto-upsert snapshot for the current month
