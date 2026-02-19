@@ -7,6 +7,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          prompt: "select_account",
+        },
+      },
     }),
   ],
   session: { strategy: "jwt", maxAge: 8 * 60 * 60 /* 8 hours — re-authenticate each working day */ },
@@ -36,6 +41,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           select: { id: true, role: true, name: true },
         });
         if (dbUser) {
+          token.sub = dbUser.id;
           token.id = dbUser.id;
           token.role = dbUser.role;
           token.name = dbUser.name;

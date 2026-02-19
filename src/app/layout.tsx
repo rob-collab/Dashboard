@@ -24,10 +24,14 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const hydrateError = useAppStore((s) => s._hydrateError);
   const hydrate = useAppStore((s) => s.hydrate);
 
-  // Hydrate store from API on mount
+  // Hydrate store from API once session is authenticated.
+  // Waiting for auth ensures the signIn callback (which updates lastLoginAt)
+  // has committed before we fetch users.
   useEffect(() => {
-    hydrate();
-  }, [hydrate]);
+    if (status === "authenticated") {
+      hydrate();
+    }
+  }, [hydrate, status]);
 
   // After hydration + session, match session email to store user
   useEffect(() => {
