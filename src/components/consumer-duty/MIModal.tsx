@@ -242,7 +242,7 @@ export default function MIModal({
                 <tr
                   key={metric.id}
                   className="group cursor-pointer hover:bg-updraft-pale-purple/10 transition-colors"
-                  onClick={() => !editable && setDrillDownMetric(metric)}
+                  onClick={() => setDrillDownMetric(metric)}
                 >
                   {/* Metric name */}
                   <td className="py-3 pr-4 font-medium text-gray-800">
@@ -263,6 +263,7 @@ export default function MIModal({
                           updateMetric(idx, "current", e.target.value)
                         }
                         onBlur={() => autoSuggestRAG(idx)}
+                        onClick={(e) => e.stopPropagation()}
                         className="w-24 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-right text-sm text-gray-800 focus:border-updraft-bar focus:ring-1 focus:ring-updraft-bar/30 focus:outline-none transition-colors"
                       />
                     ) : (
@@ -312,7 +313,7 @@ export default function MIModal({
                             <button
                               key={rag}
                               type="button"
-                              onClick={() => updateRAG(idx, rag)}
+                              onClick={(e) => { e.stopPropagation(); updateRAG(idx, rag); }}
                               className={cn(
                                 "rounded-md border px-2 py-1 text-[10px] font-bold uppercase tracking-wide transition-all duration-150",
                                 RAG_RADIO_STYLES[rag],
@@ -364,7 +365,7 @@ export default function MIModal({
         </div>
       )}
 
-      {!editable && metrics.length > 0 && (
+      {metrics.length > 0 && (
         <p className="mt-3 text-center text-xs text-gray-400">
           Click a metric row to view history and target details
         </p>
