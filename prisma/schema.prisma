@@ -176,6 +176,9 @@ model Section {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
+  @@index([reportId])
+  @@index([templateId])
+  @@index([componentId])
   @@map("sections")
 }
 
@@ -223,6 +226,7 @@ model ConsumerDutyMeasure {
 
   metrics ConsumerDutyMI[]
 
+  @@index([outcomeId])
   @@map("consumer_duty_measures")
 }
 

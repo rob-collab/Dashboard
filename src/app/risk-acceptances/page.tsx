@@ -125,12 +125,7 @@ export default function RiskAcceptancesPage() {
   async function handleExport() {
     setExporting(true);
     try {
-      const res = await fetch(`/api/risk-acceptances/export${statusFilter ? `?status=${statusFilter}` : ""}`, {
-        headers: {
-          "X-User-Id": currentUser?.id ?? "",
-          "X-Auth-User-Id": currentUser?.id ?? "",
-        },
-      });
+      const res = await fetch(`/api/risk-acceptances/export${statusFilter ? `?status=${statusFilter}` : ""}`);
       if (!res.ok) throw new Error("Export failed");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);

@@ -16,11 +16,14 @@ export function getUserId(request: Request): string | null {
 }
 
 /**
- * Returns the "View As" user ID (X-User-Id), or falls back to the real user.
- * Use only for read-scoped operations where the viewed perspective matters.
+ * Returns the effective user ID for read-scoped operations.
+ * In "View As" mode, X-User-Id carries the impersonated user;
+ * otherwise falls back to the verified identity from JWT.
  */
 export function getViewAsUserId(request: Request): string | null {
-  return request.headers.get("X-User-Id") || request.headers.get("X-Auth-User-Id");
+  return request.headers.get("X-User-Id")
+    || request.headers.get("X-Verified-User-Id")
+    || request.headers.get("X-Auth-User-Id");
 }
 
 /** @deprecated Use getUserId() — now always returns real identity */
