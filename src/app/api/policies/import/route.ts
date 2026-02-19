@@ -107,28 +107,98 @@ export async function POST(request: NextRequest) {
       const policy = await prisma.policy.findUnique({ where: { id: policyId } });
       if (!policy) return errorResponse("Policy not found", 404);
 
-      for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
-        if (!row.category || !row.description) {
-          errors.push(`Row ${i + 1}: missing required fields (category, description)`);
-          continue;
-        }
-        try {
-          const reference = await generateReference(`${policy.reference}-OBL-`, "policyObligation", "reference", 2);
-          await prisma.policyObligation.create({
-            data: {
-              policyId,
-              reference,
+      // Section-aware merging: rows with same (category, description) merge into
+      // one requirement with multiple sections. The sectionName column triggers merging.
+      const hasSectionColumn = rows.some((r) => r.sectionName);
+
+      if (hasSectionColumn) {
+        // Group rows by (category, description)
+        const grouped = new Map<string, { category: string; description: string; notes: string; regRefs: Set<string>; ctrlRefs: Set<string>; sections: { name: string; regulationRefs: string[]; controlRefs: string[] }[] }>();
+
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row.category || !row.description) {
+            errors.push(`Row ${i + 1}: missing required fields (category, description)`);
+            continue;
+          }
+          const key = `${row.category}|||${row.description}`;
+          if (!grouped.has(key)) {
+            grouped.set(key, {
               category: row.category,
               description: row.description,
-              regulationRefs: row.regulationRefs ? row.regulationRefs.split(";") : [],
-              controlRefs: row.controlRefs ? row.controlRefs.split(";") : [],
-              notes: row.notes || null,
-            },
-          });
-          created++;
-        } catch (err) {
-          errors.push(`Row ${i + 1}: ${err instanceof Error ? err.message : "creation failed"}`);
+              notes: row.notes || "",
+              regRefs: new Set<string>(),
+              ctrlRefs: new Set<string>(),
+              sections: [],
+            });
+          }
+          const entry = grouped.get(key)!;
+
+          const sectionRegRefs = row.regulationReferences ? row.regulationReferences.split(";").map((s: string) => s.trim()).filter(Boolean) : (row.regulationRefs ? row.regulationRefs.split(";").map((s: string) => s.trim()).filter(Boolean) : []);
+          const sectionCtrlRefs = row.controlReferences ? row.controlReferences.split(";").map((s: string) => s.trim()).filter(Boolean) : (row.controlRefs ? row.controlRefs.split(";").map((s: string) => s.trim()).filter(Boolean) : []);
+
+          // Add to union sets for top-level refs
+          for (const r of sectionRegRefs) entry.regRefs.add(r);
+          for (const c of sectionCtrlRefs) entry.ctrlRefs.add(c);
+
+          if (row.sectionName) {
+            entry.sections.push({
+              name: row.sectionName,
+              regulationRefs: sectionRegRefs,
+              controlRefs: sectionCtrlRefs,
+            });
+          }
+
+          if (row.notes && !entry.notes) entry.notes = row.notes;
+        }
+
+        // Create one obligation per group
+        for (const entry of Array.from(grouped.values())) {
+          try {
+            const reference = await generateReference(`${policy.reference}-OBL-`, "policyObligation", "reference", 2);
+            await prisma.policyObligation.create({
+              data: {
+                policyId,
+                reference,
+                category: entry.category,
+                description: entry.description,
+                regulationRefs: Array.from(entry.regRefs),
+                controlRefs: Array.from(entry.ctrlRefs),
+                sections: entry.sections.length > 0 ? entry.sections : [],
+                notes: entry.notes || null,
+              },
+            });
+            created++;
+          } catch (err) {
+            errors.push(`${entry.category}: ${err instanceof Error ? err.message : "creation failed"}`);
+          }
+        }
+      } else {
+        // Legacy flat import (no sections)
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row.category || !row.description) {
+            errors.push(`Row ${i + 1}: missing required fields (category, description)`);
+            continue;
+          }
+          try {
+            const reference = await generateReference(`${policy.reference}-OBL-`, "policyObligation", "reference", 2);
+            await prisma.policyObligation.create({
+              data: {
+                policyId,
+                reference,
+                category: row.category,
+                description: row.description,
+                regulationRefs: row.regulationRefs ? row.regulationRefs.split(";") : [],
+                controlRefs: row.controlRefs ? row.controlRefs.split(";") : [],
+                sections: [],
+                notes: row.notes || null,
+              },
+            });
+            created++;
+          } catch (err) {
+            errors.push(`Row ${i + 1}: ${err instanceof Error ? err.message : "creation failed"}`);
+          }
         }
       }
 
@@ -138,7 +208,7 @@ export async function POST(request: NextRequest) {
           policyId,
           userId,
           action: "BULK_IMPORT_OBLIGATIONS",
-          details: `Imported ${created} obligations`,
+          details: `Imported ${created} requirements`,
         },
       });
     }

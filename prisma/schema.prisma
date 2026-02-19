@@ -1029,6 +1029,7 @@ model PolicyObligation {
   description    String   @db.Text
   regulationRefs String[]
   controlRefs    String[]
+  sections       Json?    @default("[]")
   notes          String?  @db.Text
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt

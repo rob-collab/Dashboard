@@ -3,11 +3,18 @@ import { z } from "zod";
 import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody, generateReference } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
+const sectionSchema = z.object({
+  name: z.string().min(1),
+  regulationRefs: z.array(z.string()).default([]),
+  controlRefs: z.array(z.string()).default([]),
+});
+
 const createSchema = z.object({
   category: z.string().min(1),
   description: z.string().min(1),
   regulationRefs: z.array(z.string()).optional(),
   controlRefs: z.array(z.string()).optional(),
+  sections: z.array(sectionSchema).optional(),
   notes: z.string().optional().nullable(),
 });
 
@@ -29,6 +36,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Generate obligation reference (collision-safe)
     const reference = await generateReference(`${policy.reference}-OBL-`, "policyObligation", "reference", 2);
 
+    const sections = data.sections ?? [];
     const obligation = await prisma.policyObligation.create({
       data: {
         policyId,
@@ -37,6 +45,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         description: data.description,
         regulationRefs: data.regulationRefs ?? [],
         controlRefs: data.controlRefs ?? [],
+        sections: sections.length > 0 ? sections : [],
         notes: data.notes ?? null,
       },
     });

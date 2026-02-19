@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { FileUp, X, Upload, FileText } from "lucide-react";
+import { FileUp, X, Upload, FileText, Download } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -10,9 +10,11 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onImported: () => void;
+  policyId: string;
+  policyReference: string;
 }
 
-export default function CSVImportPanel({ open, onClose, onImported }: Props) {
+export default function RequirementsCSVUploadDialog({ open, onClose, onImported, policyId, policyReference }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -40,6 +42,64 @@ export default function CSVImportPanel({ open, onClose, onImported }: Props) {
     setDragging(true);
   }
 
+  function downloadTemplate() {
+    const headers = [
+      "category",
+      "description",
+      "sectionName",
+      "regulationReferences",
+      "controlReferences",
+      "notes",
+    ];
+
+    const examples = [
+      [
+        "Promotions Approval",
+        "All financial promotions must be approved by an authorised person before publication",
+        "Section 3 — Approval Process",
+        "CU-0036;CU-0037",
+        "CTRL-001;CTRL-002",
+        "Includes digital, print, social media",
+      ],
+      [
+        "Promotions Approval",
+        "All financial promotions must be approved by an authorised person before publication",
+        "Section 7 — Record Keeping",
+        "CU-0036;CU-0039",
+        "CTRL-001;CTRL-003",
+        "",
+      ],
+      [
+        "Content Standards",
+        "Financial promotions must be fair, clear and not misleading",
+        "",
+        "CU-0036;CU-0040",
+        "CTRL-004",
+        "",
+      ],
+    ];
+
+    const escapeCSV = (val: string) => {
+      if (val.includes(",") || val.includes('"') || val.includes("\n")) {
+        return `"${val.replace(/"/g, '""')}"`;
+      }
+      return val;
+    };
+
+    const csv = [
+      headers.join(","),
+      ...examples.map((row) => row.map(escapeCSV).join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${policyReference}-requirements-template.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function handleImport() {
     if (!file) return;
     setImporting(true);
@@ -48,11 +108,11 @@ export default function CSVImportPanel({ open, onClose, onImported }: Props) {
       const csvData = await file.text();
       const res = await api<{ created: number; total: number; errors: string[] }>("/api/policies/import", {
         method: "POST",
-        body: { type: "policies", data: csvData },
+        body: { type: "obligations", data: csvData, policyId },
       });
       setResult(res);
       if (res.created > 0) {
-        toast.success(`Imported ${res.created} of ${res.total} policies`);
+        toast.success(`Imported ${res.created} requirement${res.created !== 1 ? "s" : ""}`);
         onImported();
       }
     } catch {
@@ -68,13 +128,30 @@ export default function CSVImportPanel({ open, onClose, onImported }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="w-full max-w-lg bg-white rounded-xl shadow-xl">
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-bold text-updraft-deep font-poppins">Import Policies CSV</h2>
+          <div>
+            <h2 className="text-lg font-bold text-updraft-deep font-poppins">Upload Requirements CSV</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Import requirements for {policyReference}</p>
+          </div>
           <button onClick={onClose} className="rounded-lg p-1 hover:bg-gray-100 transition-colors">
             <X size={18} className="text-gray-500" />
           </button>
         </div>
 
         <div className="p-6 space-y-4">
+          {/* Template download */}
+          <button
+            onClick={downloadTemplate}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors w-full justify-center"
+          >
+            <Download size={13} />
+            Download Template CSV
+          </button>
+
+          <p className="text-[10px] text-gray-400 leading-relaxed">
+            Rows with the same <strong>category</strong> and <strong>description</strong> are merged into a single requirement
+            with multiple sections. Leave <em>sectionName</em> empty for flat requirements.
+          </p>
+
           {/* Drop zone */}
           <div
             onDrop={handleDrop}
@@ -82,7 +159,7 @@ export default function CSVImportPanel({ open, onClose, onImported }: Props) {
             onDragLeave={() => setDragging(false)}
             onClick={() => inputRef.current?.click()}
             className={cn(
-              "flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-6 py-10 cursor-pointer transition-colors",
+              "flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-6 py-8 cursor-pointer transition-colors",
               dragging
                 ? "border-updraft-bright-purple bg-updraft-pale-purple/20"
                 : file
@@ -92,17 +169,16 @@ export default function CSVImportPanel({ open, onClose, onImported }: Props) {
           >
             {file ? (
               <>
-                <FileText size={28} className="text-green-600" />
+                <FileText size={24} className="text-green-600" />
                 <p className="text-sm font-medium text-green-700">{file.name}</p>
                 <p className="text-[10px] text-gray-400">{(file.size / 1024).toFixed(1)} KB</p>
               </>
             ) : (
               <>
-                <Upload size={28} className="text-gray-400" />
+                <Upload size={24} className="text-gray-400" />
                 <p className="text-sm text-gray-600">
-                  Drag and drop a CSV file here, or <span className="text-updraft-bright-purple font-medium">browse</span>
+                  Drag and drop a CSV file, or <span className="text-updraft-bright-purple font-medium">browse</span>
                 </p>
-                <p className="text-[10px] text-gray-400">Accepts .csv files only</p>
               </>
             )}
             <input
@@ -129,7 +205,7 @@ export default function CSVImportPanel({ open, onClose, onImported }: Props) {
           {/* Result */}
           {result && (
             <div className={cn("rounded-lg p-3 text-xs", result.errors.length > 0 ? "bg-amber-50 border border-amber-200" : "bg-green-50 border border-green-200")}>
-              <p className="font-medium">{result.created} of {result.total} policies imported successfully</p>
+              <p className="font-medium">{result.created} of {result.total} requirement{result.total !== 1 ? "s" : ""} imported</p>
               {result.errors.length > 0 && (
                 <ul className="mt-2 space-y-0.5 text-red-600 max-h-32 overflow-y-auto">
                   {result.errors.map((err, i) => <li key={i}>{err}</li>)}

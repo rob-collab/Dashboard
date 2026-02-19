@@ -672,6 +672,12 @@ export interface PolicyControlLink {
   linkedBy: string;
 }
 
+export interface PolicyObligationSection {
+  name: string;
+  regulationRefs: string[];
+  controlRefs: string[];
+}
+
 export interface PolicyObligation {
   id: string;
   policyId: string;
@@ -680,6 +686,7 @@ export interface PolicyObligation {
   description: string;
   regulationRefs: string[];
   controlRefs: string[];
+  sections: PolicyObligationSection[];
   notes: string | null;
   createdAt: string;
   updatedAt: string;

@@ -13,11 +13,13 @@ import {
   Shield,
   ExternalLink,
   BookOpen,
+  FileUp,
+  Layers,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
-import type { Policy, PolicyObligation, Regulation, ControlRecord } from "@/lib/types";
+import type { Policy, PolicyObligation, PolicyObligationSection, Regulation, ControlRecord } from "@/lib/types";
 import {
   COMPLIANCE_STATUS_LABELS,
   COMPLIANCE_STATUS_COLOURS,
@@ -25,6 +27,7 @@ import {
 } from "@/lib/types";
 import { cn, formatDateShort } from "@/lib/utils";
 import ObligationFormDialog from "./ObligationFormDialog";
+import RequirementsCSVUploadDialog from "./RequirementsCSVUploadDialog";
 
 const CATEGORY_COLOURS: string[] = [
   "border-l-blue-500",
@@ -85,6 +88,106 @@ function ragDot(result: string): string {
   return "bg-gray-400";
 }
 
+// ── Reusable sub-components ─────────────────────────────
+
+function RegulationsList({ refs, regByRef }: { refs: string[]; regByRef: Map<string, Regulation> }) {
+  const resolved = refs.map((ref) => regByRef.get(ref)).filter((r): r is Regulation => !!r);
+  if (resolved.length > 0) {
+    return (
+      <div className="space-y-1.5">
+        {resolved.map((reg) => {
+          const status = (reg.complianceStatus ?? "NOT_ASSESSED") as ComplianceStatus;
+          const statusStyle = COMPLIANCE_STATUS_COLOURS[status];
+          return (
+            <div key={reg.id} className="flex items-center gap-2 rounded-lg border border-gray-100 bg-white px-3 py-2">
+              <div className={cn("w-2 h-2 rounded-full shrink-0", statusStyle.dot)} />
+              <span className="font-mono text-[10px] font-bold text-updraft-deep shrink-0">{reg.reference}</span>
+              <span className="text-xs text-gray-700 truncate flex-1">{reg.shortName ?? reg.name}</span>
+              <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", statusStyle.bg, statusStyle.text)}>
+                {COMPLIANCE_STATUS_LABELS[status]}
+              </span>
+              {reg.url && (
+                <a href={reg.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-gray-400 hover:text-updraft-bright-purple">
+                  <ExternalLink size={10} />
+                </a>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+  if (refs.length > 0) {
+    return (
+      <div className="flex flex-wrap gap-1">
+        {refs.map((ref) => (
+          <span key={ref} className="rounded-full bg-blue-50 text-blue-600 px-2 py-0.5 text-[10px] font-medium border border-blue-100">{ref}</span>
+        ))}
+      </div>
+    );
+  }
+  return <p className="text-xs text-gray-400 italic">No regulations linked</p>;
+}
+
+function ControlsList({ refs, ctrlByRef }: { refs: string[]; ctrlByRef: Map<string, ControlRecord> }) {
+  const resolved = refs.map((ref) => ctrlByRef.get(ref)).filter((c): c is ControlRecord => !!c);
+  if (resolved.length > 0) {
+    return (
+      <div className="space-y-1.5">
+        {resolved.map((ctrl) => {
+          const effectiveness = calcEffectiveness(ctrl);
+          const effStyle = EFFECTIVENESS_STYLES[effectiveness];
+          const results = ctrl.testingSchedule?.testResults ?? [];
+          const latestResult = results.length > 0
+            ? [...results].sort((a, b) => new Date(b.testedDate).getTime() - new Date(a.testedDate).getTime())[0]
+            : null;
+
+          return (
+            <div key={ctrl.id} className="rounded-lg border border-gray-100 bg-white px-3 py-2">
+              <div className="flex items-center gap-2">
+                <div className={cn("w-2 h-2 rounded-full shrink-0", effStyle.dot)} />
+                <span className="font-mono text-[10px] font-bold text-updraft-deep shrink-0">{ctrl.controlRef}</span>
+                <span className="text-xs text-gray-700 truncate flex-1">{ctrl.controlName}</span>
+                <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", effStyle.bg, effStyle.text)}>
+                  {effectiveness}
+                </span>
+              </div>
+              {latestResult && (
+                <div className="flex items-center gap-2 mt-1.5 pl-4">
+                  <span className={cn("w-1.5 h-1.5 rounded-full", ragDot(latestResult.result))} />
+                  <span className="text-[10px] text-gray-500">
+                    Latest test: <span className="font-medium">{latestResult.result}</span>
+                    {" on "}
+                    {formatDateShort(latestResult.testedDate)}
+                  </span>
+                  {latestResult.notes && (
+                    <span className="text-[10px] text-gray-400 truncate max-w-[200px]">— {latestResult.notes}</span>
+                  )}
+                </div>
+              )}
+              {!latestResult && (
+                <p className="text-[10px] text-gray-400 mt-1 pl-4 italic">No test results recorded</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+  if (refs.length > 0) {
+    return (
+      <div className="flex flex-wrap gap-1">
+        {refs.map((ref) => (
+          <span key={ref} className="rounded-full bg-purple-50 text-purple-600 px-2 py-0.5 text-[10px] font-medium border border-purple-100">{ref}</span>
+        ))}
+      </div>
+    );
+  }
+  return <p className="text-xs text-gray-400 italic">No controls linked</p>;
+}
+
+// ── Main Component ───────────────────────────────────────
+
 export default function PolicyObligationsTab({ policy, onUpdate }: Props) {
   const currentUser = useAppStore((s) => s.currentUser);
   const regulations = useAppStore((s) => s.regulations);
@@ -92,9 +195,11 @@ export default function PolicyObligationsTab({ policy, onUpdate }: Props) {
   const isCCRO = currentUser?.role === "CCRO_TEAM";
 
   const [showForm, setShowForm] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
   const [editObl, setEditObl] = useState<PolicyObligation | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [expandedObls, setExpandedObls] = useState<Set<string>>(new Set());
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
   // Lookup maps for resolving refs → objects
   const regByRef = useMemo(() => {
@@ -126,12 +231,14 @@ export default function PolicyObligationsTab({ policy, onUpdate }: Props) {
     let withControls = 0;
     let withoutControls = 0;
     let withRegs = 0;
+    let withSections = 0;
     for (const obl of obligations) {
       if (obl.controlRefs.length > 0) withControls++;
       else withoutControls++;
       if (obl.regulationRefs.length > 0) withRegs++;
+      if (obl.sections && obl.sections.length > 0) withSections++;
     }
-    return { withControls, withoutControls, withRegs, total: obligations.length };
+    return { withControls, withoutControls, withRegs, withSections, total: obligations.length };
   }, [obligations]);
 
   function toggleCategory(cat: string) {
@@ -148,6 +255,15 @@ export default function PolicyObligationsTab({ policy, onUpdate }: Props) {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSection(key: string) {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   }
@@ -194,6 +310,15 @@ export default function PolicyObligationsTab({ policy, onUpdate }: Props) {
     }
   }
 
+  async function handleImported() {
+    try {
+      const fresh = await api<Policy>(`/api/policies/${policy.id}`);
+      onUpdate(fresh);
+    } catch {
+      toast.error("Failed to refresh after import");
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -211,6 +336,12 @@ export default function PolicyObligationsTab({ policy, onUpdate }: Props) {
               <Scale size={10} />
               {coverageStats.withRegs} with regulations
             </span>
+            {coverageStats.withSections > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] text-purple-600">
+                <Layers size={10} />
+                {coverageStats.withSections} with sections
+              </span>
+            )}
             {coverageStats.withoutControls > 0 && (
               <span className="inline-flex items-center gap-1 text-[10px] text-amber-600">
                 <AlertCircle size={10} />
@@ -220,16 +351,24 @@ export default function PolicyObligationsTab({ policy, onUpdate }: Props) {
           </div>
         </div>
         {isCCRO && (
-          <button
-            onClick={() => { setEditObl(null); setShowForm(true); }}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-deep text-white px-3 py-1.5 text-xs font-medium hover:bg-updraft-bar transition-colors"
-          >
-            <Plus size={12} /> Add Requirement
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowUpload(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 px-3 py-1.5 text-xs font-medium hover:bg-gray-50 transition-colors"
+            >
+              <FileUp size={12} /> Upload CSV
+            </button>
+            <button
+              onClick={() => { setEditObl(null); setShowForm(true); }}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-deep text-white px-3 py-1.5 text-xs font-medium hover:bg-updraft-bar transition-colors"
+            >
+              <Plus size={12} /> Add Requirement
+            </button>
+          </div>
         )}
       </div>
 
-      {/* Grouped List */}
+      {/* Grouped List — Level 1: Categories */}
       {grouped.length === 0 ? (
         <div className="text-center py-10">
           <BookOpen size={36} className="mx-auto mb-2 text-gray-300" />
@@ -266,20 +405,15 @@ export default function PolicyObligationsTab({ policy, onUpdate }: Props) {
                   </span>
                 </button>
 
+                {/* Level 2: Requirements */}
                 {isExpanded && (
                   <div className="border-t border-gray-100 divide-y divide-gray-50">
                     {obls.map((obl) => {
                       const hasControls = obl.controlRefs.length > 0;
                       const hasRegs = obl.regulationRefs.length > 0;
                       const isOblExpanded = expandedObls.has(obl.id);
-
-                      // Resolve refs to actual objects
-                      const resolvedRegs = obl.regulationRefs
-                        .map((ref) => regByRef.get(ref))
-                        .filter((r): r is Regulation => !!r);
-                      const resolvedCtrls = obl.controlRefs
-                        .map((ref) => ctrlByRef.get(ref))
-                        .filter((c): c is ControlRecord => !!c);
+                      const sections: PolicyObligationSection[] = obl.sections ?? [];
+                      const hasSections = sections.length > 0;
 
                       return (
                         <div key={obl.id} className="group">
@@ -292,11 +426,9 @@ export default function PolicyObligationsTab({ policy, onUpdate }: Props) {
                             onClick={() => toggleObl(obl.id)}
                           >
                             <div className="flex items-start gap-2">
-                              {/* Expand chevron */}
                               <button className="mt-0.5 shrink-0 p-0.5 rounded hover:bg-gray-200">
                                 {isOblExpanded ? <ChevronDown size={12} className="text-gray-400" /> : <ChevronRight size={12} className="text-gray-400" />}
                               </button>
-                              {/* Coverage indicator dot */}
                               <span
                                 className={cn(
                                   "mt-1.5 w-2 h-2 rounded-full shrink-0",
@@ -306,7 +438,6 @@ export default function PolicyObligationsTab({ policy, onUpdate }: Props) {
                               <span className="font-mono text-[10px] font-bold text-updraft-deep mt-0.5 shrink-0">{obl.reference}</span>
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs text-gray-700 line-clamp-2">{obl.description}</p>
-                                {/* Inline summary chips */}
                                 <div className="flex items-center gap-2 mt-1">
                                   {hasRegs && (
                                     <span className="inline-flex items-center gap-0.5 text-[10px] text-blue-600">
@@ -316,6 +447,11 @@ export default function PolicyObligationsTab({ policy, onUpdate }: Props) {
                                   {hasControls && (
                                     <span className="inline-flex items-center gap-0.5 text-[10px] text-purple-600">
                                       <Shield size={9} /> {obl.controlRefs.length} ctrl{obl.controlRefs.length !== 1 ? "s" : ""}
+                                    </span>
+                                  )}
+                                  {hasSections && (
+                                    <span className="inline-flex items-center gap-0.5 text-[10px] text-teal-600">
+                                      <Layers size={9} /> {sections.length} section{sections.length !== 1 ? "s" : ""}
                                     </span>
                                   )}
                                 </div>
@@ -341,7 +477,7 @@ export default function PolicyObligationsTab({ policy, onUpdate }: Props) {
                             </div>
                           </div>
 
-                          {/* ── Expanded drill-down ── */}
+                          {/* ── Expanded Level 2: Requirement details ── */}
                           {isOblExpanded && (
                             <div className="px-4 pb-4 pt-1 pl-12 animate-fade-in space-y-3">
                               {/* Notes */}
@@ -352,120 +488,111 @@ export default function PolicyObligationsTab({ policy, onUpdate }: Props) {
                                 </div>
                               )}
 
-                              {/* ── Linked Regulations ── */}
-                              <div>
-                                <p className="text-[10px] uppercase tracking-wider text-gray-400 font-medium mb-2 flex items-center gap-1">
-                                  <Scale size={10} />
-                                  Linked Regulations ({obl.regulationRefs.length})
-                                </p>
-                                {resolvedRegs.length > 0 ? (
-                                  <div className="space-y-1.5">
-                                    {resolvedRegs.map((reg) => {
-                                      const status = (reg.complianceStatus ?? "NOT_ASSESSED") as ComplianceStatus;
-                                      const statusStyle = COMPLIANCE_STATUS_COLOURS[status];
-                                      return (
-                                        <div key={reg.id} className="flex items-center gap-2 rounded-lg border border-gray-100 bg-white px-3 py-2">
-                                          <div className={cn("w-2 h-2 rounded-full shrink-0", statusStyle.dot)} />
-                                          <span className="font-mono text-[10px] font-bold text-updraft-deep shrink-0">{reg.reference}</span>
-                                          <span className="text-xs text-gray-700 truncate flex-1">{reg.shortName ?? reg.name}</span>
-                                          <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", statusStyle.bg, statusStyle.text)}>
-                                            {COMPLIANCE_STATUS_LABELS[status]}
-                                          </span>
-                                          {reg.url && (
-                                            <a href={reg.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-gray-400 hover:text-updraft-bright-purple">
-                                              <ExternalLink size={10} />
-                                            </a>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                ) : obl.regulationRefs.length > 0 ? (
-                                  <div className="flex flex-wrap gap-1">
-                                    {obl.regulationRefs.map((ref) => (
-                                      <span key={ref} className="rounded-full bg-blue-50 text-blue-600 px-2 py-0.5 text-[10px] font-medium border border-blue-100">{ref}</span>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <p className="text-xs text-gray-400 italic">No regulations linked to this requirement</p>
-                                )}
-                              </div>
+                              {/* ── Level 3: Sections ── */}
+                              {hasSections ? (
+                                <div className="space-y-2">
+                                  <p className="text-[10px] uppercase tracking-wider text-gray-400 font-medium flex items-center gap-1">
+                                    <Layers size={10} />
+                                    Policy Sections ({sections.length})
+                                  </p>
+                                  {sections.map((section, sIdx) => {
+                                    const sKey = `${obl.id}-s-${sIdx}`;
+                                    const isSectionExpanded = expandedSections.has(sKey);
 
-                              {/* ── Linked Controls with Effectiveness ── */}
-                              <div>
-                                <p className="text-[10px] uppercase tracking-wider text-gray-400 font-medium mb-2 flex items-center gap-1">
-                                  <Shield size={10} />
-                                  Linked Controls ({obl.controlRefs.length})
-                                </p>
-                                {resolvedCtrls.length > 0 ? (
-                                  <div className="space-y-1.5">
-                                    {resolvedCtrls.map((ctrl) => {
-                                      const effectiveness = calcEffectiveness(ctrl);
-                                      const effStyle = EFFECTIVENESS_STYLES[effectiveness];
-                                      const results = ctrl.testingSchedule?.testResults ?? [];
-                                      const latestResult = results.length > 0
-                                        ? [...results].sort((a, b) => new Date(b.testedDate).getTime() - new Date(a.testedDate).getTime())[0]
-                                        : null;
-
-                                      return (
-                                        <div key={ctrl.id} className="rounded-lg border border-gray-100 bg-white px-3 py-2">
-                                          <div className="flex items-center gap-2">
-                                            <div className={cn("w-2 h-2 rounded-full shrink-0", effStyle.dot)} />
-                                            <span className="font-mono text-[10px] font-bold text-updraft-deep shrink-0">{ctrl.controlRef}</span>
-                                            <span className="text-xs text-gray-700 truncate flex-1">{ctrl.controlName}</span>
-                                            <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", effStyle.bg, effStyle.text)}>
-                                              {effectiveness}
-                                            </span>
-                                          </div>
-                                          {/* Test result details */}
-                                          {latestResult && (
-                                            <div className="flex items-center gap-2 mt-1.5 pl-4">
-                                              <span className={cn("w-1.5 h-1.5 rounded-full", ragDot(latestResult.result))} />
-                                              <span className="text-[10px] text-gray-500">
-                                                Latest test: <span className="font-medium">{latestResult.result}</span>
-                                                {" on "}
-                                                {formatDateShort(latestResult.testedDate)}
-                                              </span>
-                                              {latestResult.notes && (
-                                                <span className="text-[10px] text-gray-400 truncate max-w-[200px]">— {latestResult.notes}</span>
-                                              )}
-                                            </div>
-                                          )}
-                                          {!latestResult && (
-                                            <p className="text-[10px] text-gray-400 mt-1 pl-4 italic">No test results recorded</p>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                ) : obl.controlRefs.length > 0 ? (
-                                  <div className="flex flex-wrap gap-1">
-                                    {obl.controlRefs.map((ref) => (
-                                      <span key={ref} className="rounded-full bg-purple-50 text-purple-600 px-2 py-0.5 text-[10px] font-medium border border-purple-100">{ref}</span>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <p className="text-xs text-gray-400 italic">No controls linked to this requirement</p>
-                                )}
-                              </div>
-
-                              {/* Coverage summary for this requirement */}
-                              <div className="rounded-lg bg-gradient-to-r from-gray-50 to-white p-2.5 border border-gray-100">
-                                <p className="text-[10px] font-medium text-gray-500">
-                                  Coverage: {resolvedRegs.length} regulation{resolvedRegs.length !== 1 ? "s" : ""}, {resolvedCtrls.length} control{resolvedCtrls.length !== 1 ? "s" : ""}
-                                  {resolvedCtrls.length > 0 && (() => {
-                                    const effective = resolvedCtrls.filter((c) => {
-                                      const e = calcEffectiveness(c);
-                                      return e === "Effective" || e === "Mostly Effective";
-                                    }).length;
                                     return (
-                                      <span className={cn("ml-1", effective === resolvedCtrls.length ? "text-green-600" : "text-amber-600")}>
-                                        ({effective}/{resolvedCtrls.length} effective)
-                                      </span>
+                                      <div key={sKey} className="rounded-lg border border-gray-100 bg-white overflow-hidden">
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); toggleSection(sKey); }}
+                                          className={cn(
+                                            "flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-gray-50 transition-colors",
+                                            isSectionExpanded && "bg-gray-50"
+                                          )}
+                                        >
+                                          {isSectionExpanded ? <ChevronDown size={11} className="text-gray-400" /> : <ChevronRight size={11} className="text-gray-400" />}
+                                          <span className="text-xs font-medium text-gray-700">{section.name}</span>
+                                          <span className="ml-auto flex items-center gap-1.5">
+                                            {section.regulationRefs.length > 0 && (
+                                              <span className="text-[10px] text-blue-500">{section.regulationRefs.length} reg{section.regulationRefs.length !== 1 ? "s" : ""}</span>
+                                            )}
+                                            {section.controlRefs.length > 0 && (
+                                              <span className="text-[10px] text-purple-500">{section.controlRefs.length} ctrl{section.controlRefs.length !== 1 ? "s" : ""}</span>
+                                            )}
+                                          </span>
+                                        </button>
+
+                                        {/* Expanded section → linked regs + controls */}
+                                        {isSectionExpanded && (
+                                          <div className="px-3 pb-3 pt-1 pl-8 space-y-3 border-t border-gray-50">
+                                            {/* Section Regulations */}
+                                            <div>
+                                              <p className="text-[10px] uppercase tracking-wider text-gray-400 font-medium mb-1.5 flex items-center gap-1">
+                                                <Scale size={9} />
+                                                Regulations ({section.regulationRefs.length})
+                                              </p>
+                                              <RegulationsList refs={section.regulationRefs} regByRef={regByRef} />
+                                            </div>
+                                            {/* Section Controls */}
+                                            <div>
+                                              <p className="text-[10px] uppercase tracking-wider text-gray-400 font-medium mb-1.5 flex items-center gap-1">
+                                                <Shield size={9} />
+                                                Controls ({section.controlRefs.length})
+                                              </p>
+                                              <ControlsList refs={section.controlRefs} ctrlByRef={ctrlByRef} />
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
                                     );
-                                  })()}
-                                </p>
-                              </div>
+                                  })}
+
+                                  {/* Aggregate coverage summary */}
+                                  <div className="rounded-lg bg-gradient-to-r from-gray-50 to-white p-2.5 border border-gray-100">
+                                    <p className="text-[10px] font-medium text-gray-500">
+                                      Aggregate: {obl.regulationRefs.length} regulation{obl.regulationRefs.length !== 1 ? "s" : ""}, {obl.controlRefs.length} control{obl.controlRefs.length !== 1 ? "s" : ""} across {sections.length} section{sections.length !== 1 ? "s" : ""}
+                                    </p>
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  {/* Fallback: flat reg/ctrl lists (no sections) */}
+                                  <div>
+                                    <p className="text-[10px] uppercase tracking-wider text-gray-400 font-medium mb-2 flex items-center gap-1">
+                                      <Scale size={10} />
+                                      Linked Regulations ({obl.regulationRefs.length})
+                                    </p>
+                                    <RegulationsList refs={obl.regulationRefs} regByRef={regByRef} />
+                                  </div>
+
+                                  <div>
+                                    <p className="text-[10px] uppercase tracking-wider text-gray-400 font-medium mb-2 flex items-center gap-1">
+                                      <Shield size={10} />
+                                      Linked Controls ({obl.controlRefs.length})
+                                    </p>
+                                    <ControlsList refs={obl.controlRefs} ctrlByRef={ctrlByRef} />
+                                  </div>
+
+                                  <div className="rounded-lg bg-gradient-to-r from-gray-50 to-white p-2.5 border border-gray-100">
+                                    <p className="text-[10px] font-medium text-gray-500">
+                                      Coverage: {obl.regulationRefs.length} regulation{obl.regulationRefs.length !== 1 ? "s" : ""}, {obl.controlRefs.length} control{obl.controlRefs.length !== 1 ? "s" : ""}
+                                      {(() => {
+                                        const resolvedCtrls = obl.controlRefs.map((ref) => ctrlByRef.get(ref)).filter((c): c is ControlRecord => !!c);
+                                        if (resolvedCtrls.length > 0) {
+                                          const effective = resolvedCtrls.filter((c) => {
+                                            const e = calcEffectiveness(c);
+                                            return e === "Effective" || e === "Mostly Effective";
+                                          }).length;
+                                          return (
+                                            <span className={cn("ml-1", effective === resolvedCtrls.length ? "text-green-600" : "text-amber-600")}>
+                                              ({effective}/{resolvedCtrls.length} effective)
+                                            </span>
+                                          );
+                                        }
+                                        return null;
+                                      })()}
+                                    </p>
+                                  </div>
+                                </>
+                              )}
                             </div>
                           )}
                         </div>
@@ -485,6 +612,14 @@ export default function PolicyObligationsTab({ policy, onUpdate }: Props) {
         onSave={handleSave}
         policy={policy}
         editObligation={editObl}
+      />
+
+      <RequirementsCSVUploadDialog
+        open={showUpload}
+        onClose={() => setShowUpload(false)}
+        onImported={handleImported}
+        policyId={policy.id}
+        policyReference={policy.reference}
       />
     </div>
   );

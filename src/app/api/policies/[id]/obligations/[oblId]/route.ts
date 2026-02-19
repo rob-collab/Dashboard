@@ -3,11 +3,18 @@ import { z } from "zod";
 import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
+const sectionSchema = z.object({
+  name: z.string().min(1),
+  regulationRefs: z.array(z.string()).default([]),
+  controlRefs: z.array(z.string()).default([]),
+});
+
 const updateSchema = z.object({
   category: z.string().optional(),
   description: z.string().optional(),
   regulationRefs: z.array(z.string()).optional(),
   controlRefs: z.array(z.string()).optional(),
+  sections: z.array(sectionSchema).optional(),
   notes: z.string().optional().nullable(),
 });
 
