@@ -39,7 +39,7 @@ interface SidebarProps {
 const ROB_EMAIL = "rob@updraft.com";
 
 const NAV_ITEMS: { label: string; href: string; icon: typeof LayoutDashboard; roles: Role[]; badgeKey?: string }[] = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard, roles: ["CCRO_TEAM", "OWNER", "VIEWER"] },
+  { label: "Dashboard", href: "/", icon: LayoutDashboard, roles: ["CCRO_TEAM", "OWNER", "VIEWER"], badgeKey: "dashboard" },
   { label: "Actions", href: "/actions", icon: ListChecks, roles: ["CCRO_TEAM", "OWNER", "VIEWER"], badgeKey: "actions" },
   { label: "Audit Trail", href: "/audit", icon: ClipboardList, roles: ["CCRO_TEAM"] },
   { label: "Consumer Duty", href: "/consumer-duty", icon: ShieldCheck, roles: ["CCRO_TEAM", "OWNER", "VIEWER"] },
@@ -68,6 +68,8 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
   const riskAcceptances = useAppStore((s) => s.riskAcceptances);
 
   // Badge counts — role-aware, computed via useMemo to avoid infinite re-renders
+  // CCRO users see a single aggregated badge on Dashboard (total items needing review).
+  // Non-CCRO users see badges on individual section nav items.
   const badges: Record<string, number> = useMemo(() => {
     const isCCRO = currentUser.role === "CCRO_TEAM";
     const isOwner = currentUser.role === "OWNER";
@@ -91,7 +93,14 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
       ? risks.reduce((n, r) => n + (r.changes ?? []).filter((ch) => ch.status === "PENDING").length, 0)
       : 0;
 
-    return { actions: overdueActions, controls: pendingControlChanges, riskAcceptance, riskRegister: pendingRiskChanges };
+    if (isCCRO) {
+      // Aggregate all review items onto the Dashboard badge
+      const total = overdueActions + pendingControlChanges + riskAcceptance + pendingRiskChanges;
+      return { dashboard: total } as Record<string, number>;
+    }
+
+    // Non-CCRO: badges on individual sections
+    return { actions: overdueActions, riskAcceptance } as Record<string, number>;
   }, [actions, controls, risks, riskAcceptances, currentUser]);
 
   const [refreshing, setRefreshing] = useState(false);
