@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, getUserId, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
+import { prisma, getUserId, jsonResponse, errorResponse, validateBody, generateReference } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 import { getRiskScore, getAppetiteMaxScore, calculateBreach } from "@/lib/risk-categories";
 
@@ -109,18 +109,19 @@ export async function PATCH(
       if (mitigations) {
         const existingMits = await tx.riskMitigation.findMany({ where: { riskId: id } });
 
-        for (const em of existingMits) {
-          if (em.actionId) {
-            await tx.action.delete({ where: { id: em.actionId } }).catch(() => {});
-          }
+        // Delete linked actions — collect IDs and batch-delete to avoid silent failures
+        const linkedActionIds = existingMits.map((em) => em.actionId).filter(Boolean) as string[];
+        if (linkedActionIds.length > 0) {
+          await tx.action.deleteMany({ where: { id: { in: linkedActionIds } } });
         }
         await tx.riskMitigation.deleteMany({ where: { riskId: id } });
 
-        const resolveOwner = async (ownerName: string | null | undefined): Promise<string> => {
-          if (!ownerName) return userId;
-          const user = await tx.user.findFirst({ where: { name: { equals: ownerName, mode: "insensitive" } } });
-          return user?.id ?? userId;
-        };
+        // Batch-resolve owner names to user IDs (avoids N+1 queries)
+        const ownerNames = Array.from(new Set(mitigations.map((m) => m.owner).filter(Boolean))) as string[];
+        const ownerUsers = ownerNames.length > 0
+          ? await tx.user.findMany({ where: { name: { in: ownerNames, mode: "insensitive" } } })
+          : [];
+        const ownerMap = new Map(ownerUsers.map((u) => [u.name.toLowerCase(), u.id]));
 
         const mitToActionStatus = (ms: string): "OPEN" | "IN_PROGRESS" | "COMPLETED" => {
           if (ms === "COMPLETE") return "COMPLETED";
@@ -128,15 +129,9 @@ export async function PATCH(
           return "OPEN";
         };
 
-        const lastAction = await tx.action.findFirst({ orderBy: { reference: "desc" } });
-        let actionNum = lastAction?.reference
-          ? parseInt(lastAction.reference.replace("ACT-", ""), 10) + 1
-          : 1;
-
         for (const m of mitigations) {
-          const assigneeId = await resolveOwner(m.owner);
-          const actionRef = `ACT-${String(actionNum).padStart(3, "0")}`;
-          actionNum++;
+          const assigneeId = m.owner ? (ownerMap.get(m.owner.toLowerCase()) ?? userId) : userId;
+          const actionRef = await generateReference("ACT-", "action");
           const linkedAction = await tx.action.create({
             data: {
               reference: actionRef,
@@ -241,7 +236,7 @@ export async function PATCH(
     return jsonResponse(responseData);
   } catch (err) {
     console.error("[PATCH /api/risks/:id]", err);
-    return errorResponse("Internal server error", 500);
+    return errorResponse(err instanceof Error ? err.message : "Internal server error", 500);
   }
 }
 

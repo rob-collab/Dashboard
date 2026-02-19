@@ -54,8 +54,16 @@ export async function PATCH(
     if (validatedData.issueDescription !== undefined) data.issueDescription = validatedData.issueDescription;
     if (validatedData.status !== undefined) {
       data.status = validatedData.status;
-      if (validatedData.status === "COMPLETED") data.completedAt = new Date();
-      // PROPOSED_CLOSED should NOT set completedAt
+      if (validatedData.status === "COMPLETED") {
+        data.completedAt = new Date();
+      } else {
+        // Clear completedAt when reopening a completed action
+        data.completedAt = null;
+      }
+    }
+    if (validatedData.completedAt !== undefined) {
+      // Explicit completedAt from client overrides auto-set logic
+      data.completedAt = validatedData.completedAt ? new Date(validatedData.completedAt) : null;
     }
     if (validatedData.priority !== undefined) data.priority = validatedData.priority;
     if (validatedData.assignedTo !== undefined) data.assignedTo = validatedData.assignedTo;

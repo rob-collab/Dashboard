@@ -1,8 +1,20 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse, requireCCRORole } from "@/lib/api-helpers";
+import { z } from "zod";
+import { prisma, jsonResponse, errorResponse, requireCCRORole, validateBody } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 type Params = { params: Promise<{ id: string }> };
+
+const updateSchema = z.object({
+  metric: z.string().min(1).optional(),
+  current: z.string().optional(),
+  previous: z.string().optional(),
+  change: z.string().optional(),
+  ragStatus: z.enum(["GOOD", "WARNING", "HARM"]).optional(),
+  appetite: z.string().nullable().optional(),
+  appetiteOperator: z.string().nullable().optional(),
+  narrative: z.string().nullable().optional(),
+});
 
 export async function PATCH(request: NextRequest, { params }: Params) {
   try {
@@ -10,7 +22,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     const authResult = await requireCCRORole(request);
     if ('error' in authResult) return authResult.error;
     const body = await request.json();
-    const mi = await prisma.consumerDutyMI.update({ where: { id }, data: body });
+    const result = validateBody(updateSchema, body);
+    if ("error" in result) return result.error;
+    const mi = await prisma.consumerDutyMI.update({ where: { id }, data: result.data });
     return jsonResponse(serialiseDates(mi));
   } catch (error) {
     console.error('[API Error]', error);

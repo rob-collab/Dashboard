@@ -191,6 +191,6 @@ export async function POST(request: NextRequest) {
     return jsonResponse(serialiseDates(refreshedRisk), 201);
   } catch (err) {
     console.error("[POST /api/risks]", err);
-    return errorResponse("Internal server error", 500);
+    return errorResponse(err instanceof Error ? err.message : "Internal server error", 500);
   }
 }

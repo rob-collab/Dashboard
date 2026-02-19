@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, getAuthUserId, validateBody, jsonResponse } from "@/lib/api-helpers";
+import { prisma, getAuthUserId, validateBody, jsonResponse, errorResponse } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const metricSchema = z.object({
@@ -26,50 +26,55 @@ function monthStart(): Date {
 }
 
 export async function PUT(request: NextRequest) {
-  const body = await request.json();
-  const result = validateBody(putSchema, body);
-  if ("error" in result) return result.error;
-  const { measureId, metrics, month: monthParam } = result.data;
+  try {
+    const body = await request.json();
+    const result = validateBody(putSchema, body);
+    if ("error" in result) return result.error;
+    const { measureId, metrics, month: monthParam } = result.data;
 
-  const userId = getAuthUserId(request);
+    const userId = getAuthUserId(request);
 
-  // Allow optional month override for historical imports
-  const month = monthParam ? new Date(monthParam) : monthStart();
+    // Allow optional month override for historical imports
+    const month = monthParam ? new Date(monthParam) : monthStart();
 
-  await prisma.$transaction(async (tx) => {
-    await tx.consumerDutyMI.deleteMany({ where: { measureId } });
-    for (const m of metrics) {
-      const mi = await tx.consumerDutyMI.create({
+    await prisma.$transaction(async (tx) => {
+      await tx.consumerDutyMI.deleteMany({ where: { measureId } });
+      for (const m of metrics) {
+        const mi = await tx.consumerDutyMI.create({
+          data: {
+            ...(m.id && { id: m.id }),
+            measureId,
+            metric: m.metric,
+            current: m.current,
+            previous: m.previous,
+            change: m.change,
+            ragStatus: m.ragStatus,
+            appetite: m.appetite,
+            appetiteOperator: m.appetiteOperator,
+          },
+        });
+        // Auto-upsert snapshot for the current month
+        if (mi.current) {
+          await tx.metricSnapshot.upsert({
+            where: { miId_month: { miId: mi.id, month } },
+            update: { value: mi.current, ragStatus: mi.ragStatus },
+            create: { miId: mi.id, month, value: mi.current, ragStatus: mi.ragStatus },
+          });
+        }
+      }
+      await tx.consumerDutyMeasure.update({
+        where: { id: measureId },
         data: {
-          ...(m.id && { id: m.id }),
-          measureId,
-          metric: m.metric,
-          current: m.current,
-          previous: m.previous,
-          change: m.change,
-          ragStatus: m.ragStatus,
-          appetite: m.appetite,
-          appetiteOperator: m.appetiteOperator,
+          lastUpdatedAt: new Date(),
+          ...(userId && { updatedById: userId }),
         },
       });
-      // Auto-upsert snapshot for the current month
-      if (mi.current) {
-        await tx.metricSnapshot.upsert({
-          where: { miId_month: { miId: mi.id, month } },
-          update: { value: mi.current, ragStatus: mi.ragStatus },
-          create: { miId: mi.id, month, value: mi.current, ragStatus: mi.ragStatus },
-        });
-      }
-    }
-    await tx.consumerDutyMeasure.update({
-      where: { id: measureId },
-      data: {
-        lastUpdatedAt: new Date(),
-        ...(userId && { updatedById: userId }),
-      },
     });
-  });
 
-  const updated = await prisma.consumerDutyMI.findMany({ where: { measureId }, orderBy: { metric: "asc" } });
-  return jsonResponse(serialiseDates(updated));
+    const updated = await prisma.consumerDutyMI.findMany({ where: { measureId }, orderBy: { metric: "asc" } });
+    return jsonResponse(serialiseDates(updated));
+  } catch (err) {
+    console.error("[PUT /api/consumer-duty/mi]", err);
+    return errorResponse(err instanceof Error ? err.message : "Internal server error", 500);
+  }
 }

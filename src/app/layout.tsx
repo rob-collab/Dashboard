@@ -99,7 +99,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <Toaster position="top-right" richColors closeButton />
+      <Toaster position="top-right" richColors closeButton toastOptions={{ style: { zIndex: 9999 } }} style={{ zIndex: 9999 }} />
       <div className="flex h-screen overflow-hidden">
         <Sidebar
           currentUser={currentUser}
