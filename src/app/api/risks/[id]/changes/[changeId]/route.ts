@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
+import { prisma, checkPermission, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const updateSchema = z.object({
@@ -13,8 +13,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string; changeId: string }> }
 ) {
   try {
-    const auth = await requireCCRORole(request);
-    if ("error" in auth) return auth.error;
+    const auth = await checkPermission(request, "can:approve-entities");
+    if (!auth.granted) return auth.error;
     const { userId } = auth;
 
     const { id, changeId } = await params;

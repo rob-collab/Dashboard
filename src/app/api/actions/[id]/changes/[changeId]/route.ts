@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma, jsonResponse, errorResponse, getUserId } from "@/lib/api-helpers";
+import { prisma, jsonResponse, errorResponse, checkPermission } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 export async function PATCH(
@@ -8,8 +8,9 @@ export async function PATCH(
 ) {
   try {
     const { id, changeId } = await params;
-    const userId = getUserId(request);
-    if (!userId) return errorResponse("Unauthorised", 401);
+    const auth = await checkPermission(request, "can:approve-entities");
+    if (!auth.granted) return auth.error;
+    const userId = auth.userId;
 
     const change = await prisma.actionChange.findUnique({ where: { id: changeId } });
     if (!change) return errorResponse("Change not found", 404);

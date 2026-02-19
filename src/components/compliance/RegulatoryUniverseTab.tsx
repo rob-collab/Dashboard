@@ -12,8 +12,10 @@ import {
   type Applicability,
 } from "@/lib/types";
 import { cn, naturalCompare } from "@/lib/utils";
+import { useHasPermission } from "@/lib/usePermission";
 import RegulationDetailPanel from "./RegulationDetailPanel";
-import { ChevronRight, ChevronDown, Search, X } from "lucide-react";
+import RegulationCSVDialog from "./RegulationCSVDialog";
+import { ChevronRight, ChevronDown, Search, X, Download, Upload } from "lucide-react";
 
 export default function RegulatoryUniverseTab() {
   const regulations = useAppStore((s) => s.regulations);
@@ -24,6 +26,8 @@ export default function RegulatoryUniverseTab() {
   const [gapsOnly, setGapsOnly] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [csvDialogOpen, setCsvDialogOpen] = useState(false);
+  const canEditCompliance = useHasPermission("edit:compliance");
 
   // Build hierarchy
   const tree = useMemo(() => {
@@ -80,6 +84,73 @@ export default function RegulatoryUniverseTab() {
 
   const selectedReg = selectedId ? regulations.find((r) => r.id === selectedId) ?? null : null;
 
+  // Build a quick parentRef lookup for CSV export
+  const parentRefMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const r of regulations) map.set(r.id, r.reference);
+    return map;
+  }, [regulations]);
+
+  function downloadCSV() {
+    const headers = [
+      "id", "reference", "parentReference", "level", "name", "shortName",
+      "regulatoryBody", "type", "description", "provisions", "url",
+      "applicability", "applicabilityNotes", "isApplicable", "isActive",
+      "primarySMF", "secondarySMF", "smfNotes",
+      "complianceStatus", "assessmentNotes",
+    ];
+
+    const escapeCSV = (val: string | null | undefined | boolean): string => {
+      if (val === null || val === undefined) return "";
+      const s = String(val);
+      if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+        return `"${s.replace(/"/g, '""')}"`;
+      }
+      return s;
+    };
+
+    // Sort all regulations by natural reference order
+    const sorted = [...regulations].sort((a, b) => naturalCompare(a.reference, b.reference));
+
+    const rows = sorted.map((r) => [
+      escapeCSV(r.id),
+      escapeCSV(r.reference),
+      escapeCSV(r.parentId ? parentRefMap.get(r.parentId) ?? "" : ""),
+      escapeCSV(String(r.level)),
+      escapeCSV(r.name),
+      escapeCSV(r.shortName),
+      escapeCSV(r.regulatoryBody),
+      escapeCSV(r.type),
+      escapeCSV(r.description),
+      escapeCSV(r.provisions),
+      escapeCSV(r.url),
+      escapeCSV(r.applicability),
+      escapeCSV(r.applicabilityNotes),
+      escapeCSV(r.isApplicable),
+      escapeCSV(r.isActive),
+      escapeCSV(r.primarySMF),
+      escapeCSV(r.secondarySMF),
+      escapeCSV(r.smfNotes),
+      escapeCSV(r.complianceStatus),
+      escapeCSV(r.assessmentNotes),
+    ].join(","));
+
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `regulatory-universe-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleCSVImported() {
+    // Re-hydrate regulations from API
+    const { hydrate } = useAppStore.getState();
+    hydrate();
+  }
+
   return (
     <div className="flex gap-6">
       {/* Main table area */}
@@ -134,6 +205,24 @@ export default function RegulatoryUniverseTab() {
           </label>
           <button onClick={expandAll} className="text-xs text-updraft-bright-purple hover:underline">Expand all</button>
           <button onClick={collapseAll} className="text-xs text-gray-500 hover:underline">Collapse all</button>
+          <div className="flex items-center gap-2 ml-auto">
+            <button
+              onClick={downloadCSV}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <Download size={13} />
+              Download CSV
+            </button>
+            {canEditCompliance && (
+              <button
+                onClick={() => setCsvDialogOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-bright-purple px-3 py-1.5 text-xs font-semibold text-white hover:bg-updraft-deep transition-colors"
+              >
+                <Upload size={13} />
+                Upload CSV
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Count */}
@@ -179,6 +268,14 @@ export default function RegulatoryUniverseTab() {
       {selectedReg && (
         <RegulationDetailPanel regulation={selectedReg} onClose={() => setSelectedId(null)} />
       )}
+
+      {/* CSV Import Dialog */}
+      <RegulationCSVDialog
+        open={csvDialogOpen}
+        onClose={() => setCsvDialogOpen(false)}
+        regulations={regulations}
+        onImported={handleCSVImported}
+      />
     </div>
   );
 }
