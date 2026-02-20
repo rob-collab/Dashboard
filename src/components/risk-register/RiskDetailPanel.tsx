@@ -246,8 +246,13 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
             )}
           </div>
           <div className="flex items-center gap-1">
-            {!canEditRisk && !isNew && (
-              <RequestEditAccessButton permission="edit:risks" />
+            {!canEditRisk && !isNew && risk && (
+              <RequestEditAccessButton
+                permission="edit:risks"
+                entityType="Risk"
+                entityId={risk.id}
+                entityName={`${risk.reference} – ${risk.name}`}
+              />
             )}
             {risk && !isNew && onViewHistory && (
               <button

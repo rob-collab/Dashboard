@@ -1176,6 +1176,9 @@ export interface AccessRequest {
   reviewNote: string | null;
   grantedUntil: string | null;
   durationHours: number;
+  entityType: string | null;
+  entityId: string | null;
+  entityName: string | null;
   createdAt: string;
   updatedAt: string;
 }

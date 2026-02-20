@@ -1361,6 +1361,9 @@ model AccessRequest {
   reviewNote    String?             @db.Text
   grantedUntil  DateTime?
   durationHours Int                 @default(8)
+  entityType    String?
+  entityId      String?
+  entityName    String?
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
 

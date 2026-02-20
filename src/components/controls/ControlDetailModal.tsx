@@ -235,7 +235,12 @@ export default function ControlDetailModal({
             </button>
           )}
           {!isCCRO && control && (
-            <RequestEditAccessButton permission="edit:controls" />
+            <RequestEditAccessButton
+              permission="edit:controls"
+              entityType="Control"
+              entityId={control.id}
+              entityName={`${control.controlRef} – ${control.controlName}`}
+            />
           )}
           {!isCCRO && control && (
             <button

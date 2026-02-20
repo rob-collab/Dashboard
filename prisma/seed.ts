@@ -17,6 +17,7 @@ const SEED_USERS: {
   { id: "user-micha", email: "micha@updraft.com", name: "Micha", role: "OWNER", assignedMeasures: ["1.2","1.6","1.7","2.1","2.2","2.3","2.4","2.5","2.6","2.7"], isActive: true },
   { id: "user-ceo", email: "Aseem@updraft.com", name: "Aseem", role: "CEO", assignedMeasures: [], isActive: true },
   { id: "user-david", email: "david@updraft.com", name: "David", role: "OWNER", assignedMeasures: [], isActive: true },
+  { id: "user-graham", email: "graham@updraft.com", name: "Graham", role: "OWNER", assignedMeasures: [], isActive: true },
 ];
 
 // ── Risk Categories (L1 + L2) ─────────────────────────────────────────────
@@ -447,17 +448,16 @@ async function main() {
 
   // ── Policy Review Module ──────────────────────────────────────────────
 
-  // Clean up old regulation/policy data before re-seeding
-  await prisma.policyAuditLog.deleteMany({ where: { policyId: "pol-finprom" } });
-  await prisma.policyObligation.deleteMany({ where: { policyId: "pol-finprom" } });
-  await prisma.policyControlLink.deleteMany({ where: { policyId: "pol-finprom" } });
-  await prisma.policyRegulatoryLink.deleteMany({ where: { policyId: "pol-finprom" } });
-  await prisma.policy.deleteMany({ where: { id: "pol-finprom" } });
+  // Clean up all policy and regulation data before re-seeding
+  await prisma.policyAuditLog.deleteMany({});
+  await prisma.policyObligation.deleteMany({});
+  await prisma.policyControlLink.deleteMany({});
+  await prisma.policyRegulatoryLink.deleteMany({});
+  await prisma.policy.deleteMany({});
   // Delete old regulation links and regulations (both old FCA-xxx scheme and new CU-xxxx if re-running)
   await prisma.regulationControlLink.deleteMany({});
-  await prisma.policyRegulatoryLink.deleteMany({});
   await prisma.regulation.deleteMany({});
-  console.log("  ✓ Cleaned old policy review data");
+  console.log("  ✓ Cleaned all policy and regulation data");
 
   // ── Compliance Universe (328 regulations, 4-level hierarchy from CSV) ─────
 
@@ -1052,109 +1052,391 @@ async function main() {
   }
   console.log(`  ✓ ${FP_CONTROLS.length} financial promotions controls (FP-C001 to FP-C018) with testing schedules`);
 
-  // ── Seed Policy: Financial Promotions (real data from XLSX) ────────────
-  const policyId = "pol-finprom";
-  await prisma.policy.create({
-    data: {
-      id: policyId,
-      reference: "POL-FINPROM",
-      name: "Financial Promotions Policy",
-      description: "Governs the creation, review, approval, and management of all financial promotional material to ensure regulatory compliance.",
-      status: "OVERDUE",
-      version: "v4.1",
-      ownerId: "user-cath",
-      approvedBy: "CCROC",
-      classification: "Internal Only",
-      reviewFrequencyDays: 365,
-      lastReviewedDate: new Date("2024-02-05"),
-      nextReviewDate: new Date("2025-02-05"),
-      effectiveDate: new Date("2023-01-01"),
-      scope: "All staff involved in creating, reviewing, or approving marketing material",
-      applicability: "Marketing, Compliance, Senior Management",
-      exceptions: "Image-only advertising (name/logo/contact only) — partial CONC 3 exemption per section 11",
-      relatedPolicies: ["Data Protection Policy", "Conduct Risk Policy", "AML/KYC/PEPs Policy"],
-      storageUrl: null,
-    },
-  });
-  console.log("  ✓ 1 policy (POL-FINPROM, v4.1, OVERDUE)");
+  // ── Seed All 21 Policies (from CSV, correct owners & regulation/control links) ─────
+  // Also link the 18 FP controls to POL-001 since they were created above
+  const fpControlIds2 = fpControlIds; // alias from above scope
 
-  // Link relevant regulations to policy (CONC 3 and its children, PRIN 7, PRIN 12, FSMA s21, PECR, UK GDPR, etc.)
-  const policyRegIds = ["cu-0005", "cu-0006", "cu-0036", "cu-0037", "cu-0038", "cu-0039", "cu-0042", "cu-0043", "cu-0051", "cu-0061", "cu-0063", "cu-0121"];
-  for (const regId of policyRegIds) {
-    await prisma.policyRegulatoryLink.create({
-      data: { policyId, regulationId: regId, linkedBy: "user-rob" },
-    });
-  }
-  console.log(`  ✓ ${policyRegIds.length} policy-regulation links`);
+  // Email → user-id lookup
+  const EMAIL_TO_USER: Record<string, string> = {
+    "rob@updraft.com": "user-rob",
+    "cath@updraft.com": "user-cath",
+    "ash@updraft.com": "user-ash",
+    "chris@updraft.com": "user-chris",
+    "micha@updraft.com": "user-micha",
+    "david@updraft.com": "user-david",
+    "graham@updraft.com": "user-graham",
+    "Aseem@updraft.com": "user-ceo",
+  };
 
-  // Link all 18 FP controls to policy
-  for (const ctrlId of fpControlIds) {
-    await prisma.policyControlLink.create({
-      data: { policyId, controlId: ctrlId, linkedBy: "user-rob" },
-    });
-  }
-  console.log(`  ✓ ${fpControlIds.length} policy-control links`);
-
-  // Seed obligations (updated refs to use REG-xxx and FP-Cxxx)
-  const fpRefs = FP_CONTROLS.map((fp) => fp.controlRef);
-  const SEED_OBLIGATIONS: {
-    id: string; reference: string; category: string; description: string;
+  type PolicySeed = {
+    id: string; reference: string; name: string; description: string;
+    status: "CURRENT" | "OVERDUE" | "UNDER_REVIEW" | "ARCHIVED";
+    version: string; ownerEmail: string; approvedBy: string; approvingBody: string;
+    classification: string; reviewFrequencyDays: number;
+    effectiveDate: string; lastReviewedDate: string; nextReviewDate: string;
+    scope: string; applicability: string; exceptions: string;
+    consumerDutyOutcomes: string[];
     regulationRefs: string[]; controlRefs: string[];
-  }[] = [
-    { id: "obl-01", reference: "POL-FINPROM-OBL-01", category: "Regulatory Compliance", description: "All financial promotions must comply with FCA CONC Chapter 3 requirements for consumer credit promotions.", regulationRefs: ["REG-001"], controlRefs: ["FP-C001", "FP-C003"] },
-    { id: "obl-02", reference: "POL-FINPROM-OBL-02", category: "Regulatory Compliance", description: "Communications must be fair, clear and not misleading per FCA Principle 7.", regulationRefs: ["REG-006", "REG-017"], controlRefs: ["FP-C001", "FP-C005"] },
-    { id: "obl-03", reference: "POL-FINPROM-OBL-03", category: "Regulatory Compliance", description: "Financial promotions must pass through the s21 gateway or qualify for an FPO exemption.", regulationRefs: ["REG-003", "REG-004"], controlRefs: ["FP-C001"] },
-    { id: "obl-04", reference: "POL-FINPROM-OBL-04", category: "Promotions Approval", description: "All promotions must receive documented sign-off from the appointed compliance approver before publication.", regulationRefs: ["REG-001", "REG-007"], controlRefs: ["FP-C001", "FP-C018"] },
-    { id: "obl-05", reference: "POL-FINPROM-OBL-05", category: "Promotions Approval", description: "Approval records must include the promotion content, target audience, channel, approver name, and date.", regulationRefs: ["REG-007"], controlRefs: ["FP-C008"] },
-    { id: "obl-06", reference: "POL-FINPROM-OBL-06", category: "Promotions Approval", description: "Material changes to approved promotions require re-approval.", regulationRefs: ["REG-001"], controlRefs: ["FP-C018"] },
-    { id: "obl-07", reference: "POL-FINPROM-OBL-07", category: "Content Standards", description: "Representative examples must be shown where required, using the median APR for the product.", regulationRefs: ["REG-001", "REG-005"], controlRefs: ["FP-C002"] },
-    { id: "obl-08", reference: "POL-FINPROM-OBL-08", category: "Content Standards", description: "Risk warnings must be included and given equal prominence to any benefits claimed.", regulationRefs: ["REG-001", "REG-006"], controlRefs: ["FP-C003"] },
-    { id: "obl-09", reference: "POL-FINPROM-OBL-09", category: "Content Standards", description: "Advertising must not target vulnerable consumers inappropriately or use misleading urgency.", regulationRefs: ["REG-002", "REG-018"], controlRefs: ["FP-C004"] },
-    { id: "obl-10", reference: "POL-FINPROM-OBL-10", category: "Content Standards", description: "All promotions must be accessible and not discriminate on protected characteristics.", regulationRefs: ["REG-016", "REG-002"], controlRefs: ["FP-C012"] },
-    { id: "obl-11", reference: "POL-FINPROM-OBL-11", category: "Record Keeping", description: "Retain copies of all financial promotions and approval records for a minimum of 3 years.", regulationRefs: ["REG-007", "REG-001"], controlRefs: ["FP-C008"] },
-    { id: "obl-12", reference: "POL-FINPROM-OBL-12", category: "Record Keeping", description: "Maintain a complete register of all active promotions with review dates and channel information.", regulationRefs: ["REG-007"], controlRefs: ["FP-C008"] },
-    { id: "obl-13", reference: "POL-FINPROM-OBL-13", category: "Monitoring & Oversight", description: "Conduct monthly monitoring of live promotions for accuracy and regulatory compliance.", regulationRefs: ["REG-007", "REG-002"], controlRefs: ["FP-C005", "FP-C016", "FP-C017"] },
-    { id: "obl-14", reference: "POL-FINPROM-OBL-14", category: "Monitoring & Oversight", description: "Third-party and affiliate promotions must be subject to the same approval and monitoring standards.", regulationRefs: ["REG-001"], controlRefs: ["FP-C006"] },
-    { id: "obl-15", reference: "POL-FINPROM-OBL-15", category: "Monitoring & Oversight", description: "Implement a withdrawal procedure for promotions that become misleading or non-compliant.", regulationRefs: ["REG-001", "REG-018"], controlRefs: ["FP-C007"] },
-    { id: "obl-16", reference: "POL-FINPROM-OBL-16", category: "Data Protection", description: "Marketing communications must comply with PECR opt-in/opt-out requirements.", regulationRefs: ["REG-011", "REG-010"], controlRefs: ["FP-C009"] },
-    { id: "obl-17", reference: "POL-FINPROM-OBL-17", category: "Data Protection", description: "Personal data used for targeting must have a lawful basis under UK GDPR.", regulationRefs: ["REG-010"], controlRefs: ["FP-C010"] },
-    { id: "obl-18", reference: "POL-FINPROM-OBL-18", category: "Consumer Duty", description: "Promotions must support good consumer outcomes and avoid foreseeable harm.", regulationRefs: ["REG-002"], controlRefs: ["FP-C011", "FP-C004"] },
-    { id: "obl-19", reference: "POL-FINPROM-OBL-19", category: "Consumer Duty", description: "Regularly assess whether promotions meet the Consumer Duty cross-cutting rules.", regulationRefs: ["REG-002", "REG-006"], controlRefs: ["FP-C011"] },
-    { id: "obl-20", reference: "POL-FINPROM-OBL-20", category: "Reporting", description: "Report promotion compliance metrics to the Board/ExCo quarterly.", regulationRefs: ["REG-007"], controlRefs: ["FP-C014"] },
-    { id: "obl-21", reference: "POL-FINPROM-OBL-21", category: "Reporting", description: "Escalate material breaches or near-misses to the CCRO and compliance function immediately.", regulationRefs: ["REG-007", "REG-001"], controlRefs: ["FP-C007"] },
-    { id: "obl-22", reference: "POL-FINPROM-OBL-22", category: "Reporting", description: "Include promotion-related MI in the monthly CCRO dashboard.", regulationRefs: ["REG-007", "REG-002"], controlRefs: ["FP-C014"] },
+  };
+
+  const ALL_POLICIES: PolicySeed[] = [
+    {
+      id: "pol-001", reference: "POL-001", name: "Financial Promotions Policy",
+      description: "Comprehensive policy governing all financial promotions and marketing communications issued by or on behalf of Updraft, covering promotional materials across websites, social media, app notifications, and other channels. Ensures all promotions comply with CONC rules, are fair and clear, include appropriate risk warnings, and target the intended audience appropriately. Sets out approval workflows, review procedures, and escalation paths for promotional content.",
+      status: "CURRENT", version: "4.1", ownerEmail: "ash@updraft.com",
+      approvedBy: "Board", approvingBody: "Board", classification: "Internal Only",
+      reviewFrequencyDays: 365, effectiveDate: "2024-01-15", lastReviewedDate: "2024-01-15", nextReviewDate: "2025-01-15",
+      scope: "All financial promotions, marketing communications, social media, website content, app notifications issued by or on behalf of Updraft",
+      applicability: "All staff involved in marketing, communications, product, and any external agencies producing promotional material",
+      exceptions: "Internal communications not visible to customers; regulatory correspondence",
+      consumerDutyOutcomes: ["products-services", "consumer-understanding"],
+      regulationRefs: ["CONC 3", "CONC 3.1", "CONC 3.2", "CONC 3.3", "CONC 3.5", "CONC 3.6", "CONC 3.7", "CONC 3.9", "PRIN 7", "PRIN 12", "PRIN 2A.5"],
+      controlRefs: ["CTRL-FP-001", "CTRL-FP-002", "CTRL-FP-003", "CTRL-FP-004", "CTRL-FP-005", "CTRL-FP-006", "CTRL-FP-007", "CTRL-FP-008", "CTRL-FP-009", "CTRL-FP-010", "CTRL-FP-011", "CTRL-FP-012", "CTRL-FP-013", "CTRL-FP-014", "CTRL-FP-015"],
+    },
+    {
+      id: "pol-002", reference: "POL-002", name: "Complaints Policy",
+      description: "Establishes the framework for handling all customer complaints received directly or forwarded from partner firms including TrueLayer, Modulr, and TransUnion. Defines complaint classification, timeframes for response and resolution, escalation procedures, root cause analysis, and reporting obligations. Ensures fair treatment of complainants and compliance with DISP rules, whilst also capturing complaint data for conduct risk monitoring.",
+      status: "CURRENT", version: "1", ownerEmail: "chris@updraft.com",
+      approvedBy: "Board", approvingBody: "Board", classification: "Internal Only",
+      reviewFrequencyDays: 365, effectiveDate: "2023-10-01", lastReviewedDate: "2023-10-01", nextReviewDate: "2024-10-01",
+      scope: "All complaints received from customers, potential customers, and third parties relating to Updraft products and services including those forwarded from partner firms (TrueLayer, Modulr, TransUnion)",
+      applicability: "All staff who may receive or handle customer complaints, customer services team, compliance team, senior management",
+      exceptions: "Service requests that do not express dissatisfaction; internal operational queries",
+      consumerDutyOutcomes: ["consumer-support"],
+      regulationRefs: ["DISP", "DISP 1", "PRIN 6", "PRIN 12", "PRIN 2A.6", "CONC 2.2", "SYSC 9"],
+      controlRefs: ["CTRL-CMP-001", "CTRL-CMP-002", "CTRL-CMP-003", "CTRL-CMP-004", "CTRL-CMP-005", "CTRL-CMP-006", "CTRL-CMP-007", "CTRL-CMP-008", "CTRL-CMP-009", "CTRL-CMP-010", "CTRL-CMP-011", "CTRL-CMP-012", "CTRL-CMP-013", "CTRL-CMP-014", "CTRL-CMP-015", "CTRL-CMP-016", "CTRL-CMP-017", "CTRL-CMP-018"],
+    },
+    {
+      id: "pol-003", reference: "POL-003", name: "Vulnerable Customers Policy",
+      description: "Comprehensive policy addressing the identification, support, and fair treatment of vulnerable customers throughout their interaction with Updraft. Defines vulnerability characteristics including age, health, disability, language barriers, financial hardship, and literacy levels. Sets out tailored support measures, communication adjustments, extended timeframes, signposting to external support services, and staff training requirements. Ensures compliance with Consumer Duty outcome 2 requirements around fair outcomes.",
+      status: "CURRENT", version: "1", ownerEmail: "chris@updraft.com",
+      approvedBy: "ExCo", approvingBody: "ExCo", classification: "Internal Only",
+      reviewFrequencyDays: 365, effectiveDate: "2024-03-01", lastReviewedDate: "2024-03-01", nextReviewDate: "2025-03-01",
+      scope: "Identification, support, and fair treatment of customers displaying characteristics of vulnerability across all stages of the customer journey from application through to collections and account closure",
+      applicability: "All staff interacting with customers directly or indirectly, including customer services, collections, underwriting, product, and technology teams",
+      exceptions: "None — vulnerability considerations apply to all customer interactions",
+      consumerDutyOutcomes: ["products-services", "consumer-understanding", "consumer-support"],
+      regulationRefs: ["CONC 2.10", "PRIN 6", "PRIN 12", "PRIN 2A.2", "PRIN 2A.5", "PRIN 2A.6", "Equality Act 2010"],
+      controlRefs: ["CTRL-VUL-001", "CTRL-VUL-002", "CTRL-VUL-003", "CTRL-VUL-004", "CTRL-VUL-005", "CTRL-VUL-006", "CTRL-VUL-007", "CTRL-VUL-008", "CTRL-VUL-009", "CTRL-VUL-010", "CTRL-VUL-011", "CTRL-VUL-012"],
+    },
+    {
+      id: "pol-004", reference: "POL-004", name: "Consumer Lending Credit Policy",
+      description: "Establishes the credit decisioning framework for all Updraft consumer lending including automated and manual underwriting, affordability assessment methodology, fraud detection processes, AML/KYC verification procedures, and lending mandates for both balance sheet and forward flow funded loans. Defines credit committee governance, escalation procedures, risk metrics, exposure limits, and compliance with affordability rules. References separate PAYCE product credit policy.",
+      status: "CURRENT", version: "11", ownerEmail: "micha@updraft.com",
+      approvedBy: "Credit Committee", approvingBody: "Credit Committee", classification: "Confidential",
+      reviewFrequencyDays: 365, effectiveDate: "2025-08-01", lastReviewedDate: "2025-08-01", nextReviewDate: "2026-08-01",
+      scope: "All consumer lending credit decisions including automated and manual underwriting, affordability assessment, fraud detection, AML/KYC verification, and lending mandates for Updraft balance sheet and forward flow funded loans",
+      applicability: "Credit Committee, CEO, Head of Lending, underwriting team, risk analytics, compliance",
+      exceptions: "PAYCE product has separate credit policy (POL-016); pilot loans require Credit Committee approval for any deviation",
+      consumerDutyOutcomes: ["products-services", "price-value", "consumer-support"],
+      regulationRefs: ["CONC 5", "CONC 5.2", "CONC 5.2A", "CONC 5.3", "CONC 5.5", "CONC 9", "PRIN 2", "PRIN 6", "PRIN 12", "PRIN 2A.3", "PRIN 2A.4", "CCA 1974", "FSMA 2000"],
+      controlRefs: ["CTRL-CR-001", "CTRL-CR-002", "CTRL-CR-003", "CTRL-CR-004", "CTRL-CR-005", "CTRL-CR-006", "CTRL-CR-007", "CTRL-CR-008", "CTRL-CR-009", "CTRL-CR-010", "CTRL-CR-011", "CTRL-CR-012", "CTRL-CR-013", "CTRL-CR-014", "CTRL-CR-015", "CTRL-CR-016", "CTRL-CR-017", "CTRL-CR-018", "CTRL-CR-019", "CTRL-CR-020", "CTRL-CR-021", "CTRL-CR-022", "CTRL-CR-023", "CTRL-CR-024", "CTRL-CR-025"],
+    },
+    {
+      id: "pol-005", reference: "POL-005", name: "AML/KYC & Sanctions Policy",
+      description: "Comprehensive anti-money laundering and counter-terrorist financing policy covering customer due diligence, enhanced due diligence procedures, ongoing monitoring, suspicious activity reporting (SAR) procedures, and CIFAS fraud prevention integration. Details sanction screening requirements using OFAC and UK government lists, PEP identification processes, and money laundering risk assessment methodologies. Establishes Money Laundering Reporting Officer (MLRO) responsibilities and escalation procedures.",
+      status: "CURRENT", version: "0.7", ownerEmail: "cath@updraft.com",
+      approvedBy: "Board", approvingBody: "Board", classification: "Confidential",
+      reviewFrequencyDays: 365, effectiveDate: "2024-11-01", lastReviewedDate: "2024-11-01", nextReviewDate: "2025-11-01",
+      scope: "Anti-money laundering, counter-terrorist financing, sanctions compliance, customer due diligence, enhanced due diligence, ongoing monitoring, suspicious activity reporting, and CIFAS fraud prevention for all Updraft products and customer relationships",
+      applicability: "All staff, with specific responsibilities for MLRO, compliance team, underwriting team, and senior management",
+      exceptions: "None — AML obligations apply to all business activities",
+      consumerDutyOutcomes: ["consumer-support"],
+      regulationRefs: ["SYSC 6", "SYSC 3", "PRIN 1", "PRIN 3", "PRIN 11", "CONC 5.2", "FSMA 2000"],
+      controlRefs: ["CTRL-AML-001", "CTRL-AML-002", "CTRL-AML-003", "CTRL-AML-004", "CTRL-AML-005", "CTRL-AML-006", "CTRL-AML-007", "CTRL-AML-008", "CTRL-AML-009", "CTRL-AML-010", "CTRL-AML-011", "CTRL-AML-012", "CTRL-AML-013", "CTRL-AML-014", "CTRL-AML-015", "CTRL-AML-016"],
+    },
+    {
+      id: "pol-006", reference: "POL-006", name: "Group Arrears Policy",
+      description: "Comprehensive collections and arrears management policy covering all stages from pre-arrears communication through early, mid and late-stage arrears management, default handling, settlement procedures, write-down and write-off decisions, and external debt collection agency management. Details forbearance options, vulnerability considerations during collections, complaint escalation procedures, and regulatory compliance including CONC 7 requirements. Sets out communication standards and fee procedures.",
+      status: "CURRENT", version: "1.3", ownerEmail: "chris@updraft.com",
+      approvedBy: "ExCo and Senior Lenders", approvingBody: "ExCo and Senior Lenders", classification: "Internal Only",
+      reviewFrequencyDays: 365, effectiveDate: "2023-07-01", lastReviewedDate: "2023-07-01", nextReviewDate: "2024-07-01",
+      scope: "All collections and arrears management activities for loans originated on the Updraft platform regardless of loan size or borrower status, including pre-arrears, early/mid/late stage arrears, default, settlement, write-down/write-off, and external collections",
+      applicability: "Collections team, customer services, compliance team, senior management, external debt collection agencies",
+      exceptions: "Accounts subject to IVA, breathing space, bankruptcy, or active complaint are handled under specific exception procedures within the policy",
+      consumerDutyOutcomes: ["consumer-support", "consumer-understanding"],
+      regulationRefs: ["CONC 7", "CONC 7.2", "CONC 7.3", "CONC 7.4", "CONC 7.5", "CONC 7.11", "CONC 7.12", "CONC 7.15", "CONC 6.3", "CONC 6.4", "CONC 6.5", "PRIN 6", "PRIN 12", "PRIN 2A.6", "CCA 1974"],
+      controlRefs: ["CTRL-AC-001", "CTRL-AC-002", "CTRL-AC-003", "CTRL-AC-004", "CTRL-AC-005", "CTRL-AC-006", "CTRL-AC-007", "CTRL-AC-008", "CTRL-AC-009", "CTRL-AC-010", "CTRL-AC-011", "CTRL-AC-012", "CTRL-AC-013", "CTRL-AC-014", "CTRL-AC-015", "CTRL-AC-016", "CTRL-AC-017", "CTRL-AC-018", "CTRL-AC-019"],
+    },
+    {
+      id: "pol-007", reference: "POL-007", name: "Data Protection Policy",
+      description: "Comprehensive data protection policy governing the processing of all personal data by Updraft including customer data, employee data, and third-party data across all systems and processes. Covers data subject rights, data retention, data security measures, third-party processor management, international transfers, breach notification procedures, and Data Protection Impact Assessment (DPIA) requirements. Designates the Data Protection Officer (DPO) and establishes governance framework.",
+      status: "CURRENT", version: "2.1", ownerEmail: "cath@updraft.com",
+      approvedBy: "Board", approvingBody: "Board", classification: "Internal Only",
+      reviewFrequencyDays: 365, effectiveDate: "2025-01-01", lastReviewedDate: "2025-01-01", nextReviewDate: "2026-01-01",
+      scope: "Processing of all personal data by Updraft including customer data, employee data, and third-party data across all systems, processes, and third-party relationships",
+      applicability: "All staff, contractors, and third-party processors handling personal data on behalf of Updraft",
+      exceptions: "Anonymised data that cannot be re-identified; publicly available data used for non-commercial purposes",
+      consumerDutyOutcomes: ["consumer-support"],
+      regulationRefs: ["UK GDPR", "DPA 2018", "PECR", "PRIN 3", "SYSC 9"],
+      controlRefs: ["CTRL-DP-001", "CTRL-DP-002", "CTRL-DP-003", "CTRL-DP-004", "CTRL-DP-005", "CTRL-DP-006", "CTRL-DP-007", "CTRL-DP-008", "CTRL-DP-009", "CTRL-DP-010", "CTRL-DP-011", "CTRL-DP-012", "CTRL-DP-013", "CTRL-DP-014"],
+    },
+    {
+      id: "pol-008", reference: "POL-008", name: "Conduct Risk Policy",
+      description: "Establishes the framework for identifying, assessing, managing, monitoring, and reporting conduct risk across all Updraft business activities, aligned to FCA Consumer Duty outcomes and Senior Management and Certification Regime (SM&CR) requirements. Covers all conduct risk scenarios including consumer detriment, product design failures, sales process failures, customer support deficiencies, and conflicts of interest. Sets out governance roles, risk appetite, monitoring metrics, and escalation procedures.",
+      status: "CURRENT", version: "2", ownerEmail: "cath@updraft.com",
+      approvedBy: "Board", approvingBody: "Board", classification: "Internal Only",
+      reviewFrequencyDays: 365, effectiveDate: "2024-10-01", lastReviewedDate: "2024-10-01", nextReviewDate: "2025-10-01",
+      scope: "Identification, assessment, management, monitoring, and reporting of conduct risk across all Updraft business activities, aligned to FCA Consumer Duty and the four consumer outcomes",
+      applicability: "All staff, Board members, senior management, with specific responsibilities under SM&CR for certified and conduct rules staff",
+      exceptions: "None — conduct risk management applies to all activities",
+      consumerDutyOutcomes: ["products-services", "price-value", "consumer-understanding", "consumer-support"],
+      regulationRefs: ["PRIN 12", "PRIN 2A", "PRIN 2A.1", "PRIN 2A.2", "PRIN 2A.3", "PRIN 2A.4", "PRIN 2A.5", "PRIN 2A.6", "PRIN 2A.7", "PRIN 2A.8", "PRIN 2A.9", "COCON", "SYSC 4", "SYSC 5", "SYSC 6", "SYSC 7", "FIT"],
+      controlRefs: ["CTRL-CDR-001", "CTRL-CDR-002", "CTRL-CDR-003", "CTRL-CDR-004", "CTRL-CDR-005", "CTRL-CDR-006", "CTRL-CDR-007", "CTRL-CDR-008", "CTRL-CDR-009", "CTRL-CDR-010", "CTRL-CDR-011", "CTRL-CDR-012", "CTRL-CDR-013", "CTRL-CDR-014", "CTRL-CDR-015", "CTRL-CDR-016", "CTRL-CDR-017", "CTRL-CDR-018", "CTRL-CDR-019", "CTRL-CDR-020"],
+    },
+    {
+      id: "pol-009", reference: "POL-009", name: "Conflicts of Interest Policy",
+      description: "Establishes procedures for identifying, managing, and recording actual and potential conflicts of interest arising in the course of Updraft business activities. Covers personal trading policies, external employment, gifts and hospitality, material shareholdings, family relationships, and financial interests. Sets out disclosure procedures, approval workflows, segregation of duties, and monitoring mechanisms. Ensures fair treatment of customers and compliance with SYSC 10 requirements.",
+      status: "CURRENT", version: "3", ownerEmail: "cath@updraft.com",
+      approvedBy: "Board", approvingBody: "Board", classification: "Internal Only",
+      reviewFrequencyDays: 365, effectiveDate: "2025-04-01", lastReviewedDate: "2025-04-01", nextReviewDate: "2026-04-01",
+      scope: "Identification, management, and recording of actual and potential conflicts of interest arising in the course of Updraft business activities",
+      applicability: "All staff, directors, contractors, and anyone acting on behalf of Updraft",
+      exceptions: "Pre-existing shareholdings in non-competing entities below disclosure thresholds",
+      consumerDutyOutcomes: ["products-services"],
+      regulationRefs: ["SYSC 10", "PRIN 8", "PRIN 1", "COCON"],
+      controlRefs: ["CTRL-COI-001", "CTRL-COI-002", "CTRL-COI-003", "CTRL-COI-004", "CTRL-COI-005", "CTRL-COI-006", "CTRL-COI-007", "CTRL-COI-008"],
+    },
+    {
+      id: "pol-010", reference: "POL-010", name: "Anti-Bribery & Corruption Policy",
+      description: "Comprehensive anti-corruption policy preventing bribery, corruption, and improper payments in all Updraft business dealings. Covers gifts and hospitality policies with stated monetary thresholds, facilitation payments, political donations, and third-party relationship management. Establishes reporting procedures, due diligence processes for new business partners, and consequences for breaches. Ensures compliance with Bribery Act 2010 and maintaining organisational integrity.",
+      status: "CURRENT", version: "3", ownerEmail: "cath@updraft.com",
+      approvedBy: "Board", approvingBody: "Board", classification: "Internal Only",
+      reviewFrequencyDays: 365, effectiveDate: "2025-04-01", lastReviewedDate: "2025-04-01", nextReviewDate: "2026-04-01",
+      scope: "Prevention of bribery, corruption, and improper payments in all Updraft business dealings, including gifts, hospitality, facilitation payments, and third-party relationships",
+      applicability: "All staff, directors, contractors, agents, consultants, and any person acting on behalf of Updraft",
+      exceptions: "Reasonable and proportionate hospitality in the normal course of business below stated thresholds",
+      consumerDutyOutcomes: [],
+      regulationRefs: ["Bribery Act 2010", "PRIN 1", "PRIN 3", "SYSC 6"],
+      controlRefs: ["CTRL-ABC-001", "CTRL-ABC-002", "CTRL-ABC-003", "CTRL-ABC-004", "CTRL-ABC-005", "CTRL-ABC-006", "CTRL-ABC-007", "CTRL-ABC-008", "CTRL-ABC-009", "CTRL-ABC-010"],
+    },
+    {
+      id: "pol-011", reference: "POL-011", name: "Fair Value Assessment Process",
+      description: "Establishes the methodology for assessing fair value across all Updraft consumer lending products, evaluating whether the price paid by customers is reasonable relative to the benefits received. Directly addresses Consumer Duty Outcome 2 (Price and Value). Includes comparative analysis against market offerings, profitability assessment, fee structures review, and escalation procedures for products failing fair value tests. Requires documentation and approval from compliance and credit committee.",
+      status: "CURRENT", version: "1", ownerEmail: "ash@updraft.com",
+      approvedBy: "CCORC", approvingBody: "CCORC", classification: "Internal Only",
+      reviewFrequencyDays: 365, effectiveDate: "2023-04-01", lastReviewedDate: "2023-04-01", nextReviewDate: "2024-04-01",
+      scope: "Assessment of fair value across all Updraft consumer lending products, evaluating whether the price paid by customers is reasonable relative to the benefits received, in line with Consumer Duty Outcome 2 (Price and Value)",
+      applicability: "Product team, pricing team, finance, compliance, Credit Committee",
+      exceptions: "None — all products require fair value assessment",
+      consumerDutyOutcomes: ["price-value", "products-services"],
+      regulationRefs: ["PRIN 12", "PRIN 2A.4", "CONC 5", "PRIN 6"],
+      controlRefs: ["CTRL-FVA-001", "CTRL-FVA-002", "CTRL-FVA-003", "CTRL-FVA-004", "CTRL-FVA-005", "CTRL-FVA-006", "CTRL-FVA-007", "CTRL-FVA-008"],
+    },
+    {
+      id: "pol-012", reference: "POL-012", name: "Product Annual Review Policy",
+      description: "Establishes the requirement and procedures for annual review of all live Updraft products to assess target market fit, conduct and fair outcomes across all Consumer Duty outcomes, risk exposure, financial performance, and regulatory compliance. Determines whether products continue to meet the intended target market needs and whether any modifications or discontinuation are required. Includes governance approvals and exception handling for authorised non-compliance with formal documentation.",
+      status: "CURRENT", version: "1", ownerEmail: "ash@updraft.com",
+      approvedBy: "CCORC", approvingBody: "CCORC", classification: "Internal Only",
+      reviewFrequencyDays: 365, effectiveDate: "2023-12-01", lastReviewedDate: "2023-12-01", nextReviewDate: "2024-12-01",
+      scope: "Annual review of all live Updraft products to assess target market fit, conduct and fair outcomes, risk exposure, financial performance, and regulatory compliance",
+      applicability: "Product managers, product directors, Conduct & Complaints Risk Committee, commercial directors, Chief Commercial Officer",
+      exceptions: "Authorised non-compliance requires formal documentation, risk assessment (max 1 year), and CCO approval",
+      consumerDutyOutcomes: ["products-services", "price-value", "consumer-understanding", "consumer-support"],
+      regulationRefs: ["PRIN 12", "PRIN 2A.3", "PRIN 2A.4", "PRIN 2A.7", "PRIN 2A.8", "CONC 2.2", "SYSC 4"],
+      controlRefs: ["CTRL-PAR-001", "CTRL-PAR-002", "CTRL-PAR-003", "CTRL-PAR-004", "CTRL-PAR-005", "CTRL-PAR-006", "CTRL-PAR-007", "CTRL-PAR-008", "CTRL-PAR-009", "CTRL-PAR-010", "CTRL-PAR-011", "CTRL-PAR-012"],
+    },
+    {
+      id: "pol-013", reference: "POL-013", name: "IT Security Policy",
+      description: "Information security policy covering all Updraft systems and assets, establishing controls for access management, strong authentication, password policy, malware protection and endpoint security, regular system backups, vulnerability management and patching, encryption standards for data in transit and at rest, network security architecture, change management procedures, continuous monitoring and logging, and disaster recovery and business continuity procedures. Policy requires urgent updating as legacy document from Fairscore era.",
+      status: "UNDER_REVIEW", version: "1", ownerEmail: "graham@updraft.com",
+      approvedBy: "Board", approvingBody: "Board", classification: "Confidential",
+      reviewFrequencyDays: 365, effectiveDate: "2020-01-01", lastReviewedDate: "2020-01-01", nextReviewDate: "2021-01-01",
+      scope: "Information security controls for all Updraft (formerly Fairscore) systems including access management, password policy, malware protection, backups, vulnerability management, encryption, network security, change management, monitoring, and disaster recovery",
+      applicability: "All staff with access to Updraft systems, IT team, contractors with system access",
+      exceptions: "None stated",
+      consumerDutyOutcomes: [],
+      regulationRefs: ["SYSC 3", "SYSC 13", "SYSC 15A", "UK GDPR", "DPA 2018"],
+      controlRefs: ["CTRL-ITS-001", "CTRL-ITS-002", "CTRL-ITS-003", "CTRL-ITS-004", "CTRL-ITS-005", "CTRL-ITS-006", "CTRL-ITS-007", "CTRL-ITS-008", "CTRL-ITS-009", "CTRL-ITS-010", "CTRL-ITS-011", "CTRL-ITS-012", "CTRL-ITS-013", "CTRL-ITS-014", "CTRL-ITS-015", "CTRL-ITS-016", "CTRL-ITS-017", "CTRL-ITS-018"],
+    },
+    {
+      id: "pol-014", reference: "POL-014", name: "Privacy Policy",
+      description: "Customer-facing privacy notice covering all personal data collected, processed, shared, and retained by Fairscore Ltd (trading as Updraft) in connection with the provision of credit information services (via TransUnion), consumer lending products, soft search functionality, account information services (via TrueLayer), direct debit payment processing (via Modulr), and credit broking services (via Everything Financial). Complies with UK GDPR and DPA 2018 requirements including transparency, rights notification, and lawful basis statements.",
+      status: "CURRENT", version: "Current", ownerEmail: "graham@updraft.com",
+      approvedBy: "Board", approvingBody: "Board", classification: "Public",
+      reviewFrequencyDays: 365, effectiveDate: "2025-03-01", lastReviewedDate: "2025-03-01", nextReviewDate: "2026-03-01",
+      scope: "Customer-facing privacy notice covering all personal data collected, processed, shared, and retained by Fairscore Ltd (trading as Updraft) in connection with the provision of credit information, lending, and related financial services",
+      applicability: "All customers, prospective customers, website visitors, and app users",
+      exceptions: "Employee data (covered by separate internal privacy notice)",
+      consumerDutyOutcomes: ["consumer-understanding"],
+      regulationRefs: ["UK GDPR", "DPA 2018", "PECR", "CONC 2.3", "PRIN 7", "PRIN 12", "PRIN 2A.5"],
+      controlRefs: ["CTRL-PP-001", "CTRL-PP-002", "CTRL-PP-003", "CTRL-PP-004", "CTRL-PP-005", "CTRL-PP-006", "CTRL-PP-007", "CTRL-PP-008", "CTRL-PP-009", "CTRL-PP-010"],
+    },
+    {
+      id: "pol-015", reference: "POL-015", name: "Consumer Lending Procedures",
+      description: "Operational procedures manual for consumer lending covering the complete application processing workflow including Open Banking integration for account information retrieval, affordability assessment methodology and software tools, income and expenditure verification procedures, credit scoring and risk segmentation, automated decision-making and threshold rules, manual underwriting review procedures, KYC/AML verification and ongoing obligations, PEP and sanctions screening procedures, quality assurance and appeal processes, and compliance with CONC 5 rules.",
+      status: "CURRENT", version: "13", ownerEmail: "micha@updraft.com",
+      approvedBy: "Credit Committee", approvingBody: "Credit Committee", classification: "Confidential",
+      reviewFrequencyDays: 365, effectiveDate: "2025-08-01", lastReviewedDate: "2025-08-01", nextReviewDate: "2026-08-01",
+      scope: "Operational procedures for consumer lending including application processing, Open Banking integration, affordability assessment, income and expenditure verification, credit scoring, risk segmentation, automated and manual underwriting, KYC verification, PEP/sanctions screening, and quality assurance",
+      applicability: "Underwriting team, lead underwriter, senior underwriter, operations team, compliance, CEO (for PEP/sanctions escalation)",
+      exceptions: "PAYCE product follows separate procedures within its own credit policy",
+      consumerDutyOutcomes: ["products-services", "price-value", "consumer-understanding", "consumer-support"],
+      regulationRefs: ["CONC 5", "CONC 5.2", "CONC 5.3", "CONC 13", "CONC 14", "PRIN 2", "PRIN 6", "PRIN 12", "PRIN 2A.2", "PRIN 2A.3", "PRIN 2A.6", "CCA 1974"],
+      controlRefs: ["CTRL-CLP-001", "CTRL-CLP-002", "CTRL-CLP-003", "CTRL-CLP-004", "CTRL-CLP-005", "CTRL-CLP-006", "CTRL-CLP-007", "CTRL-CLP-008", "CTRL-CLP-009", "CTRL-CLP-010", "CTRL-CLP-011", "CTRL-CLP-012", "CTRL-CLP-013", "CTRL-CLP-014", "CTRL-CLP-015", "CTRL-CLP-016"],
+    },
+    {
+      id: "pol-016", reference: "POL-016", name: "PAYCE Credit Policy",
+      description: "Credit decisioning framework specific to the PAYCE point-of-sale lending product, establishing automatic decline criteria, income verification requirements, affordability assessment procedures, vulnerable customer identification protocols, product pricing rules, exposure management including cross-product exposure controls to prevent overindebtedness, and automated decisioning system parameters. Complements but operates independently from the core Consumer Lending Credit Policy (POL-004).",
+      status: "CURRENT", version: "1.3", ownerEmail: "micha@updraft.com",
+      approvedBy: "Credit Committee", approvingBody: "Credit Committee", classification: "Confidential",
+      reviewFrequencyDays: 365, effectiveDate: "2023-02-01", lastReviewedDate: "2023-02-01", nextReviewDate: "2024-02-01",
+      scope: "Credit decisioning framework for the PAYCE point-of-sale lending product including automatic decline criteria, income verification, affordability assessment, vulnerable customer identification, pricing, exposure management, and cross-product exposure controls",
+      applicability: "Automated decisioning system, credit committee, risk analytics, compliance",
+      exceptions: "Core Updraft credit product governed by separate Consumer Lending Credit Policy (POL-004)",
+      consumerDutyOutcomes: ["products-services", "price-value", "consumer-support"],
+      regulationRefs: ["CONC 5", "CONC 5.2", "CONC 5.3", "PRIN 6", "PRIN 12", "PRIN 2A.3", "PRIN 2A.4", "CCA 1974"],
+      controlRefs: ["CTRL-PAYCE-001", "CTRL-PAYCE-002", "CTRL-PAYCE-003", "CTRL-PAYCE-004", "CTRL-PAYCE-005", "CTRL-PAYCE-006", "CTRL-PAYCE-007", "CTRL-PAYCE-008", "CTRL-PAYCE-009", "CTRL-PAYCE-010", "CTRL-PAYCE-011"],
+    },
+    {
+      id: "pol-017", reference: "POL-017", name: "Data Retention Policy",
+      description: "Establishes retention schedules and disposal procedures for all personal and business data held by Updraft, including customer records, application data, credit reference agency data, correspondence, financial records, and audit trails. Specifies different retention periods based on data type and regulatory requirement. Requires Board approval for any exceptions to retention schedules. Currently in early draft stage and requires completion and formalisation.",
+      status: "UNDER_REVIEW", version: "0.1", ownerEmail: "graham@updraft.com",
+      approvedBy: "ORCC", approvingBody: "ORCC", classification: "Internal Only",
+      reviewFrequencyDays: 365, effectiveDate: "2025-01-01", lastReviewedDate: "2025-01-01", nextReviewDate: "2026-01-01",
+      scope: "Retention and disposal of all personal and business data held by Updraft including customer records, application data, credit reference data, correspondence, and financial records",
+      applicability: "All staff, DPO, compliance team, IT team, third-party processors",
+      exceptions: "No exceptions permitted without Board approval",
+      consumerDutyOutcomes: ["consumer-support"],
+      regulationRefs: ["UK GDPR", "DPA 2018", "CCA 1974", "SYSC 9", "CONC 9"],
+      controlRefs: ["CTRL-DR-001", "CTRL-DR-002", "CTRL-DR-003", "CTRL-DR-004", "CTRL-DR-005", "CTRL-DR-006", "CTRL-DR-007", "CTRL-DR-008", "CTRL-DR-009", "CTRL-DR-010"],
+    },
+    {
+      id: "pol-018", reference: "POL-018", name: "Provisioning Policy",
+      description: "Financial and prudential policy establishing the methodology for calculating and managing loan loss provisions across all arrears buckets in the Updraft consumer lending portfolio. Defines provision weight methodology, treatment of accounts under payment arrangements, write-off procedures, and reporting requirements for financial statements. Ensures appropriate recognition of credit losses under accounting standards and prudential regulation. Subject to external auditor review.",
+      status: "CURRENT", version: "1.2", ownerEmail: "david@updraft.com",
+      approvedBy: "Board and External Auditors", approvingBody: "Board and External Auditors", classification: "Confidential",
+      reviewFrequencyDays: 365, effectiveDate: "2023-03-01", lastReviewedDate: "2023-03-01", nextReviewDate: "2024-03-01",
+      scope: "Calculation and management of loan loss provisions across all arrears buckets for Updraft consumer lending portfolio, including provision weight methodology, payment arrangement treatment, and write-off procedures",
+      applicability: "Finance team, Credit Committee, Board, external auditors",
+      exceptions: "Accounts on approved debt management plans or in IVA process excluded from standard write-down",
+      consumerDutyOutcomes: [],
+      regulationRefs: ["FSMA 2000", "PRIN 4", "SYSC 7"],
+      controlRefs: ["CTRL-PROV-001", "CTRL-PROV-002", "CTRL-PROV-003", "CTRL-PROV-004", "CTRL-PROV-005", "CTRL-PROV-006"],
+    },
+    {
+      id: "pol-019", reference: "POL-019", name: "Health & Safety Policy",
+      description: "Comprehensive health and safety policy covering all Updraft workplaces and activities, including fire safety procedures and regular drills, risk assessment methodology, display screen equipment (DSE) assessments for office workers, manual handling procedures, COSHH (chemical safety) procedures, personal protective equipment (PPE) requirements, RIDDOR reporting obligations for workplace injuries and incidents, and pandemic response and business continuity procedures.",
+      status: "CURRENT", version: "2", ownerEmail: "cath@updraft.com",
+      approvedBy: "Management", approvingBody: "Management", classification: "Internal Only",
+      reviewFrequencyDays: 365, effectiveDate: "2023-01-01", lastReviewedDate: "2023-01-01", nextReviewDate: "2024-01-01",
+      scope: "Health and safety management for all Updraft workplaces including fire safety, risk assessment, DSE, manual handling, COSHH, PPE, RIDDOR reporting, and pandemic response procedures",
+      applicability: "All employees, contractors, and visitors to Updraft premises",
+      exceptions: "Remote workers covered by DSE assessment provisions only",
+      consumerDutyOutcomes: [],
+      regulationRefs: ["Equality Act 2010"],
+      controlRefs: ["CTRL-HS-001", "CTRL-HS-002", "CTRL-HS-003", "CTRL-HS-004", "CTRL-HS-005", "CTRL-HS-006", "CTRL-HS-007", "CTRL-HS-008", "CTRL-HS-009", "CTRL-HS-010"],
+    },
+    {
+      id: "pol-020", reference: "POL-020", name: "Terms & Conditions",
+      description: "Customer-facing terms and conditions governing the use of all Updraft services, including credit information and credit decisioning (TransUnion partnership), consumer lending products, soft search functionality, account information services (TrueLayer partnership), direct debit payment processing (Modulr partnership), and credit broking services (Everything Financial partnership). Establishes customer rights and obligations, fees and charges, termination procedures, dispute resolution, and regulatory disclosures.",
+      status: "CURRENT", version: "Current", ownerEmail: "ash@updraft.com",
+      approvedBy: "Board", approvingBody: "Board", classification: "Public",
+      reviewFrequencyDays: 365, effectiveDate: "2025-04-01", lastReviewedDate: "2025-04-01", nextReviewDate: "2026-04-01",
+      scope: "Customer-facing terms governing the use of Updraft services including credit information (TransUnion), consumer lending, soft search, account information services (TrueLayer), direct debit (Modulr), and credit broking (Everything Financial)",
+      applicability: "All customers and prospective customers using any Updraft service",
+      exceptions: "Individual loan agreements contain separate product-specific terms",
+      consumerDutyOutcomes: ["products-services", "consumer-understanding", "consumer-support"],
+      regulationRefs: ["CCA 1974", "FSMA 2000", "CONC 2.3", "CONC 4", "CONC 11", "DISP", "GEN 4", "PRIN 7", "PRIN 12", "PRIN 2A.5", "PRIN 2A.6"],
+      controlRefs: ["CTRL-TCS-001", "CTRL-TCS-002", "CTRL-TCS-003", "CTRL-TCS-004", "CTRL-TCS-005", "CTRL-TCS-006", "CTRL-TCS-007", "CTRL-TCS-008"],
+    },
+    {
+      id: "pol-021", reference: "POL-021", name: "Whistleblowing Policy",
+      description: "Establishes the framework for reporting suspected wrongdoing and provides comprehensive protection for whistleblowers under the Public Interest Disclosure Act 1998 (PIDA). Covers reporting of criminal activity, regulatory breaches, health and safety risks, financial fraud, bribery, policy breaches, negligence, and deliberate concealment. Provides multiple reporting channels including line managers, senior management, compliance team, and confidential hotline. Guarantees protection from retaliation and confidentiality.",
+      status: "CURRENT", version: "1", ownerEmail: "cath@updraft.com",
+      approvedBy: "Board", approvingBody: "Board", classification: "Internal Only",
+      reviewFrequencyDays: 365, effectiveDate: "2025-06-01", lastReviewedDate: "2025-06-01", nextReviewDate: "2026-06-01",
+      scope: "Reporting of suspected wrongdoing including criminal activity, regulatory breaches, health and safety risks, financial fraud, bribery, policy breaches, negligence, and deliberate concealment, with protection for whistleblowers under PIDA 1998",
+      applicability: "All current and former employees (including temporary and agency staff), contractors, consultants, third-party service providers, interns, apprentices, and volunteers",
+      exceptions: "Personal grievances (bullying, harassment, colleague disputes) should be raised through HR, not the whistleblowing process",
+      consumerDutyOutcomes: [],
+      regulationRefs: ["SYSC 18", "PRIN 1", "PRIN 3", "PRIN 11", "COCON", "FSMA 2000"],
+      controlRefs: ["CTRL-WB-001", "CTRL-WB-002", "CTRL-WB-003", "CTRL-WB-004", "CTRL-WB-005", "CTRL-WB-006", "CTRL-WB-007", "CTRL-WB-008", "CTRL-WB-009", "CTRL-WB-010", "CTRL-WB-011", "CTRL-WB-012"],
+    },
   ];
 
-  for (const obl of SEED_OBLIGATIONS) {
-    await prisma.policyObligation.upsert({
-      where: { id: obl.id },
-      update: { category: obl.category, description: obl.description, regulationRefs: obl.regulationRefs, controlRefs: obl.controlRefs },
-      create: { ...obl, policyId },
-    });
-  }
-  console.log(`  ✓ ${SEED_OBLIGATIONS.length} policy obligations (updated refs)`);
+  let totalRegLinks = 0;
+  let totalCtrlLinks = 0;
 
-  // Policy audit trail (v4.1 history)
-  const POLICY_AUDIT: {
-    id: string; policyId: string; userId: string; action: string;
-    fieldChanged: string | null; oldValue: string | null; newValue: string | null;
-    details: string | null; changedAt: Date;
-  }[] = [
-    { id: "pau-01", policyId, userId: "user-rob", action: "CREATED_POLICY", fieldChanged: null, oldValue: null, newValue: null, details: "Created policy POL-FINPROM: Financial Promotions Policy v1.0", changedAt: new Date("2023-01-01") },
-    { id: "pau-02", policyId, userId: "user-cath", action: "UPDATED_FIELD", fieldChanged: "version", oldValue: "v1.0", newValue: "v2.0", details: "Major update — expanded scope to all channels, added social media and affiliate requirements", changedAt: new Date("2023-06-15") },
-    { id: "pau-03", policyId, userId: "user-rob", action: "UPDATED_FIELD", fieldChanged: "version", oldValue: "v2.0", newValue: "v3.0", details: "Consumer Duty alignment — added PRIN 12 obligations, vulnerable customer screening, and outcomes assessment controls", changedAt: new Date("2024-01-10") },
-    { id: "pau-04", policyId, userId: "user-cath", action: "UPDATED_FIELD", fieldChanged: "version", oldValue: "v3.0", newValue: "v4.0", details: "Annual review completed. Updated regulatory mapping to REG-001–REG-019 scheme. Added 18 FP controls.", changedAt: new Date("2024-02-05") },
-    { id: "pau-05", policyId, userId: "user-cath", action: "UPDATED_FIELD", fieldChanged: "version", oldValue: "v4.0", newValue: "v4.1", details: "Minor updates — clarified CONC 3 exclusions (REG-019), added comparison site control (FP-C016), updated CCROC approval.", changedAt: new Date("2024-12-01") },
-  ];
+  for (const p of ALL_POLICIES) {
+    const ownerId = EMAIL_TO_USER[p.ownerEmail];
+    if (!ownerId) {
+      console.warn(`  ⚠ No user found for email ${p.ownerEmail} — skipping policy ${p.reference}`);
+      continue;
+    }
 
-  for (const a of POLICY_AUDIT) {
-    await prisma.policyAuditLog.upsert({
-      where: { id: a.id },
-      update: { action: a.action, fieldChanged: a.fieldChanged, oldValue: a.oldValue, newValue: a.newValue, details: a.details },
-      create: a,
+    await prisma.policy.create({
+      data: {
+        id: p.id,
+        reference: p.reference,
+        name: p.name,
+        description: p.description,
+        status: p.status,
+        version: p.version,
+        ownerId,
+        approvedBy: p.approvedBy,
+        approvingBody: p.approvingBody,
+        classification: p.classification,
+        reviewFrequencyDays: p.reviewFrequencyDays,
+        effectiveDate: new Date(p.effectiveDate),
+        lastReviewedDate: new Date(p.lastReviewedDate),
+        nextReviewDate: new Date(p.nextReviewDate),
+        scope: p.scope,
+        applicability: p.applicability,
+        exceptions: p.exceptions,
+        consumerDutyOutcomes: p.consumerDutyOutcomes,
+        storageUrl: null,
+      },
     });
+
+    // Link regulation by reference (runtime lookup)
+    for (const ref of p.regulationRefs) {
+      const reg = await prisma.regulation.findFirst({ where: { reference: ref.trim() } });
+      if (reg) {
+        try {
+          await prisma.policyRegulatoryLink.create({
+            data: { policyId: p.id, regulationId: reg.id, linkedBy: "user-rob" },
+          });
+          totalRegLinks++;
+        } catch {
+          // Ignore duplicate link errors
+        }
+      }
+    }
+
+    // Link controls by controlRef (runtime lookup)
+    for (const ref of p.controlRefs) {
+      const ctrl = await prisma.control.findFirst({ where: { controlRef: ref.trim() } });
+      if (ctrl) {
+        try {
+          await prisma.policyControlLink.create({
+            data: { policyId: p.id, controlId: ctrl.id, linkedBy: "user-rob" },
+          });
+          totalCtrlLinks++;
+        } catch {
+          // Ignore duplicate link errors
+        }
+      }
+    }
+
+    // Also link FP controls (FP-C001..FP-C018) to POL-001 if they were created by this seed
+    if (p.id === "pol-001") {
+      for (const ctrlId of fpControlIds2) {
+        try {
+          await prisma.policyControlLink.create({
+            data: { policyId: p.id, controlId: ctrlId, linkedBy: "user-rob" },
+          });
+          totalCtrlLinks++;
+        } catch {
+          // Ignore duplicate link errors (ctrl may already be linked by ref lookup above)
+        }
+      }
+    }
   }
-  console.log(`  ✓ ${POLICY_AUDIT.length} policy audit entries (v4.1 history)`);
+
+  console.log(`  ✓ ${ALL_POLICIES.length} policies seeded`);
+  console.log(`  ✓ ${totalRegLinks} policy-regulation links`);
+  console.log(`  ✓ ${totalCtrlLinks} policy-control links`);
 
   // ── SM&CR Reference Data ──────────────────────────────────────────────
 

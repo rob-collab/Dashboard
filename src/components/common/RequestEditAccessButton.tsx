@@ -3,13 +3,17 @@
 import { useState } from "react";
 import { useAppStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { Lock, Clock, CheckCircle, X } from "lucide-react";
+import { Lock, Clock, CheckCircle, X, FileText } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
   permission: string;
   label?: string;
   className?: string;
+  /** Optional entity scoping — when provided, the request is tied to one specific record */
+  entityType?: string;
+  entityId?: string;
+  entityName?: string;
 }
 
 const DURATION_OPTIONS = [
@@ -22,9 +26,17 @@ const DURATION_OPTIONS = [
 
 /**
  * Button that lets non-editing users request temporary elevated permissions.
- * Shows "Request Pending" if a pending request already exists.
+ * When entityType/entityId/entityName are supplied the request is scoped to a
+ * single record; otherwise it covers the whole permission level.
  */
-export default function RequestEditAccessButton({ permission, label = "Request Edit Access", className }: Props) {
+export default function RequestEditAccessButton({
+  permission,
+  label = "Request Edit Access",
+  className,
+  entityType,
+  entityId,
+  entityName,
+}: Props) {
   const currentUser = useAppStore((s) => s.currentUser);
   const accessRequests = useAppStore((s) => s.accessRequests);
   const addAccessRequest = useAppStore((s) => s.addAccessRequest);
@@ -35,9 +47,15 @@ export default function RequestEditAccessButton({ permission, label = "Request E
 
   if (!currentUser) return null;
 
-  // Check if there's already a pending request for this permission
+  const isEntityScoped = Boolean(entityType && entityId);
+
+  // Check if there's already a pending request (match on permission + optional entityId)
   const pendingRequest = accessRequests.find(
-    (r) => r.requesterId === currentUser.id && r.permission === permission && r.status === "PENDING",
+    (r) =>
+      r.requesterId === currentUser.id &&
+      r.permission === permission &&
+      r.status === "PENDING" &&
+      (isEntityScoped ? r.entityId === entityId : !r.entityId),
   );
 
   if (pendingRequest) {
@@ -56,7 +74,8 @@ export default function RequestEditAccessButton({ permission, label = "Request E
       r.permission === permission &&
       r.status === "APPROVED" &&
       r.grantedUntil &&
-      new Date(r.grantedUntil) > new Date(),
+      new Date(r.grantedUntil) > new Date() &&
+      (isEntityScoped ? r.entityId === entityId : !r.entityId),
   );
 
   if (activeGrant) {
@@ -78,7 +97,12 @@ export default function RequestEditAccessButton({ permission, label = "Request E
       const res = await fetch("/api/access-requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ permission, reason: reason.trim(), durationHours }),
+        body: JSON.stringify({
+          permission,
+          reason: reason.trim(),
+          durationHours,
+          ...(isEntityScoped && { entityType, entityId, entityName }),
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({ error: "Request failed" }));
@@ -120,8 +144,22 @@ export default function RequestEditAccessButton({ permission, label = "Request E
               </button>
             </div>
 
+            {/* Entity scope badge */}
+            {isEntityScoped && entityName && (
+              <div className="flex items-center gap-2 rounded-lg bg-updraft-pale-purple/30 px-3 py-2.5 border border-updraft-bright-purple/20">
+                <FileText size={14} className="text-updraft-bright-purple shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold text-updraft-bright-purple uppercase tracking-wider">{entityType}</p>
+                  <p className="text-sm font-medium text-updraft-deep truncate">{entityName}</p>
+                </div>
+              </div>
+            )}
+
             <p className="text-sm text-gray-600">
-              Request temporary <span className="font-mono text-xs bg-gray-100 px-1 py-0.5 rounded">{permission}</span> permission. A CCRO team member will review your request.
+              {isEntityScoped
+                ? "Request temporary edit access to this specific record. A CCRO team member will review your request."
+                : <>Request temporary <span className="font-mono text-xs bg-gray-100 px-1 py-0.5 rounded">{permission}</span> permission. A CCRO team member will review your request.</>
+              }
             </p>
 
             <div>

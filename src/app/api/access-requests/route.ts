@@ -6,6 +6,9 @@ const createSchema = z.object({
   permission: z.string().min(1),
   reason: z.string().min(1).max(2000),
   durationHours: z.number().int().min(1).max(168), // max 1 week
+  entityType: z.string().optional(),
+  entityId: z.string().optional(),
+  entityName: z.string().optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -46,14 +49,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validation = validateBody(createSchema, body);
     if ("error" in validation) return validation.error;
-    const { permission, reason, durationHours } = validation.data;
+    const { permission, reason, durationHours, entityType, entityId, entityName } = validation.data;
 
-    // Check for existing pending request for same permission
+    // Check for existing pending request for same permission + entity combo
     const existing = await prisma.accessRequest.findFirst({
       where: {
         requesterId: userId,
         permission,
         status: "PENDING",
+        entityId: entityId ?? null,
       },
     });
     if (existing) {
@@ -66,6 +70,9 @@ export async function POST(request: NextRequest) {
         permission,
         reason,
         durationHours,
+        entityType: entityType ?? null,
+        entityId: entityId ?? null,
+        entityName: entityName ?? null,
       },
       include: {
         requester: { select: { id: true, name: true, email: true, role: true } },

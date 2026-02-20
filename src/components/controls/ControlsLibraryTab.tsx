@@ -106,6 +106,13 @@ export default function ControlsLibraryTab({ initialControlId }: { initialContro
   const [areaFilter, setAreaFilter] = useState("");
   const [outcomeFilter, setOutcomeFilter] = useState("");
   const [showArchived, setShowArchived] = useState(false);
+  const [myControlsOnly, setMyControlsOnly] = useState(false);
+
+  // My controls count
+  const myControlsCount = useMemo(
+    () => controls.filter((c) => c.isActive !== false && c.controlOwnerId === currentUser?.id).length,
+    [controls, currentUser],
+  );
 
   // ── Import dialog state ────────────────────────────────────
   const [showImportDialog, setShowImportDialog] = useState(false);
@@ -147,6 +154,9 @@ export default function ControlsLibraryTab({ initialControlId }: { initialContro
       // Active / archived toggle
       if (showArchived ? c.isActive : !c.isActive) return false;
 
+      // My controls filter
+      if (myControlsOnly && c.controlOwnerId !== currentUser?.id) return false;
+
       if (
         searchLower &&
         !c.controlRef.toLowerCase().includes(searchLower) &&
@@ -159,7 +169,7 @@ export default function ControlsLibraryTab({ initialControlId }: { initialContro
       if (outcomeFilter && c.consumerDutyOutcome !== outcomeFilter) return false;
       return true;
     });
-  }, [controls, search, areaFilter, outcomeFilter, showArchived]);
+  }, [controls, search, areaFilter, outcomeFilter, showArchived, myControlsOnly, currentUser?.id]);
 
   // ── Lookup helpers ─────────────────────────────────────────
   function areaName(id: string): string {
@@ -323,6 +333,40 @@ export default function ControlsLibraryTab({ initialControlId }: { initialContro
           )}
         </div>
       </div>
+
+      {/* ── My Controls ─────────────────────────────────────── */}
+      {currentUser && myControlsCount > 0 && (
+        <button
+          onClick={() => setMyControlsOnly((v) => !v)}
+          className={`w-full text-left bento-card p-4 transition-all border-2 ${
+            myControlsOnly
+              ? "border-updraft-bright-purple bg-updraft-pale-purple/20"
+              : "border-transparent hover:border-updraft-bright-purple/30"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`rounded-xl p-2.5 ${myControlsOnly ? "bg-updraft-bright-purple" : "bg-updraft-pale-purple"}`}>
+                <ShieldCheck className={`h-5 w-5 ${myControlsOnly ? "text-white" : "text-updraft-deep"}`} />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">My Controls</p>
+                <p className="text-2xl font-bold text-updraft-deep font-poppins leading-none mt-0.5">{myControlsCount}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                myControlsOnly
+                  ? "bg-updraft-bright-purple text-white"
+                  : "bg-updraft-pale-purple/40 text-updraft-deep"
+              }`}>
+                {myControlsOnly ? "Showing mine" : "Click to filter"}
+              </span>
+              <p className="text-xs text-gray-400 mt-1">Controls you own</p>
+            </div>
+          </div>
+        </button>
+      )}
 
       {/* ── Filters ─────────────────────────────────────────── */}
       <div className="bento-card p-4">

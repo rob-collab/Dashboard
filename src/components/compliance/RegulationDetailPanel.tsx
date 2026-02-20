@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import { usePermissionSet } from "@/lib/usePermission";
 import {
@@ -13,8 +13,10 @@ import {
   type Applicability,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { X, ExternalLink, ShieldCheck, FileText } from "lucide-react";
+import { X, ExternalLink, ShieldCheck, FileText, Link2, Plus, Search } from "lucide-react";
 import EntityLink from "@/components/common/EntityLink";
+import { api } from "@/lib/api-client";
+import { toast } from "sonner";
 
 interface Props {
   regulation: Regulation;
@@ -25,9 +27,16 @@ export default function RegulationDetailPanel({ regulation, onClose }: Props) {
   const permissionSet = usePermissionSet();
   const canEdit = permissionSet.has("edit:compliance");
   const updateRegulationCompliance = useAppStore((s) => s.updateRegulationCompliance);
+  const linkRegulationToControl = useAppStore((s) => s.linkRegulationToControl);
+  const unlinkRegulationFromControl = useAppStore((s) => s.unlinkRegulationFromControl);
+  const currentUser = useAppStore((s) => s.currentUser);
   const controls = useAppStore((s) => s.controls);
   const policies = useAppStore((s) => s.policies);
   const smfRoles = useAppStore((s) => s.smfRoles);
+
+  const [showControlPicker, setShowControlPicker] = useState(false);
+  const [ctrlSearch, setCtrlSearch] = useState("");
+  const [linkingCtrl, setLinkingCtrl] = useState<string | null>(null);
 
   const status = (regulation.complianceStatus ?? "NOT_ASSESSED") as ComplianceStatus;
   const applicability = (regulation.applicability ?? "ASSESS") as Applicability;
@@ -46,6 +55,53 @@ export default function RegulationDetailPanel({ regulation, onClose }: Props) {
   const [editNotes, setEditNotes] = useState(regulation.assessmentNotes ?? "");
   const [editNextReview, setEditNextReview] = useState(regulation.nextReviewDate?.slice(0, 10) ?? "");
   const [saving, setSaving] = useState(false);
+
+  // Controls already linked to this regulation (from regulation.controlLinks)
+  const linkedControlIds = useMemo(
+    () => new Set((regulation.controlLinks ?? []).map((l) => l.controlId)),
+    [regulation.controlLinks],
+  );
+
+  // Controls not yet linked
+  const unlinkedControls = useMemo(() => {
+    const q = ctrlSearch.toLowerCase();
+    return controls.filter(
+      (c) =>
+        c.isActive !== false &&
+        !linkedControlIds.has(c.id) &&
+        (!q || c.controlRef.toLowerCase().includes(q) || c.controlName.toLowerCase().includes(q)),
+    );
+  }, [controls, linkedControlIds, ctrlSearch]);
+
+  async function handleLinkControl(controlId: string) {
+    if (!currentUser) return;
+    setLinkingCtrl(controlId);
+    try {
+      await api(`/api/regulations/${regulation.id}/control-links`, {
+        method: "POST",
+        body: { controlId },
+      });
+      linkRegulationToControl(regulation.id, controlId, currentUser.id);
+      toast.success("Control linked");
+    } catch {
+      toast.error("Failed to link control");
+    } finally {
+      setLinkingCtrl(null);
+    }
+  }
+
+  async function handleUnlinkControl(controlId: string) {
+    try {
+      await api(`/api/regulations/${regulation.id}/control-links`, {
+        method: "DELETE",
+        body: { controlId },
+      });
+      unlinkRegulationFromControl(regulation.id, controlId);
+      toast.success("Control unlinked");
+    } catch {
+      toast.error("Failed to unlink control");
+    }
+  }
 
   const handleSave = () => {
     setSaving(true);
@@ -217,22 +273,80 @@ export default function RegulationDetailPanel({ regulation, onClose }: Props) {
 
         {/* Linked Controls */}
         <section className="border-t border-gray-100 pt-4">
-          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-            <ShieldCheck size={12} className="inline mr-1" />
-            Linked Controls ({regulation.controlLinks?.length ?? 0})
-          </h4>
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <ShieldCheck size={12} className="inline mr-1" />
+              Linked Controls ({regulation.controlLinks?.length ?? 0})
+            </h4>
+            {canEdit && (
+              <button
+                onClick={() => { setShowControlPicker((v) => !v); setCtrlSearch(""); }}
+                className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-[10px] font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                <Link2 size={10} /> Link Control
+              </button>
+            )}
+          </div>
+
+          {/* Control picker */}
+          {showControlPicker && (
+            <div className="mb-3 rounded-lg border border-gray-200 bg-gray-50 p-2.5 space-y-2">
+              <div className="relative">
+                <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={ctrlSearch}
+                  onChange={(e) => setCtrlSearch(e.target.value)}
+                  placeholder="Search controls..."
+                  className="w-full rounded-lg border border-gray-200 pl-7 pr-2 py-1.5 text-xs focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
+                  autoFocus
+                />
+              </div>
+              <div className="max-h-40 overflow-y-auto space-y-0.5">
+                {unlinkedControls.length === 0 && (
+                  <p className="text-[11px] text-gray-400 py-2 text-center">No unlinked controls found</p>
+                )}
+                {unlinkedControls.slice(0, 50).map((ctrl) => (
+                  <button
+                    key={ctrl.id}
+                    onClick={() => handleLinkControl(ctrl.id)}
+                    disabled={linkingCtrl === ctrl.id}
+                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-white transition-colors disabled:opacity-50"
+                  >
+                    <span className="font-mono font-bold text-updraft-deep shrink-0">{ctrl.controlRef}</span>
+                    <span className="truncate text-gray-700">{ctrl.controlName}</span>
+                    <Plus size={10} className="ml-auto shrink-0 text-gray-400" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {regulation.controlLinks && regulation.controlLinks.length > 0 ? (
             <div className="space-y-1.5">
               {regulation.controlLinks.map((link) => {
-                const control = controls.find((c) => c.id === link.controlId);
+                const control = controls.find((c) => c.id === link.controlId) ??
+                  (link as { controlId: string; control?: { id: string; controlRef: string; controlName: string } }).control;
+                const ctrlId = link.controlId;
+                const ctrlRef = (control as { controlRef?: string } | undefined)?.controlRef;
+                const ctrlName = (control as { controlName?: string } | undefined)?.controlName ?? "Unknown control";
                 return (
-                  <div key={link.id || link.controlId} className="flex items-center gap-2 bg-gray-50 rounded px-2 py-1.5">
+                  <div key={ctrlId} className="flex items-center gap-2 bg-gray-50 rounded px-2 py-1.5">
                     <EntityLink
                       type="control"
-                      id={link.controlId}
-                      reference={control?.controlRef}
-                      label={control?.controlName ?? "Unknown control"}
+                      id={ctrlId}
+                      reference={ctrlRef}
+                      label={ctrlName}
                     />
+                    {canEdit && (
+                      <button
+                        onClick={() => handleUnlinkControl(ctrlId)}
+                        className="ml-auto rounded p-0.5 text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        title="Unlink control"
+                      >
+                        <X size={11} />
+                      </button>
+                    )}
                   </div>
                 );
               })}

@@ -5,7 +5,7 @@ import { useAppStore } from "@/lib/store";
 import { cn, formatDate } from "@/lib/utils";
 import type { AccessRequest } from "@/lib/types";
 import { ACCESS_REQUEST_STATUS_LABELS, ACCESS_REQUEST_STATUS_COLOURS } from "@/lib/types";
-import { Check, X, Clock, Shield } from "lucide-react";
+import { Check, X, Clock, Shield, FileText } from "lucide-react";
 import { toast } from "sonner";
 
 /**
@@ -66,6 +66,9 @@ export default function AccessRequestsPanel() {
                       <td className="px-3 py-2 text-gray-700">{req.requester?.name ?? "Unknown"}</td>
                       <td className="px-3 py-2">
                         <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">{req.permission}</span>
+                        {req.entityName && (
+                          <p className="text-[10px] text-gray-500 mt-0.5 truncate max-w-[160px]">{req.entityName}</p>
+                        )}
                       </td>
                       <td className="px-3 py-2 text-gray-600">{req.durationHours}h</td>
                       <td className="px-3 py-2">
@@ -133,6 +136,17 @@ function PendingRequestCard({
           <p className="text-xs text-gray-500 mt-1">{request.durationHours} hours</p>
         </div>
       </div>
+
+      {/* Entity scope — shows when request is for a single record */}
+      {request.entityName && (
+        <div className="flex items-center gap-2 rounded-lg bg-white border border-amber-200 px-3 py-2">
+          <FileText size={13} className="text-amber-600 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-600">{request.entityType ?? "Record"}</p>
+            <p className="text-xs font-medium text-gray-800 truncate">{request.entityName}</p>
+          </div>
+        </div>
+      )}
 
       <div>
         <p className="text-xs font-medium text-gray-500 mb-0.5">Reason</p>

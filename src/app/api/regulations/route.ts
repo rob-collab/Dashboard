@@ -17,7 +17,18 @@ const createSchema = z.object({
 export async function GET() {
   try {
     const regulations = await prisma.regulation.findMany({
-      include: { _count: { select: { policyLinks: true } } },
+      include: {
+        policyLinks: {
+          include: {
+            policy: { select: { id: true, reference: true, name: true, status: true } },
+          },
+        },
+        controlLinks: {
+          include: {
+            control: { select: { id: true, controlRef: true, controlName: true } },
+          },
+        },
+      },
       orderBy: { reference: "asc" },
     });
     regulations.sort((a, b) => naturalCompare(a.reference, b.reference));
