@@ -95,7 +95,8 @@ export default function OutcomeCard({
             className={cn(
               "h-3.5 w-3.5 rounded-full border-2 border-white/80 shadow-sm",
               ragBgColor(outcome.ragStatus),
-              outcome.ragStatus === "HARM" && "rag-pulse"
+              outcome.ragStatus === "HARM" && "rag-pulse",
+              outcome.ragStatus === "GOOD" && "rag-glow"
             )}
             title={`Status: ${outcome.ragStatus}`}
           />
@@ -142,13 +143,23 @@ export default function OutcomeCard({
         )}
       </div>
 
-      {/* Bottom accent bar */}
+      {/* RAG-coloured top accent border */}
+      <div
+        className={cn(
+          "absolute top-0 left-0 h-[2px] w-full rounded-t-3xl",
+          outcome.ragStatus === "GOOD" && "bg-risk-green",
+          outcome.ragStatus === "WARNING" && "bg-risk-amber",
+          outcome.ragStatus === "HARM" && "bg-risk-red"
+        )}
+      />
+
+      {/* Bottom RAG-coloured accent bar */}
       <div
         className={cn(
           "absolute bottom-0 left-0 h-1 w-full rounded-b-3xl transition-all duration-300",
-          selected
-            ? "bg-gradient-to-r from-updraft-bright-purple via-updraft-bar to-updraft-light-purple opacity-100"
-            : "bg-gradient-to-r from-updraft-bright-purple to-updraft-light-purple opacity-0 group-hover:opacity-60"
+          outcome.ragStatus === "GOOD" && (selected ? "bg-risk-green opacity-100" : "bg-risk-green opacity-0 group-hover:opacity-60"),
+          outcome.ragStatus === "WARNING" && (selected ? "bg-risk-amber opacity-100" : "bg-risk-amber opacity-0 group-hover:opacity-60"),
+          outcome.ragStatus === "HARM" && (selected ? "bg-risk-red opacity-100" : "bg-risk-red opacity-0 group-hover:opacity-60")
         )}
       />
     </button>

@@ -80,7 +80,7 @@ export default function AdminRAGPanel({
                         className={cn(
                           "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
                           outcome.ragStatus === "GOOD" &&
-                            "bg-risk-green/10 text-risk-green",
+                            "bg-risk-green/15 text-risk-green",
                           outcome.ragStatus === "WARNING" &&
                             "bg-risk-amber/10 text-risk-amber",
                           outcome.ragStatus === "HARM" &&
@@ -151,7 +151,7 @@ export default function AdminRAGPanel({
                           className={cn(
                             "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
                             measure.ragStatus === "GOOD" &&
-                              "bg-risk-green/10 text-risk-green",
+                              "bg-risk-green/15 text-risk-green",
                             measure.ragStatus === "WARNING" &&
                               "bg-risk-amber/10 text-risk-amber",
                             measure.ragStatus === "HARM" &&

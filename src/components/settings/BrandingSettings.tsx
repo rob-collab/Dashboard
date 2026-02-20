@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
-import { Upload, X, ImageIcon, Save, RotateCcw } from "lucide-react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { Upload, X, ImageIcon, Save, RotateCcw, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
 import { fileToBase64, ACCEPTED_IMAGE_TYPES, MAX_IMAGE_SIZE_MB } from "@/lib/image-utils";
 import { toast } from "sonner";
+import { isDarkBackground, sidebarGradient, DEFAULT_SIDEBAR_COLOUR } from "@/lib/colour-utils";
 
 export default function BrandingSettings() {
   const branding = useAppStore((s) => s.branding);
@@ -26,12 +27,20 @@ export default function BrandingSettings() {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const previewRef = useRef<HTMLDivElement>(null);
 
+  // Sidebar colour state
+  const [sidebarColour, setSidebarColour] = useState(siteSettings?.primaryColour || DEFAULT_SIDEBAR_COLOUR);
+  const [hexInput, setHexInput] = useState(sidebarColour);
+  const previewDark = useMemo(() => isDarkBackground(sidebarColour), [sidebarColour]);
+  const previewGradient = useMemo(() => sidebarGradient(sidebarColour), [sidebarColour]);
+
   // Sync from siteSettings on load
   useEffect(() => {
     if (siteSettings) {
       setLogoX(siteSettings.logoX);
       setLogoY(siteSettings.logoY);
       setLogoScale(siteSettings.logoScale);
+      setSidebarColour(siteSettings.primaryColour || DEFAULT_SIDEBAR_COLOUR);
+      setHexInput(siteSettings.primaryColour || DEFAULT_SIDEBAR_COLOUR);
       // Also apply logo from DB if local branding doesn't have one
       if (siteSettings.logoBase64 && !branding.logoSrc) {
         updateBranding({ logoSrc: siteSettings.logoBase64 });
@@ -107,8 +116,8 @@ export default function BrandingSettings() {
 
   async function saveBrandingToDb() {
     try {
-      // Save positioning & scale first (small payload, always succeeds)
-      const positionData = { logoX, logoY, logoScale };
+      // Save positioning, scale, and sidebar colour first (small payload, always succeeds)
+      const positionData = { logoX, logoY, logoScale, primaryColour: sidebarColour === DEFAULT_SIDEBAR_COLOUR ? null : sidebarColour };
       await api("/api/settings", { method: "PUT", body: positionData });
 
       // Then try saving images if present (may fail if too large)
@@ -392,6 +401,87 @@ export default function BrandingSettings() {
             <p className="text-xs text-gray-500">Display the logo in the report footer area</p>
           </div>
         </label>
+      </div>
+
+      {/* Sidebar Colour */}
+      <div className="bento-card space-y-4">
+        <div className="flex items-center gap-2">
+          <Palette size={16} className="text-updraft-bright-purple" />
+          <h3 className="text-sm font-semibold text-gray-800">Sidebar Colour</h3>
+        </div>
+        <p className="text-xs text-gray-500">
+          Customise the sidebar background colour. The logo and text will automatically adapt for contrast.
+        </p>
+
+        <div className="flex items-center gap-4">
+          {/* Native colour picker */}
+          <input
+            type="color"
+            value={sidebarColour}
+            onChange={(e) => {
+              setSidebarColour(e.target.value);
+              setHexInput(e.target.value);
+            }}
+            className="h-10 w-14 cursor-pointer rounded-lg border border-gray-200 p-0.5"
+          />
+          {/* Hex text input */}
+          <div className="flex-1">
+            <label className="block text-xs font-medium text-gray-600 mb-1">Hex Value</label>
+            <input
+              type="text"
+              value={hexInput}
+              onChange={(e) => {
+                const v = e.target.value;
+                setHexInput(v);
+                if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+                  setSidebarColour(v);
+                }
+              }}
+              onBlur={() => {
+                if (!/^#[0-9a-fA-F]{6}$/.test(hexInput)) {
+                  setHexInput(sidebarColour);
+                }
+              }}
+              placeholder="#1C1B29"
+              className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-sm font-mono focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple/50 outline-none"
+            />
+          </div>
+          {/* Reset button */}
+          <button
+            type="button"
+            onClick={() => {
+              setSidebarColour(DEFAULT_SIDEBAR_COLOUR);
+              setHexInput(DEFAULT_SIDEBAR_COLOUR);
+            }}
+            className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            <RotateCcw size={12} /> Reset
+          </button>
+        </div>
+
+        {/* Live preview strip */}
+        <div>
+          <p className="text-xs font-medium text-gray-600 mb-2">Preview</p>
+          <div
+            className="flex items-center gap-3 rounded-xl px-4 py-3 transition-all"
+            style={{ background: previewGradient, borderRight: `1px solid ${previewDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)"}` }}
+          >
+            <img
+              src="/logo.png"
+              alt="Logo preview"
+              className={cn(
+                "h-6 object-contain opacity-90 transition-all",
+                previewDark ? "brightness-0 invert" : ""
+              )}
+            />
+            <span className={cn("text-xs font-medium transition-colors", previewDark ? "text-white/70" : "text-gray-600")}>
+              Dashboard
+            </span>
+            <span className={cn("ml-auto text-[10px] transition-colors", previewDark ? "text-white/30" : "text-gray-400")}>
+              {previewDark ? "Dark mode" : "Light mode"} (auto)
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Dashboard Icon */}

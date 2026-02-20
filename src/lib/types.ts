@@ -1195,3 +1195,14 @@ export const ACCESS_REQUEST_STATUS_COLOURS: Record<AccessRequestStatus, { bg: st
   EXPIRED: { bg: "bg-gray-100", text: "text-gray-600" },
   CANCELLED: { bg: "bg-gray-100", text: "text-gray-500" },
 };
+
+// ── Dashboard Layout ──────────────────────────────────────────────────────────
+
+export interface DashboardLayoutConfig {
+  id: string;
+  sectionOrder: string[];
+  hiddenSections: string[];
+  configuredById: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

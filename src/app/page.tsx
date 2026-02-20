@@ -22,19 +22,44 @@ import {
   Info,
   Star,
   Scale,
+  GripVertical,
+  Eye,
+  EyeOff,
+  LayoutGrid,
+  RotateCcw,
+  Save,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
-import { formatDate, ragBgColor, naturalCompare } from "@/lib/utils";
+import { formatDate, ragBgColor, naturalCompare, cn } from "@/lib/utils";
 import { getActionLabel } from "@/lib/audit";
 import { getRiskScore } from "@/lib/risk-categories";
 import type { ActionPriority, ActionChange, ControlChange, RiskChange } from "@/lib/types";
 import { useHasPermission, usePermissionSet } from "@/lib/usePermission";
-import type { ComplianceStatus } from "@/lib/types";
+import type { ComplianceStatus, DashboardLayoutConfig } from "@/lib/types";
 import ScoreBadge from "@/components/risk-register/ScoreBadge";
 import DirectionArrow from "@/components/risk-register/DirectionArrow";
 import { usePageTitle } from "@/lib/usePageTitle";
+import { DASHBOARD_SECTIONS, DEFAULT_SECTION_ORDER } from "@/lib/dashboard-sections";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 function daysUntilDue(dueDate: string | null): number | null {
   if (!dueDate) return null;
@@ -70,6 +95,37 @@ const FIELD_LABELS: Record<string, string> = {
 
 function fieldLabel(field: string): string {
   return FIELD_LABELS[field] ?? field.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase());
+}
+
+/* ── Sortable Dashboard Section Wrapper ───────────────────────────────── */
+function SortableDashboardSection({ id, label, hidden, onToggleVisibility, children }: { id: string; label: string; hidden: boolean; onToggleVisibility: () => void; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+  return (
+    <div ref={setNodeRef} style={style} className={cn("relative group/section", hidden && "opacity-40")}>
+      <div className={cn(
+        "absolute -left-10 top-4 z-10 flex flex-col gap-1",
+      )}>
+        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing rounded p-1 text-gray-400 hover:text-updraft-bright-purple hover:bg-updraft-pale-purple/20 transition-colors">
+          <GripVertical size={16} />
+        </button>
+        <button onClick={onToggleVisibility} className={cn("rounded p-1 transition-colors", hidden ? "text-red-400 hover:text-red-600 hover:bg-red-50" : "text-gray-400 hover:text-updraft-bright-purple hover:bg-updraft-pale-purple/20")}>
+          {hidden ? <EyeOff size={14} /> : <Eye size={14} />}
+        </button>
+      </div>
+      <div className={cn(
+        "rounded-2xl border-2 border-dashed transition-colors",
+        hidden ? "border-red-300 bg-red-50/30" : "border-updraft-light-purple/40"
+      )}>
+        <div className="flex items-center gap-2 px-4 py-1.5 border-b border-dashed border-inherit">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-updraft-bar/60">{label}</span>
+        </div>
+        <div className="p-0.5">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 /* ── Pending Changes Panel ───────────────────────────────────────────── */
@@ -323,6 +379,86 @@ export default function DashboardHome() {
 
   const role = currentUser?.role;
   const isCCRO = role === "CCRO_TEAM";
+
+  // Dashboard layout state
+  const dashboardLayout = useAppStore((s) => s.dashboardLayout);
+  const setDashboardLayout = useAppStore((s) => s.setDashboardLayout);
+
+  // Edit mode state
+  const [editMode, setEditMode] = useState(false);
+  const [editOrder, setEditOrder] = useState<string[]>(DEFAULT_SECTION_ORDER);
+  const [editHidden, setEditHidden] = useState<Set<string>>(new Set());
+  const [saving, setSaving] = useState(false);
+
+  // Effective order for rendering (from DB layout or default)
+  const effectiveOrder = useMemo(() => {
+    const savedOrder = dashboardLayout?.sectionOrder ?? DEFAULT_SECTION_ORDER;
+    const savedHidden = new Set(dashboardLayout?.hiddenSections ?? []);
+    // Forward-compat: append any new section keys not in saved order
+    const order = [...savedOrder];
+    for (let i = 0; i < DEFAULT_SECTION_ORDER.length; i++) {
+      if (!order.includes(DEFAULT_SECTION_ORDER[i])) order.push(DEFAULT_SECTION_ORDER[i]);
+    }
+    return { order, hidden: savedHidden };
+  }, [dashboardLayout]);
+
+  // dnd-kit sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  function enterEditMode() {
+    setEditOrder([...effectiveOrder.order]);
+    setEditHidden(new Set(effectiveOrder.hidden));
+    setEditMode(true);
+  }
+
+  function cancelEditMode() {
+    setEditMode(false);
+  }
+
+  function resetToDefault() {
+    setEditOrder([...DEFAULT_SECTION_ORDER]);
+    setEditHidden(new Set());
+  }
+
+  async function saveLayout() {
+    setSaving(true);
+    try {
+      const layout = await api<DashboardLayoutConfig>("/api/dashboard-layout", {
+        method: "PUT",
+        body: { sectionOrder: editOrder, hiddenSections: Array.from(editHidden) },
+      });
+      setDashboardLayout(layout);
+      setEditMode(false);
+      toast.success("Dashboard layout saved");
+    } catch {
+      toast.error("Failed to save layout");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setEditOrder((prev) => {
+        const oldIndex = prev.indexOf(String(active.id));
+        const newIndex = prev.indexOf(String(over.id));
+        return arrayMove(prev, oldIndex, newIndex);
+      });
+    }
+  }
+
+  function toggleSectionVisibility(key: string) {
+    setEditHidden((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   // (Stats computed inline where needed per role)
 
@@ -638,9 +774,9 @@ export default function DashboardHome() {
     );
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Welcome Header */}
+  // Build section map AFTER loading check
+  const sectionMap: Record<string, React.ReactNode> = {
+    "welcome": (
       <div className="card-entrance card-entrance-1 relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#1C1B29] via-updraft-deep to-updraft-bar p-8 text-white">
         {/* Geometric pattern overlay */}
         <div className="absolute inset-0 opacity-[0.07]" style={{
@@ -751,27 +887,27 @@ export default function DashboardHome() {
           )}
         </div>
       </div>
+    ),
 
-      {/* ── Notification Banners ── */}
-      {activeNotifications.length > 0 && (
-        <div className="space-y-2">
-          {activeNotifications.map((n) => {
-            const styles = n.type === "urgent"
-              ? { bg: "bg-red-50 border-red-200", text: "text-red-800", icon: <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" /> }
-              : n.type === "warning"
-              ? { bg: "bg-amber-50 border-amber-200", text: "text-amber-800", icon: <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" /> }
-              : { bg: "bg-blue-50 border-blue-200", text: "text-blue-800", icon: <Info className="h-4 w-4 text-blue-500 shrink-0" /> };
-            return (
-              <div key={n.id} className={`flex items-start gap-3 rounded-xl border ${styles.bg} px-4 py-3`}>
-                {styles.icon}
-                <p className={`text-sm font-medium ${styles.text} flex-1`}>{n.message}</p>
-              </div>
-            );
-          })}
-        </div>
-      )}
+    "notifications": activeNotifications.length > 0 ? (
+      <div className="space-y-2">
+        {activeNotifications.map((n) => {
+          const styles = n.type === "urgent"
+            ? { bg: "bg-red-50 border-red-200", text: "text-red-800", icon: <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" /> }
+            : n.type === "warning"
+            ? { bg: "bg-amber-50 border-amber-200", text: "text-amber-800", icon: <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" /> }
+            : { bg: "bg-blue-50 border-blue-200", text: "text-blue-800", icon: <Info className="h-4 w-4 text-blue-500 shrink-0" /> };
+          return (
+            <div key={n.id} className={`flex items-start gap-3 rounded-xl border ${styles.bg} px-4 py-3`}>
+              {styles.icon}
+              <p className={`text-sm font-medium ${styles.text} flex-1`}>{n.message}</p>
+            </div>
+          );
+        })}
+      </div>
+    ) : null,
 
-      {/* ── Priority Action Cards (ALL roles) ── */}
+    "priority-actions": (
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {(["P1", "P2", "P3"] as ActionPriority[]).map((p, idx) => {
           const config = PRIORITY_CONFIG[p];
@@ -815,440 +951,431 @@ export default function DashboardHome() {
           );
         })}
       </div>
+    ),
 
-      {/* ── Risk Acceptance Widget (ALL roles) ── */}
-      {riskAcceptances.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 card-entrance card-entrance-5">
-          {/* Main RA card */}
-          <Link href="/risk-acceptances" className="bento-card hover:border-updraft-light-purple transition-colors group">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <ShieldQuestion className="h-5 w-5 text-updraft-bright-purple" />
-                <h2 className="text-lg font-bold text-updraft-deep font-poppins">Risk Acceptances</h2>
-              </div>
-              <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-updraft-bright-purple transition-colors" />
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-              <div className="rounded-lg bg-surface-muted border border-[#E8E6E1] p-2 text-center">
-                <p className="text-lg font-bold font-poppins text-gray-600">{raStats.expired}</p>
-                <p className="text-[10px] text-text-secondary">Expired</p>
-              </div>
-              <div className="rounded-lg border border-amber-100 p-2 text-center" style={{ background: "linear-gradient(135deg, #FFFBEB, #FEFCE8)" }}>
-                <p className="text-lg font-bold font-poppins text-amber-700">{raStats.awaiting}</p>
-                <p className="text-[10px] text-text-secondary">Awaiting</p>
-              </div>
-              <div className="rounded-lg border border-purple-100 p-2 text-center" style={{ background: "linear-gradient(135deg, #FAF5FF, #F5F3FF)" }}>
-                <p className="text-lg font-bold font-poppins text-purple-700">{raStats.ccroReview}</p>
-                <p className="text-[10px] text-text-secondary">CCRO Review</p>
-              </div>
-              <div className="rounded-lg border border-green-100 p-2 text-center" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-                <p className="text-lg font-bold font-poppins text-green-700">{raStats.accepted}</p>
-                <p className="text-[10px] text-text-secondary">Accepted</p>
-              </div>
-            </div>
-            {raStats.urgent.length > 0 && (
-              <div className="space-y-1.5">
-                {raStats.urgent.map((ra) => (
-                  <div key={ra.id} className="flex items-center justify-between text-xs py-1">
-                    <span className="text-gray-700 truncate flex-1 min-w-0">
-                      <span className="font-mono font-bold text-updraft-deep mr-1">{ra.reference}</span>
-                      {ra.title}
-                    </span>
-                    <span className={`shrink-0 ml-2 px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
-                      ra.status === "EXPIRED" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
-                    }`}>
-                      {ra.status === "EXPIRED" ? "Expired" : "Awaiting"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Link>
-
-          {/* Upcoming reviews card */}
-          <div className="bento-card">
-            <div className="flex items-center gap-2 mb-3">
-              <Clock className="h-4 w-4 text-gray-400" />
-              <h3 className="text-sm font-semibold text-gray-700">Upcoming Reviews</h3>
-            </div>
-            {raStats.overdue.length === 0 && raStats.due30.length === 0 && raStats.beyond30.length === 0 ? (
-              <p className="text-xs text-gray-400">No upcoming reviews</p>
-            ) : (
-              <div className="space-y-1.5">
-                {raStats.overdue.slice(0, 3).map((ra) => (
-                  <Link key={ra.id} href="/risk-acceptances" className="flex items-center justify-between p-2 rounded-lg bg-red-50 hover:bg-red-100 transition-colors text-xs">
-                    <span className="truncate flex-1 min-w-0"><span className="font-mono font-bold">{ra.reference}</span> {ra.title}</span>
-                    <span className="shrink-0 ml-2 font-semibold text-red-700">{Math.abs(ra.daysUntil)}d overdue</span>
-                  </Link>
-                ))}
-                {raStats.due30.slice(0, 3).map((ra) => (
-                  <Link key={ra.id} href="/risk-acceptances" className="flex items-center justify-between p-2 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors text-xs">
-                    <span className="truncate flex-1 min-w-0"><span className="font-mono font-bold">{ra.reference}</span> {ra.title}</span>
-                    <span className="shrink-0 ml-2 font-semibold text-amber-700">{ra.daysUntil}d</span>
-                  </Link>
-                ))}
-                {raStats.beyond30.slice(0, 2).map((ra) => (
-                  <Link key={ra.id} href="/risk-acceptances" className="flex items-center justify-between p-2 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors text-xs">
-                    <span className="truncate flex-1 min-w-0"><span className="font-mono font-bold">{ra.reference}</span> {ra.title}</span>
-                    <span className="shrink-0 ml-2 text-gray-500">{ra.daysUntil}d</span>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── Compliance Health (page:compliance) ── */}
-      {complianceHealth && (
-        <Link href="/compliance" className="bento-card hover:border-updraft-light-purple transition-colors group block card-entrance card-entrance-5">
-          <div className="flex items-center justify-between mb-4">
+    "risk-acceptances": riskAcceptances.length > 0 ? (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 card-entrance card-entrance-5">
+        {/* Main RA card */}
+        <Link href="/risk-acceptances" className="bento-card hover:border-updraft-light-purple transition-colors group">
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Scale className="h-5 w-5 text-updraft-bright-purple" />
-              <h2 className="text-lg font-bold text-updraft-deep font-poppins">Compliance Health</h2>
+              <ShieldQuestion className="h-5 w-5 text-updraft-bright-purple" />
+              <h2 className="text-lg font-bold text-updraft-deep font-poppins">Risk Acceptances</h2>
             </div>
             <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-updraft-bright-purple transition-colors" />
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            <div className="rounded-lg border border-green-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-              <p className="text-xl font-bold font-poppins text-green-700">{complianceHealth.compliantPct}%</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">Compliant</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+            <div className="rounded-lg bg-surface-muted border border-[#E8E6E1] p-2 text-center">
+              <p className="text-lg font-bold font-poppins text-gray-600">{raStats.expired}</p>
+              <p className="text-[10px] text-text-secondary">Expired</p>
             </div>
-            <div className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm">
-              <p className="text-xl font-bold font-poppins text-updraft-deep">{complianceHealth.total}</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">Applicable</p>
+            <div className="rounded-lg border border-amber-100 p-2 text-center" style={{ background: "linear-gradient(135deg, #FFFBEB, #FEFCE8)" }}>
+              <p className="text-lg font-bold font-poppins text-amber-700">{raStats.awaiting}</p>
+              <p className="text-[10px] text-text-secondary">Awaiting</p>
             </div>
-            <div className={`rounded-lg border p-3 text-center ${complianceHealth.gaps > 0 ? "border-red-100" : "border-green-100"}`} style={{ background: complianceHealth.gaps > 0 ? "linear-gradient(135deg, #FEF2F2, #FFF5F5)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-              <p className={`text-xl font-bold font-poppins ${complianceHealth.gaps > 0 ? "text-red-700" : "text-green-700"}`}>{complianceHealth.gaps}</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">Open Gaps</p>
+            <div className="rounded-lg border border-purple-100 p-2 text-center" style={{ background: "linear-gradient(135deg, #FAF5FF, #F5F3FF)" }}>
+              <p className="text-lg font-bold font-poppins text-purple-700">{raStats.ccroReview}</p>
+              <p className="text-[10px] text-text-secondary">CCRO Review</p>
             </div>
-            <div className={`rounded-lg border p-3 text-center ${complianceHealth.overdueAssessments > 0 ? "border-amber-100" : "border-green-100"}`} style={{ background: complianceHealth.overdueAssessments > 0 ? "linear-gradient(135deg, #FFFBEB, #FEFCE8)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-              <p className={`text-xl font-bold font-poppins ${complianceHealth.overdueAssessments > 0 ? "text-amber-700" : "text-green-700"}`}>{complianceHealth.overdueAssessments}</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">Overdue Assessments</p>
-            </div>
-            <div className={`rounded-lg border p-3 text-center ${complianceHealth.pendingCerts > 0 ? "border-amber-100" : "border-green-100"}`} style={{ background: complianceHealth.pendingCerts > 0 ? "linear-gradient(135deg, #FFFBEB, #FEFCE8)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-              <p className={`text-xl font-bold font-poppins ${complianceHealth.pendingCerts > 0 ? "text-amber-700" : "text-green-700"}`}>{complianceHealth.pendingCerts}</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">Pending Certs</p>
+            <div className="rounded-lg border border-green-100 p-2 text-center" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+              <p className="text-lg font-bold font-poppins text-green-700">{raStats.accepted}</p>
+              <p className="text-[10px] text-text-secondary">Accepted</p>
             </div>
           </div>
-        </Link>
-      )}
-
-      {/* ── Controls Library ── */}
-      {controlsStats && (
-        <Link href="/controls" className="bento-card hover:border-updraft-light-purple transition-colors group block card-entrance card-entrance-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <FlaskConical className="h-5 w-5 text-updraft-bright-purple" />
-              <h2 className="text-lg font-bold text-updraft-deep font-poppins">Controls Library</h2>
-            </div>
-            <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-updraft-bright-purple transition-colors" />
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
-            <div className="rounded-lg border border-updraft-pale-purple p-3 text-center" style={{ background: "linear-gradient(135deg, #F3E8FF, #FAF5FF)" }}>
-              <p className="text-xl font-bold font-poppins text-updraft-deep">{controlsStats.total}</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">Total Controls</p>
-            </div>
-            <div className="rounded-lg border border-green-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-              <p className="text-xl font-bold font-poppins text-green-700">{controlsStats.preventative}</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">Preventative</p>
-            </div>
-            <div className="rounded-lg border border-blue-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #EFF6FF, #F0F9FF)" }}>
-              <p className="text-xl font-bold font-poppins text-blue-700">{controlsStats.detective}</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">Detective</p>
-            </div>
-            <div className="rounded-lg border border-amber-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #FFFBEB, #FEFCE8)" }}>
-              <p className="text-xl font-bold font-poppins text-amber-700">{controlsStats.directive}</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">Directive</p>
-            </div>
-            <div className="rounded-lg border border-red-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #FEF2F2, #FFF5F5)" }}>
-              <p className="text-xl font-bold font-poppins text-red-700">{controlsStats.corrective}</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">Corrective</p>
-            </div>
-            <div className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm">
-              <p className="text-xl font-bold font-poppins text-updraft-deep">{controlsStats.policiesWithControls}/{controlsStats.totalPolicies}</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">Policies Covered</p>
-            </div>
-          </div>
-        </Link>
-      )}
-
-      {/* ── Cross-Entity Insights ── */}
-      {crossEntityInsights.hasData && (
-        <div className="bento-card card-entrance card-entrance-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Shield className="h-5 w-5 text-updraft-bright-purple" />
-            <h2 className="text-lg font-bold text-updraft-deep font-poppins">Compliance Insights</h2>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Risks with failing controls */}
-            {crossEntityInsights.risksWithFailingControls.length > 0 && (
-              <div className="rounded-xl border border-red-100 p-4" style={{ background: "linear-gradient(135deg, #FEF2F2, #FFF5F5)" }}>
-                <h3 className="text-xs font-bold text-red-700 mb-2">Risks with Failing Controls</h3>
-                <div className="space-y-2">
-                  {crossEntityInsights.risksWithFailingControls.map((r) => (
-                    <Link key={r.riskId} href={`/risk-register?risk=${r.riskId}`} className="flex items-center justify-between text-xs hover:text-updraft-bright-purple transition-colors">
-                      <span className="truncate flex-1 min-w-0 text-gray-700">
-                        <span className="font-mono font-bold text-updraft-deep mr-1">{r.riskRef}</span>
-                        {r.riskName}
-                      </span>
-                      <span className="shrink-0 ml-2 text-red-600 font-semibold">{r.failCount}/{r.totalControls}</span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Policies with coverage gaps */}
-            {crossEntityInsights.policiesWithGaps.length > 0 && (
-              <div className="rounded-xl border border-amber-100 p-4" style={{ background: "linear-gradient(135deg, #FFFBEB, #FEFCE8)" }}>
-                <h3 className="text-xs font-bold text-amber-700 mb-2">Policies with Coverage Gaps</h3>
-                <div className="space-y-2">
-                  {crossEntityInsights.policiesWithGaps.map((p) => (
-                    <Link key={p.id} href="/policies" className="flex items-center justify-between text-xs hover:text-updraft-bright-purple transition-colors">
-                      <span className="truncate flex-1 min-w-0 text-gray-700">
-                        <span className="font-mono font-bold text-updraft-deep mr-1">{p.ref}</span>
-                        {p.name}
-                      </span>
-                      <span className="shrink-0 ml-2 text-amber-600 font-semibold">{p.uncovered}/{p.total} uncovered</span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Key controls */}
-            {crossEntityInsights.keyControls.length > 0 && (
-              <div className="rounded-xl border border-updraft-pale-purple p-4" style={{ background: "linear-gradient(135deg, #F3E8FF, #FAF5FF)" }}>
-                <h3 className="text-xs font-bold text-updraft-deep mb-2">Key Controls (Multi-Policy)</h3>
-                <div className="space-y-2">
-                  {crossEntityInsights.keyControls.map((c) => (
-                    <Link key={c.ref} href="/controls" className="flex items-center justify-between text-xs hover:text-updraft-bright-purple transition-colors">
-                      <span className="truncate flex-1 min-w-0 text-gray-700">
-                        <span className="font-mono font-bold text-updraft-deep mr-1">{c.ref}</span>
-                        {c.name}
-                      </span>
-                      <span className="shrink-0 ml-2 text-updraft-bright-purple font-semibold">{c.policyCount} policies</span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── Policy Health Summary ── */}
-      {policies.length > 0 && (
-        <Link href="/policies" className="bento-card hover:border-updraft-light-purple transition-colors group block card-entrance card-entrance-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-updraft-bright-purple" />
-              <h2 className="text-lg font-bold text-updraft-deep font-poppins">Policy Health</h2>
-            </div>
-            <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-updraft-bright-purple transition-colors" />
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm">
-              <p className="text-xl font-bold font-poppins text-updraft-deep">{policies.length}</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">Total Policies</p>
-            </div>
-            <div className={`rounded-lg border p-3 text-center ${policies.filter((p) => p.status === "OVERDUE").length > 0 ? "border-red-100" : "border-green-100"}`} style={{ background: policies.filter((p) => p.status === "OVERDUE").length > 0 ? "linear-gradient(135deg, #FEF2F2, #FFF5F5)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-              <p className={`text-xl font-bold font-poppins ${policies.filter((p) => p.status === "OVERDUE").length > 0 ? "text-red-700" : "text-green-700"}`}>
-                {policies.filter((p) => p.status === "OVERDUE").length}
-              </p>
-              <p className="text-[10px] text-gray-500 mt-0.5">Overdue</p>
-            </div>
-            <div className="rounded-lg border border-updraft-pale-purple p-3 text-center" style={{ background: "linear-gradient(135deg, #F3E8FF, #FAF5FF)" }}>
-              <p className="text-xl font-bold font-poppins text-updraft-deep">
-                {policies.reduce((sum, p) => sum + (p.obligations?.length ?? 0), 0)}
-              </p>
-              <p className="text-[10px] text-gray-500 mt-0.5">Requirements</p>
-            </div>
-            <div className="rounded-lg border border-blue-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #EFF6FF, #F0F9FF)" }}>
-              <p className="text-xl font-bold font-poppins text-blue-700">
-                {policies.reduce((sum, p) => sum + (p.controlLinks?.length ?? 0), 0)}
-              </p>
-              <p className="text-[10px] text-gray-500 mt-0.5">Control Links</p>
-            </div>
-          </div>
-        </Link>
-      )}
-
-      {/* ── Risks in Focus (ALL roles) ── */}
-      {focusRisks.length > 0 && (
-        <div className="bento-card border-2 border-amber-200/60">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Star className="h-5 w-5 text-amber-400 fill-amber-400" />
-              <h2 className="text-lg font-bold text-updraft-deep font-poppins">Risks in Focus</h2>
-              <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-bold">{focusRisks.length}</span>
-            </div>
-            <Link href="/risk-register" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-              Risk Register <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-          <div className="space-y-2">
-            {focusRisks.map((r) => {
-              const ownerName = r.riskOwner?.name ?? users.find((u) => u.id === r.ownerId)?.name ?? "Unknown";
-              return (
-                <Link
-                  key={r.id}
-                  href={`/risk-register?risk=${r.id}`}
-                  className="flex items-center gap-4 p-3 rounded-lg bg-amber-50/40 hover:bg-amber-50 transition-colors"
-                >
-                  <Star className="w-4 h-4 text-amber-400 fill-amber-400 shrink-0" />
-                  <span className="text-xs font-mono font-bold text-updraft-deep shrink-0">{r.reference}</span>
-                  <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{r.name}</span>
-                  <ScoreBadge likelihood={r.residualLikelihood} impact={r.residualImpact} size="sm" />
-                  <DirectionArrow direction={r.directionOfTravel} />
-                  <span className="text-xs text-gray-500 shrink-0">{ownerName}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ── Pending New Entities (can:approve-entities) ── */}
-      {canApproveEntities && pendingNewEntities.length > 0 && (
-        <div className="bento-card border-2 border-amber-200">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-amber-500" />
-              <h2 className="text-lg font-bold text-updraft-deep font-poppins">Pending Approvals</h2>
-              <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-bold">{pendingNewEntities.length}</span>
-            </div>
-          </div>
-          <div className="space-y-2">
-            {pendingNewEntities.map((item) => {
-              const creatorName = users.find((u) => u.id === item.createdBy)?.name ?? "Unknown";
-              const href = item.type === "risk" ? `/risk-register?risk=${item.id}` : item.type === "action" ? `/actions?edit=${item.id}` : `/controls?control=${item.id}`;
-              return (
-                <div key={`${item.type}-${item.id}`} className="flex items-center gap-3 p-3 rounded-lg bg-amber-50/40 border border-amber-100">
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                    item.type === "risk" ? "bg-red-100 text-red-700" :
-                    item.type === "action" ? "bg-blue-100 text-blue-700" :
-                    "bg-purple-100 text-purple-700"
-                  }`}>
-                    {item.type === "risk" ? "Risk" : item.type === "action" ? "Action" : "Control"}
+          {raStats.urgent.length > 0 && (
+            <div className="space-y-1.5">
+              {raStats.urgent.map((ra) => (
+                <div key={ra.id} className="flex items-center justify-between text-xs py-1">
+                  <span className="text-gray-700 truncate flex-1 min-w-0">
+                    <span className="font-mono font-bold text-updraft-deep mr-1">{ra.reference}</span>
+                    {ra.title}
                   </span>
-                  <span className="text-xs font-mono font-bold text-updraft-deep shrink-0">{item.reference}</span>
-                  <Link href={href} className="text-sm text-gray-800 truncate flex-1 min-w-0 hover:text-updraft-bright-purple transition-colors">
-                    {item.name}
-                  </Link>
-                  <span className="text-xs text-gray-500 shrink-0">{creatorName}</span>
-                  <span className="text-xs text-gray-400 shrink-0">{formatDate(item.createdAt)}</span>
-                  <button
-                    onClick={() => rejectEntity(item.type, item.id)}
-                    className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-semibold text-red-700 hover:bg-red-100 transition-colors shrink-0"
-                  >
-                    <XCircle className="h-3 w-3" />
-                    Reject
-                  </button>
-                  <button
-                    onClick={() => approveEntity(item.type, item.id)}
-                    className="inline-flex items-center gap-1 rounded-lg border border-green-200 bg-green-50 px-2 py-1 text-[10px] font-semibold text-green-700 hover:bg-green-100 transition-colors shrink-0"
-                  >
-                    <CheckCircle2 className="h-3 w-3" />
-                    Approve
-                  </button>
+                  <span className={`shrink-0 ml-2 px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
+                    ra.status === "EXPIRED" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
+                  }`}>
+                    {ra.status === "EXPIRED" ? "Expired" : "Awaiting"}
+                  </span>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════════ Unified Permission-Based Sections ═══════════════ */}
-
-      {/* Proposed Changes — for users who can approve */}
-      {canViewPending && allPendingChanges.length > 0 && (
-        <PendingChangesPanel
-          changes={allPendingChanges}
-          users={users}
-          updateAction={updateAction}
-          updateControl={updateControl}
-          updateRisk={(id, data) => updateRisk(id, data as Partial<import("@/lib/types").Risk>)}
-        />
-      )}
-
-      {/* ── Action Tracking (page:actions) ── */}
-      {hasActionsPage && (
-        <div className="card-entrance card-entrance-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-updraft-deep font-poppins">Action Tracking</h2>
-            <Link href="/actions" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-              View All <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <Link href="/actions?status=OPEN" className="rounded-xl border border-blue-100 p-3 cursor-pointer hover:border-blue-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #EFF6FF 0%, #F0F7FF 100%)" }}>
-              <p className="text-xs text-text-secondary">Open</p>
-              <p className="text-2xl font-bold font-poppins text-blue-700">{actionStats.open}</p>
-            </Link>
-            <Link href="/actions?status=OVERDUE" className="rounded-xl border border-red-100 p-3 cursor-pointer hover:border-red-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #FEF2F2 0%, #FFF5F5 100%)" }}>
-              <p className="text-xs text-text-secondary">Overdue</p>
-              <p className="text-2xl font-bold font-poppins text-red-700">{actionStats.overdue}</p>
-            </Link>
-            <Link href="/actions" className="rounded-xl border border-amber-100 p-3 cursor-pointer hover:border-amber-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEFCE8 100%)" }}>
-              <p className="text-xs text-text-secondary">Due This Month</p>
-              <p className="text-2xl font-bold font-poppins text-amber-700">{actionStats.dueThisMonth}</p>
-            </Link>
-            <Link href="/actions?status=COMPLETED" className="rounded-xl border border-blue-100 p-3 cursor-pointer hover:border-blue-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #EFF6FF 0%, #F0F7FF 100%)" }}>
-              <p className="text-xs text-text-secondary">Completed</p>
-              <p className="text-2xl font-bold font-poppins text-blue-700">{actionStats.completed}</p>
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {/* ── Overdue Metrics Alert (page:consumer-duty) ── */}
-      {hasConsumerDutyPage && overdueMetrics.length > 0 && (
-        <div className="bento-card border-2 border-red-200 bg-red-50/30">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              <h2 className="text-lg font-bold text-red-700 font-poppins">Overdue Metrics</h2>
-              <span className="rounded-full bg-red-100 text-red-700 px-2 py-0.5 text-xs font-bold">{overdueMetrics.length}</span>
+              ))}
             </div>
-            <Link href="/consumer-duty" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-              View All <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
+          )}
+        </Link>
+
+        {/* Upcoming reviews card */}
+        <div className="bento-card">
+          <div className="flex items-center gap-2 mb-3">
+            <Clock className="h-4 w-4 text-gray-400" />
+            <h3 className="text-sm font-semibold text-gray-700">Upcoming Reviews</h3>
           </div>
-          <p className="text-xs text-red-600/70 mb-3">These metrics have not been updated in over 30 days and require attention.</p>
-          <div className="space-y-2">
-            {overdueMetrics.slice(0, 8).map((m) => (
-              <Link
-                key={m.id}
-                href={`/consumer-duty?measure=${m.id}`}
-                className="flex items-center justify-between p-2.5 rounded-lg bg-white/80 hover:bg-white transition-colors"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-gray-800 truncate">{m.measureId} — {m.name}</p>
-                  <p className="text-[10px] text-gray-400">
-                    {m.lastUpdatedAt
-                      ? `Last updated ${Math.floor((Date.now() - new Date(m.lastUpdatedAt).getTime()) / 86400000)}d ago`
-                      : "Never updated"}
-                  </p>
-                </div>
-                <span className="inline-flex items-center gap-0.5 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700 shrink-0 ml-2">
-                  <AlertTriangle className="h-2.5 w-2.5" />
-                  Overdue
-                </span>
-              </Link>
-            ))}
-            {overdueMetrics.length > 8 && (
-              <p className="text-[10px] text-red-500 text-center">+{overdueMetrics.length - 8} more overdue metrics</p>
-            )}
+          {raStats.overdue.length === 0 && raStats.due30.length === 0 && raStats.beyond30.length === 0 ? (
+            <p className="text-xs text-gray-400">No upcoming reviews</p>
+          ) : (
+            <div className="space-y-1.5">
+              {raStats.overdue.slice(0, 3).map((ra) => (
+                <Link key={ra.id} href="/risk-acceptances" className="flex items-center justify-between p-2 rounded-lg bg-red-50 hover:bg-red-100 transition-colors text-xs">
+                  <span className="truncate flex-1 min-w-0"><span className="font-mono font-bold">{ra.reference}</span> {ra.title}</span>
+                  <span className="shrink-0 ml-2 font-semibold text-red-700">{Math.abs(ra.daysUntil)}d overdue</span>
+                </Link>
+              ))}
+              {raStats.due30.slice(0, 3).map((ra) => (
+                <Link key={ra.id} href="/risk-acceptances" className="flex items-center justify-between p-2 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors text-xs">
+                  <span className="truncate flex-1 min-w-0"><span className="font-mono font-bold">{ra.reference}</span> {ra.title}</span>
+                  <span className="shrink-0 ml-2 font-semibold text-amber-700">{ra.daysUntil}d</span>
+                </Link>
+              ))}
+              {raStats.beyond30.slice(0, 2).map((ra) => (
+                <Link key={ra.id} href="/risk-acceptances" className="flex items-center justify-between p-2 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors text-xs">
+                  <span className="truncate flex-1 min-w-0"><span className="font-mono font-bold">{ra.reference}</span> {ra.title}</span>
+                  <span className="shrink-0 ml-2 text-gray-500">{ra.daysUntil}d</span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    ) : null,
+
+    "compliance-health": complianceHealth ? (
+      <Link href="/compliance" className="bento-card hover:border-updraft-light-purple transition-colors group block card-entrance card-entrance-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Scale className="h-5 w-5 text-updraft-bright-purple" />
+            <h2 className="text-lg font-bold text-updraft-deep font-poppins">Compliance Health</h2>
+          </div>
+          <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-updraft-bright-purple transition-colors" />
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="rounded-lg border border-green-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+            <p className="text-xl font-bold font-poppins text-green-700">{complianceHealth.compliantPct}%</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">Compliant</p>
+          </div>
+          <div className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm">
+            <p className="text-xl font-bold font-poppins text-updraft-deep">{complianceHealth.total}</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">Applicable</p>
+          </div>
+          <div className={`rounded-lg border p-3 text-center ${complianceHealth.gaps > 0 ? "border-red-100" : "border-green-100"}`} style={{ background: complianceHealth.gaps > 0 ? "linear-gradient(135deg, #FEF2F2, #FFF5F5)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+            <p className={`text-xl font-bold font-poppins ${complianceHealth.gaps > 0 ? "text-red-700" : "text-green-700"}`}>{complianceHealth.gaps}</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">Open Gaps</p>
+          </div>
+          <div className={`rounded-lg border p-3 text-center ${complianceHealth.overdueAssessments > 0 ? "border-amber-100" : "border-green-100"}`} style={{ background: complianceHealth.overdueAssessments > 0 ? "linear-gradient(135deg, #FFFBEB, #FEFCE8)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+            <p className={`text-xl font-bold font-poppins ${complianceHealth.overdueAssessments > 0 ? "text-amber-700" : "text-green-700"}`}>{complianceHealth.overdueAssessments}</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">Overdue Assessments</p>
+          </div>
+          <div className={`rounded-lg border p-3 text-center ${complianceHealth.pendingCerts > 0 ? "border-amber-100" : "border-green-100"}`} style={{ background: complianceHealth.pendingCerts > 0 ? "linear-gradient(135deg, #FFFBEB, #FEFCE8)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+            <p className={`text-xl font-bold font-poppins ${complianceHealth.pendingCerts > 0 ? "text-amber-700" : "text-green-700"}`}>{complianceHealth.pendingCerts}</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">Pending Certs</p>
           </div>
         </div>
-      )}
+      </Link>
+    ) : null,
 
-      {/* ── Tasks & Reviews (can:view-pending shows all reviews, otherwise own) ── */}
-      {((canViewPending && risksNeedingReview.length > 0) || (!canViewPending && myRisksNeedingReview.length > 0) || myOverdueActions.length > 0) && (
-        <div>
-          <h2 className="text-lg font-bold text-updraft-deep font-poppins mb-3">Tasks & Reviews</h2>
+    "controls-library": controlsStats ? (
+      <Link href="/controls" className="bento-card hover:border-updraft-light-purple transition-colors group block card-entrance card-entrance-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <FlaskConical className="h-5 w-5 text-updraft-bright-purple" />
+            <h2 className="text-lg font-bold text-updraft-deep font-poppins">Controls Library</h2>
+          </div>
+          <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-updraft-bright-purple transition-colors" />
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
+          <div className="rounded-lg border border-updraft-pale-purple p-3 text-center" style={{ background: "linear-gradient(135deg, #F3E8FF, #FAF5FF)" }}>
+            <p className="text-xl font-bold font-poppins text-updraft-deep">{controlsStats.total}</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">Total Controls</p>
+          </div>
+          <div className="rounded-lg border border-green-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+            <p className="text-xl font-bold font-poppins text-green-700">{controlsStats.preventative}</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">Preventative</p>
+          </div>
+          <div className="rounded-lg border border-blue-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #EFF6FF, #F0F9FF)" }}>
+            <p className="text-xl font-bold font-poppins text-blue-700">{controlsStats.detective}</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">Detective</p>
+          </div>
+          <div className="rounded-lg border border-amber-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #FFFBEB, #FEFCE8)" }}>
+            <p className="text-xl font-bold font-poppins text-amber-700">{controlsStats.directive}</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">Directive</p>
+          </div>
+          <div className="rounded-lg border border-red-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #FEF2F2, #FFF5F5)" }}>
+            <p className="text-xl font-bold font-poppins text-red-700">{controlsStats.corrective}</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">Corrective</p>
+          </div>
+          <div className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm">
+            <p className="text-xl font-bold font-poppins text-updraft-deep">{controlsStats.policiesWithControls}/{controlsStats.totalPolicies}</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">Policies Covered</p>
+          </div>
+        </div>
+      </Link>
+    ) : null,
+
+    "cross-entity": crossEntityInsights.hasData ? (
+      <div className="bento-card card-entrance card-entrance-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Shield className="h-5 w-5 text-updraft-bright-purple" />
+          <h2 className="text-lg font-bold text-updraft-deep font-poppins">Compliance Insights</h2>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Risks with failing controls */}
+          {crossEntityInsights.risksWithFailingControls.length > 0 && (
+            <div className="rounded-xl border border-red-100 p-4" style={{ background: "linear-gradient(135deg, #FEF2F2, #FFF5F5)" }}>
+              <h3 className="text-xs font-bold text-red-700 mb-2">Risks with Failing Controls</h3>
+              <div className="space-y-2">
+                {crossEntityInsights.risksWithFailingControls.map((r) => (
+                  <Link key={r.riskId} href={`/risk-register?risk=${r.riskId}`} className="flex items-center justify-between text-xs hover:text-updraft-bright-purple transition-colors">
+                    <span className="truncate flex-1 min-w-0 text-gray-700">
+                      <span className="font-mono font-bold text-updraft-deep mr-1">{r.riskRef}</span>
+                      {r.riskName}
+                    </span>
+                    <span className="shrink-0 ml-2 text-red-600 font-semibold">{r.failCount}/{r.totalControls}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Policies with coverage gaps */}
+          {crossEntityInsights.policiesWithGaps.length > 0 && (
+            <div className="rounded-xl border border-amber-100 p-4" style={{ background: "linear-gradient(135deg, #FFFBEB, #FEFCE8)" }}>
+              <h3 className="text-xs font-bold text-amber-700 mb-2">Policies with Coverage Gaps</h3>
+              <div className="space-y-2">
+                {crossEntityInsights.policiesWithGaps.map((p) => (
+                  <Link key={p.id} href="/policies" className="flex items-center justify-between text-xs hover:text-updraft-bright-purple transition-colors">
+                    <span className="truncate flex-1 min-w-0 text-gray-700">
+                      <span className="font-mono font-bold text-updraft-deep mr-1">{p.ref}</span>
+                      {p.name}
+                    </span>
+                    <span className="shrink-0 ml-2 text-amber-600 font-semibold">{p.uncovered}/{p.total} uncovered</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Key controls */}
+          {crossEntityInsights.keyControls.length > 0 && (
+            <div className="rounded-xl border border-updraft-pale-purple p-4" style={{ background: "linear-gradient(135deg, #F3E8FF, #FAF5FF)" }}>
+              <h3 className="text-xs font-bold text-updraft-deep mb-2">Key Controls (Multi-Policy)</h3>
+              <div className="space-y-2">
+                {crossEntityInsights.keyControls.map((c) => (
+                  <Link key={c.ref} href="/controls" className="flex items-center justify-between text-xs hover:text-updraft-bright-purple transition-colors">
+                    <span className="truncate flex-1 min-w-0 text-gray-700">
+                      <span className="font-mono font-bold text-updraft-deep mr-1">{c.ref}</span>
+                      {c.name}
+                    </span>
+                    <span className="shrink-0 ml-2 text-updraft-bright-purple font-semibold">{c.policyCount} policies</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    ) : null,
+
+    "policy-health": policies.length > 0 ? (
+      <Link href="/policies" className="bento-card hover:border-updraft-light-purple transition-colors group block card-entrance card-entrance-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-updraft-bright-purple" />
+            <h2 className="text-lg font-bold text-updraft-deep font-poppins">Policy Health</h2>
+          </div>
+          <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-updraft-bright-purple transition-colors" />
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm">
+            <p className="text-xl font-bold font-poppins text-updraft-deep">{policies.length}</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">Total Policies</p>
+          </div>
+          <div className={`rounded-lg border p-3 text-center ${policies.filter((p) => p.status === "OVERDUE").length > 0 ? "border-red-100" : "border-green-100"}`} style={{ background: policies.filter((p) => p.status === "OVERDUE").length > 0 ? "linear-gradient(135deg, #FEF2F2, #FFF5F5)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+            <p className={`text-xl font-bold font-poppins ${policies.filter((p) => p.status === "OVERDUE").length > 0 ? "text-red-700" : "text-green-700"}`}>
+              {policies.filter((p) => p.status === "OVERDUE").length}
+            </p>
+            <p className="text-[10px] text-gray-500 mt-0.5">Overdue</p>
+          </div>
+          <div className="rounded-lg border border-updraft-pale-purple p-3 text-center" style={{ background: "linear-gradient(135deg, #F3E8FF, #FAF5FF)" }}>
+            <p className="text-xl font-bold font-poppins text-updraft-deep">
+              {policies.reduce((sum, p) => sum + (p.obligations?.length ?? 0), 0)}
+            </p>
+            <p className="text-[10px] text-gray-500 mt-0.5">Requirements</p>
+          </div>
+          <div className="rounded-lg border border-blue-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #EFF6FF, #F0F9FF)" }}>
+            <p className="text-xl font-bold font-poppins text-blue-700">
+              {policies.reduce((sum, p) => sum + (p.controlLinks?.length ?? 0), 0)}
+            </p>
+            <p className="text-[10px] text-gray-500 mt-0.5">Control Links</p>
+          </div>
+        </div>
+      </Link>
+    ) : null,
+
+    "risks-in-focus": focusRisks.length > 0 ? (
+      <div className="bento-card border-2 border-amber-200/60">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Star className="h-5 w-5 text-amber-400 fill-amber-400" />
+            <h2 className="text-lg font-bold text-updraft-deep font-poppins">Risks in Focus</h2>
+            <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-bold">{focusRisks.length}</span>
+          </div>
+          <Link href="/risk-register" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
+            Risk Register <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+        <div className="space-y-2">
+          {focusRisks.map((r) => {
+            const ownerName = r.riskOwner?.name ?? users.find((u) => u.id === r.ownerId)?.name ?? "Unknown";
+            return (
+              <Link
+                key={r.id}
+                href={`/risk-register?risk=${r.id}`}
+                className="flex items-center gap-4 p-3 rounded-lg bg-amber-50/40 hover:bg-amber-50 transition-colors"
+              >
+                <Star className="w-4 h-4 text-amber-400 fill-amber-400 shrink-0" />
+                <span className="text-xs font-mono font-bold text-updraft-deep shrink-0">{r.reference}</span>
+                <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{r.name}</span>
+                <ScoreBadge likelihood={r.residualLikelihood} impact={r.residualImpact} size="sm" />
+                <DirectionArrow direction={r.directionOfTravel} />
+                <span className="text-xs text-gray-500 shrink-0">{ownerName}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    ) : null,
+
+    "pending-approvals": canApproveEntities && pendingNewEntities.length > 0 ? (
+      <div className="bento-card border-2 border-amber-200">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-amber-500" />
+            <h2 className="text-lg font-bold text-updraft-deep font-poppins">Pending Approvals</h2>
+            <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-bold">{pendingNewEntities.length}</span>
+          </div>
+        </div>
+        <div className="space-y-2">
+          {pendingNewEntities.map((item) => {
+            const creatorName = users.find((u) => u.id === item.createdBy)?.name ?? "Unknown";
+            const href = item.type === "risk" ? `/risk-register?risk=${item.id}` : item.type === "action" ? `/actions?edit=${item.id}` : `/controls?control=${item.id}`;
+            return (
+              <div key={`${item.type}-${item.id}`} className="flex items-center gap-3 p-3 rounded-lg bg-amber-50/40 border border-amber-100">
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                  item.type === "risk" ? "bg-red-100 text-red-700" :
+                  item.type === "action" ? "bg-blue-100 text-blue-700" :
+                  "bg-purple-100 text-purple-700"
+                }`}>
+                  {item.type === "risk" ? "Risk" : item.type === "action" ? "Action" : "Control"}
+                </span>
+                <span className="text-xs font-mono font-bold text-updraft-deep shrink-0">{item.reference}</span>
+                <Link href={href} className="text-sm text-gray-800 truncate flex-1 min-w-0 hover:text-updraft-bright-purple transition-colors">
+                  {item.name}
+                </Link>
+                <span className="text-xs text-gray-500 shrink-0">{creatorName}</span>
+                <span className="text-xs text-gray-400 shrink-0">{formatDate(item.createdAt)}</span>
+                <button
+                  onClick={() => rejectEntity(item.type, item.id)}
+                  className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-semibold text-red-700 hover:bg-red-100 transition-colors shrink-0"
+                >
+                  <XCircle className="h-3 w-3" />
+                  Reject
+                </button>
+                <button
+                  onClick={() => approveEntity(item.type, item.id)}
+                  className="inline-flex items-center gap-1 rounded-lg border border-green-200 bg-green-50 px-2 py-1 text-[10px] font-semibold text-green-700 hover:bg-green-100 transition-colors shrink-0"
+                >
+                  <CheckCircle2 className="h-3 w-3" />
+                  Approve
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    ) : null,
+
+    "proposed-changes": canViewPending && allPendingChanges.length > 0 ? (
+      <PendingChangesPanel
+        changes={allPendingChanges}
+        users={users}
+        updateAction={updateAction}
+        updateControl={updateControl}
+        updateRisk={(id, data) => updateRisk(id, data as Partial<import("@/lib/types").Risk>)}
+      />
+    ) : null,
+
+    "action-tracking": hasActionsPage ? (
+      <div className="card-entrance card-entrance-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-bold text-updraft-deep font-poppins">Action Tracking</h2>
+          <Link href="/actions" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
+            View All <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Link href="/actions?status=OPEN" className="rounded-xl border border-blue-100 p-3 cursor-pointer hover:border-blue-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #EFF6FF 0%, #F0F7FF 100%)" }}>
+            <p className="text-xs text-text-secondary">Open</p>
+            <p className="text-2xl font-bold font-poppins text-blue-700">{actionStats.open}</p>
+          </Link>
+          <Link href="/actions?status=OVERDUE" className="rounded-xl border border-red-100 p-3 cursor-pointer hover:border-red-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #FEF2F2 0%, #FFF5F5 100%)" }}>
+            <p className="text-xs text-text-secondary">Overdue</p>
+            <p className="text-2xl font-bold font-poppins text-red-700">{actionStats.overdue}</p>
+          </Link>
+          <Link href="/actions" className="rounded-xl border border-amber-100 p-3 cursor-pointer hover:border-amber-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEFCE8 100%)" }}>
+            <p className="text-xs text-text-secondary">Due This Month</p>
+            <p className="text-2xl font-bold font-poppins text-amber-700">{actionStats.dueThisMonth}</p>
+          </Link>
+          <Link href="/actions?status=COMPLETED" className="rounded-xl border border-blue-100 p-3 cursor-pointer hover:border-blue-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #EFF6FF 0%, #F0F7FF 100%)" }}>
+            <p className="text-xs text-text-secondary">Completed</p>
+            <p className="text-2xl font-bold font-poppins text-blue-700">{actionStats.completed}</p>
+          </Link>
+        </div>
+      </div>
+    ) : null,
+
+    "overdue-metrics": hasConsumerDutyPage && overdueMetrics.length > 0 ? (
+      <div className="bento-card border-2 border-red-200 bg-red-50/30">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-500" />
+            <h2 className="text-lg font-bold text-red-700 font-poppins">Overdue Metrics</h2>
+            <span className="rounded-full bg-red-100 text-red-700 px-2 py-0.5 text-xs font-bold">{overdueMetrics.length}</span>
+          </div>
+          <Link href="/consumer-duty" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
+            View All <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+        <p className="text-xs text-red-600/70 mb-3">These metrics have not been updated in over 30 days and require attention.</p>
+        <div className="space-y-2">
+          {overdueMetrics.slice(0, 8).map((m) => (
+            <Link
+              key={m.id}
+              href={`/consumer-duty?measure=${m.id}`}
+              className="flex items-center justify-between p-2.5 rounded-lg bg-white/80 hover:bg-white transition-colors"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-gray-800 truncate">{m.measureId} — {m.name}</p>
+                <p className="text-[10px] text-gray-400">
+                  {m.lastUpdatedAt
+                    ? `Last updated ${Math.floor((Date.now() - new Date(m.lastUpdatedAt).getTime()) / 86400000)}d ago`
+                    : "Never updated"}
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700 shrink-0 ml-2">
+                <AlertTriangle className="h-2.5 w-2.5" />
+                Overdue
+              </span>
+            </Link>
+          ))}
+          {overdueMetrics.length > 8 && (
+            <p className="text-[10px] text-red-500 text-center">+{overdueMetrics.length - 8} more overdue metrics</p>
+          )}
+        </div>
+      </div>
+    ) : null,
+
+    "tasks-reviews": ((canViewPending && risksNeedingReview.length > 0) || (!canViewPending && myRisksNeedingReview.length > 0) || myOverdueActions.length > 0 || myRisks.length > 0 || myActions.length > 0 || myMetrics.length > 0) ? (
+      <div className="space-y-4">
+        <h2 className="text-lg font-bold text-updraft-deep font-poppins">Tasks & Reviews</h2>
+
+        {/* Risk reviews and overdue actions grid */}
+        {((canViewPending && risksNeedingReview.length > 0) || (!canViewPending && myRisksNeedingReview.length > 0) || myOverdueActions.length > 0) && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="bento-card">
               <div className="flex items-center gap-2 mb-3">
@@ -1306,298 +1433,373 @@ export default function DashboardHome() {
               )}
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ── My Risks (shown when user owns risks) ── */}
-      {myRisks.length > 0 && (
-        <div className="bento-card">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-updraft-bright-purple" />
-              <h2 className="text-lg font-bold text-updraft-deep font-poppins">My Risks</h2>
-              <span className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5 text-xs font-bold">{myRisks.length}</span>
-            </div>
-            <Link href="/risk-register" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-              Risk Register <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-          <div className="space-y-2">
-            {myRisks.map((r) => {
-              const nextReview = new Date(r.lastReviewed);
-              nextReview.setDate(nextReview.getDate() + (r.reviewFrequencyDays ?? 90));
-              return (
-                <Link key={r.id} href={`/risk-register?risk=${r.id}`} className="flex items-center gap-4 p-3 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
-                  <span className="text-xs font-mono font-bold text-updraft-deep shrink-0">{r.reference}</span>
-                  <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{r.name}</span>
-                  <ScoreBadge likelihood={r.residualLikelihood} impact={r.residualImpact} size="sm" />
-                  <DirectionArrow direction={r.directionOfTravel} />
-                  <span className="text-[10px] text-gray-400 shrink-0">{nextReview.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ── My Due Actions (shown when user has assigned actions) ── */}
-      {myActions.length > 0 && (
-        <div className="bento-card">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <ListChecks className="h-5 w-5 text-updraft-bright-purple" />
-              <h2 className="text-lg font-bold text-updraft-deep font-poppins">My Due Actions</h2>
-              <span className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5 text-xs font-bold">{myActions.length}</span>
-            </div>
-            <Link href="/actions" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-              All Actions <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-          <div className="space-y-2">
-            {myActions.slice(0, 8).map((a) => {
-              const days = daysUntilDue(a.dueDate);
-              const isOverdue = days !== null && days <= 0;
-              return (
-                <Link key={a.id} href={`/actions?edit=${a.id}`} className="flex items-center gap-3 p-3 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
-                  {a.priority && (
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                      a.priority === "P1" ? "bg-red-100 text-red-700" :
-                      a.priority === "P2" ? "bg-amber-100 text-amber-700" :
-                      "bg-slate-100 text-slate-600"
-                    }`}>{a.priority}</span>
-                  )}
-                  <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{a.title}</span>
-                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${
-                    a.status === "IN_PROGRESS" ? "bg-amber-100 text-amber-700" :
-                    a.status === "OVERDUE" || isOverdue ? "bg-red-100 text-red-700" :
-                    "bg-blue-100 text-blue-700"
-                  }`}>
-                    {a.status === "OVERDUE" || isOverdue ? "Overdue" : a.status === "IN_PROGRESS" ? "In Progress" : "Open"}
-                  </span>
-                  <span className={`text-xs shrink-0 ${isOverdue ? "text-red-600 font-semibold" : "text-gray-500"}`}>
-                    {a.dueDate ? new Date(a.dueDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "No date"}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ── My Metrics (shown when user has assigned measures) ── */}
-      {myMetrics.length > 0 && (
-        <div className="bento-card">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-updraft-bright-purple" />
-              <h2 className="text-lg font-bold text-updraft-deep font-poppins">My Metrics</h2>
-              <span className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5 text-xs font-bold">{myMetrics.length}</span>
-            </div>
-            <Link href="/consumer-duty" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-              Consumer Duty <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-          <div className="space-y-2">
-            {myMetrics.map((m) => {
-              const isOverdue = !m.lastUpdatedAt || new Date(m.lastUpdatedAt) < new Date(Date.now() - 30 * 86400000);
-              return (
-                <Link
-                  key={m.id}
-                  href={`/consumer-duty?measure=${m.id}`}
-                  className="flex items-center justify-between p-3 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors cursor-pointer"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-gray-800 truncate">{m.name}</p>
-                    <p className="text-xs text-gray-500">{m.measureId}</p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0 ml-2">
-                    {isOverdue && (
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">
-                        <AlertTriangle className="h-2.5 w-2.5" />
-                        Overdue
-                      </span>
-                    )}
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                      m.ragStatus === "GOOD" ? "bg-green-100 text-risk-green" :
-                      m.ragStatus === "WARNING" ? "bg-amber-100 text-risk-amber" :
-                      "bg-red-100 text-risk-red"
-                    }`}>
-                      {m.ragStatus === "GOOD" ? "Green" : m.ragStatus === "WARNING" ? "Amber" : "Red"}
-                    </span>
-                    <ArrowRight className="h-3.5 w-3.5 text-gray-400" />
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ── Consumer Duty Overview (page:consumer-duty) ── */}
-      {hasConsumerDutyPage && (
-        <div className="bento-card">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-updraft-deep">Consumer Duty Overview</h2>
-            <Link href="/consumer-duty" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-              View Dashboard <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-          <div className="space-y-3">
-            {outcomes.map((outcome) => (
-              <Link key={outcome.id} href={`/consumer-duty?outcome=${outcome.id}`} className="block rounded-xl bg-surface-muted p-3 hover:bg-surface-warm hover:-translate-y-0.5 transition-all cursor-pointer border border-transparent hover:border-[#E8E6E1]">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`h-3 w-3 rounded-full ${ragBgColor(outcome.ragStatus)}`} />
-                    <div>
-                      <p className="text-sm font-medium">{outcome.name}</p>
-                      <p className="text-xs text-fca-gray">{outcome.shortDesc}</p>
-                    </div>
-                  </div>
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                    outcome.ragStatus === "GOOD" ? "bg-green-100 text-risk-green" :
-                    outcome.ragStatus === "WARNING" ? "bg-amber-100 text-risk-amber" :
-                    "bg-red-100 text-risk-red"
-                  }`}>
-                    {outcome.ragStatus === "GOOD" ? "Green" : outcome.ragStatus === "WARNING" ? "Amber" : "Red"}
-                  </span>
-                </div>
-                {(outcome.measures ?? []).length > 0 && (
-                  <div className="mt-2 ml-6 space-y-1">
-                    {(outcome.measures ?? []).map((m) => (
-                      <Link
-                        key={m.id}
-                        href={`/consumer-duty?measure=${m.id}`}
-                        className="flex items-center gap-2 text-xs py-1 px-2 rounded hover:bg-white/60 transition-colors"
-                      >
-                        <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${ragBgColor(m.ragStatus)}`} />
-                        <span className="text-gray-600 truncate flex-1 min-w-0">{m.measureId} — {m.name}</span>
-                        <span className={`font-semibold shrink-0 ${
-                          m.ragStatus === "GOOD" ? "text-risk-green" :
-                          m.ragStatus === "WARNING" ? "text-risk-amber" :
-                          "text-risk-red"
-                        }`}>
-                          {m.ragStatus === "GOOD" ? "Green" : m.ragStatus === "WARNING" ? "Amber" : "Red"}
-                        </span>
-                      </Link>
-                    ))}
-                  </div>
-                )}
+        {/* My Risks */}
+        {myRisks.length > 0 && (
+          <div className="bento-card">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-updraft-bright-purple" />
+                <h2 className="text-lg font-bold text-updraft-deep font-poppins">My Risks</h2>
+                <span className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5 text-xs font-bold">{myRisks.length}</span>
+              </div>
+              <Link href="/risk-register" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
+                Risk Register <ArrowRight className="h-3.5 w-3.5" />
               </Link>
-            ))}
+            </div>
+            <div className="space-y-2">
+              {myRisks.map((r) => {
+                const nextReview = new Date(r.lastReviewed);
+                nextReview.setDate(nextReview.getDate() + (r.reviewFrequencyDays ?? 90));
+                return (
+                  <Link key={r.id} href={`/risk-register?risk=${r.id}`} className="flex items-center gap-4 p-3 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
+                    <span className="text-xs font-mono font-bold text-updraft-deep shrink-0">{r.reference}</span>
+                    <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{r.name}</span>
+                    <ScoreBadge likelihood={r.residualLikelihood} impact={r.residualImpact} size="sm" />
+                    <DirectionArrow direction={r.directionOfTravel} />
+                    <span className="text-[10px] text-gray-400 shrink-0">{nextReview.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ── Risk Summary (page:risk-register) ── */}
-      {hasRiskRegisterPage && (
-        <div className="card-entrance card-entrance-5">
-          <h2 className="text-lg font-bold text-updraft-deep font-poppins mb-3">Risk Summary</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <Link href="/risk-register" className="rounded-xl border border-[#E8E6E1] bg-surface-warm p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all">
-              <p className="text-xs text-text-secondary">Total Risks</p>
-              <p className="text-2xl font-bold font-poppins text-updraft-deep">{risks.length}</p>
-            </Link>
-            <Link href="/risk-register" className="rounded-xl border border-green-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%)" }}>
-              <p className="text-xs text-text-secondary">Low Risk</p>
-              <p className="text-2xl font-bold font-poppins text-green-700">
-                {risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) <= 4).length}
-              </p>
-            </Link>
-            <Link href="/risk-register" className="rounded-xl border border-amber-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEFCE8 100%)" }}>
-              <p className="text-xs text-text-secondary">Medium Risk</p>
-              <p className="text-2xl font-bold font-poppins text-amber-700">
-                {risks.filter((r) => { const s = getRiskScore(r.residualLikelihood, r.residualImpact); return s > 4 && s <= 12; }).length}
-              </p>
-            </Link>
-            <Link href="/risk-register" className="rounded-xl border border-red-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #FEF2F2 0%, #FFF5F5 100%)" }}>
-              <p className="text-xs text-text-secondary">High Risk</p>
-              <p className="text-2xl font-bold font-poppins text-red-700">
-                {risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) > 12).length}
-              </p>
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {/* ── Reports (page:reports) — CCRO sees all with edit, others see published ── */}
-      {hasReportsPage && (
-        <div className="bento-card">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-updraft-deep">{isCCRO ? "Reports" : "Published Reports"}</h2>
-            <Link href="/reports" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-              View All <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-2 px-3 font-medium text-fca-gray">Report</th>
-                  <th className="text-left py-2 px-3 font-medium text-fca-gray">Period</th>
-                  {isCCRO && <th className="text-left py-2 px-3 font-medium text-fca-gray">Status</th>}
-                  <th className="text-left py-2 px-3 font-medium text-fca-gray">Updated</th>
-                  <th className="text-right py-2 px-3 font-medium text-fca-gray"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {(isCCRO ? reports : publishedReports).map((report) => (
-                  <tr key={report.id} className="border-b border-[#E8E6E1]/50 hover:bg-surface-muted">
-                    <td className="py-3 px-3 font-medium">{report.title}</td>
-                    <td className="py-3 px-3 text-fca-gray">{report.period}</td>
-                    {isCCRO && (
-                      <td className="py-3 px-3">
-                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                          report.status === "DRAFT" ? "bg-red-100 text-red-700" :
-                          report.status === "PUBLISHED" ? "bg-green-100 text-green-700" :
-                          "bg-gray-100 text-gray-500"
-                        }`}>
-                          {report.status === "DRAFT" ? "Draft" : report.status === "PUBLISHED" ? "Published" : "Archived"}
-                        </span>
-                      </td>
+        {/* My Due Actions */}
+        {myActions.length > 0 && (
+          <div className="bento-card">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <ListChecks className="h-5 w-5 text-updraft-bright-purple" />
+                <h2 className="text-lg font-bold text-updraft-deep font-poppins">My Due Actions</h2>
+                <span className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5 text-xs font-bold">{myActions.length}</span>
+              </div>
+              <Link href="/actions" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
+                All Actions <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+            <div className="space-y-2">
+              {myActions.slice(0, 8).map((a) => {
+                const days = daysUntilDue(a.dueDate);
+                const isOverdue = days !== null && days <= 0;
+                return (
+                  <Link key={a.id} href={`/actions?edit=${a.id}`} className="flex items-center gap-3 p-3 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors">
+                    {a.priority && (
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        a.priority === "P1" ? "bg-red-100 text-red-700" :
+                        a.priority === "P2" ? "bg-amber-100 text-amber-700" :
+                        "bg-slate-100 text-slate-600"
+                      }`}>{a.priority}</span>
                     )}
-                    <td className="py-3 px-3 text-fca-gray text-xs">{formatDate(report.updatedAt)}</td>
-                    <td className="py-3 px-3 text-right">
-                      {isCCRO && <Link href={`/reports/${report.id}/edit`} className="text-updraft-bright-purple hover:text-updraft-deep text-xs font-medium mr-3">Edit</Link>}
-                      <Link href={`/reports/${report.id}`} className="text-fca-gray hover:text-fca-dark-gray text-xs font-medium">View</Link>
+                    <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{a.title}</span>
+                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${
+                      a.status === "IN_PROGRESS" ? "bg-amber-100 text-amber-700" :
+                      a.status === "OVERDUE" || isOverdue ? "bg-red-100 text-red-700" :
+                      "bg-blue-100 text-blue-700"
+                    }`}>
+                      {a.status === "OVERDUE" || isOverdue ? "Overdue" : a.status === "IN_PROGRESS" ? "In Progress" : "Open"}
+                    </span>
+                    <span className={`text-xs shrink-0 ${isOverdue ? "text-red-600 font-semibold" : "text-gray-500"}`}>
+                      {a.dueDate ? new Date(a.dueDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "No date"}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* My Metrics */}
+        {myMetrics.length > 0 && (
+          <div className="bento-card">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-updraft-bright-purple" />
+                <h2 className="text-lg font-bold text-updraft-deep font-poppins">My Metrics</h2>
+                <span className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5 text-xs font-bold">{myMetrics.length}</span>
+              </div>
+              <Link href="/consumer-duty" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
+                Consumer Duty <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+            <div className="space-y-2">
+              {myMetrics.map((m) => {
+                const isOverdue = !m.lastUpdatedAt || new Date(m.lastUpdatedAt) < new Date(Date.now() - 30 * 86400000);
+                return (
+                  <Link
+                    key={m.id}
+                    href={`/consumer-duty?measure=${m.id}`}
+                    className="flex items-center justify-between p-3 rounded-lg bg-surface-muted hover:bg-surface-warm transition-colors cursor-pointer"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-800 truncate">{m.name}</p>
+                      <p className="text-xs text-gray-500">{m.measureId}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                      {isOverdue && (
+                        <span className="inline-flex items-center gap-0.5 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">
+                          <AlertTriangle className="h-2.5 w-2.5" />
+                          Overdue
+                        </span>
+                      )}
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                        m.ragStatus === "GOOD" ? "bg-green-100 text-risk-green" :
+                        m.ragStatus === "WARNING" ? "bg-amber-100 text-risk-amber" :
+                        "bg-red-100 text-risk-red"
+                      }`}>
+                        {m.ragStatus === "GOOD" ? "Green" : m.ragStatus === "WARNING" ? "Amber" : "Red"}
+                      </span>
+                      <ArrowRight className="h-3.5 w-3.5 text-gray-400" />
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    ) : null,
+
+    "consumer-duty": hasConsumerDutyPage ? (
+      <div className="bento-card">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-updraft-deep">Consumer Duty Overview</h2>
+          <Link href="/consumer-duty" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
+            View Dashboard <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+        <div className="space-y-3">
+          {outcomes.map((outcome) => (
+            <Link key={outcome.id} href={`/consumer-duty?outcome=${outcome.id}`} className="block rounded-xl bg-surface-muted p-3 hover:bg-surface-warm hover:-translate-y-0.5 transition-all cursor-pointer border border-transparent hover:border-[#E8E6E1]">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`h-3 w-3 rounded-full ${ragBgColor(outcome.ragStatus)}`} />
+                  <div>
+                    <p className="text-sm font-medium">{outcome.name}</p>
+                    <p className="text-xs text-fca-gray">{outcome.shortDesc}</p>
+                  </div>
+                </div>
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                  outcome.ragStatus === "GOOD" ? "bg-green-100 text-risk-green" :
+                  outcome.ragStatus === "WARNING" ? "bg-amber-100 text-risk-amber" :
+                  "bg-red-100 text-risk-red"
+                }`}>
+                  {outcome.ragStatus === "GOOD" ? "Green" : outcome.ragStatus === "WARNING" ? "Amber" : "Red"}
+                </span>
+              </div>
+              {(outcome.measures ?? []).length > 0 && (
+                <div className="mt-2 ml-6 space-y-1">
+                  {(outcome.measures ?? []).map((m) => (
+                    <Link
+                      key={m.id}
+                      href={`/consumer-duty?measure=${m.id}`}
+                      className="flex items-center gap-2 text-xs py-1 px-2 rounded hover:bg-white/60 transition-colors"
+                    >
+                      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${ragBgColor(m.ragStatus)}`} />
+                      <span className="text-gray-600 truncate flex-1 min-w-0">{m.measureId} — {m.name}</span>
+                      <span className={`font-semibold shrink-0 ${
+                        m.ragStatus === "GOOD" ? "text-risk-green" :
+                        m.ragStatus === "WARNING" ? "text-risk-amber" :
+                        "text-risk-red"
+                      }`}>
+                        {m.ragStatus === "GOOD" ? "Green" : m.ragStatus === "WARNING" ? "Amber" : "Red"}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </Link>
+          ))}
+        </div>
+      </div>
+    ) : null,
+
+    "risk-summary": hasRiskRegisterPage ? (
+      <div className="card-entrance card-entrance-5">
+        <h2 className="text-lg font-bold text-updraft-deep font-poppins mb-3">Risk Summary</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Link href="/risk-register" className="rounded-xl border border-[#E8E6E1] bg-surface-warm p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all">
+            <p className="text-xs text-text-secondary">Total Risks</p>
+            <p className="text-2xl font-bold font-poppins text-updraft-deep">{risks.length}</p>
+          </Link>
+          <Link href="/risk-register" className="rounded-xl border border-green-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%)" }}>
+            <p className="text-xs text-text-secondary">Low Risk</p>
+            <p className="text-2xl font-bold font-poppins text-green-700">
+              {risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) <= 4).length}
+            </p>
+          </Link>
+          <Link href="/risk-register" className="rounded-xl border border-amber-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEFCE8 100%)" }}>
+            <p className="text-xs text-text-secondary">Medium Risk</p>
+            <p className="text-2xl font-bold font-poppins text-amber-700">
+              {risks.filter((r) => { const s = getRiskScore(r.residualLikelihood, r.residualImpact); return s > 4 && s <= 12; }).length}
+            </p>
+          </Link>
+          <Link href="/risk-register" className="rounded-xl border border-red-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #FEF2F2 0%, #FFF5F5 100%)" }}>
+            <p className="text-xs text-text-secondary">High Risk</p>
+            <p className="text-2xl font-bold font-poppins text-red-700">
+              {risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) > 12).length}
+            </p>
+          </Link>
+        </div>
+      </div>
+    ) : null,
+
+    "reports": hasReportsPage ? (
+      <div className="bento-card">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-updraft-deep">{isCCRO ? "Reports" : "Published Reports"}</h2>
+          <Link href="/reports" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
+            View All <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-2 px-3 font-medium text-fca-gray">Report</th>
+                <th className="text-left py-2 px-3 font-medium text-fca-gray">Period</th>
+                {isCCRO && <th className="text-left py-2 px-3 font-medium text-fca-gray">Status</th>}
+                <th className="text-left py-2 px-3 font-medium text-fca-gray">Updated</th>
+                <th className="text-right py-2 px-3 font-medium text-fca-gray"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {(isCCRO ? reports : publishedReports).map((report) => (
+                <tr key={report.id} className="border-b border-[#E8E6E1]/50 hover:bg-surface-muted">
+                  <td className="py-3 px-3 font-medium">{report.title}</td>
+                  <td className="py-3 px-3 text-fca-gray">{report.period}</td>
+                  {isCCRO && (
+                    <td className="py-3 px-3">
+                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                        report.status === "DRAFT" ? "bg-red-100 text-red-700" :
+                        report.status === "PUBLISHED" ? "bg-green-100 text-green-700" :
+                        "bg-gray-100 text-gray-500"
+                      }`}>
+                        {report.status === "DRAFT" ? "Draft" : report.status === "PUBLISHED" ? "Published" : "Archived"}
+                      </span>
                     </td>
-                  </tr>
-                ))}
-                {(isCCRO ? reports : publishedReports).length === 0 && (
-                  <tr><td colSpan={isCCRO ? 5 : 4} className="py-6 text-center text-sm text-gray-400">No {isCCRO ? "" : "published "}reports yet</td></tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                  <td className="py-3 px-3 text-fca-gray text-xs">{formatDate(report.updatedAt)}</td>
+                  <td className="py-3 px-3 text-right">
+                    {isCCRO && <Link href={`/reports/${report.id}/edit`} className="text-updraft-bright-purple hover:text-updraft-deep text-xs font-medium mr-3">Edit</Link>}
+                    <Link href={`/reports/${report.id}`} className="text-fca-gray hover:text-fca-dark-gray text-xs font-medium">View</Link>
+                  </td>
+                </tr>
+              ))}
+              {(isCCRO ? reports : publishedReports).length === 0 && (
+                <tr><td colSpan={isCCRO ? 5 : 4} className="py-6 text-center text-sm text-gray-400">No {isCCRO ? "" : "published "}reports yet</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    ) : null,
+
+    "recent-activity": hasAuditPage && auditLogs.length > 0 ? (
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-bold text-updraft-deep font-poppins">Recent Activity</h2>
+          <Link href="/audit" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
+            View All <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+        <div className="flex gap-3 overflow-x-auto pb-2">
+          {auditLogs.slice(0, 20).map((log) => {
+            const logUser = users.find((u) => u.id === log.userId);
+            return (
+              <Link key={log.id} href="/audit" className="flex-shrink-0 w-64 rounded-xl border border-[#E8E6E1] bg-surface-warm p-3 hover:border-updraft-light-purple hover:-translate-y-0.5 hover:shadow-bento transition-all cursor-pointer">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-updraft-pale-purple/40 text-[10px] font-semibold text-updraft-bright-purple">
+                    {(logUser?.name ?? "?").charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-xs font-medium text-gray-800 truncate">{logUser?.name || log.userId}</span>
+                </div>
+                <p className="text-xs text-fca-gray truncate">{getActionLabel(log.action)}</p>
+                <p className="text-[10px] text-gray-400 mt-1">{formatDate(log.timestamp)}</p>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    ) : null,
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Edit mode toolbar */}
+      {editMode && (
+        <div className="sticky top-0 z-30 flex items-center justify-between gap-4 rounded-2xl border-2 border-updraft-bright-purple/30 bg-white/95 backdrop-blur-sm px-6 py-3 shadow-lg">
+          <div className="flex items-center gap-3">
+            <LayoutGrid size={18} className="text-updraft-bright-purple" />
+            <span className="text-sm font-bold text-updraft-deep font-poppins">Customise Dashboard Layout</span>
+            <span className="text-xs text-gray-400">Drag to reorder, toggle visibility</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={resetToDefault} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+              <RotateCcw size={12} /> Reset
+            </button>
+            <button onClick={cancelEditMode} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+              <X size={12} /> Cancel
+            </button>
+            <button onClick={saveLayout} disabled={saving} className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-bright-purple px-4 py-1.5 text-xs font-medium text-white hover:bg-updraft-deep transition-colors disabled:opacity-50">
+              {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+              Save Layout
+            </button>
           </div>
         </div>
       )}
 
-      {/* ── Recent Activity (page:audit) ── */}
-      {hasAuditPage && auditLogs.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-updraft-deep font-poppins">Recent Activity</h2>
-            <Link href="/audit" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-              View All <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-          <div className="flex gap-3 overflow-x-auto pb-2">
-            {auditLogs.slice(0, 20).map((log) => {
-              const logUser = users.find((u) => u.id === log.userId);
-              return (
-                <Link key={log.id} href="/audit" className="flex-shrink-0 w-64 rounded-xl border border-[#E8E6E1] bg-surface-warm p-3 hover:border-updraft-light-purple hover:-translate-y-0.5 hover:shadow-bento transition-all cursor-pointer">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-updraft-pale-purple/40 text-[10px] font-semibold text-updraft-bright-purple">
-                      {(logUser?.name ?? "?").charAt(0).toUpperCase()}
-                    </div>
-                    <span className="text-xs font-medium text-gray-800 truncate">{logUser?.name || log.userId}</span>
-                  </div>
-                  <p className="text-xs text-fca-gray truncate">{getActionLabel(log.action)}</p>
-                  <p className="text-[10px] text-gray-400 mt-1">{formatDate(log.timestamp)}</p>
-                </Link>
-              );
-            })}
-          </div>
+      {/* Customise button — CCRO only, shown when not in edit mode */}
+      {isCCRO && !editMode && (
+        <div className="flex justify-end">
+          <button onClick={enterEditMode} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:border-updraft-light-purple transition-colors">
+            <LayoutGrid size={14} />
+            Customise Layout
+          </button>
         </div>
+      )}
+
+      {editMode ? (
+        <div className="pl-10">
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={editOrder} strategy={verticalListSortingStrategy}>
+              <div className="space-y-4">
+                {editOrder.map((key) => {
+                  const def = DASHBOARD_SECTIONS.find((s) => s.key === key);
+                  const content = sectionMap[key];
+                  if (!def) return null;
+                  const isHidden = editHidden.has(key);
+                  return (
+                    <SortableDashboardSection
+                      key={key}
+                      id={key}
+                      label={def.label}
+                      hidden={isHidden}
+                      onToggleVisibility={() => toggleSectionVisibility(key)}
+                    >
+                      {content || (
+                        <div className="rounded-xl bg-gray-50 p-6 text-center text-xs text-gray-400">
+                          {def.label} — no data to display
+                        </div>
+                      )}
+                    </SortableDashboardSection>
+                  );
+                })}
+              </div>
+            </SortableContext>
+          </DndContext>
+        </div>
+      ) : (
+        <>
+          {effectiveOrder.order
+            .filter((key) => !effectiveOrder.hidden.has(key))
+            .map((key) => {
+              const content = sectionMap[key];
+              if (!content) return null;
+              return <div key={key}>{content}</div>;
+            })}
+        </>
       )}
     </div>
   );

@@ -332,7 +332,7 @@ export default function MIModal({
                           className={cn(
                             "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
                             metric.ragStatus === "GOOD" &&
-                              "bg-risk-green/10 text-risk-green",
+                              "bg-risk-green/15 text-risk-green",
                             metric.ragStatus === "WARNING" &&
                               "bg-risk-amber/10 text-risk-amber",
                             metric.ragStatus === "HARM" &&

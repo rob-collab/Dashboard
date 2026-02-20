@@ -30,6 +30,7 @@ import type { User } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { usePermissionSet } from "@/lib/usePermission";
 import type { PermissionCode } from "@/lib/permissions";
+import { isDarkBackground, sidebarGradient, DEFAULT_SIDEBAR_COLOUR } from "@/lib/colour-utils";
 
 interface SidebarProps {
   currentUser: User;
@@ -69,7 +70,59 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
   const risks = useAppStore((s) => s.risks);
   const riskAcceptances = useAppStore((s) => s.riskAcceptances);
   const regulations = useAppStore((s) => s.regulations);
+  const siteSettings = useAppStore((s) => s.siteSettings);
   const permissionSet = usePermissionSet();
+
+  // Dynamic sidebar colour from site settings
+  const sidebarColour = siteSettings?.primaryColour || DEFAULT_SIDEBAR_COLOUR;
+  const dark = useMemo(() => isDarkBackground(sidebarColour), [sidebarColour]);
+  const gradient = useMemo(() => sidebarGradient(sidebarColour), [sidebarColour]);
+
+  // Adaptive colour tokens based on background luminance
+  const t = useMemo(() => {
+    if (dark) {
+      return {
+        border: "rgba(255,255,255,0.06)",
+        textPrimary: "text-white",
+        textSecondary: "text-white/90",
+        textMuted: "text-white/50",
+        textFaint: "text-white/30",
+        activeBg: "bg-white/10",
+        hoverBg: "hover:bg-white/[0.06]",
+        hoverText: "hover:text-white/80",
+        hoverTextStrong: "hover:text-white/60",
+        borderBtn: "border-white/10",
+        logoFilter: "brightness-0 invert",
+        // View-As banner
+        bannerBg: "bg-amber-500/10",
+        bannerBorder: "border-amber-500/20",
+        bannerIcon: "text-amber-400",
+        bannerLabel: "text-amber-400/80",
+        bannerName: "text-amber-200",
+        bannerHover: "hover:bg-amber-500/20",
+      };
+    }
+    return {
+      border: "rgba(0,0,0,0.08)",
+      textPrimary: "text-gray-900",
+      textSecondary: "text-gray-800",
+      textMuted: "text-gray-500",
+      textFaint: "text-gray-400",
+      activeBg: "bg-black/[0.08]",
+      hoverBg: "hover:bg-black/[0.04]",
+      hoverText: "hover:text-gray-700",
+      hoverTextStrong: "hover:text-gray-600",
+      borderBtn: "border-black/10",
+      logoFilter: "",
+      // View-As banner
+      bannerBg: "bg-amber-500/15",
+      bannerBorder: "border-amber-600/25",
+      bannerIcon: "text-amber-600",
+      bannerLabel: "text-amber-700/80",
+      bannerName: "text-amber-800",
+      bannerHover: "hover:bg-amber-500/25",
+    };
+  }, [dark]);
 
   // Badge counts — permission-aware
   const badges: Record<string, number> = useMemo(() => {
@@ -152,17 +205,18 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
         collapsed ? "w-16" : "w-64"
       )}
       style={{
-        background: "linear-gradient(180deg, #1C1B29 0%, #161523 100%)",
-        borderRight: "1px solid rgba(255,255,255,0.06)",
+        background: gradient,
+        borderRight: `1px solid ${t.border}`,
       }}
     >
       {/* Branding Header */}
-      <Link href="/" className="relative flex items-center justify-center overflow-hidden transition-all duration-300 ease-in-out p-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+      <Link href="/" className="relative flex items-center justify-center overflow-hidden transition-all duration-300 ease-in-out p-3" style={{ borderBottom: `1px solid ${t.border}` }}>
         <img
           src="/logo.png"
           alt="Updraft CCRO Dashboard"
           className={cn(
-            "w-full object-contain transition-all duration-300 ease-in-out brightness-0 invert",
+            "w-full object-contain transition-all duration-300 ease-in-out",
+            t.logoFilter,
             collapsed ? "h-0 opacity-0 absolute" : "opacity-90"
           )}
         />
@@ -170,7 +224,8 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
           src="/logo-mark.png"
           alt="Updraft"
           className={cn(
-            "object-contain transition-all duration-300 ease-in-out brightness-0 invert",
+            "object-contain transition-all duration-300 ease-in-out",
+            t.logoFilter,
             collapsed ? "w-full p-1 opacity-90" : "h-0 w-0 opacity-0 absolute"
           )}
         />
@@ -178,15 +233,15 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
 
       {/* View-As Banner */}
       {isViewingAsOther && !collapsed && (
-        <div className="mx-2 mt-2 flex items-center gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2">
-          <Eye size={14} className="shrink-0 text-amber-400" />
+        <div className={cn("mx-2 mt-2 flex items-center gap-2 rounded-lg px-3 py-2", t.bannerBg, t.bannerBorder, "border")}>
+          <Eye size={14} className={cn("shrink-0", t.bannerIcon)} />
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-semibold text-amber-400/80 uppercase tracking-wider">Viewing as</p>
-            <p className="text-xs font-medium text-amber-200 truncate">{currentUser.name}</p>
+            <p className={cn("text-[10px] font-semibold uppercase tracking-wider", t.bannerLabel)}>Viewing as</p>
+            <p className={cn("text-xs font-medium truncate", t.bannerName)}>{currentUser.name}</p>
           </div>
           <button
             onClick={() => authUser && onSwitchUser?.(authUser)}
-            className="shrink-0 rounded p-1 text-amber-400 hover:bg-amber-500/20 transition-colors"
+            className={cn("shrink-0 rounded p-1 transition-colors", t.bannerIcon, t.bannerHover)}
             title="Back to my account"
           >
             <ArrowLeft size={14} />
@@ -207,8 +262,8 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
               className={cn(
                 "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150",
                 active
-                  ? "bg-white/10 text-white"
-                  : "text-white/50 hover:bg-white/[0.06] hover:text-white/80"
+                  ? cn(t.activeBg, t.textPrimary)
+                  : cn(t.textMuted, t.hoverBg, t.hoverText)
               )}
             >
               {/* Active indicator — left accent strip */}
@@ -221,7 +276,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
                   "shrink-0 transition-colors",
                   active
                     ? "text-updraft-light-purple"
-                    : "text-white/30 group-hover:text-white/60"
+                    : cn(t.textFaint, "group-hover:" + (dark ? "text-white/60" : "text-gray-600"))
                 )}
               />
               {!collapsed && <span className="truncate">{item.label}</span>}
@@ -247,7 +302,10 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
             setRefreshing(false);
           }}
           disabled={refreshing}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 py-2 text-xs text-white/40 hover:bg-white/[0.06] hover:text-white/60 transition-colors disabled:opacity-50"
+          className={cn(
+            "flex w-full items-center justify-center gap-2 rounded-lg border py-2 text-xs transition-colors disabled:opacity-50",
+            t.borderBtn, t.textMuted, t.hoverBg, t.hoverTextStrong
+          )}
           aria-label="Refresh data"
           title="Refresh data from database"
         >
@@ -256,7 +314,10 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
         </button>
         <button
           onClick={() => onToggle ? onToggle() : setCollapsedInternal((prev) => !prev)}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 py-2 text-xs text-white/40 hover:bg-white/[0.06] hover:text-white/60 transition-colors"
+          className={cn(
+            "flex w-full items-center justify-center gap-2 rounded-lg border py-2 text-xs transition-colors",
+            t.borderBtn, t.textMuted, t.hoverBg, t.hoverTextStrong
+          )}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
@@ -271,15 +332,15 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
           "relative px-3 py-3",
           collapsed ? "flex justify-center" : ""
         )}
-        style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ borderTop: `1px solid ${t.border}` }}
       >
         {/* Signed-in identity (compact, always visible) */}
         {!collapsed && authUser && (
-          <div className="mb-2 flex items-center gap-2 text-[10px] text-white/30">
+          <div className={cn("mb-2 flex items-center gap-2 text-[10px]", t.textFaint)}>
             <span className="truncate">Signed in as {authUser.name}</span>
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
-              className="shrink-0 rounded p-0.5 hover:bg-white/10 hover:text-white/60 transition-colors"
+              className={cn("shrink-0 rounded p-0.5 transition-colors", t.hoverBg, t.hoverTextStrong)}
               title="Sign out"
             >
               <LogOut size={12} />
@@ -298,20 +359,21 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
         ) : (
           <button
             onClick={() => setUserMenuOpen(!userMenuOpen)}
-            className="flex w-full items-center gap-3 rounded-lg px-2 py-2 hover:bg-white/[0.06] transition-colors"
+            className={cn("flex w-full items-center gap-3 rounded-lg px-2 py-2 transition-colors", t.hoverBg)}
           >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-updraft-bar to-updraft-bright-purple text-xs font-semibold text-white">
               {currentUser.name.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0 text-left">
-              <p className="text-sm font-medium text-white/90 truncate">
+              <p className={cn("text-sm font-medium truncate", t.textSecondary)}>
                 {currentUser.name}
               </p>
             </div>
             <ChevronDown
               size={14}
               className={cn(
-                "shrink-0 text-white/30 transition-transform",
+                "shrink-0 transition-transform",
+                t.textFaint,
                 userMenuOpen && "rotate-180"
               )}
             />

@@ -195,7 +195,7 @@ export default function MetricDrillDown({
         <span
           className={cn(
             "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold",
-            metric.ragStatus === "GOOD" && "bg-risk-green/10 text-risk-green",
+            metric.ragStatus === "GOOD" && "bg-risk-green/15 text-risk-green",
             metric.ragStatus === "WARNING" &&
               "bg-risk-amber/10 text-risk-amber",
             metric.ragStatus === "HARM" && "bg-risk-red/10 text-risk-red"
@@ -261,7 +261,7 @@ export default function MetricDrillDown({
                 className={cn(
                   "rounded-full px-2 py-0.5 text-xs font-semibold",
                   isMet
-                    ? "bg-risk-green/10 text-risk-green"
+                    ? "bg-risk-green/15 text-risk-green"
                     : "bg-risk-red/10 text-risk-red"
                 )}
               >
@@ -278,7 +278,7 @@ export default function MetricDrillDown({
               className={cn(
                 "rounded-full px-2 py-0.5 text-xs font-semibold",
                 isMet
-                  ? "bg-risk-green/10 text-risk-green"
+                  ? "bg-risk-green/15 text-risk-green"
                   : "bg-risk-red/10 text-risk-red"
               )}
             >
@@ -421,7 +421,7 @@ export default function MetricDrillDown({
                           className={cn(
                             "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
                             s.ragStatus === "GOOD" &&
-                              "bg-risk-green/10 text-risk-green",
+                              "bg-risk-green/15 text-risk-green",
                             s.ragStatus === "WARNING" &&
                               "bg-risk-amber/10 text-risk-amber",
                             s.ragStatus === "HARM" &&

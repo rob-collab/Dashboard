@@ -192,6 +192,9 @@ model User {
   // Dashboard Notifications
   createdNotifications DashboardNotification[] @relation("NotificationCreator")
 
+  // Dashboard Layout
+  dashboardLayouts DashboardLayout[] @relation("DashboardLayoutConfiguredBy")
+
   // Permissions
   permissions  UserPermission[]
   accessRequests      AccessRequest[] @relation("AccessRequester")
@@ -1378,4 +1381,18 @@ model DashboardNotification {
   expiresAt   DateTime?
 
   @@map("dashboard_notifications")
+}
+
+// ── Dashboard Layout (singleton — CCRO configures section order/visibility) ──
+
+model DashboardLayout {
+  id             String   @id @default("singleton")
+  sectionOrder   Json     // string[] of section keys
+  hiddenSections Json     @default("[]") // string[] of hidden keys
+  configuredById String
+  configuredBy   User     @relation("DashboardLayoutConfiguredBy", fields: [configuredById], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("dashboard_layouts")
 }

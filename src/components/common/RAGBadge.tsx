@@ -14,17 +14,17 @@ interface RAGBadgeProps {
 
 const SIZE_CLASSES: Record<BadgeSize, { dot: string; text: string; wrapper: string }> = {
   sm: {
-    dot: "h-1.5 w-1.5",
+    dot: "h-2 w-2",
     text: "text-[10px]",
     wrapper: "gap-1 px-1.5 py-0.5",
   },
   md: {
-    dot: "h-2 w-2",
+    dot: "h-2.5 w-2.5",
     text: "text-xs",
     wrapper: "gap-1.5 px-2 py-0.5",
   },
   lg: {
-    dot: "h-2.5 w-2.5",
+    dot: "h-3 w-3",
     text: "text-sm",
     wrapper: "gap-2 px-2.5 py-1",
   },
@@ -68,7 +68,9 @@ export default function RAGBadge({
           className={cn(
             "relative inline-flex rounded-full",
             sizeConfig.dot,
-            ragBgColor(status)
+            ragBgColor(status),
+            status === "GOOD" && "rag-glow",
+            status === "HARM" && "rag-pulse"
           )}
         />
       </span>

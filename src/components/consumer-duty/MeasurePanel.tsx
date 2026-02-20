@@ -85,16 +85,20 @@ export default function MeasurePanel({
               "group relative flex flex-col gap-2 rounded-xl border border-white/40 bg-white/50 backdrop-blur-lg p-4 text-left",
               "shadow-sm transition-all duration-200 ease-out",
               "hover:-translate-y-0.5 hover:border-updraft-bright-purple/40 hover:shadow-md hover:shadow-updraft-bright-purple/5",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-updraft-bar focus-visible:ring-offset-2"
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-updraft-bar focus-visible:ring-offset-2",
+              measure.ragStatus === "GOOD" && "border-l-[3px] border-l-risk-green",
+              measure.ragStatus === "WARNING" && "border-l-[3px] border-l-risk-amber",
+              measure.ragStatus === "HARM" && "border-l-[3px] border-l-risk-red"
             )}
           >
             {/* Top row: RAG dot + measure ID + stale/edit/delete */}
             <div className="flex items-center gap-2">
               <span
                 className={cn(
-                  "h-2.5 w-2.5 shrink-0 rounded-full",
+                  "h-3 w-3 shrink-0 rounded-full",
                   ragBgColor(measure.ragStatus),
-                  measure.ragStatus === "HARM" && "rag-pulse"
+                  measure.ragStatus === "HARM" && "rag-pulse",
+                  measure.ragStatus === "GOOD" && "rag-glow"
                 )}
               />
               <span className="text-xs font-medium text-updraft-bar/70 uppercase tracking-wide">
@@ -116,7 +120,7 @@ export default function MeasurePanel({
                 className={cn(
                   "ml-auto inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight",
                   measure.ragStatus === "GOOD" &&
-                    "bg-risk-green/10 text-risk-green",
+                    "bg-risk-green/15 text-risk-green",
                   measure.ragStatus === "WARNING" &&
                     "bg-risk-amber/10 text-risk-amber",
                   measure.ragStatus === "HARM" &&

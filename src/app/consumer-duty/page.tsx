@@ -394,12 +394,12 @@ function ConsumerDutyContent() {
         <button
           onClick={() => { setMeasureRagFilter("GOOD"); handleStatRagClick("ALL"); }}
           className={cn(
-            "bento-card cursor-pointer text-left",
+            "bento-card cursor-pointer text-left border-l-[3px] border-l-risk-green",
             measureRagFilter === "GOOD" && "ring-2 ring-risk-green/40 bg-risk-green/5"
           )}
         >
           <div className="flex items-center gap-2">
-            <span className={cn("h-2.5 w-2.5 rounded-full", ragBgColor("GOOD"))} />
+            <span className={cn("h-3 w-3 rounded-full rag-glow", ragBgColor("GOOD"))} />
             <p className="text-xs text-fca-gray">Green Measures</p>
           </div>
           <p className="text-2xl font-bold text-risk-green mt-1">{measureGoodCount}</p>
@@ -408,12 +408,12 @@ function ConsumerDutyContent() {
         <button
           onClick={() => { setMeasureRagFilter("WARNING"); handleStatRagClick("ALL"); }}
           className={cn(
-            "bento-card cursor-pointer text-left",
+            "bento-card cursor-pointer text-left border-l-[3px] border-l-risk-amber",
             measureRagFilter === "WARNING" && "ring-2 ring-risk-amber/40 bg-risk-amber/5"
           )}
         >
           <div className="flex items-center gap-2">
-            <span className={cn("h-2.5 w-2.5 rounded-full", ragBgColor("WARNING"))} />
+            <span className={cn("h-3 w-3 rounded-full", ragBgColor("WARNING"))} />
             <p className="text-xs text-fca-gray">Amber Measures</p>
           </div>
           <p className="text-2xl font-bold text-risk-amber mt-1">{measureWarningCount}</p>
@@ -422,12 +422,12 @@ function ConsumerDutyContent() {
         <button
           onClick={() => { setMeasureRagFilter("HARM"); handleStatRagClick("ALL"); }}
           className={cn(
-            "bento-card cursor-pointer text-left",
+            "bento-card cursor-pointer text-left border-l-[3px] border-l-risk-red",
             measureRagFilter === "HARM" && "ring-2 ring-risk-red/40 bg-risk-red/5"
           )}
         >
           <div className="flex items-center gap-2">
-            <span className={cn("h-2.5 w-2.5 rounded-full", ragBgColor("HARM"))} />
+            <span className={cn("h-3 w-3 rounded-full rag-pulse", ragBgColor("HARM"))} />
             <p className="text-xs text-fca-gray">Red Measures</p>
           </div>
           <p className="text-2xl font-bold text-risk-red mt-1">{measureHarmCount}</p>
@@ -463,14 +463,19 @@ function ConsumerDutyContent() {
                   }}
                   className="flex w-full items-center gap-3 rounded-lg bg-gray-50 p-2.5 text-left hover:bg-gray-100 transition-colors"
                 >
-                  <span className={cn("h-2 w-2 shrink-0 rounded-full", ragBgColor(m.ragStatus))} />
+                  <span className={cn(
+                    "h-2.5 w-2.5 shrink-0 rounded-full",
+                    ragBgColor(m.ragStatus),
+                    m.ragStatus === "GOOD" && "rag-glow",
+                    m.ragStatus === "HARM" && "rag-pulse"
+                  )} />
                   <span className="text-xs font-mono font-semibold text-updraft-deep shrink-0">{m.measureId}</span>
                   <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{m.name}</span>
                   <span className="text-[10px] text-gray-400 shrink-0">{m.outcomeName}</span>
                   {ownerName && <span className="text-[10px] text-gray-400 shrink-0">{ownerName}</span>}
                   <span className={cn(
                     "text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0",
-                    m.ragStatus === "GOOD" && "bg-risk-green/10 text-risk-green",
+                    m.ragStatus === "GOOD" && "bg-risk-green/15 text-risk-green",
                     m.ragStatus === "WARNING" && "bg-risk-amber/10 text-risk-amber",
                     m.ragStatus === "HARM" && "bg-risk-red/10 text-risk-red"
                   )}>
@@ -521,14 +526,18 @@ function ConsumerDutyContent() {
                       "group relative flex flex-col gap-2 rounded-xl border border-white/40 bg-white/50 backdrop-blur-lg p-4 text-left",
                       "shadow-sm transition-all duration-200 ease-out",
                       "hover:-translate-y-0.5 hover:border-updraft-bright-purple/40 hover:shadow-md hover:shadow-updraft-bright-purple/5",
+                      measure.ragStatus === "GOOD" && "border-l-[3px] border-l-risk-green",
+                      measure.ragStatus === "WARNING" && "border-l-[3px] border-l-risk-amber",
+                      measure.ragStatus === "HARM" && "border-l-[3px] border-l-risk-red",
                     )}
                   >
                     <div className="flex items-center gap-2">
                       <span
                         className={cn(
-                          "h-2.5 w-2.5 shrink-0 rounded-full",
+                          "h-3 w-3 shrink-0 rounded-full",
                           ragBgColor(measure.ragStatus),
-                          measure.ragStatus === "HARM" && "rag-pulse"
+                          measure.ragStatus === "HARM" && "rag-pulse",
+                          measure.ragStatus === "GOOD" && "rag-glow"
                         )}
                       />
                       <span className="text-xs font-medium text-updraft-bar/70 uppercase tracking-wide">
@@ -537,7 +546,7 @@ function ConsumerDutyContent() {
                       <span
                         className={cn(
                           "ml-auto inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight",
-                          measure.ragStatus === "GOOD" && "bg-risk-green/10 text-risk-green",
+                          measure.ragStatus === "GOOD" && "bg-risk-green/15 text-risk-green",
                           measure.ragStatus === "WARNING" && "bg-risk-amber/10 text-risk-amber",
                           measure.ragStatus === "HARM" && "bg-risk-red/10 text-risk-red"
                         )}
@@ -704,7 +713,7 @@ function ConsumerDutyContent() {
                         <td className="border border-gray-200 px-3 py-2">
                           <span className={cn(
                             "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold",
-                            measure.ragStatus === "GOOD" && "bg-risk-green/10 text-risk-green",
+                            measure.ragStatus === "GOOD" && "bg-risk-green/15 text-risk-green",
                             measure.ragStatus === "WARNING" && "bg-risk-amber/10 text-risk-amber",
                             measure.ragStatus === "HARM" && "bg-risk-red/10 text-risk-red"
                           )}>

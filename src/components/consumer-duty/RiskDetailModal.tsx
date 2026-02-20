@@ -98,7 +98,7 @@ export default function RiskDetailModal({
               <span
                 className={cn(
                   "inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold",
-                  outcome.ragStatus === "GOOD" && "bg-risk-green/10 text-risk-green",
+                  outcome.ragStatus === "GOOD" && "bg-risk-green/15 text-risk-green",
                   outcome.ragStatus === "WARNING" && "bg-risk-amber/10 text-risk-amber",
                   outcome.ragStatus === "HARM" && "bg-risk-red/10 text-risk-red"
                 )}
@@ -202,7 +202,7 @@ export default function RiskDetailModal({
                 <span
                   className={cn(
                     "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold",
-                    measure.ragStatus === "GOOD" && "bg-risk-green/10 text-risk-green",
+                    measure.ragStatus === "GOOD" && "bg-risk-green/15 text-risk-green",
                     measure.ragStatus === "WARNING" && "bg-risk-amber/10 text-risk-amber",
                     measure.ragStatus === "HARM" && "bg-risk-red/10 text-risk-red"
                   )}
