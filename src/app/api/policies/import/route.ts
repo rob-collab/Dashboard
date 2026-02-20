@@ -9,16 +9,67 @@ const importSchema = z.object({
   policyId: z.string().optional(), // Required for obligations import
 });
 
+/* ── CSV parser that handles quoted fields with commas ───────────────── */
+function parseCSVLine(line: string): string[] {
+  const fields: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (i + 1 < line.length && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        current += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ",") {
+        fields.push(current.trim());
+        current = "";
+      } else {
+        current += ch;
+      }
+    }
+  }
+  fields.push(current.trim());
+  return fields;
+}
+
 function parseCSV(csv: string): Record<string, string>[] {
   const lines = csv.trim().split("\n");
   if (lines.length < 2) return [];
-  const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
+  const headers = parseCSVLine(lines[0]);
   return lines.slice(1).map((line) => {
-    const values = line.split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
+    const values = parseCSVLine(line);
     const row: Record<string, string> = {};
     headers.forEach((h, i) => { row[h] = values[i] ?? ""; });
     return row;
   });
+}
+
+/* ── Resolve ownerEmail → userId ─────────────────────────────────────── */
+async function resolveOwnerId(row: Record<string, string>): Promise<string | null> {
+  // Direct ownerId takes priority
+  if (row.ownerId) return row.ownerId;
+  // Resolve by email
+  const email = row.ownerEmail;
+  if (!email) return null;
+  const user = await prisma.user.findFirst({ where: { email: { equals: email, mode: "insensitive" } } });
+  return user?.id ?? null;
+}
+
+/* ── Parse date string to Date or null ───────────────────────────────── */
+function parseDate(val: string | undefined): Date | null {
+  if (!val) return null;
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? null : d;
 }
 
 export async function POST(request: NextRequest) {
@@ -36,34 +87,110 @@ export async function POST(request: NextRequest) {
     if (rows.length === 0) return errorResponse("No data rows found in CSV", 400);
 
     let created = 0;
+    let updated = 0;
     const errors: string[] = [];
 
     if (type === "policies") {
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
-        if (!row.name || !row.description || !row.ownerId) {
-          errors.push(`Row ${i + 1}: missing required fields (name, description, ownerId)`);
+        const ownerId = await resolveOwnerId(row);
+        if (!row.name || !row.description || !ownerId) {
+          errors.push(`Row ${i + 1}: missing required fields (name, description, ownerId or ownerEmail)`);
           continue;
         }
         try {
-          const reference = await generateReference("POL-", "policy");
-          await prisma.policy.create({
+          // Check if policy already exists by reference
+          const existingByRef = row.reference
+            ? await prisma.policy.findUnique({ where: { reference: row.reference } })
+            : null;
+          // Or by name (fuzzy match)
+          const existingByName = !existingByRef
+            ? await prisma.policy.findFirst({ where: { name: { equals: row.name, mode: "insensitive" } } })
+            : null;
+          const existing = existingByRef ?? existingByName;
+
+          const policyData = {
+            name: row.name,
+            description: row.description,
+            status: (row.status as "CURRENT" | "OVERDUE" | "UNDER_REVIEW" | "ARCHIVED") || "CURRENT",
+            version: row.version || "1.0",
+            ownerId,
+            approvedBy: row.approvedBy || null,
+            classification: row.classification || "Internal Only",
+            reviewFrequencyDays: row.reviewFrequencyDays ? parseInt(row.reviewFrequencyDays) : 365,
+            effectiveDate: parseDate(row.effectiveDate),
+            lastReviewedDate: parseDate(row.lastReviewedDate),
+            nextReviewDate: parseDate(row.nextReviewDate),
+            scope: row.scope || null,
+            applicability: row.applicability || null,
+            exceptions: row.exceptions || null,
+            storageUrl: row.storageUrl || null,
+            approvingBody: row.approvingBody || null,
+            consumerDutyOutcomes: row.consumerDutyOutcomes
+              ? row.consumerDutyOutcomes.split(";").map((s) => s.trim()).filter(Boolean)
+              : [],
+            relatedPolicies: row.relatedPolicies ? row.relatedPolicies.split(";").map((s) => s.trim()).filter(Boolean) : [],
+          };
+
+          let policy;
+          if (existing) {
+            policy = await prisma.policy.update({
+              where: { id: existing.id },
+              data: policyData,
+            });
+            updated++;
+          } else {
+            const reference = row.reference || await generateReference("POL-", "policy");
+            policy = await prisma.policy.create({
+              data: { reference, ...policyData },
+            });
+            created++;
+          }
+
+          // Link control references → PolicyControlLink
+          if (row.controlReferences) {
+            const ctrlRefs = row.controlReferences.split(";").map((s) => s.trim()).filter(Boolean);
+            for (const ref of ctrlRefs) {
+              const ctrl = await prisma.control.findUnique({ where: { controlRef: ref } });
+              if (ctrl) {
+                await prisma.policyControlLink.upsert({
+                  where: { policyId_controlId: { policyId: policy.id, controlId: ctrl.id } },
+                  update: {},
+                  create: { policyId: policy.id, controlId: ctrl.id, linkedBy: userId },
+                });
+              }
+            }
+          }
+
+          // Link regulation references → PolicyRegulatoryLink
+          if (row.regulationReferences) {
+            const regRefs = row.regulationReferences.split(";").map((s) => s.trim()).filter(Boolean);
+            for (const ref of regRefs) {
+              // Find regulation by reference or shortName
+              const reg = await prisma.regulation.findFirst({
+                where: { OR: [{ reference: ref }, { shortName: ref }, { name: { contains: ref, mode: "insensitive" } }] },
+              });
+              if (reg) {
+                await prisma.policyRegulatoryLink.upsert({
+                  where: { policyId_regulationId: { policyId: policy.id, regulationId: reg.id } },
+                  update: {},
+                  create: { policyId: policy.id, regulationId: reg.id, linkedBy: userId },
+                });
+              }
+            }
+          }
+
+          // Audit log
+          await prisma.policyAuditLog.create({
             data: {
-              reference,
-              name: row.name,
-              description: row.description,
-              status: (row.status as "CURRENT" | "OVERDUE" | "UNDER_REVIEW" | "ARCHIVED") || "CURRENT",
-              ownerId: row.ownerId,
-              classification: row.classification || "Internal Only",
-              reviewFrequencyDays: row.reviewFrequencyDays ? parseInt(row.reviewFrequencyDays) : 365,
-              scope: row.scope || null,
-              applicability: row.applicability || null,
-              relatedPolicies: row.relatedPolicies ? row.relatedPolicies.split(";") : [],
+              policyId: policy.id,
+              userId,
+              action: existing ? "POLICY_UPDATED" : "POLICY_CREATED",
+              details: `${existing ? "Updated" : "Created"} via CSV import`,
             },
           });
-          created++;
         } catch (err) {
-          errors.push(`Row ${i + 1}: ${err instanceof Error ? err.message : "creation failed"}`);
+          errors.push(`Row ${i + 1} (${row.name}): ${err instanceof Error ? err.message : "creation failed"}`);
         }
       }
     } else if (type === "regulations") {
@@ -213,7 +340,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return jsonResponse(serialiseDates({ created, total: rows.length, errors }));
+    return jsonResponse(serialiseDates({ created, updated, total: rows.length, errors }));
   } catch (err) {
     console.error("[POST /api/policies/import]", err);
     return errorResponse("Internal server error", 500);

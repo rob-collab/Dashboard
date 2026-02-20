@@ -16,7 +16,7 @@ export default function CSVImportPanel({ open, onClose, onImported }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const [result, setResult] = useState<{ created: number; total: number; errors: string[] } | null>(null);
+  const [result, setResult] = useState<{ created: number; updated?: number; total: number; errors: string[] } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = useCallback((f: File) => {
@@ -46,13 +46,17 @@ export default function CSVImportPanel({ open, onClose, onImported }: Props) {
     setResult(null);
     try {
       const csvData = await file.text();
-      const res = await api<{ created: number; total: number; errors: string[] }>("/api/policies/import", {
+      const res = await api<{ created: number; updated?: number; total: number; errors: string[] }>("/api/policies/import", {
         method: "POST",
         body: { type: "policies", data: csvData },
       });
       setResult(res);
-      if (res.created > 0) {
-        toast.success(`Imported ${res.created} of ${res.total} policies`);
+      const changes = (res.created || 0) + (res.updated || 0);
+      if (changes > 0) {
+        const parts = [];
+        if (res.created) parts.push(`${res.created} created`);
+        if (res.updated) parts.push(`${res.updated} updated`);
+        toast.success(`${parts.join(", ")} of ${res.total} policies`);
         onImported();
       }
     } catch {
@@ -129,7 +133,12 @@ export default function CSVImportPanel({ open, onClose, onImported }: Props) {
           {/* Result */}
           {result && (
             <div className={cn("rounded-lg p-3 text-xs", result.errors.length > 0 ? "bg-amber-50 border border-amber-200" : "bg-green-50 border border-green-200")}>
-              <p className="font-medium">{result.created} of {result.total} policies imported successfully</p>
+              <p className="font-medium">
+                {result.created > 0 && `${result.created} created`}
+                {result.created > 0 && result.updated ? ", " : ""}
+                {result.updated ? `${result.updated} updated` : ""}
+                {` of ${result.total} policies`}
+              </p>
               {result.errors.length > 0 && (
                 <ul className="mt-2 space-y-0.5 text-red-600 max-h-32 overflow-y-auto">
                   {result.errors.map((err, i) => <li key={i}>{err}</li>)}
