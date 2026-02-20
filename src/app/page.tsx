@@ -309,6 +309,7 @@ export default function DashboardHome() {
   const rejectEntity = useAppStore((s) => s.rejectEntity);
   const notifications = useAppStore((s) => s.notifications);
   const regulations = useAppStore((s) => s.regulations);
+  const policies = useAppStore((s) => s.policies);
   const certifiedPersons = useAppStore((s) => s.certifiedPersons);
   const permissionSet = usePermissionSet();
   const hasCompliancePage = permissionSet.has("page:compliance");
@@ -549,6 +550,21 @@ export default function DashboardHome() {
     ).length;
     return { total, compliantPct, gaps, overdueAssessments, pendingCerts, statusCounts };
   }, [regulations, certifiedPersons, hasCompliancePage]);
+
+  // Controls Library stats
+  const controlsStats = useMemo(() => {
+    const active = controls.filter((c) => c.isActive);
+    const total = active.length;
+    if (total === 0) return null;
+    const preventative = active.filter((c) => c.controlType === "PREVENTATIVE").length;
+    const detective = active.filter((c) => c.controlType === "DETECTIVE").length;
+    const directive = active.filter((c) => c.controlType === "DIRECTIVE").length;
+    const corrective = active.filter((c) => c.controlType === "CORRECTIVE").length;
+    const policiesWithControls = new Set(
+      policies.filter((p) => (p.controlLinks ?? []).length > 0).map((p) => p.id)
+    ).size;
+    return { total, preventative, detective, directive, corrective, policiesWithControls, totalPolicies: policies.length };
+  }, [controls, policies]);
 
   if (!hydrated) {
     return (
@@ -852,6 +868,45 @@ export default function DashboardHome() {
             <div className={`rounded-lg border p-3 text-center ${complianceHealth.pendingCerts > 0 ? "border-amber-100" : "border-green-100"}`} style={{ background: complianceHealth.pendingCerts > 0 ? "linear-gradient(135deg, #FFFBEB, #FEFCE8)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
               <p className={`text-xl font-bold font-poppins ${complianceHealth.pendingCerts > 0 ? "text-amber-700" : "text-green-700"}`}>{complianceHealth.pendingCerts}</p>
               <p className="text-[10px] text-gray-500 mt-0.5">Pending Certs</p>
+            </div>
+          </div>
+        </Link>
+      )}
+
+      {/* ── Controls Library ── */}
+      {controlsStats && (
+        <Link href="/controls" className="bento-card hover:border-updraft-light-purple transition-colors group block card-entrance card-entrance-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <FlaskConical className="h-5 w-5 text-updraft-bright-purple" />
+              <h2 className="text-lg font-bold text-updraft-deep font-poppins">Controls Library</h2>
+            </div>
+            <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-updraft-bright-purple transition-colors" />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
+            <div className="rounded-lg border border-updraft-pale-purple p-3 text-center" style={{ background: "linear-gradient(135deg, #F3E8FF, #FAF5FF)" }}>
+              <p className="text-xl font-bold font-poppins text-updraft-deep">{controlsStats.total}</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">Total Controls</p>
+            </div>
+            <div className="rounded-lg border border-green-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+              <p className="text-xl font-bold font-poppins text-green-700">{controlsStats.preventative}</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">Preventative</p>
+            </div>
+            <div className="rounded-lg border border-blue-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #EFF6FF, #F0F9FF)" }}>
+              <p className="text-xl font-bold font-poppins text-blue-700">{controlsStats.detective}</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">Detective</p>
+            </div>
+            <div className="rounded-lg border border-amber-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #FFFBEB, #FEFCE8)" }}>
+              <p className="text-xl font-bold font-poppins text-amber-700">{controlsStats.directive}</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">Directive</p>
+            </div>
+            <div className="rounded-lg border border-red-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #FEF2F2, #FFF5F5)" }}>
+              <p className="text-xl font-bold font-poppins text-red-700">{controlsStats.corrective}</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">Corrective</p>
+            </div>
+            <div className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm">
+              <p className="text-xl font-bold font-poppins text-updraft-deep">{controlsStats.policiesWithControls}/{controlsStats.totalPolicies}</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">Policies Covered</p>
             </div>
           </div>
         </Link>
