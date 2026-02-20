@@ -14,6 +14,7 @@ import {
   FileUp,
   Plus,
   Search,
+  Shield,
 } from "lucide-react";
 import type { Policy } from "@/lib/types";
 import { POLICY_STATUS_LABELS, POLICY_STATUS_COLOURS } from "@/lib/types";
@@ -23,9 +24,73 @@ import CSVImportPanel from "@/components/policies/CSVImportPanel";
 import PolicyComplianceCharts from "@/components/policies/PolicyComplianceCharts";
 import { usePageTitle } from "@/lib/usePageTitle";
 
+/* ── Policy Health Score Computation ────────────────────────────────── */
+interface PolicyHealthScore {
+  overall: number; // 0-100
+  obligationCoverage: number; // % of obligations with controls
+  controlTestHealth: number; // % of controls passing
+  regulatoryCoverage: number; // % of obligations with regulation links
+  grade: "A" | "B" | "C" | "D" | "F";
+  gradeColour: { bg: string; text: string; ring: string };
+}
+
+const GRADE_COLOURS: Record<string, { bg: string; text: string; ring: string }> = {
+  A: { bg: "bg-green-100", text: "text-green-700", ring: "ring-green-400" },
+  B: { bg: "bg-emerald-100", text: "text-emerald-700", ring: "ring-emerald-400" },
+  C: { bg: "bg-amber-100", text: "text-amber-700", ring: "ring-amber-400" },
+  D: { bg: "bg-orange-100", text: "text-orange-700", ring: "ring-orange-400" },
+  F: { bg: "bg-red-100", text: "text-red-700", ring: "ring-red-400" },
+};
+
+function computePolicyHealth(policy: Policy): PolicyHealthScore {
+  const obligations = policy.obligations ?? [];
+  const controlLinks = policy.controlLinks ?? [];
+
+  // 1. Obligation coverage: % with at least one control ref
+  const totalObls = obligations.length;
+  const oblsWithControls = totalObls > 0
+    ? obligations.filter((o) => o.controlRefs.length > 0 || (o.sections ?? []).some((s) => s.controlRefs.length > 0)).length
+    : 0;
+  const obligationCoverage = totalObls > 0 ? Math.round((oblsWithControls / totalObls) * 100) : (controlLinks.length > 0 ? 100 : 0);
+
+  // 2. Control test health: % of linked controls passing latest test
+  const totalCtrls = controlLinks.length;
+  let passing = 0;
+  for (const link of controlLinks) {
+    const ctrl = link.control;
+    if (!ctrl) continue;
+    const results = ctrl.testingSchedule?.testResults ?? [];
+    if (results.length === 0) continue;
+    const sorted = [...results].sort((a, b) => new Date(b.testedDate).getTime() - new Date(a.testedDate).getTime());
+    if (sorted[0].result === "PASS") passing++;
+  }
+  const controlTestHealth = totalCtrls > 0 ? Math.round((passing / totalCtrls) * 100) : 0;
+
+  // 3. Regulatory coverage: % of obligations with regulation refs
+  const oblsWithRegs = totalObls > 0
+    ? obligations.filter((o) => o.regulationRefs.length > 0 || (o.sections ?? []).some((s) => s.regulationRefs.length > 0)).length
+    : 0;
+  const regulatoryCoverage = totalObls > 0 ? Math.round((oblsWithRegs / totalObls) * 100) : (policy.regulatoryLinks?.length ? 100 : 0);
+
+  // Weighted overall: 40% obligation coverage, 35% test health, 25% regulatory coverage
+  const overall = Math.round(obligationCoverage * 0.4 + controlTestHealth * 0.35 + regulatoryCoverage * 0.25);
+
+  // Grade
+  const grade = overall >= 85 ? "A" : overall >= 70 ? "B" : overall >= 50 ? "C" : overall >= 30 ? "D" : "F";
+
+  return {
+    overall,
+    obligationCoverage,
+    controlTestHealth,
+    regulatoryCoverage,
+    grade,
+    gradeColour: GRADE_COLOURS[grade],
+  };
+}
+
 type TabKey = "all" | "CURRENT" | "OVERDUE" | "UNDER_REVIEW" | "ARCHIVED";
 
-type SortKey = "reference" | "name" | "owner" | "status" | "nextReviewDate";
+type SortKey = "reference" | "name" | "owner" | "status" | "health" | "nextReviewDate";
 
 export default function PoliciesPage() {
   usePageTitle("Policies");
@@ -63,6 +128,23 @@ export default function PoliciesPage() {
     };
   }, [policies]);
 
+  // Policy health scores — cached per policy
+  const healthScores = useMemo(() => {
+    const map = new Map<string, PolicyHealthScore>();
+    for (const p of policies) map.set(p.id, computePolicyHealth(p));
+    return map;
+  }, [policies]);
+
+  // Aggregate health stats
+  const healthStats = useMemo(() => {
+    const scores = Array.from(healthScores.values());
+    if (scores.length === 0) return null;
+    const avg = Math.round(scores.reduce((s, h) => s + h.overall, 0) / scores.length);
+    const grades: Record<string, number> = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+    for (const s of scores) grades[s.grade]++;
+    return { avg, grades };
+  }, [healthScores]);
+
   // Filtered + sorted
   const filtered = useMemo(() => {
     let items = [...policies];
@@ -88,13 +170,14 @@ export default function PoliciesPage() {
         case "name": cmp = a.name.localeCompare(b.name); break;
         case "owner": cmp = (a.owner?.name ?? "").localeCompare(b.owner?.name ?? ""); break;
         case "status": cmp = a.status.localeCompare(b.status); break;
+        case "health": cmp = (healthScores.get(a.id)?.overall ?? 0) - (healthScores.get(b.id)?.overall ?? 0); break;
         case "nextReviewDate": cmp = (a.nextReviewDate ?? "").localeCompare(b.nextReviewDate ?? ""); break;
       }
       return sortDir === "desc" ? -cmp : cmp;
     });
 
     return items;
-  }, [policies, tab, search, sortBy, sortDir]);
+  }, [policies, tab, search, sortBy, sortDir, healthScores]);
 
   function handleSort(key: SortKey) {
     if (sortBy === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -233,7 +316,7 @@ export default function PoliciesPage() {
       </div>
 
       {/* Enhanced Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <button onClick={() => setTab("all")} className={cn(
           "bento-card p-4 text-left transition-all",
           tab === "all" && "ring-2 ring-updraft-bright-purple"
@@ -294,6 +377,26 @@ export default function PoliciesPage() {
             <p className="text-[10px] text-gray-400 mt-0.5">{Math.round((stats.underReview / stats.total) * 100)}% of total</p>
           )}
         </button>
+
+        {/* Aggregate Health Score */}
+        {healthStats && (
+          <div className="bento-card p-4 text-left">
+            <div className="flex items-center gap-2.5 mb-2">
+              <div className={cn("rounded-lg p-2", healthStats.avg >= 70 ? "bg-green-100" : healthStats.avg >= 50 ? "bg-amber-100" : "bg-red-100")}>
+                <Shield size={16} className={healthStats.avg >= 70 ? "text-green-600" : healthStats.avg >= 50 ? "text-amber-600" : "text-red-600"} />
+              </div>
+              <p className="text-xs font-medium text-gray-500">Avg Health</p>
+            </div>
+            <p className={cn("text-3xl font-bold font-poppins", healthStats.avg >= 70 ? "text-green-700" : healthStats.avg >= 50 ? "text-amber-700" : "text-red-700")}>{healthStats.avg}%</p>
+            <div className="flex items-center gap-1 mt-1">
+              {(["A", "B", "C", "D", "F"] as const).map((g) => healthStats.grades[g] > 0 && (
+                <span key={g} className={cn("text-[9px] font-bold px-1 py-0.5 rounded", GRADE_COLOURS[g].bg, GRADE_COLOURS[g].text)}>
+                  {healthStats.grades[g]}{g}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Compliance Charts */}
@@ -343,6 +446,7 @@ export default function PoliciesPage() {
               <SortHeader label="Name" sortKey="name" current={sortBy} dir={sortDir} onSort={handleSort} />
               <SortHeader label="Owner" sortKey="owner" current={sortBy} dir={sortDir} onSort={handleSort} />
               <SortHeader label="Status" sortKey="status" current={sortBy} dir={sortDir} onSort={handleSort} />
+              <SortHeader label="Health" sortKey="health" current={sortBy} dir={sortDir} onSort={handleSort} />
               <th className="text-left py-2 px-3 font-medium text-gray-500 text-xs">Controls</th>
               <SortHeader label="Next Review" sortKey="nextReviewDate" current={sortBy} dir={sortDir} onSort={handleSort} />
               <th className="text-left py-2 px-3 font-medium text-gray-500 text-xs">Last Reviewed</th>
@@ -351,13 +455,14 @@ export default function PoliciesPage() {
           </thead>
           <tbody>
             {filtered.length === 0 && (
-              <tr><td colSpan={9} className="py-12 text-center text-sm text-gray-400">No policies found</td></tr>
+              <tr><td colSpan={10} className="py-12 text-center text-sm text-gray-400">No policies found</td></tr>
             )}
             {filtered.map((p) => {
               const sc = POLICY_STATUS_COLOURS[p.status];
               const owner = p.owner ?? users.find((u) => u.id === p.ownerId);
               const passRate = getControlsPassRate(p);
               const reviewDays = p.nextReviewDate ? Math.ceil((new Date(p.nextReviewDate).getTime() - Date.now()) / 86400000) : null;
+              const health = healthScores.get(p.id);
 
               // Status dot colour
               const dotColour = p.status === "OVERDUE" ? "bg-red-500" :
@@ -383,6 +488,26 @@ export default function PoliciesPage() {
                     <span className={cn("text-xs font-semibold px-2 py-0.5 rounded-full", sc.bg, sc.text)}>
                       {POLICY_STATUS_LABELS[p.status]}
                     </span>
+                  </td>
+                  <td className="py-3 px-3">
+                    {health && (
+                      <div className="flex items-center gap-1.5">
+                        <span className={cn("text-[10px] font-bold w-5 h-5 rounded flex items-center justify-center", health.gradeColour.bg, health.gradeColour.text)}>
+                          {health.grade}
+                        </span>
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-1">
+                            <div className="w-12 h-1.5 rounded-full bg-gray-200 overflow-hidden">
+                              <div
+                                className={cn("h-full rounded-full", health.overall >= 70 ? "bg-green-500" : health.overall >= 50 ? "bg-amber-500" : "bg-red-500")}
+                                style={{ width: `${health.overall}%` }}
+                              />
+                            </div>
+                            <span className="text-[10px] font-semibold text-gray-600">{health.overall}%</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </td>
                   <td className="py-3 px-3">
                     {passRate ? (

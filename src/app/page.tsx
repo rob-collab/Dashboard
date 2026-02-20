@@ -566,6 +566,67 @@ export default function DashboardHome() {
     return { total, preventative, detective, directive, corrective, policiesWithControls, totalPolicies: policies.length };
   }, [controls, policies]);
 
+  // Cross-entity insights — risks with failing controls, policies with gaps
+  const crossEntityInsights = useMemo(() => {
+    // Risks with failing or untested controls
+    const risksWithFailingControls: { riskRef: string; riskName: string; riskId: string; failCount: number; totalControls: number }[] = [];
+    for (const risk of risks) {
+      const riskLinks = risk.controlLinks ?? [];
+      if (riskLinks.length === 0) continue;
+      let failCount = 0;
+      for (const link of riskLinks) {
+        const ctrl = controls.find((c) => c.id === link.controlId);
+        if (!ctrl) continue;
+        const results = ctrl.testingSchedule?.testResults ?? [];
+        if (results.length === 0) { failCount++; continue; }
+        const sorted = [...results].sort((a, b) => new Date(b.testedDate).getTime() - new Date(a.testedDate).getTime());
+        if (sorted[0].result !== "PASS") failCount++;
+      }
+      if (failCount > 0) {
+        risksWithFailingControls.push({ riskRef: risk.reference, riskName: risk.name, riskId: risk.id, failCount, totalControls: riskLinks.length });
+      }
+    }
+    risksWithFailingControls.sort((a, b) => b.failCount - a.failCount);
+
+    // Policies with coverage gaps (obligations without controls)
+    const policiesWithGaps: { ref: string; name: string; id: string; uncovered: number; total: number }[] = [];
+    for (const p of policies) {
+      const obls = p.obligations ?? [];
+      if (obls.length === 0) continue;
+      const uncovered = obls.filter((o) => o.controlRefs.length === 0 && !(o.sections ?? []).some((s) => s.controlRefs.length > 0)).length;
+      if (uncovered > 0) {
+        policiesWithGaps.push({ ref: p.reference, name: p.name, id: p.id, uncovered, total: obls.length });
+      }
+    }
+    policiesWithGaps.sort((a, b) => (b.uncovered / b.total) - (a.uncovered / a.total));
+
+    // Most-used controls (supporting most policies)
+    const controlPolicyCounts = new Map<string, { ref: string; name: string; policyCount: number }>();
+    for (const p of policies) {
+      for (const link of p.controlLinks ?? []) {
+        const ctrl = link.control;
+        if (!ctrl) continue;
+        const existing = controlPolicyCounts.get(ctrl.id);
+        if (existing) {
+          existing.policyCount++;
+        } else {
+          controlPolicyCounts.set(ctrl.id, { ref: ctrl.controlRef, name: ctrl.controlName, policyCount: 1 });
+        }
+      }
+    }
+    const keyControls = Array.from(controlPolicyCounts.values())
+      .filter((c) => c.policyCount >= 2)
+      .sort((a, b) => b.policyCount - a.policyCount)
+      .slice(0, 5);
+
+    return {
+      risksWithFailingControls: risksWithFailingControls.slice(0, 5),
+      policiesWithGaps: policiesWithGaps.slice(0, 5),
+      keyControls,
+      hasData: risksWithFailingControls.length > 0 || policiesWithGaps.length > 0 || keyControls.length > 0,
+    };
+  }, [risks, controls, policies]);
+
   if (!hydrated) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -907,6 +968,108 @@ export default function DashboardHome() {
             <div className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm">
               <p className="text-xl font-bold font-poppins text-updraft-deep">{controlsStats.policiesWithControls}/{controlsStats.totalPolicies}</p>
               <p className="text-[10px] text-gray-500 mt-0.5">Policies Covered</p>
+            </div>
+          </div>
+        </Link>
+      )}
+
+      {/* ── Cross-Entity Insights ── */}
+      {crossEntityInsights.hasData && (
+        <div className="bento-card card-entrance card-entrance-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Shield className="h-5 w-5 text-updraft-bright-purple" />
+            <h2 className="text-lg font-bold text-updraft-deep font-poppins">Compliance Insights</h2>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Risks with failing controls */}
+            {crossEntityInsights.risksWithFailingControls.length > 0 && (
+              <div className="rounded-xl border border-red-100 p-4" style={{ background: "linear-gradient(135deg, #FEF2F2, #FFF5F5)" }}>
+                <h3 className="text-xs font-bold text-red-700 mb-2">Risks with Failing Controls</h3>
+                <div className="space-y-2">
+                  {crossEntityInsights.risksWithFailingControls.map((r) => (
+                    <Link key={r.riskId} href={`/risk-register?risk=${r.riskId}`} className="flex items-center justify-between text-xs hover:text-updraft-bright-purple transition-colors">
+                      <span className="truncate flex-1 min-w-0 text-gray-700">
+                        <span className="font-mono font-bold text-updraft-deep mr-1">{r.riskRef}</span>
+                        {r.riskName}
+                      </span>
+                      <span className="shrink-0 ml-2 text-red-600 font-semibold">{r.failCount}/{r.totalControls}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Policies with coverage gaps */}
+            {crossEntityInsights.policiesWithGaps.length > 0 && (
+              <div className="rounded-xl border border-amber-100 p-4" style={{ background: "linear-gradient(135deg, #FFFBEB, #FEFCE8)" }}>
+                <h3 className="text-xs font-bold text-amber-700 mb-2">Policies with Coverage Gaps</h3>
+                <div className="space-y-2">
+                  {crossEntityInsights.policiesWithGaps.map((p) => (
+                    <Link key={p.id} href="/policies" className="flex items-center justify-between text-xs hover:text-updraft-bright-purple transition-colors">
+                      <span className="truncate flex-1 min-w-0 text-gray-700">
+                        <span className="font-mono font-bold text-updraft-deep mr-1">{p.ref}</span>
+                        {p.name}
+                      </span>
+                      <span className="shrink-0 ml-2 text-amber-600 font-semibold">{p.uncovered}/{p.total} uncovered</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Key controls */}
+            {crossEntityInsights.keyControls.length > 0 && (
+              <div className="rounded-xl border border-updraft-pale-purple p-4" style={{ background: "linear-gradient(135deg, #F3E8FF, #FAF5FF)" }}>
+                <h3 className="text-xs font-bold text-updraft-deep mb-2">Key Controls (Multi-Policy)</h3>
+                <div className="space-y-2">
+                  {crossEntityInsights.keyControls.map((c) => (
+                    <Link key={c.ref} href="/controls" className="flex items-center justify-between text-xs hover:text-updraft-bright-purple transition-colors">
+                      <span className="truncate flex-1 min-w-0 text-gray-700">
+                        <span className="font-mono font-bold text-updraft-deep mr-1">{c.ref}</span>
+                        {c.name}
+                      </span>
+                      <span className="shrink-0 ml-2 text-updraft-bright-purple font-semibold">{c.policyCount} policies</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Policy Health Summary ── */}
+      {policies.length > 0 && (
+        <Link href="/policies" className="bento-card hover:border-updraft-light-purple transition-colors group block card-entrance card-entrance-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-updraft-bright-purple" />
+              <h2 className="text-lg font-bold text-updraft-deep font-poppins">Policy Health</h2>
+            </div>
+            <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-updraft-bright-purple transition-colors" />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm">
+              <p className="text-xl font-bold font-poppins text-updraft-deep">{policies.length}</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">Total Policies</p>
+            </div>
+            <div className={`rounded-lg border p-3 text-center ${policies.filter((p) => p.status === "OVERDUE").length > 0 ? "border-red-100" : "border-green-100"}`} style={{ background: policies.filter((p) => p.status === "OVERDUE").length > 0 ? "linear-gradient(135deg, #FEF2F2, #FFF5F5)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+              <p className={`text-xl font-bold font-poppins ${policies.filter((p) => p.status === "OVERDUE").length > 0 ? "text-red-700" : "text-green-700"}`}>
+                {policies.filter((p) => p.status === "OVERDUE").length}
+              </p>
+              <p className="text-[10px] text-gray-500 mt-0.5">Overdue</p>
+            </div>
+            <div className="rounded-lg border border-updraft-pale-purple p-3 text-center" style={{ background: "linear-gradient(135deg, #F3E8FF, #FAF5FF)" }}>
+              <p className="text-xl font-bold font-poppins text-updraft-deep">
+                {policies.reduce((sum, p) => sum + (p.obligations?.length ?? 0), 0)}
+              </p>
+              <p className="text-[10px] text-gray-500 mt-0.5">Requirements</p>
+            </div>
+            <div className="rounded-lg border border-blue-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #EFF6FF, #F0F9FF)" }}>
+              <p className="text-xl font-bold font-poppins text-blue-700">
+                {policies.reduce((sum, p) => sum + (p.controlLinks?.length ?? 0), 0)}
+              </p>
+              <p className="text-[10px] text-gray-500 mt-0.5">Control Links</p>
             </div>
           </div>
         </Link>
