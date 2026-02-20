@@ -455,6 +455,7 @@ async function main() {
   await prisma.policy.deleteMany({ where: { id: "pol-finprom" } });
   // Delete old regulation links and regulations (both old FCA-xxx scheme and new CU-xxxx if re-running)
   await prisma.regulationControlLink.deleteMany({});
+  await prisma.policyRegulatoryLink.deleteMany({});
   await prisma.regulation.deleteMany({});
   console.log("  ✓ Cleaned old policy review data");
 
