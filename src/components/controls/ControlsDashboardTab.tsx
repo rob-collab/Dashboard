@@ -26,7 +26,6 @@ import {
   Cell,
 } from "recharts";
 import {
-  Activity,
   CheckCircle2,
   XCircle,
   AlertTriangle,
@@ -34,7 +33,7 @@ import {
   CalendarClock,
   ChevronDown,
   ChevronRight,
-  ThumbsDown,
+  Library,
 } from "lucide-react";
 import BusinessAreaDrillDown from "./BusinessAreaDrillDown";
 import ControlDetailView from "./ControlDetailView";
@@ -142,7 +141,7 @@ type DrillDownView =
   | { type: "business-area"; areaId: string; areaName: string }
   | { type: "control"; entryId: string; backLabel: string; backAreaId?: string; backAreaName?: string };
 
-export default function ControlsDashboardTab() {
+export default function ControlsDashboardTab({ onNavigateToLibrary }: { onNavigateToLibrary?: () => void }) {
   const testingSchedule = useAppStore((s) => s.testingSchedule);
   const controlBusinessAreas = useAppStore((s) => s.controlBusinessAreas);
   const controls = useAppStore((s) => s.controls);
@@ -201,6 +200,31 @@ export default function ControlsDashboardTab() {
     const pct = (n: number) => (total > 0 ? `${Math.round((n / total) * 100)}%` : "0%");
     return { counts, total, pct };
   }, [periodResults, activeEntries.length]);
+
+  // ── Controls tested in last 6 months (rolling) ──────────────────────────
+
+  const testedIn6Months = useMemo(() => {
+    const activeControls = controls.filter((c) => c.isActive);
+    const total = activeControls.length;
+    if (total === 0) return { count: 0, total: 0, pct: "0%" };
+
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    let tested = 0;
+    for (const ctrl of activeControls) {
+      // Find the latest test result date for this control across all schedule entries
+      const scheduleEntry = testingSchedule.find((e) => e.controlId === ctrl.id && e.isActive);
+      if (!scheduleEntry?.testResults?.length) continue;
+      const latestTest = scheduleEntry.testResults.reduce((latest, r) => {
+        const d = new Date(r.testedDate);
+        return d > latest ? d : latest;
+      }, new Date(0));
+      if (latestTest > sixMonthsAgo) tested++;
+    }
+
+    return { count: tested, total, pct: total > 0 ? `${Math.round((tested / total) * 100)}%` : "0%" };
+  }, [controls, testingSchedule]);
 
   // ── Pass rate by business area ────────────────────────────────────────────
 
@@ -341,45 +365,6 @@ export default function ControlsDashboardTab() {
     });
   }, [periodResults, selectedYear, selectedMonth, selectedLabel]);
 
-  // ── CCRO disagreements ──────────────────────────────────────────────────
-
-  const ccroDisagreements = useMemo(() => {
-    const items: {
-      controlId: string;
-      controlRef: string;
-      controlName: string;
-      areaName: string;
-      ownerComment: string;
-      ccroComment: string;
-    }[] = [];
-
-    for (const ctrl of controls) {
-      if (!ctrl.isActive || !ctrl.attestations) continue;
-      const attestation = ctrl.attestations.find(
-        (a) =>
-          a.periodYear === selectedYear &&
-          a.periodMonth === selectedMonth &&
-          a.attested &&
-          a.ccroAgreement === false,
-      );
-      if (attestation) {
-        const area = controlBusinessAreas.find(
-          (ba) => ba.id === ctrl.businessAreaId,
-        );
-        items.push({
-          controlId: ctrl.id,
-          controlRef: ctrl.controlRef,
-          controlName: ctrl.controlName,
-          areaName: area?.name ?? "Unknown",
-          ownerComment: attestation.comments ?? "",
-          ccroComment: attestation.ccroComments ?? "",
-        });
-      }
-    }
-
-    return items;
-  }, [controls, controlBusinessAreas, selectedYear, selectedMonth]);
-
   // ── Drill-down renders ───────────────────────────────────────────────────
 
   if (drillDown.type === "business-area") {
@@ -455,12 +440,11 @@ export default function ControlsDashboardTab() {
       {/* Summary stat cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <StatCard
-          icon={<Activity size={20} />}
-          value={summary.total}
-          label="Active Tests"
+          icon={<Library size={20} />}
+          value={controls.filter((c) => c.isActive).length}
+          label="Total Controls"
           accentClass="text-updraft-bright-purple"
-          onClick={() => setStatusFilter(null)}
-          active={statusFilter === null}
+          onClick={onNavigateToLibrary}
         />
         <StatCard
           icon={<CheckCircle2 size={20} />}
@@ -499,10 +483,11 @@ export default function ControlsDashboardTab() {
           active={statusFilter === "NOT_TESTED"}
         />
         <StatCard
-          icon={<ThumbsDown size={20} />}
-          value={ccroDisagreements.length}
-          label="CCRO Disagreements"
-          accentClass={ccroDisagreements.length > 0 ? "text-red-600" : "text-gray-500"}
+          icon={<CalendarClock size={20} />}
+          value={testedIn6Months.count}
+          label="Tested (6 Months)"
+          percentage={`${testedIn6Months.pct} of ${testedIn6Months.total} controls`}
+          accentClass="text-indigo-600"
         />
       </div>
 
@@ -660,64 +645,6 @@ export default function ControlsDashboardTab() {
         )}
       </div>
 
-      {/* CCRO Disagreements panel */}
-      {ccroDisagreements.length > 0 && (
-        <div className="bento-card p-5 border-l-4 border-l-red-400">
-          <h3 className="text-sm font-poppins font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <ThumbsDown size={16} className="text-red-500" />
-            CCRO Disagreements
-            <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
-              {ccroDisagreements.length}
-            </span>
-          </h3>
-          <div className="divide-y divide-gray-100">
-            {ccroDisagreements.map((item) => {
-              const entry = activeEntries.find(
-                (e) => e.controlId === item.controlId,
-              );
-              return (
-                <button
-                  key={item.controlId}
-                  onClick={() => {
-                    if (entry) {
-                      const areaName = entry.control?.businessArea?.name ?? "Dashboard";
-                      const areaId = entry.control?.businessAreaId;
-                      setDrillDown({
-                        type: "control",
-                        entryId: entry.id,
-                        backLabel: "Dashboard",
-                        backAreaId: areaId,
-                        backAreaName: areaName,
-                      });
-                    }
-                  }}
-                  className="w-full text-left py-3 first:pt-0 last:pb-0 hover:bg-gray-50 transition-colors rounded-lg px-2 -mx-2"
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-mono font-semibold text-gray-500">
-                      {item.controlRef}
-                    </span>
-                    <span className="text-sm text-gray-800">
-                      {item.controlName}
-                    </span>
-                    <span className="text-xs text-gray-400">&middot; {item.areaName}</span>
-                  </div>
-                  {item.ownerComment && (
-                    <div className="text-xs text-gray-500 mt-1">
-                      <span className="font-medium">Owner:</span> {item.ownerComment}
-                    </div>
-                  )}
-                  {item.ccroComment && (
-                    <div className="text-xs text-red-600 mt-0.5">
-                      <span className="font-medium">CCRO:</span> {item.ccroComment}
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Attention required panel */}
       <div className="bento-card p-5">

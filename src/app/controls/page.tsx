@@ -97,7 +97,7 @@ export default function ControlsPage() {
       </div>
 
       {/* Tab Content */}
-      {activeTab === "dashboard" && <ControlsDashboardTab />}
+      {activeTab === "dashboard" && <ControlsDashboardTab onNavigateToLibrary={() => setActiveTab("library")} />}
       {activeTab === "library" && <ControlsLibraryTab />}
       {activeTab === "attestation" && <AttestationTab />}
       {activeTab === "testing" && <TestingScheduleTab />}

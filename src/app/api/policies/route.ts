@@ -7,7 +7,7 @@ const POLICY_INCLUDE = {
   owner: true,
   regulatoryLinks: { include: { regulation: true }, orderBy: { linkedAt: "asc" as const } },
   controlLinks: { include: { control: { include: { businessArea: true, controlOwner: true, testingSchedule: { include: { testResults: true } } } } }, orderBy: { linkedAt: "asc" as const } },
-  obligations: { orderBy: { category: "asc" as const, reference: "asc" as const } },
+  obligations: { orderBy: [{ category: "asc" as const }, { reference: "asc" as const }] },
   auditTrail: { orderBy: { changedAt: "desc" as const } },
 };
 
