@@ -58,11 +58,20 @@ function parseCSV(csv: string): Record<string, string>[] {
 async function resolveOwnerId(row: Record<string, string>): Promise<string | null> {
   // Direct ownerId takes priority
   if (row.ownerId) return row.ownerId;
-  // Resolve by email
+  // Resolve by email (exact match)
   const email = row.ownerEmail;
   if (!email) return null;
   const user = await prisma.user.findFirst({ where: { email: { equals: email, mode: "insensitive" } } });
-  return user?.id ?? null;
+  if (user) return user.id;
+  // Fallback: match by name derived from the email prefix (e.g. rob@fairscore.com → "rob")
+  const namePart = email.split("@")[0];
+  if (namePart) {
+    const byName = await prisma.user.findFirst({
+      where: { name: { equals: namePart, mode: "insensitive" } },
+    });
+    if (byName) return byName.id;
+  }
+  return null;
 }
 
 /* ── Parse date string to Date or null ───────────────────────────────── */
@@ -95,7 +104,11 @@ export async function POST(request: NextRequest) {
         const row = rows[i];
         const ownerId = await resolveOwnerId(row);
         if (!row.name || !row.description || !ownerId) {
-          errors.push(`Row ${i + 1}: missing required fields (name, description, ownerId or ownerEmail)`);
+          const missing = [];
+          if (!row.name) missing.push("name");
+          if (!row.description) missing.push("description");
+          if (!ownerId) missing.push(`owner (email "${row.ownerEmail || ""}" not found)`);
+          errors.push(`Row ${i + 1}: missing ${missing.join(", ")}`);
           continue;
         }
         try {
