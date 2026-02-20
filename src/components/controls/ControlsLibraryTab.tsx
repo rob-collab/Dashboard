@@ -68,7 +68,7 @@ const EMPTY_FORM: ControlFormData = {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
-export default function ControlsLibraryTab() {
+export default function ControlsLibraryTab({ initialControlId }: { initialControlId?: string | null }) {
   const controls = useAppStore((s) => s.controls);
   const controlBusinessAreas = useAppStore((s) => s.controlBusinessAreas);
   const users = useAppStore((s) => s.users);
@@ -95,6 +95,11 @@ export default function ControlsLibraryTab() {
 
   // ── Detail modal state ──────────────────────────────────────
   const [selectedControlId, setSelectedControlId] = useState<string | null>(null);
+
+  // ── Deep-link: auto-select control from URL param ─────────
+  useEffect(() => {
+    if (initialControlId) setSelectedControlId(initialControlId);
+  }, [initialControlId]);
 
   // ── Filters ────────────────────────────────────────────────
   const [search, setSearch] = useState("");
@@ -411,7 +416,7 @@ export default function ControlsLibraryTab() {
       {/* ── Table ───────────────────────────────────────────── */}
       <div className="bento-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[1100px]">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/60">
                 <th className="px-4 py-3 text-left font-medium text-gray-500">

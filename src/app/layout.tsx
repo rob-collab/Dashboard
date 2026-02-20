@@ -8,6 +8,7 @@ import { SessionProvider, useSession } from "@/lib/auth";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { ScrollToTop } from "@/components/common/ScrollToTop";
+import NavigationBackButton from "@/components/common/NavigationBackButton";
 import { useAppStore } from "@/lib/store";
 import type { User } from "@/lib/types";
 
@@ -122,6 +123,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
           </ErrorBoundary>
         </main>
         <ScrollToTop />
+        <NavigationBackButton sidebarOpen={sidebarOpen} />
       </div>
       <Toaster position="top-right" richColors closeButton toastOptions={{ style: { zIndex: 99999 } }} style={{ zIndex: 99999 }} />
     </>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAppStore } from "@/lib/store";
 import { usePermissionSet } from "@/lib/usePermission";
 import { api } from "@/lib/api-client";
@@ -30,7 +30,7 @@ import CSVImportPanel from "@/components/policies/CSVImportPanel";
 type StatusFilter = "all" | PolicyStatus;
 type SortKey = "reference" | "name" | "version" | "status" | "owner" | "approvingBody" | "nextReviewDate" | "regulations";
 
-export default function PoliciesTab() {
+export default function PoliciesTab({ initialPolicyId }: { initialPolicyId?: string | null } = {}) {
   const policies = useAppStore((s) => s.policies);
   const setPolicies = useAppStore((s) => s.setPolicies);
   const users = useAppStore((s) => s.users);
@@ -46,6 +46,13 @@ export default function PoliciesTab() {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("reference");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  useEffect(() => {
+    if (initialPolicyId) {
+      const p = policies.find((p) => p.id === initialPolicyId);
+      if (p) setSelectedPolicy(p);
+    }
+  }, [initialPolicyId, policies]);
 
   // Summary stats
   const stats = useMemo(() => {
@@ -461,7 +468,7 @@ export default function PoliciesTab() {
 
       {/* Table */}
       <div className="bento-card overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm min-w-[900px]">
           <thead>
             <tr className="border-b border-gray-200">
               <th className="text-left py-2 px-3 font-medium text-gray-500 text-xs w-6" />
@@ -588,10 +595,10 @@ export default function PoliciesTab() {
                       {POLICY_STATUS_LABELS[p.status]}
                     </span>
                   </td>
-                  <td className="py-3 px-3 text-xs text-gray-600">
+                  <td className="py-3 px-3 text-xs text-gray-600 max-w-[140px] truncate">
                     {owner?.name ?? "\u2014"}
                   </td>
-                  <td className="py-3 px-3 text-xs text-gray-600">
+                  <td className="py-3 px-3 text-xs text-gray-600 max-w-[140px] truncate">
                     {p.approvingBody ?? "\u2014"}
                   </td>
                   <td className="py-3 px-3">

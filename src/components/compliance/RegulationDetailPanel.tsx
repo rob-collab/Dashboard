@@ -13,7 +13,8 @@ import {
   type Applicability,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { X, ExternalLink, Link2, ShieldCheck, FileText } from "lucide-react";
+import { X, ExternalLink, ShieldCheck, FileText } from "lucide-react";
+import EntityLink from "@/components/common/EntityLink";
 
 interface Props {
   regulation: Regulation;
@@ -57,7 +58,7 @@ export default function RegulationDetailPanel({ regulation, onClose }: Props) {
   };
 
   return (
-    <div className="w-[40%] min-w-[380px] border border-gray-200 rounded-lg bg-white shadow-lg overflow-y-auto max-h-[calc(100vh-200px)] sticky top-4">
+    <div className="w-[40%] min-w-[380px] max-w-[500px] border border-gray-200 rounded-lg bg-white shadow-lg overflow-y-auto max-h-[calc(100vh-200px)] sticky top-4">
       {/* Header */}
       <div className="flex items-start justify-between p-4 border-b border-gray-100">
         <div className="min-w-0">
@@ -198,9 +199,13 @@ export default function RegulationDetailPanel({ regulation, onClose }: Props) {
               {regulation.policyLinks.map((link) => {
                 const policy = policies.find((p) => p.id === link.policyId);
                 return (
-                  <div key={link.id || link.policyId} className="flex items-center gap-2 text-sm text-gray-700 bg-gray-50 rounded px-2 py-1.5">
-                    <Link2 size={12} className="text-gray-400 shrink-0" />
-                    <span className="flex-1 truncate">{policy?.reference ?? ""} — {policy?.name ?? "Unknown policy"}</span>
+                  <div key={link.id || link.policyId} className="flex items-center gap-2 bg-gray-50 rounded px-2 py-1.5">
+                    <EntityLink
+                      type="policy"
+                      id={link.policyId}
+                      reference={policy?.reference}
+                      label={policy?.name ?? "Unknown policy"}
+                    />
                   </div>
                 );
               })}
@@ -221,9 +226,13 @@ export default function RegulationDetailPanel({ regulation, onClose }: Props) {
               {regulation.controlLinks.map((link) => {
                 const control = controls.find((c) => c.id === link.controlId);
                 return (
-                  <div key={link.id || link.controlId} className="flex items-center gap-2 text-sm text-gray-700 bg-gray-50 rounded px-2 py-1.5">
-                    <Link2 size={12} className="text-gray-400 shrink-0" />
-                    <span className="flex-1 truncate">{control?.controlRef ?? ""} — {control?.controlName ?? "Unknown control"}</span>
+                  <div key={link.id || link.controlId} className="flex items-center gap-2 bg-gray-50 rounded px-2 py-1.5">
+                    <EntityLink
+                      type="control"
+                      id={link.controlId}
+                      reference={control?.controlRef}
+                      label={control?.controlName ?? "Unknown control"}
+                    />
                   </div>
                 );
               })}

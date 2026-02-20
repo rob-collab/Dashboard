@@ -15,6 +15,7 @@ import {
   TEST_RESULT_COLOURS,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import EntityLink from "@/components/common/EntityLink";
 import RegulationFormDialog from "./RegulationFormDialog";
 
 const BODY_COLOURS: Record<string, { bg: string; text: string; border: string }> = {
@@ -220,7 +221,9 @@ export default function PolicyRegulationsTab({ policy, onUpdate }: Props) {
                   {/* Compliance RAG dot */}
                   <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", cc?.dot ?? "bg-gray-300")} />
                   {isExpanded ? <ChevronDown size={14} className="text-gray-400 shrink-0" /> : <ChevronRight size={14} className="text-gray-400 shrink-0" />}
-                  <span className="font-mono text-xs font-bold text-updraft-deep w-24 shrink-0">{reg.reference}</span>
+                  <span className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <EntityLink type="regulation" id={reg.id} reference={reg.reference} />
+                  </span>
                   <span className="flex-1 text-xs text-gray-800 truncate">{reg.shortName ?? reg.name}</span>
                   <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border shrink-0", bc.bg, bc.text, bc.border)}>
                     {reg.body}
@@ -302,8 +305,7 @@ export default function PolicyRegulationsTab({ policy, onUpdate }: Props) {
                                 className="flex items-center gap-2.5 rounded-lg bg-white border border-gray-100 px-3 py-2"
                               >
                                 <span className={cn("w-2 h-2 rounded-full shrink-0", ragDot(latest?.result ?? null))} />
-                                <span className="font-mono text-xs font-bold text-updraft-deep w-20 shrink-0">{ctrl.controlRef}</span>
-                                <span className="flex-1 text-xs text-gray-700 truncate">{ctrl.controlName}</span>
+                                <EntityLink type="control" id={ctrl.id} reference={ctrl.controlRef} label={ctrl.controlName} />
                                 {latest && rc ? (
                                   <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium shrink-0", rc.bg, rc.text)}>
                                     {TEST_RESULT_LABELS[latest.result]}

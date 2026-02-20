@@ -22,9 +22,15 @@ type TabId = (typeof TABS)[number]["id"];
 export default function CompliancePage() {
   usePageTitle("Compliance");
   const searchParams = useSearchParams();
-  const initialTab = (searchParams.get("tab") as TabId) || "overview";
+  const initialPolicyId = searchParams.get("policy");
+  const initialRegulationId = searchParams.get("regulation");
+  const derivedTab: TabId = initialPolicyId
+    ? "policies"
+    : initialRegulationId
+    ? "regulatory-universe"
+    : (searchParams.get("tab") as TabId) || "overview";
   const [activeTab, setActiveTab] = useState<TabId>(
-    TABS.some((t) => t.id === initialTab) ? initialTab : "overview"
+    TABS.some((t) => t.id === derivedTab) ? derivedTab : "overview"
   );
 
   return (
@@ -58,9 +64,9 @@ export default function CompliancePage() {
 
         {/* Tab content */}
         {activeTab === "overview" && <ComplianceOverview onNavigate={setActiveTab} />}
-        {activeTab === "regulatory-universe" && <RegulatoryUniverseTab />}
+        {activeTab === "regulatory-universe" && <RegulatoryUniverseTab initialRegulationId={initialRegulationId} />}
         {activeTab === "smcr" && <SMCRTab />}
-        {activeTab === "policies" && <PoliciesTab />}
+        {activeTab === "policies" && <PoliciesTab initialPolicyId={initialPolicyId} />}
       </div>
     </RoleGuard>
   );

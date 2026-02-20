@@ -73,7 +73,7 @@ export default function PolicyDetailPanel({ policy, onClose, onUpdate }: Props) 
       <div className="fixed inset-0 z-40 bg-black/20" onClick={onClose} />
 
       {/* Panel */}
-      <div className="fixed right-0 top-0 z-50 h-screen w-full max-w-2xl bg-white shadow-xl border-l border-gray-200 flex flex-col animate-slide-in-right">
+      <div className="fixed right-0 top-0 z-50 h-screen w-full max-w-3xl bg-white shadow-xl border-l border-gray-200 flex flex-col animate-slide-in-right">
         {/* Gradient Header */}
         <div className="shrink-0 relative overflow-hidden bg-gradient-to-r from-updraft-deep to-updraft-bar px-6 py-5">
           {/* Decorative */}

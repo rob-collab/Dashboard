@@ -194,6 +194,8 @@ model User {
 
   // Permissions
   permissions  UserPermission[]
+  accessRequests      AccessRequest[] @relation("AccessRequester")
+  reviewedAccessReqs  AccessRequest[] @relation("AccessReviewer")
 
   // SM&CR Module
   smfRoles           SMFRole[]              @relation("SMFHolder")
@@ -1330,6 +1332,37 @@ model RiskControlLink {
   @@index([riskId])
   @@index([controlId])
   @@map("risk_control_links")
+}
+
+// ── Access Request System ─────────────────────────────────────────────────────
+
+enum AccessRequestStatus {
+  PENDING
+  APPROVED
+  DENIED
+  EXPIRED
+  CANCELLED
+}
+
+model AccessRequest {
+  id            String              @id @default(cuid())
+  requesterId   String
+  requester     User                @relation("AccessRequester", fields: [requesterId], references: [id])
+  permission    String
+  reason        String              @db.Text
+  status        AccessRequestStatus @default(PENDING)
+  reviewedById  String?
+  reviewedBy    User?               @relation("AccessReviewer", fields: [reviewedById], references: [id])
+  reviewedAt    DateTime?
+  reviewNote    String?             @db.Text
+  grantedUntil  DateTime?
+  durationHours Int                 @default(8)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  @@index([requesterId])
+  @@index([status])
+  @@map("access_requests")
 }
 
 model DashboardNotification {

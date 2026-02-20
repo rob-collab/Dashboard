@@ -1158,3 +1158,40 @@ export interface UserPermissionRecord {
   permission: string;
   granted: boolean;
 }
+
+// ── Access Requests ──────────────────────────────────────────────────────────
+
+export type AccessRequestStatus = "PENDING" | "APPROVED" | "DENIED" | "EXPIRED" | "CANCELLED";
+
+export interface AccessRequest {
+  id: string;
+  requesterId: string;
+  requester?: User;
+  permission: string;
+  reason: string;
+  status: AccessRequestStatus;
+  reviewedById: string | null;
+  reviewedBy?: User;
+  reviewedAt: string | null;
+  reviewNote: string | null;
+  grantedUntil: string | null;
+  durationHours: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const ACCESS_REQUEST_STATUS_LABELS: Record<AccessRequestStatus, string> = {
+  PENDING: "Pending",
+  APPROVED: "Approved",
+  DENIED: "Denied",
+  EXPIRED: "Expired",
+  CANCELLED: "Cancelled",
+};
+
+export const ACCESS_REQUEST_STATUS_COLOURS: Record<AccessRequestStatus, { bg: string; text: string }> = {
+  PENDING: { bg: "bg-amber-100", text: "text-amber-700" },
+  APPROVED: { bg: "bg-green-100", text: "text-green-700" },
+  DENIED: { bg: "bg-red-100", text: "text-red-700" },
+  EXPIRED: { bg: "bg-gray-100", text: "text-gray-600" },
+  CANCELLED: { bg: "bg-gray-100", text: "text-gray-500" },
+};

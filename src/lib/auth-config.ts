@@ -34,6 +34,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return true;
     },
     async jwt({ token, trigger }) {
+      // Stamp absolute sign-in time on initial login
+      if (trigger === "signIn") {
+        token.signedAt = Math.floor(Date.now() / 1000);
+      }
+
+      // Enforce absolute 8-hour expiry (prevents sliding-window JWT refresh)
+      if (token.signedAt) {
+        const elapsed = Math.floor(Date.now() / 1000) - token.signedAt;
+        if (elapsed > 8 * 60 * 60) {
+          return {} as Record<string, unknown>;
+        }
+      }
+
       // On initial sign-in or token refresh, look up DB user
       if (trigger === "signIn" || (token.email && !token.id)) {
         const dbUser = await prisma.user.findUnique({

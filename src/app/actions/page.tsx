@@ -40,6 +40,7 @@ import dynamic from "next/dynamic";
 
 const RichTextEditor = dynamic(() => import("@/components/common/RichTextEditor"), { ssr: false });
 import { usePageTitle } from "@/lib/usePageTitle";
+import RequestEditAccessButton from "@/components/common/RequestEditAccessButton";
 
 const STATUS_CONFIG: Record<ActionStatus, { label: string; color: string; bgColor: string; icon: typeof Circle }> = {
   OPEN: { label: "Open", color: "text-blue-600", bgColor: "bg-blue-100 text-blue-700", icon: Circle },
@@ -125,7 +126,7 @@ function ActionsPageContent() {
   // UI State
   const [showForm, setShowForm] = useState(prefillNewAction);
   const [editAction, setEditAction] = useState<Action | undefined>(undefined);
-  const [expandedId, setExpandedId] = useState<string | null>(() => searchParams.get("edit"));
+  const [expandedId, setExpandedId] = useState<string | null>(() => searchParams.get("action") || searchParams.get("edit"));
   const [showCSVImport, setShowCSVImport] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showUpdateForm, setShowUpdateForm] = useState<string | null>(null);
@@ -395,7 +396,7 @@ function ActionsPageContent() {
           </h1>
           <p className="text-sm text-gray-500 mt-1">Track and manage actions arising from reports</p>
         </div>
-        {isCCRO && (
+        {isCCRO ? (
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowCSVImport(true)}
@@ -416,6 +417,8 @@ function ActionsPageContent() {
               <Plus size={14} /> New Action
             </button>
           </div>
+        ) : (
+          <RequestEditAccessButton permission="edit:actions" />
         )}
       </div>
 

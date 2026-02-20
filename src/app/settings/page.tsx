@@ -9,6 +9,7 @@ import TemplatesPanel from "@/components/settings/TemplatesPanel";
 import ComponentsPanel from "@/components/settings/ComponentsPanel";
 import NotificationsEditor from "@/components/settings/NotificationsEditor";
 import RegulationManagementTab from "@/components/settings/RegulationManagementTab";
+import AccessRequestsPanel from "@/components/settings/AccessRequestsPanel";
 import { cn } from "@/lib/utils";
 import { usePageTitle } from "@/lib/usePageTitle";
 
@@ -20,6 +21,7 @@ const TABS = [
   { id: "templates", label: "Templates" },
   { id: "components", label: "Components" },
   { id: "regulations", label: "Regulations" },
+  { id: "access-requests", label: "Access Requests" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -69,6 +71,7 @@ export default function SettingsPage() {
         {activeTab === "templates" && <TemplatesPanel />}
         {activeTab === "components" && <ComponentsPanel />}
         {activeTab === "regulations" && <RegulationManagementTab />}
+        {activeTab === "access-requests" && <AccessRequestsPanel />}
       </div>
     </RoleGuard>
   );

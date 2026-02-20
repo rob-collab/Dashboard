@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAppStore } from "@/lib/store";
 import {
   APPLICABILITY_LABELS,
@@ -13,11 +13,12 @@ import {
 } from "@/lib/types";
 import { cn, naturalCompare } from "@/lib/utils";
 import { useHasPermission } from "@/lib/usePermission";
+import RequestEditAccessButton from "@/components/common/RequestEditAccessButton";
 import RegulationDetailPanel from "./RegulationDetailPanel";
 import RegulationCSVDialog from "./RegulationCSVDialog";
 import { ChevronRight, ChevronDown, Search, X, Download, Upload } from "lucide-react";
 
-export default function RegulatoryUniverseTab() {
+export default function RegulatoryUniverseTab({ initialRegulationId }: { initialRegulationId?: string | null } = {}) {
   const regulations = useAppStore((s) => s.regulations);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ComplianceStatus | "">("");
@@ -28,6 +29,10 @@ export default function RegulatoryUniverseTab() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
   const canEditCompliance = useHasPermission("edit:compliance");
+
+  useEffect(() => {
+    if (initialRegulationId) setSelectedId(initialRegulationId);
+  }, [initialRegulationId]);
 
   // Build hierarchy
   const tree = useMemo(() => {
@@ -154,7 +159,7 @@ export default function RegulatoryUniverseTab() {
   return (
     <div className="flex gap-6">
       {/* Main table area */}
-      <div className={cn("flex-1 min-w-0", selectedReg && "max-w-[60%]")}>
+      <div className={cn("min-w-0 flex-1", selectedReg && "max-w-[60%]")}>
         {/* Filters */}
         <div className="flex flex-wrap gap-3 mb-4 items-center">
           <div className="relative flex-1 min-w-[200px]">
@@ -213,7 +218,7 @@ export default function RegulatoryUniverseTab() {
               <Download size={13} />
               Download CSV
             </button>
-            {canEditCompliance && (
+            {canEditCompliance ? (
               <button
                 onClick={() => setCsvDialogOpen(true)}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-bright-purple px-3 py-1.5 text-xs font-semibold text-white hover:bg-updraft-deep transition-colors"
@@ -221,6 +226,8 @@ export default function RegulatoryUniverseTab() {
                 <Upload size={13} />
                 Upload CSV
               </button>
+            ) : (
+              <RequestEditAccessButton permission="edit:compliance" />
             )}
           </div>
         </div>

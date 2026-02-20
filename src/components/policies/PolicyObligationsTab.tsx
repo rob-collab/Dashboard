@@ -26,6 +26,7 @@ import {
   type ComplianceStatus,
 } from "@/lib/types";
 import { cn, formatDateShort } from "@/lib/utils";
+import EntityLink from "@/components/common/EntityLink";
 import ObligationFormDialog from "./ObligationFormDialog";
 import RequirementsCSVUploadDialog from "./RequirementsCSVUploadDialog";
 
@@ -101,9 +102,8 @@ function RegulationsList({ refs, regByRef }: { refs: string[]; regByRef: Map<str
           return (
             <div key={reg.id} className="flex items-center gap-2 rounded-lg border border-gray-100 bg-white px-3 py-2">
               <div className={cn("w-2 h-2 rounded-full shrink-0", statusStyle.dot)} />
-              <span className="font-mono text-[10px] font-bold text-updraft-deep shrink-0">{reg.reference}</span>
-              <span className="text-xs text-gray-700 truncate flex-1">{reg.shortName ?? reg.name}</span>
-              <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", statusStyle.bg, statusStyle.text)}>
+              <EntityLink type="regulation" id={reg.id} reference={reg.reference} label={reg.shortName ?? reg.name} />
+              <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium shrink-0", statusStyle.bg, statusStyle.text)}>
                 {COMPLIANCE_STATUS_LABELS[status]}
               </span>
               {reg.url && (
@@ -146,9 +146,8 @@ function ControlsList({ refs, ctrlByRef }: { refs: string[]; ctrlByRef: Map<stri
             <div key={ctrl.id} className="rounded-lg border border-gray-100 bg-white px-3 py-2">
               <div className="flex items-center gap-2">
                 <div className={cn("w-2 h-2 rounded-full shrink-0", effStyle.dot)} />
-                <span className="font-mono text-[10px] font-bold text-updraft-deep shrink-0">{ctrl.controlRef}</span>
-                <span className="text-xs text-gray-700 truncate flex-1">{ctrl.controlName}</span>
-                <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", effStyle.bg, effStyle.text)}>
+                <EntityLink type="control" id={ctrl.id} reference={ctrl.controlRef} label={ctrl.controlName} />
+                <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0", effStyle.bg, effStyle.text)}>
                   {effectiveness}
                 </span>
               </div>

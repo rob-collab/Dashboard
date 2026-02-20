@@ -57,7 +57,13 @@ export default function RiskAcceptancesPage() {
         router.replace("/risk-acceptances");
       }
     }
-  }, [searchParams, router]);
+    // Deep-link to specific acceptance
+    const acceptanceId = searchParams.get("acceptance");
+    if (acceptanceId) {
+      const ra = riskAcceptances.find((r) => r.id === acceptanceId);
+      if (ra) setSelectedAcceptance(ra);
+    }
+  }, [searchParams, router, riskAcceptances]);
   const [selectedAcceptance, setSelectedAcceptance] = useState<RiskAcceptance | null>(null);
   const [tab, setTab] = useState<TabKey>("all");
   const [statusFilter, setStatusFilter] = useState<RiskAcceptanceStatus | "">("");

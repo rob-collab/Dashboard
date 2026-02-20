@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry, RiskAcceptance, Policy, Regulation, DashboardNotification, Role, RiskControlLink, SMFRole, PrescribedResponsibility, CertificationFunction, CertifiedPerson, ConductRule, ConductRuleBreach, SMCRDocument, ComplianceStatus } from "./types";
+import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry, RiskAcceptance, Policy, Regulation, DashboardNotification, Role, RiskControlLink, SMFRole, PrescribedResponsibility, CertificationFunction, CertifiedPerson, ConductRule, ConductRuleBreach, SMCRDocument, ComplianceStatus, AccessRequest } from "./types";
 import { api } from "./api-client";
 
 interface AppState {
@@ -196,6 +196,12 @@ interface AppState {
   linkRegulationToControl: (regulationId: string, controlId: string, linkedBy: string, notes?: string) => void;
   unlinkRegulationFromControl: (regulationId: string, controlId: string) => void;
 
+  // Access Requests
+  accessRequests: AccessRequest[];
+  setAccessRequests: (items: AccessRequest[]) => void;
+  addAccessRequest: (item: AccessRequest) => void;
+  updateAccessRequest: (id: string, data: Partial<AccessRequest>) => void;
+
   // UI State
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
@@ -203,6 +209,12 @@ interface AppState {
   setSelectedSectionId: (id: string | null) => void;
   propertiesPanelOpen: boolean;
   setPropertiesPanelOpen: (open: boolean) => void;
+
+  // Navigation back-stack (for cross-entity click-through)
+  navigationStack: string[];
+  pushNavigationStack: (url: string) => void;
+  popNavigationStack: () => string | undefined;
+  clearNavigationStack: () => void;
 }
 
 /**
@@ -240,13 +252,13 @@ function sync(fn: () => Promise<unknown>, options?: { maxRetries?: number }): vo
   execute();
 }
 
-export const useAppStore = create<AppState>((set) => ({
+export const useAppStore = create<AppState>((set, get) => ({
   // ── Hydration ──────────────────────────────────────────────
   _hydrated: false,
   _hydrateError: null,
   hydrate: async () => {
     try {
-      const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, permissionsData, smfRoles, prescribedResponsibilities, certificationFunctions, conductRules, conductRuleBreaches, smcrDocuments] = await Promise.all([
+      const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, permissionsData, smfRoles, prescribedResponsibilities, certificationFunctions, conductRules, conductRuleBreaches, smcrDocuments, accessRequests] = await Promise.all([
         api<User[]>("/api/users"),
         api<Report[]>("/api/reports"),
         api<ConsumerDutyOutcome[]>("/api/consumer-duty"),
@@ -272,10 +284,13 @@ export const useAppStore = create<AppState>((set) => ({
         api<ConductRule[]>("/api/compliance/smcr/conduct-rules").catch(() => []),
         api<ConductRuleBreach[]>("/api/compliance/smcr/breaches").catch(() => []),
         api<SMCRDocument[]>("/api/compliance/smcr/documents").catch(() => []),
+        api<AccessRequest[]>("/api/access-requests").catch(() => []),
       ]);
       // Extract certified persons from nested certification functions response
       const allCertifiedPersons = certificationFunctions.flatMap((cf: CertificationFunction & { certifiedPersons?: CertifiedPerson[] }) => cf.certifiedPersons ?? []);
-      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, rolePermissions: permissionsData.rolePermissions, userPermissions: permissionsData.userPermissions, smfRoles, prescribedResponsibilities, certificationFunctions, certifiedPersons: allCertifiedPersons, conductRules, conductRuleBreaches, smcrDocuments, _hydrated: true, _hydrateError: null });
+      // Fire-and-forget: expire any access grants that have lapsed
+      api("/api/access-requests/expiry-check", { method: "POST" }).catch(() => {});
+      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, rolePermissions: permissionsData.rolePermissions, userPermissions: permissionsData.userPermissions, smfRoles, prescribedResponsibilities, certificationFunctions, certifiedPersons: allCertifiedPersons, conductRules, conductRuleBreaches, smcrDocuments, accessRequests, _hydrated: true, _hydrateError: null });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to connect to server";
       console.error("[hydrate] API unreachable:", message);
@@ -867,6 +882,15 @@ export const useAppStore = create<AppState>((set) => ({
     sync(() => api(`/api/compliance/regulations/${regulationId}/control-links`, { method: "DELETE", body: { controlId } }));
   },
 
+  // ── Access Requests ──────────────────────────────────────────
+  accessRequests: [],
+  setAccessRequests: (items) => set({ accessRequests: items }),
+  addAccessRequest: (item) => set((s) => ({ accessRequests: [item, ...s.accessRequests] })),
+  updateAccessRequest: (id, data) =>
+    set((s) => ({
+      accessRequests: s.accessRequests.map((r) => (r.id === id ? { ...r, ...data } : r)),
+    })),
+
   // ── UI State ───────────────────────────────────────────────
   sidebarOpen: true,
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
@@ -874,4 +898,17 @@ export const useAppStore = create<AppState>((set) => ({
   setSelectedSectionId: (id) => set({ selectedSectionId: id }),
   propertiesPanelOpen: false,
   setPropertiesPanelOpen: (open) => set({ propertiesPanelOpen: open }),
+
+  // Navigation back-stack
+  navigationStack: [],
+  pushNavigationStack: (url) =>
+    set((s) => ({ navigationStack: [...s.navigationStack, url] })),
+  popNavigationStack: () => {
+    const stack = get().navigationStack;
+    if (stack.length === 0) return undefined;
+    const url = stack[stack.length - 1];
+    set({ navigationStack: stack.slice(0, -1) });
+    return url;
+  },
+  clearNavigationStack: () => set({ navigationStack: [] }),
 }));

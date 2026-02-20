@@ -33,6 +33,16 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Belt-and-braces: enforce absolute 8-hour expiry at the edge
+  if (token.signedAt) {
+    const elapsed = Math.floor(Date.now() / 1000) - (token.signedAt as number);
+    if (elapsed > 8 * 60 * 60) {
+      const loginUrl = new URL("/login", req.url);
+      loginUrl.searchParams.set("reason", "session_expired");
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
   // Inject verified user identity from JWT into request headers.
   // API routes should trust X-Verified-User-Id over client-supplied headers.
   // Prefer token.id (custom claim — always the DB user ID) over token.sub

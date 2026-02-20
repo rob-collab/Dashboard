@@ -12,8 +12,9 @@ import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
 import type { Policy, PolicyControlLink, ControlRecord, TestResultValue, ControlTestResult } from "@/lib/types";
-import { TEST_RESULT_COLOURS, TEST_RESULT_LABELS, CONTROL_FREQUENCY_LABELS, REGULATION_TYPE_COLOURS } from "@/lib/types";
+import { TEST_RESULT_COLOURS, TEST_RESULT_LABELS, CONTROL_FREQUENCY_LABELS } from "@/lib/types";
 import { cn, formatDate } from "@/lib/utils";
+import EntityLink from "@/components/common/EntityLink";
 
 const DONUT_COLOURS: Record<string, string> = {
   Pass: "#22c55e",
@@ -298,7 +299,9 @@ export default function PolicyControlsTab({ policy, onUpdate }: Props) {
                   {/* RAG dot */}
                   <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", ragDot(latest?.result ?? null))} />
                   {isExpanded ? <ChevronDown size={14} className="text-gray-400 shrink-0" /> : <ChevronRight size={14} className="text-gray-400 shrink-0" />}
-                  <span className="font-mono text-xs font-bold text-updraft-deep w-20 shrink-0">{ctrl.controlRef}</span>
+                  <span className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <EntityLink type="control" id={ctrl.id} reference={ctrl.controlRef} />
+                  </span>
                   {/* Name + regulation count */}
                   <div className="flex-1 min-w-0">
                     <span className="text-xs text-gray-800 truncate block">{ctrl.controlName}</span>
@@ -380,23 +383,15 @@ export default function PolicyControlsTab({ policy, onUpdate }: Props) {
                       <div className="rounded-lg bg-white border border-gray-100 p-2.5">
                         <span className="text-gray-400 block text-[10px] uppercase font-semibold mb-1.5">Regulations Addressed</span>
                         <div className="flex flex-wrap gap-1.5">
-                          {ctrlRegs.map((reg) => {
-                            const regTypeColour = reg.type && REGULATION_TYPE_COLOURS[reg.type as keyof typeof REGULATION_TYPE_COLOURS];
-                            return (
-                              <span
-                                key={reg.id}
-                                className={cn(
-                                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                                  regTypeColour ? regTypeColour.bg : "bg-gray-100",
-                                  regTypeColour ? regTypeColour.text : "text-gray-600",
-                                )}
-                                title={reg.name}
-                              >
-                                <span className="font-mono">{reg.reference}</span>
-                                <span className="font-normal truncate max-w-[140px]">{reg.name}</span>
-                              </span>
-                            );
-                          })}
+                          {ctrlRegs.map((reg) => (
+                            <EntityLink
+                              key={reg.id}
+                              type="regulation"
+                              id={reg.id}
+                              reference={reg.reference}
+                              label={reg.name}
+                            />
+                          ))}
                         </div>
                       </div>
                     )}

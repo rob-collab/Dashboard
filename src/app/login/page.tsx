@@ -8,6 +8,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const error = searchParams.get("error");
+  const reason = searchParams.get("reason");
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-updraft-deep via-updraft-bar to-updraft-bright-purple">
@@ -25,6 +26,12 @@ function LoginForm() {
             Sign in to continue
           </p>
         </div>
+
+        {reason === "session_expired" && (
+          <div className="mb-4 rounded-lg bg-blue-50 p-3 text-center text-sm text-blue-700">
+            Your session has expired. Please sign in again.
+          </div>
+        )}
 
         {error && (
           <div className="mb-4 rounded-lg bg-red-50 p-3 text-center text-sm text-red-600">

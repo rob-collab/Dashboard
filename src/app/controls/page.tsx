@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import {
   Library,
@@ -48,9 +49,25 @@ const TABS: { id: Tab; label: string; icon: typeof Library; roles: string[] }[] 
 ];
 
 export default function ControlsPage() {
+  return (
+    <Suspense>
+      <ControlsPageInner />
+    </Suspense>
+  );
+}
+
+function ControlsPageInner() {
   usePageTitle("Controls Testing");
+  const searchParams = useSearchParams();
   const currentUser = useAppStore((s) => s.currentUser);
-  const [activeTab, setActiveTab] = useState<Tab>("dashboard");
+
+  const tabParam = searchParams.get("tab") as Tab | null;
+  const initialControlId = searchParams.get("control");
+  const [activeTab, setActiveTab] = useState<Tab>(
+    tabParam && ["library", "testing", "results", "dashboard", "attestation", "summaries", "trends", "exco-config", "exco-dashboard"].includes(tabParam)
+      ? tabParam
+      : "dashboard"
+  );
 
   if (!currentUser) return null;
 
@@ -98,7 +115,7 @@ export default function ControlsPage() {
 
       {/* Tab Content */}
       {activeTab === "dashboard" && <ControlsDashboardTab onNavigateToLibrary={() => setActiveTab("library")} />}
-      {activeTab === "library" && <ControlsLibraryTab />}
+      {activeTab === "library" && <ControlsLibraryTab initialControlId={initialControlId} />}
       {activeTab === "attestation" && <AttestationTab />}
       {activeTab === "testing" && <TestingScheduleTab />}
       {activeTab === "results" && <TestResultsEntryTab />}

@@ -19,6 +19,8 @@ import { X, Plus, Trash2, AlertTriangle, ChevronRight, ChevronDown, History, Lin
 import { toast } from "sonner";
 import { api } from "@/lib/api-client";
 import { useHasPermission } from "@/lib/usePermission";
+import EntityLink from "@/components/common/EntityLink";
+import RequestEditAccessButton from "@/components/common/RequestEditAccessButton";
 
 interface RiskDetailPanelProps {
   risk: Risk | null;
@@ -244,6 +246,9 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
             )}
           </div>
           <div className="flex items-center gap-1">
+            {!canEditRisk && !isNew && (
+              <RequestEditAccessButton permission="edit:risks" />
+            )}
             {risk && !isNew && onViewHistory && (
               <button
                 onClick={() => onViewHistory(risk)}
@@ -477,13 +482,12 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                         <span className="font-mono text-[10px] font-bold text-updraft-deep bg-updraft-pale-purple/30 px-1.5 py-0.5 rounded shrink-0">
                           {link.control?.controlRef ?? "CTRL"}
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => router.push(`/controls?control=${link.controlId}`)}
-                          className="text-xs text-gray-700 hover:text-updraft-bright-purple truncate flex-1 text-left transition-colors"
-                        >
-                          {link.control?.controlName ?? "Control"}
-                        </button>
+                        <EntityLink
+                          type="control"
+                          id={link.controlId}
+                          reference={link.control?.controlRef ?? "CTRL"}
+                          label={link.control?.controlName ?? "Control"}
+                        />
                         {link.control?.businessArea?.name && (
                           <span className="text-[10px] text-gray-400 shrink-0">{link.control.businessArea.name}</span>
                         )}
@@ -798,20 +802,20 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                     {relatedAcceptances.map((ra) => {
                       const sc = RISK_ACCEPTANCE_STATUS_COLOURS[ra.status];
                       return (
-                        <button
+                        <div
                           key={ra.id}
-                          type="button"
-                          onClick={() => router.push("/risk-acceptances")}
-                          className="w-full flex items-center justify-between rounded-lg bg-gray-50 p-2 text-xs hover:bg-gray-100 transition-colors"
+                          className="flex items-center justify-between rounded-lg bg-gray-50 p-2 text-xs"
                         >
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-bold text-updraft-deep">{ra.reference}</span>
-                            <span className="text-gray-600 truncate max-w-[200px]">{ra.title}</span>
-                          </div>
+                          <EntityLink
+                            type="risk-acceptance"
+                            id={ra.id}
+                            reference={ra.reference}
+                            label={ra.title}
+                          />
                           <span className={`px-1.5 py-0.5 rounded-full font-medium ${sc.bg} ${sc.text}`}>
                             {RISK_ACCEPTANCE_STATUS_LABELS[ra.status]}
                           </span>
-                        </button>
+                        </div>
                       );
                     })}
                   </div>

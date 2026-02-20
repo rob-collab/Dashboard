@@ -35,6 +35,8 @@ import {
 } from "lucide-react";
 import { cn, formatDateShort } from "@/lib/utils";
 import ScoreBadge from "@/components/risk-register/ScoreBadge";
+import EntityLink from "@/components/common/EntityLink";
+import RequestEditAccessButton from "@/components/common/RequestEditAccessButton";
 
 interface ControlDetailModalProps {
   controlId: string | null;
@@ -233,6 +235,9 @@ export default function ControlDetailModal({
             </button>
           )}
           {!isCCRO && control && (
+            <RequestEditAccessButton permission="edit:controls" />
+          )}
+          {!isCCRO && control && (
             <button
               onClick={() => setSuggestFormOpen(!suggestFormOpen)}
               className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colors"
@@ -262,37 +267,6 @@ export default function ControlDetailModal({
               <span className="inline-block rounded-full bg-updraft-pale-purple px-3 py-0.5 text-xs font-semibold text-updraft-deep">
                 {CONTROL_TYPE_LABELS[control.controlType as ControlType]}
               </span>
-            </div>
-          )}
-
-          {/* ── Change History Banner ── */}
-          {changes.length > 0 && (
-            <div className="rounded-lg border border-gray-200 overflow-hidden">
-              <button
-                onClick={() => setChangesExpanded(!changesExpanded)}
-                className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
-              >
-                <div className="flex items-center gap-2">
-                  {changesExpanded ? <ChevronDown size={16} className="text-gray-500" /> : <ChevronRight size={16} className="text-gray-500" />}
-                  <span className="text-sm font-medium text-gray-700">Change History</span>
-                  {pendingCount > 0 && (
-                    <span className="inline-flex items-center justify-center rounded-full bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 min-w-[20px]">
-                      {pendingCount}
-                    </span>
-                  )}
-                </div>
-                <span className="text-xs text-gray-400">{changes.length} total</span>
-              </button>
-              {changesExpanded && (
-                <div className="p-3 border-t border-gray-100">
-                  <ControlChangePanel
-                    changes={changes}
-                    isCCRO={isCCRO}
-                    onApprove={handleApproveChange}
-                    onReject={handleRejectChange}
-                  />
-                </div>
-              )}
             </div>
           )}
 
@@ -435,17 +409,13 @@ export default function ControlDetailModal({
               </h4>
               <div className="space-y-1.5">
                 {control.riskLinks!.map((link) => (
-                  <a
-                    key={link.id}
-                    href={`/risk-register?risk=${link.riskId}`}
-                    className="flex items-center gap-3 p-2 rounded-lg bg-gray-50 hover:bg-updraft-pale-purple/20 transition-colors"
-                  >
-                    <span className="font-mono text-[10px] font-bold text-updraft-deep bg-updraft-pale-purple/30 px-1.5 py-0.5 rounded shrink-0">
-                      {link.risk?.reference ?? "Risk"}
-                    </span>
-                    <span className="text-xs text-gray-700 truncate flex-1 min-w-0">
-                      {link.risk?.name ?? "Unknown Risk"}
-                    </span>
+                  <div key={link.id} className="flex items-center gap-3 p-2 rounded-lg bg-gray-50">
+                    <EntityLink
+                      type="risk"
+                      id={link.riskId}
+                      reference={link.risk?.reference ?? "Risk"}
+                      label={link.risk?.name ?? "Unknown Risk"}
+                    />
                     {link.risk && (
                       <ScoreBadge
                         likelihood={link.risk.residualLikelihood ?? 1}
@@ -453,7 +423,7 @@ export default function ControlDetailModal({
                         size="sm"
                       />
                     )}
-                  </a>
+                  </div>
                 ))}
               </div>
             </div>
@@ -473,18 +443,14 @@ export default function ControlDetailModal({
                 </h4>
                 <div className="space-y-1.5">
                   {linkedPolicies.map((p) => (
-                    <a
-                      key={p.id}
-                      href={`/compliance?tab=policies`}
-                      className="flex items-center gap-3 p-2 rounded-lg bg-gray-50 hover:bg-blue-50/40 transition-colors"
-                    >
-                      <span className="font-mono text-[10px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded shrink-0">
-                        {p.reference}
-                      </span>
-                      <span className="text-xs text-gray-700 truncate flex-1 min-w-0">
-                        {p.name}
-                      </span>
-                    </a>
+                    <div key={p.id} className="flex items-center gap-3 p-2 rounded-lg bg-gray-50">
+                      <EntityLink
+                        type="policy"
+                        id={p.id}
+                        reference={p.reference}
+                        label={p.name}
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -501,18 +467,14 @@ export default function ControlDetailModal({
               </h4>
               <div className="space-y-1.5">
                 {control.regulationLinks!.map((link: RegulationControlLink) => (
-                  <a
-                    key={link.id}
-                    href={`/compliance?tab=regulatory-universe`}
-                    className="flex items-center gap-3 p-2 rounded-lg bg-gray-50 hover:bg-green-50/40 transition-colors"
-                  >
-                    <span className="font-mono text-[10px] font-bold text-green-700 bg-green-50 px-1.5 py-0.5 rounded shrink-0">
-                      {link.regulation?.reference ?? "Reg"}
-                    </span>
-                    <span className="text-xs text-gray-700 truncate flex-1 min-w-0">
-                      {link.regulation?.name ?? "Unknown Regulation"}
-                    </span>
-                  </a>
+                  <div key={link.id} className="flex items-center gap-3 p-2 rounded-lg bg-gray-50">
+                    <EntityLink
+                      type="regulation"
+                      id={link.regulationId}
+                      reference={link.regulation?.reference ?? "Reg"}
+                      label={link.regulation?.name ?? "Unknown Regulation"}
+                    />
+                  </div>
                 ))}
               </div>
             </div>
@@ -609,7 +571,7 @@ export default function ControlDetailModal({
                       <tr
                         key={action.id}
                         className="hover:bg-gray-50/50 transition-colors cursor-pointer"
-                        onClick={() => window.location.href = `/actions?highlight=${action.id}`}
+                        onClick={() => window.location.href = `/actions?action=${action.id}`}
                       >
                         <td className="py-2 pr-3 font-mono font-medium text-updraft-deep whitespace-nowrap">
                           {action.reference}
@@ -658,6 +620,37 @@ export default function ControlDetailModal({
               </div>
             )}
           </div>
+
+          {/* ── Change History Banner (at bottom) ── */}
+          {changes.length > 0 && (
+            <div className="rounded-lg border border-gray-200 overflow-hidden">
+              <button
+                onClick={() => setChangesExpanded(!changesExpanded)}
+                className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+              >
+                <div className="flex items-center gap-2">
+                  {changesExpanded ? <ChevronDown size={16} className="text-gray-500" /> : <ChevronRight size={16} className="text-gray-500" />}
+                  <span className="text-sm font-medium text-gray-700">Change History</span>
+                  {pendingCount > 0 && (
+                    <span className="inline-flex items-center justify-center rounded-full bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 min-w-[20px]">
+                      {pendingCount}
+                    </span>
+                  )}
+                </div>
+                <span className="text-xs text-gray-400">{changes.length} total</span>
+              </button>
+              {changesExpanded && (
+                <div className="p-3 border-t border-gray-100">
+                  <ControlChangePanel
+                    changes={changes}
+                    isCCRO={isCCRO}
+                    onApprove={handleApproveChange}
+                    onReject={handleRejectChange}
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       ) : (
         <div className="py-12 text-center text-gray-400">Control not found</div>

@@ -17,6 +17,7 @@ import RoleGuard from "@/components/common/RoleGuard";
 import { cn, formatDate } from "@/lib/utils";
 import type { Role } from "@/lib/types";
 import { usePageTitle } from "@/lib/usePageTitle";
+import { getEntityUrl, type NavigableEntity } from "@/lib/navigation";
 
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {
   create_report: { label: "Create Report", color: "bg-green-100 text-green-700" },
@@ -51,17 +52,26 @@ function actionBadge(action: string) {
   return config;
 }
 
-// Map entity types to navigable routes
+// Entity types that can be resolved via the navigation module
+const NAVIGABLE_ENTITY_TYPES = new Set<string>([
+  "policy", "control", "regulation", "risk", "action", "risk-acceptance",
+]);
+
+// Map entity types to navigable routes — uses getEntityUrl for deep-linking
 function getEntityLink(entityType: string, entityId: string | null, reportId: string | null): string | null {
   if (reportId) return `/reports/${reportId}`;
   if (!entityId) return null;
+
+  // Use the navigation module for entities it knows about (deep-links with query params)
+  if (NAVIGABLE_ENTITY_TYPES.has(entityType)) {
+    return getEntityUrl(entityType as NavigableEntity, entityId);
+  }
+
+  // Fallback for entity types not in the navigation module
   switch (entityType) {
     case "report": return `/reports/${entityId}`;
-    case "action": return `/actions?highlight=${entityId}`;
-    case "risk": return `/risk-register`;
     case "template": return `/settings`;
     case "component": return `/settings`;
-    case "control": return `/controls`;
     case "user": return `/users`;
     default: return null;
   }
