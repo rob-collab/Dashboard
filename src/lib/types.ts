@@ -1200,9 +1200,10 @@ export const ACCESS_REQUEST_STATUS_COLOURS: Record<AccessRequestStatus, { bg: st
 
 export interface DashboardLayoutConfig {
   id: string;
+  userId: string;
   sectionOrder: string[];
   hiddenSections: string[];
   configuredById: string | null;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: string | null;
+  updatedAt: string | null;
 }

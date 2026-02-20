@@ -193,7 +193,8 @@ model User {
   createdNotifications DashboardNotification[] @relation("NotificationCreator")
 
   // Dashboard Layout
-  dashboardLayouts DashboardLayout[] @relation("DashboardLayoutConfiguredBy")
+  dashboardLayoutsFor     DashboardLayout[] @relation("DashboardLayoutForUser")
+  dashboardLayoutsSetBy   DashboardLayout[] @relation("DashboardLayoutConfiguredBy")
 
   // Permissions
   permissions  UserPermission[]
@@ -1383,10 +1384,12 @@ model DashboardNotification {
   @@map("dashboard_notifications")
 }
 
-// ── Dashboard Layout (singleton — CCRO configures section order/visibility) ──
+// ── Dashboard Layout (per-user — CCRO configures section order/visibility per named user) ──
 
 model DashboardLayout {
-  id             String   @id @default("singleton")
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation("DashboardLayoutForUser", fields: [userId], references: [id])
   sectionOrder   Json     // string[] of section keys
   hiddenSections Json     @default("[]") // string[] of hidden keys
   configuredById String

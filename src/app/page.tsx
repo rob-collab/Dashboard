@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   FileText,
@@ -29,6 +29,9 @@ import {
   RotateCcw,
   Save,
   X,
+  ChevronDown,
+  Copy,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAppStore } from "@/lib/store";
@@ -384,11 +387,30 @@ export default function DashboardHome() {
   const dashboardLayout = useAppStore((s) => s.dashboardLayout);
   const setDashboardLayout = useAppStore((s) => s.setDashboardLayout);
 
+  // Re-fetch layout when "View As" user changes
+  const prevUserIdRef = useRef(currentUser?.id);
+  useEffect(() => {
+    if (!currentUser?.id || currentUser.id === prevUserIdRef.current) return;
+    prevUserIdRef.current = currentUser.id;
+    // Fetch the layout for the newly selected "View As" user
+    api<DashboardLayoutConfig>("/api/dashboard-layout")
+      .then((layout) => setDashboardLayout(layout))
+      .catch(() => {}); // graceful fallback — defaults remain
+  }, [currentUser?.id, setDashboardLayout]);
+
   // Edit mode state
   const [editMode, setEditMode] = useState(false);
   const [editOrder, setEditOrder] = useState<string[]>(DEFAULT_SECTION_ORDER);
   const [editHidden, setEditHidden] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
+
+  // Per-user editing: which user's layout is being configured
+  const [editTargetUserId, setEditTargetUserId] = useState<string>("");
+  const [userSelectorOpen, setUserSelectorOpen] = useState(false);
+  const [copyFromOpen, setCopyFromOpen] = useState(false);
+  const [loadingTargetLayout, setLoadingTargetLayout] = useState(false);
+
+  const editTargetUser = users.find((u) => u.id === editTargetUserId);
 
   // Effective order for rendering (from DB layout or default)
   const effectiveOrder = useMemo(() => {
@@ -408,7 +430,29 @@ export default function DashboardHome() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  // Fetch a specific user's layout and load into the editor
+  const fetchAndLoadUserLayout = useCallback(async (userId: string) => {
+    setLoadingTargetLayout(true);
+    try {
+      const layout = await api<DashboardLayoutConfig>(`/api/dashboard-layout?userId=${userId}`);
+      const order = [...(layout.sectionOrder ?? DEFAULT_SECTION_ORDER)];
+      for (const key of DEFAULT_SECTION_ORDER) {
+        if (!order.includes(key)) order.push(key);
+      }
+      setEditOrder(order);
+      setEditHidden(new Set(layout.hiddenSections ?? []));
+    } catch {
+      // Fallback to defaults
+      setEditOrder([...DEFAULT_SECTION_ORDER]);
+      setEditHidden(new Set());
+    } finally {
+      setLoadingTargetLayout(false);
+    }
+  }, []);
+
   function enterEditMode() {
+    const targetId = currentUser?.id ?? "";
+    setEditTargetUserId(targetId);
     setEditOrder([...effectiveOrder.order]);
     setEditHidden(new Set(effectiveOrder.hidden));
     setEditMode(true);
@@ -416,6 +460,8 @@ export default function DashboardHome() {
 
   function cancelEditMode() {
     setEditMode(false);
+    setUserSelectorOpen(false);
+    setCopyFromOpen(false);
   }
 
   function resetToDefault() {
@@ -423,16 +469,37 @@ export default function DashboardHome() {
     setEditHidden(new Set());
   }
 
+  async function handleSelectEditTarget(userId: string) {
+    setEditTargetUserId(userId);
+    setUserSelectorOpen(false);
+    await fetchAndLoadUserLayout(userId);
+  }
+
+  async function handleCopyFrom(sourceUserId: string) {
+    setCopyFromOpen(false);
+    await fetchAndLoadUserLayout(sourceUserId);
+    toast.success(`Copied layout from ${users.find((u) => u.id === sourceUserId)?.name ?? "user"}`);
+  }
+
   async function saveLayout() {
+    if (!editTargetUserId) {
+      toast.error("No target user selected");
+      return;
+    }
     setSaving(true);
     try {
       const layout = await api<DashboardLayoutConfig>("/api/dashboard-layout", {
         method: "PUT",
-        body: { sectionOrder: editOrder, hiddenSections: Array.from(editHidden) },
+        body: { userId: editTargetUserId, sectionOrder: editOrder, hiddenSections: Array.from(editHidden) },
       });
-      setDashboardLayout(layout);
+      // If the saved layout is for the currently viewed user, update the store
+      if (editTargetUserId === currentUser?.id) {
+        setDashboardLayout(layout);
+      }
       setEditMode(false);
-      toast.success("Dashboard layout saved");
+      setUserSelectorOpen(false);
+      setCopyFromOpen(false);
+      toast.success(`Layout saved for ${editTargetUser?.name ?? "user"}`);
     } catch {
       toast.error("Failed to save layout");
     } finally {
@@ -1725,27 +1792,124 @@ export default function DashboardHome() {
     ) : null,
   };
 
+  // Role badge colour helper
+  const roleBadge = (r: string) => {
+    switch (r) {
+      case "CCRO_TEAM": return "bg-purple-100 text-purple-700";
+      case "CEO": return "bg-blue-100 text-blue-700";
+      case "OWNER": return "bg-amber-100 text-amber-700";
+      default: return "bg-gray-100 text-gray-600";
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Edit mode toolbar */}
       {editMode && (
-        <div className="sticky top-0 z-30 flex items-center justify-between gap-4 rounded-2xl border-2 border-updraft-bright-purple/30 bg-white/95 backdrop-blur-sm px-6 py-3 shadow-lg">
-          <div className="flex items-center gap-3">
-            <LayoutGrid size={18} className="text-updraft-bright-purple" />
-            <span className="text-sm font-bold text-updraft-deep font-poppins">Customise Dashboard Layout</span>
-            <span className="text-xs text-gray-400">Drag to reorder, toggle visibility</span>
+        <div className="sticky top-0 z-30 rounded-2xl border-2 border-updraft-bright-purple/30 bg-white/95 backdrop-blur-sm px-6 py-3 shadow-lg space-y-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <LayoutGrid size={18} className="text-updraft-bright-purple" />
+              <span className="text-sm font-bold text-updraft-deep font-poppins">Customise Dashboard Layout</span>
+              <span className="text-xs text-gray-400">Drag to reorder, toggle visibility</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={resetToDefault} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                <RotateCcw size={12} /> Reset
+              </button>
+              <button onClick={cancelEditMode} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                <X size={12} /> Cancel
+              </button>
+              <button onClick={saveLayout} disabled={saving || loadingTargetLayout} className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-bright-purple px-4 py-1.5 text-xs font-medium text-white hover:bg-updraft-deep transition-colors disabled:opacity-50">
+                {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                Save Layout
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={resetToDefault} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
-              <RotateCcw size={12} /> Reset
-            </button>
-            <button onClick={cancelEditMode} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
-              <X size={12} /> Cancel
-            </button>
-            <button onClick={saveLayout} disabled={saving} className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-bright-purple px-4 py-1.5 text-xs font-medium text-white hover:bg-updraft-deep transition-colors disabled:opacity-50">
-              {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-              Save Layout
-            </button>
+
+          {/* Per-user selector row */}
+          <div className="flex items-center gap-3 border-t border-updraft-light-purple/20 pt-3">
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <Users size={14} />
+              <span className="font-medium">Configuring for:</span>
+            </div>
+
+            {/* User selector dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => { setUserSelectorOpen(!userSelectorOpen); setCopyFromOpen(false); }}
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors min-w-[180px]"
+              >
+                {loadingTargetLayout ? (
+                  <Loader2 size={12} className="animate-spin text-updraft-bright-purple" />
+                ) : (
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-updraft-bar text-[9px] font-semibold text-white">
+                    {(editTargetUser?.name ?? "?").charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span className="flex-1 text-left truncate">{editTargetUser?.name ?? "Select user..."}</span>
+                {editTargetUser && (
+                  <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded", roleBadge(editTargetUser.role))}>
+                    {editTargetUser.role.replace("_", " ")}
+                  </span>
+                )}
+                <ChevronDown size={12} className="text-gray-400" />
+              </button>
+              {userSelectorOpen && (
+                <div className="absolute left-0 top-full mt-1 z-50 w-72 rounded-lg border border-gray-200 bg-white shadow-lg max-h-72 overflow-y-auto">
+                  {users.filter((u) => u.isActive).map((u) => (
+                    <button
+                      key={u.id}
+                      onClick={() => handleSelectEditTarget(u.id)}
+                      className={cn(
+                        "flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-colors hover:bg-gray-50",
+                        u.id === editTargetUserId && "bg-updraft-pale-purple/30"
+                      )}
+                    >
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-updraft-bar text-[9px] font-semibold text-white shrink-0">
+                        {u.name.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="flex-1 font-medium text-gray-700 truncate">{u.name}</span>
+                      <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0", roleBadge(u.role))}>
+                        {u.role.replace("_", " ")}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Copy From button */}
+            <div className="relative">
+              <button
+                onClick={() => { setCopyFromOpen(!copyFromOpen); setUserSelectorOpen(false); }}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                <Copy size={12} /> Copy From...
+              </button>
+              {copyFromOpen && (
+                <div className="absolute left-0 top-full mt-1 z-50 w-72 rounded-lg border border-gray-200 bg-white shadow-lg max-h-72 overflow-y-auto">
+                  <div className="px-3 py-2 border-b border-gray-100 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                    Copy layout from another user
+                  </div>
+                  {users.filter((u) => u.isActive && u.id !== editTargetUserId).map((u) => (
+                    <button
+                      key={u.id}
+                      onClick={() => handleCopyFrom(u.id)}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-colors hover:bg-gray-50"
+                    >
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-updraft-bar text-[9px] font-semibold text-white shrink-0">
+                        {u.name.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="flex-1 font-medium text-gray-700 truncate">{u.name}</span>
+                      <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0", roleBadge(u.role))}>
+                        {u.role.replace("_", " ")}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
