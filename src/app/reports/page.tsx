@@ -3,12 +3,16 @@
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Plus, Search, FileText } from "lucide-react";
+import { Plus, Search, FileText, Send, X } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { generateHTMLExport } from "@/lib/export-html";
 import { ReportCard } from "@/components/reports/ReportCard";
 import type { Report, ReportStatus } from "@/lib/types";
 import { usePageTitle } from "@/lib/usePageTitle";
+import { api } from "@/lib/api-client";
+import { toast } from "sonner";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
+import Button from "@/components/common/Button";
 
 function ReportsPageContent() {
   const router = useRouter();
@@ -19,12 +23,17 @@ function ReportsPageContent() {
   const outcomes = useAppStore((s) => s.outcomes);
   const deleteReport = useAppStore((s) => s.deleteReport);
   const currentUser = useAppStore((s) => s.currentUser);
+  const updateReport = useAppStore((s) => s.updateReport);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<ReportStatus | "ALL">(() => {
     const param = searchParams.get("status");
     if (param === "DRAFT" || param === "PUBLISHED" || param === "ARCHIVED") return param;
     return "ALL";
   });
+  const [publishingReport, setPublishingReport] = useState<Report | null>(null);
+  const [publishNote, setPublishNote] = useState("");
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [deletingReport, setDeletingReport] = useState<Report | null>(null);
 
   if (!hydrated) {
     return (
@@ -61,7 +70,26 @@ function ReportsPageContent() {
   };
 
   const handlePublish = (report: Report) => {
-    router.push(`/reports/${report.id}/edit`);
+    setPublishingReport(report);
+    setPublishNote("");
+  };
+
+  const handleConfirmPublish = async () => {
+    if (!publishingReport) return;
+    setIsPublishing(true);
+    try {
+      await api(`/api/reports/${publishingReport.id}/publish`, {
+        method: "POST",
+        body: { publishNote: publishNote.trim() || null },
+      });
+      updateReport(publishingReport.id, { status: "PUBLISHED" });
+      toast.success(`"${publishingReport.title}" published successfully`);
+      setPublishingReport(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to publish report");
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   const handleExport = (report: Report) => {
@@ -75,10 +103,18 @@ function ReportsPageContent() {
     a.download = `CCRO_Report_${report.period.replace(/\s+/g, "_")}.html`;
     a.click();
     URL.revokeObjectURL(url);
+    toast.success("Report exported as HTML");
   };
 
   const handleDelete = (report: Report) => {
-    deleteReport(report.id);
+    setDeletingReport(report);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deletingReport) return;
+    deleteReport(deletingReport.id);
+    toast.success(`"${deletingReport.title}" deleted`);
+    setDeletingReport(null);
   };
 
   return (
@@ -124,6 +160,61 @@ function ReportsPageContent() {
           <option value="ARCHIVED">Archived</option>
         </select>
       </div>
+
+      {/* Publish Confirmation Modal */}
+      {publishingReport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Publish Report</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  <span className="font-medium text-gray-700">{publishingReport.title}</span> will be visible to all users and locked for editing.
+                </p>
+              </div>
+              <button onClick={() => setPublishingReport(null)} className="text-gray-400 hover:text-gray-600 transition-colors ml-4 shrink-0">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Publish note <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <textarea
+                value={publishNote}
+                onChange={(e) => setPublishNote(e.target.value)}
+                placeholder="e.g. Q1 2026 board submission, reviewed by CCRO team"
+                rows={3}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-updraft-light-purple focus:outline-none focus:ring-1 focus:ring-updraft-light-purple resize-none"
+              />
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="secondary" onClick={() => setPublishingReport(null)} disabled={isPublishing}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleConfirmPublish}
+                loading={isPublishing}
+                iconLeft={<Send size={14} />}
+              >
+                Publish Report
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        open={!!deletingReport}
+        onClose={() => setDeletingReport(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Report"
+        message={deletingReport ? `"${deletingReport.title}" will be permanently deleted and cannot be recovered.` : ""}
+        confirmLabel="Delete Report"
+        variant="danger"
+      />
 
       {/* Reports Grid */}
       {filteredReports.length > 0 ? (

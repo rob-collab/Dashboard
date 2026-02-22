@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import RiskCSVUploadDialog from "@/components/risk-register/RiskCSVUploadDialog";
 import { usePageTitle } from "@/lib/usePageTitle";
 import { useHasPermission } from "@/lib/usePermission";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 type ViewTab = "heatmap" | "table";
 type ScoreMode = "inherent" | "residual" | "overlay";
@@ -46,6 +47,9 @@ export default function RiskRegisterPage() {
 
   // CSV import state
   const [showCSVImport, setShowCSVImport] = useState(false);
+
+  // Pending delete state
+  const [pendingDeleteRisk, setPendingDeleteRisk] = useState<Risk | null>(null);
 
   // Deep-link: ?risk=<id> opens detail panel
   const searchParams = useSearchParams();
@@ -130,7 +134,11 @@ export default function RiskRegisterPage() {
   }, [risks, cardFilter, activeCategoryL1, effectiveMode, searchQuery]);
 
   const handleCardClick = useCallback((filter: CardFilter) => {
-    setCardFilter((prev) => (prev === filter ? "ALL" : filter));
+    setCardFilter((prev) => {
+      const next = prev === filter ? "ALL" : filter;
+      if (next !== "ALL") setViewTab("table");
+      return next;
+    });
   }, []);
 
   const handleCategoryClick = useCallback((category: string) => {
@@ -228,13 +236,20 @@ export default function RiskRegisterPage() {
 
   const handleDelete = useCallback(
     (id: string) => {
-      if (!confirm("Are you sure you want to delete this risk? This cannot be undone.")) return;
-      deleteRisk(id);
-      setPanelOpen(false);
-      setSelectedRisk(null);
+      const risk = risks.find((r) => r.id === id);
+      setPendingDeleteRisk(risk ?? null);
     },
-    [deleteRisk]
+    [risks]
   );
+
+  const handleConfirmDelete = useCallback(() => {
+    if (!pendingDeleteRisk) return;
+    deleteRisk(pendingDeleteRisk.id);
+    setPanelOpen(false);
+    setSelectedRisk(null);
+    setPendingDeleteRisk(null);
+    toast.success(`Risk "${pendingDeleteRisk.reference}" deleted`);
+  }, [pendingDeleteRisk, deleteRisk]);
 
   const handleExportHTML = useCallback(() => {
     const html = `<!DOCTYPE html>
@@ -666,6 +681,17 @@ export default function RiskRegisterPage() {
         open={showCSVImport}
         onClose={() => setShowCSVImport(false)}
         onImportComplete={handleImportComplete}
+      />
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        open={!!pendingDeleteRisk}
+        onClose={() => setPendingDeleteRisk(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Risk"
+        message={pendingDeleteRisk ? `"${pendingDeleteRisk.reference} — ${pendingDeleteRisk.name}" will be permanently deleted. This action cannot be undone.` : ""}
+        confirmLabel="Delete Risk"
+        variant="danger"
       />
     </div>
   );

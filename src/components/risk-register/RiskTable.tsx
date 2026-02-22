@@ -3,20 +3,39 @@
 import { useState, useMemo } from "react";
 import type { Risk } from "@/lib/types";
 import { useAppStore } from "@/lib/store";
-import { L1_CATEGORY_COLOURS, L1_CATEGORIES as FALLBACK_L1, getRiskScore } from "@/lib/risk-categories";
+import { L1_CATEGORY_COLOURS, L1_CATEGORIES as FALLBACK_L1, getRiskScore, getAppetiteMaxScore } from "@/lib/risk-categories";
 import ScoreBadge from "./ScoreBadge";
 import DirectionArrow from "./DirectionArrow";
 import { EmptyState } from "@/components/common/EmptyState";
 import { formatDateShort, naturalCompare } from "@/lib/utils";
-import { ChevronUp, ChevronDown, Search, Filter, ShieldAlert, Star } from "lucide-react";
+import { ChevronUp, ChevronDown, Search, Filter, ShieldAlert, Star, AlertTriangle } from "lucide-react";
 import { useHasPermission } from "@/lib/usePermission";
 
-type SortField = "reference" | "name" | "categoryL1" | "owner" | "inherent" | "residual" | "direction" | "lastReviewed";
+type SortField = "reference" | "name" | "categoryL1" | "owner" | "inherent" | "residual" | "direction" | "lastReviewed" | "nextReview" | "vsAppetite";
 type SortDir = "asc" | "desc";
 
 interface RiskTableProps {
   risks: Risk[];
   onRiskClick: (risk: Risk) => void;
+}
+
+function getNextReviewDate(risk: Risk): Date {
+  const last = new Date(risk.lastReviewed);
+  last.setDate(last.getDate() + (risk.reviewFrequencyDays ?? 90));
+  return last;
+}
+
+function getNextReviewDaysRemaining(risk: Risk): number {
+  const next = getNextReviewDate(risk);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((next.getTime() - today.getTime()) / 86400000);
+}
+
+function getVsAppetite(risk: Risk): number | null {
+  if (!risk.riskAppetite) return null;
+  const residual = getRiskScore(risk.residualLikelihood, risk.residualImpact);
+  return residual - getAppetiteMaxScore(risk.riskAppetite);
 }
 
 export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
@@ -67,6 +86,8 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
         case "residual": cmp = getRiskScore(a.residualLikelihood, a.residualImpact) - getRiskScore(b.residualLikelihood, b.residualImpact); break;
         case "direction": cmp = a.directionOfTravel.localeCompare(b.directionOfTravel); break;
         case "lastReviewed": cmp = a.lastReviewed.localeCompare(b.lastReviewed); break;
+        case "nextReview": cmp = getNextReviewDaysRemaining(a) - getNextReviewDaysRemaining(b); break;
+        case "vsAppetite": cmp = (getVsAppetite(a) ?? -Infinity) - (getVsAppetite(b) ?? -Infinity); break;
       }
       return sortDir === "asc" ? cmp : -cmp;
     });
@@ -165,7 +186,8 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
                 { field: "inherent" as SortField, label: "Inherent", width: "w-28" },
                 { field: "residual" as SortField, label: "Residual", width: "w-28" },
                 { field: "direction" as SortField, label: "Direction", width: "w-24" },
-                { field: "lastReviewed" as SortField, label: "Last Reviewed", width: "w-28" },
+                { field: "nextReview" as SortField, label: "Next Review", width: "w-28" },
+                { field: "vsAppetite" as SortField, label: "vs Appetite", width: "w-28" },
               ].map(({ field, label, width }) => (
                 <th
                   key={field}
@@ -238,15 +260,62 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
                   <td className="px-3 py-3 text-center">
                     <DirectionArrow direction={risk.directionOfTravel} />
                   </td>
-                  <td className="px-3 py-3 text-gray-500 text-xs">
-                    {formatDateShort(risk.lastReviewed)}
-                  </td>
+                  {(() => {
+                    const daysLeft = getNextReviewDaysRemaining(risk);
+                    const overdue = daysLeft < 0;
+                    const dueSoon = daysLeft >= 0 && daysLeft <= 14;
+                    const label = overdue
+                      ? `${Math.abs(daysLeft)}d overdue`
+                      : daysLeft === 0
+                      ? "Today"
+                      : `${daysLeft}d`;
+                    return (
+                      <td className="px-3 py-3 text-xs">
+                        <span
+                          className={`inline-flex items-center gap-1 font-medium ${
+                            overdue
+                              ? "text-red-600"
+                              : dueSoon
+                              ? "text-amber-600"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          {(overdue || dueSoon) && (
+                            <AlertTriangle className="w-3 h-3 shrink-0" />
+                          )}
+                          {label}
+                        </span>
+                      </td>
+                    );
+                  })()}
+                  {(() => {
+                    const diff = getVsAppetite(risk);
+                    if (diff === null) return <td className="px-3 py-3 text-xs text-gray-300">—</td>;
+                    const breached = diff > 0;
+                    const label = diff === 0 ? "At limit" : breached ? `+${diff} over` : `${Math.abs(diff)} under`;
+                    return (
+                      <td className="px-3 py-3 text-xs">
+                        <span
+                          className={`inline-flex items-center gap-1 font-medium px-1.5 py-0.5 rounded ${
+                            breached
+                              ? "bg-red-100 text-red-700"
+                              : diff === 0
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-green-100 text-green-700"
+                          }`}
+                        >
+                          {breached && <AlertTriangle className="w-3 h-3 shrink-0" />}
+                          {label}
+                        </span>
+                      </td>
+                    );
+                  })()}
                 </tr>
               );
             })}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={9}>
+                <td colSpan={11}>
                   <EmptyState
                     icon={<ShieldAlert className="h-7 w-7" />}
                     heading={risks.length === 0 ? "No risks registered" : "No risks match the current filters"}

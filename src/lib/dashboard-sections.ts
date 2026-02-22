@@ -13,6 +13,7 @@ export interface DashboardSectionDef {
 export const DASHBOARD_SECTIONS: DashboardSectionDef[] = [
   { key: "welcome", label: "Welcome Banner", description: "Personalised greeting with notification pills and quick actions" },
   { key: "notifications", label: "Notification Banners", description: "Active system notifications and alerts" },
+  { key: "action-required", label: "Action Required", description: "Consolidated list of items requiring your attention — overdue reviews, pending approvals, proposed changes" },
   { key: "priority-actions", label: "Priority Action Cards", description: "P1/P2/P3 action breakdown with counts" },
   { key: "risk-acceptances", label: "Risk Acceptances", description: "Risk acceptance status summary and review timelines" },
   { key: "compliance-health", label: "Compliance Health", description: "Regulatory compliance status and gap analysis" },

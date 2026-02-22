@@ -41,18 +41,46 @@ interface SidebarProps {
 
 const ROB_EMAIL = "rob@updraft.com";
 
-const NAV_ITEMS: { label: string; href: string; icon: typeof LayoutDashboard; permission: PermissionCode; badgeKey?: string }[] = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard, permission: "page:dashboard", badgeKey: "dashboard" },
-  { label: "Actions", href: "/actions", icon: ListChecks, permission: "page:actions", badgeKey: "actions" },
-  { label: "Audit Trail", href: "/audit", icon: ClipboardList, permission: "page:audit" },
-  { label: "Compliance", href: "/compliance", icon: Scale, permission: "page:compliance", badgeKey: "compliance" },
-  { label: "Consumer Duty", href: "/consumer-duty", icon: ShieldCheck, permission: "page:consumer-duty" },
-  { label: "Controls Testing", href: "/controls", icon: FlaskConical, permission: "page:controls", badgeKey: "controls" },
-  { label: "Reports", href: "/reports", icon: FileText, permission: "page:reports" },
-  { label: "Risk Acceptance", href: "/risk-acceptances", icon: ShieldQuestion, permission: "page:risk-acceptances", badgeKey: "riskAcceptance" },
-  { label: "Risk Register", href: "/risk-register", icon: ShieldAlert, permission: "page:risk-register", badgeKey: "riskRegister" },
-  { label: "Settings", href: "/settings", icon: Settings, permission: "page:settings" },
-  { label: "Users", href: "/users", icon: Users, permission: "page:users" },
+type NavItem = { label: string; href: string; icon: typeof LayoutDashboard; permission: PermissionCode; badgeKey?: string };
+type NavGroup = { groupLabel: string | null; items: NavItem[] };
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    groupLabel: null,
+    items: [
+      { label: "Dashboard", href: "/", icon: LayoutDashboard, permission: "page:dashboard", badgeKey: "dashboard" },
+    ],
+  },
+  {
+    groupLabel: "Risk Management",
+    items: [
+      { label: "Risk Register", href: "/risk-register", icon: ShieldAlert, permission: "page:risk-register", badgeKey: "riskRegister" },
+      { label: "Risk Acceptances", href: "/risk-acceptances", icon: ShieldQuestion, permission: "page:risk-acceptances", badgeKey: "riskAcceptance" },
+      { label: "Consumer Duty", href: "/consumer-duty", icon: ShieldCheck, permission: "page:consumer-duty" },
+    ],
+  },
+  {
+    groupLabel: "Compliance & Controls",
+    items: [
+      { label: "Compliance", href: "/compliance", icon: Scale, permission: "page:compliance", badgeKey: "compliance" },
+      { label: "Controls", href: "/controls", icon: FlaskConical, permission: "page:controls", badgeKey: "controls" },
+    ],
+  },
+  {
+    groupLabel: "Execution",
+    items: [
+      { label: "Actions", href: "/actions", icon: ListChecks, permission: "page:actions", badgeKey: "actions" },
+      { label: "Audit Trail", href: "/audit", icon: ClipboardList, permission: "page:audit" },
+    ],
+  },
+  {
+    groupLabel: "Administration",
+    items: [
+      { label: "Reports", href: "/reports", icon: FileText, permission: "page:reports" },
+      { label: "Settings", href: "/settings", icon: Settings, permission: "page:settings" },
+      { label: "Users", href: "/users", icon: Users, permission: "page:users" },
+    ],
+  },
 ];
 
 
@@ -250,45 +278,66 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
       )}
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-0.5">
-        {NAV_ITEMS.filter((item) => permissionSet.has(item.permission)).map((item) => {
-          const active = isActive(item.href);
-          const Icon = item.icon;
+      <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
+        {NAV_GROUPS.map((group, gi) => {
+          const visibleItems = group.items.filter((item) => permissionSet.has(item.permission));
+          if (visibleItems.length === 0) return null;
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              title={collapsed ? item.label : undefined}
-              className={cn(
-                "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150",
-                active
-                  ? cn(t.activeBg, t.textPrimary)
-                  : cn(t.textMuted, t.hoverBg, t.hoverText)
+            <div key={gi}>
+              {/* Group divider + label (hidden when collapsed) */}
+              {gi > 0 && (
+                <div className={cn("mt-3 mb-1", collapsed ? "px-1" : "px-1")}>
+                  <div style={{ borderTop: `1px solid ${t.border}` }} className="mb-2" />
+                  {!collapsed && group.groupLabel && (
+                    <p className={cn("px-2 text-[10px] font-semibold uppercase tracking-wider", t.textFaint)}>
+                      {group.groupLabel}
+                    </p>
+                  )}
+                </div>
               )}
-            >
-              {/* Active indicator — left accent strip */}
-              {active && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-updraft-light-purple" />
-              )}
-              <Icon
-                size={20}
-                className={cn(
-                  "shrink-0 transition-colors",
-                  active
-                    ? "text-updraft-light-purple"
-                    : cn(t.textFaint, "group-hover:" + (dark ? "text-white/60" : "text-gray-600"))
-                )}
-              />
-              {!collapsed && <span className="truncate">{item.label}</span>}
-              {!collapsed && item.badgeKey && (badges[item.badgeKey] ?? 0) > 0 && (
-                <span className="ml-auto rounded-full bg-red-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                  {badges[item.badgeKey]}
-                </span>
-              )}
-              {active && !collapsed && !(item.badgeKey && (badges[item.badgeKey] ?? 0) > 0) && (
-                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-updraft-light-purple" />
-              )}
-            </Link>
+              <div className="space-y-0.5">
+                {visibleItems.map((item) => {
+                  const active = isActive(item.href);
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      title={collapsed ? item.label : undefined}
+                      className={cn(
+                        "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150",
+                        active
+                          ? cn(t.activeBg, t.textPrimary)
+                          : cn(t.textMuted, t.hoverBg, t.hoverText)
+                      )}
+                    >
+                      {/* Active indicator — left accent strip */}
+                      {active && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-updraft-light-purple" />
+                      )}
+                      <Icon
+                        size={20}
+                        className={cn(
+                          "shrink-0 transition-colors",
+                          active
+                            ? "text-updraft-light-purple"
+                            : cn(t.textFaint, "group-hover:" + (dark ? "text-white/60" : "text-gray-600"))
+                        )}
+                      />
+                      {!collapsed && <span className="truncate">{item.label}</span>}
+                      {!collapsed && item.badgeKey && (badges[item.badgeKey] ?? 0) > 0 && (
+                        <span className="ml-auto rounded-full bg-red-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                          {badges[item.badgeKey]}
+                        </span>
+                      )}
+                      {active && !collapsed && !(item.badgeKey && (badges[item.badgeKey] ?? 0) > 0) && (
+                        <span className="ml-auto h-1.5 w-1.5 rounded-full bg-updraft-light-purple" />
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
       </nav>

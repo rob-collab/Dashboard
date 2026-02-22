@@ -98,12 +98,12 @@ export default function ComplianceOverview({ onNavigate }: Props) {
     <div className="space-y-6">
       {/* Key Metrics Row */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <MetricTile label="Applicable Regulations" value={totalApplicable} />
-        <MetricTile label="Compliance Rate" value={`${compliantPct}%`} colour={compliantPct >= 80 ? "green" : compliantPct >= 50 ? "amber" : "red"} />
-        <MetricTile label="Open Gaps" value={gaps.nonCompliant} colour={gaps.nonCompliant > 0 ? "red" : "green"} />
-        <MetricTile label="Policies" value={policies.length} />
+        <MetricTile label="Applicable Regulations" value={totalApplicable} onClick={() => onNavigate("regulatory-universe")} />
+        <MetricTile label="Compliance Rate" value={`${compliantPct}%`} colour={compliantPct >= 80 ? "green" : compliantPct >= 50 ? "amber" : "red"} onClick={() => onNavigate("regulatory-universe")} />
+        <MetricTile label="Open Gaps" value={gaps.nonCompliant} colour={gaps.nonCompliant > 0 ? "red" : "green"} onClick={() => onNavigate("regulatory-universe")} />
+        <MetricTile label="Policies" value={policies.length} onClick={() => onNavigate("policies")} />
         <MetricTile label="Active Controls" value={controls.filter((c) => c.isActive).length} />
-        <MetricTile label="SMF Roles Filled" value={`${smcrHealth.filledRoles}/${smfRoles.length}`} colour={smcrHealth.vacantRoles > 0 ? "amber" : "green"} />
+        <MetricTile label="SMF Roles Filled" value={`${smcrHealth.filledRoles}/${smfRoles.length}`} colour={smcrHealth.vacantRoles > 0 ? "amber" : "green"} onClick={() => onNavigate("smcr")} />
       </div>
 
       {/* Compliance Posture + Gap Analysis */}
@@ -141,14 +141,20 @@ export default function ComplianceOverview({ onNavigate }: Props) {
         <div className="bento-card p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-updraft-deep font-poppins">Gap Analysis</h2>
+            <button
+              onClick={() => onNavigate("regulatory-universe")}
+              className="text-xs text-updraft-bright-purple hover:underline flex items-center gap-1"
+            >
+              View All <ArrowRight size={12} />
+            </button>
           </div>
-          <div className="space-y-4">
-            <GapRow icon={ShieldAlert} label="Non-compliant / Gap identified" count={gaps.nonCompliant} colour="red" />
-            <GapRow icon={FileText} label="Regulations without linked policies" count={gaps.noPolicies} colour="amber" />
-            <GapRow icon={ShieldCheck} label="Regulations without linked controls" count={gaps.noControls} colour="amber" />
-            <GapRow icon={Clock} label="Assessments overdue" count={assessmentPipeline.overdue} colour="red" />
-            <GapRow icon={AlertTriangle} label="Assessments due within 30 days" count={assessmentPipeline.dueSoon} colour="amber" />
-            <GapRow icon={CheckCircle2} label="Not yet assessed" count={assessmentPipeline.notAssessed} colour="gray" />
+          <div className="space-y-1">
+            <GapRow icon={ShieldAlert} label="Non-compliant / Gap identified" count={gaps.nonCompliant} colour="red" onClick={() => onNavigate("regulatory-universe")} />
+            <GapRow icon={FileText} label="Regulations without linked policies" count={gaps.noPolicies} colour="amber" onClick={() => onNavigate("regulatory-universe")} />
+            <GapRow icon={ShieldCheck} label="Regulations without linked controls" count={gaps.noControls} colour="amber" onClick={() => onNavigate("regulatory-universe")} />
+            <GapRow icon={Clock} label="Assessments overdue" count={assessmentPipeline.overdue} colour="red" onClick={() => onNavigate("regulatory-universe")} />
+            <GapRow icon={AlertTriangle} label="Assessments due within 30 days" count={assessmentPipeline.dueSoon} colour="amber" onClick={() => onNavigate("regulatory-universe")} />
+            <GapRow icon={CheckCircle2} label="Not yet assessed" count={assessmentPipeline.notAssessed} colour="gray" onClick={() => onNavigate("regulatory-universe")} />
           </div>
         </div>
       </div>
@@ -214,27 +220,39 @@ function getStatusDot(status: ComplianceStatus): string {
   return COMPLIANCE_STATUS_COLOURS[status]?.dot ?? "bg-gray-400";
 }
 
-function MetricTile({ label, value, colour }: { label: string; value: string | number; colour?: "green" | "amber" | "red" }) {
+function MetricTile({ label, value, colour, onClick }: { label: string; value: string | number; colour?: "green" | "amber" | "red"; onClick?: () => void }) {
   const colourClass = colour === "green" ? "text-green-600" : colour === "amber" ? "text-amber-600" : colour === "red" ? "text-red-600" : "text-updraft-deep";
+  const Wrapper = onClick ? "button" : "div";
   return (
-    <div className="bento-card p-4 text-center">
+    <Wrapper
+      {...(onClick ? { onClick, type: "button" as const } : {})}
+      className={cn("bento-card p-4 text-center w-full", onClick && "hover:border-updraft-light-purple hover:shadow-sm transition-all cursor-pointer")}
+    >
       <p className={cn("text-2xl font-bold font-poppins", colourClass)}>{value}</p>
       <p className="text-xs text-gray-500 mt-1">{label}</p>
-    </div>
+    </Wrapper>
   );
 }
 
-function GapRow({ icon: Icon, label, count, colour }: { icon: typeof ShieldAlert; label: string; count: number; colour: "red" | "amber" | "gray" }) {
+function GapRow({ icon: Icon, label, count, colour, onClick }: { icon: typeof ShieldAlert; label: string; count: number; colour: "red" | "amber" | "gray"; onClick?: () => void }) {
   const dotColour = colour === "red" ? "bg-red-500" : colour === "amber" ? "bg-amber-500" : "bg-gray-400";
+  const Wrapper = onClick ? "button" : "div";
   return (
-    <div className="flex items-center gap-3">
+    <Wrapper
+      {...(onClick ? { onClick, type: "button" as const } : {})}
+      className={cn(
+        "flex items-center gap-3 w-full rounded-lg px-2 py-2",
+        onClick && "hover:bg-gray-50 transition-colors cursor-pointer text-left"
+      )}
+    >
       <Icon size={16} className="text-gray-400 shrink-0" />
       <span className="text-sm text-gray-600 flex-1">{label}</span>
       <div className="flex items-center gap-2">
         {count > 0 && <div className={cn("w-2 h-2 rounded-full", dotColour)} />}
         <span className={cn("text-sm font-semibold", count > 0 ? "text-gray-700" : "text-gray-400")}>{count}</span>
+        {onClick && count > 0 && <ArrowRight size={12} className="text-gray-300" />}
       </div>
-    </div>
+    </Wrapper>
   );
 }
 

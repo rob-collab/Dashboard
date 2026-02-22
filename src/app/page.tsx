@@ -974,6 +974,113 @@ export default function DashboardHome() {
       </div>
     ) : null,
 
+    "action-required": (() => {
+      const reviewList = canViewPending ? risksNeedingReview : myRisksNeedingReview;
+      const overdueActions = canViewPending
+        ? actions.filter((a) => a.status === "OVERDUE" || (a.status !== "COMPLETED" && daysUntilDue(a.dueDate) !== null && daysUntilDue(a.dueDate)! < 0))
+        : myOverdueActions;
+      const hasPending = canApproveEntities && pendingNewEntities.length > 0;
+      const hasChanges = canViewPending && allPendingChanges.length > 0;
+      const hasItems = reviewList.length > 0 || overdueActions.length > 0 || hasPending || hasChanges;
+      if (!hasItems) return null;
+
+      const groups: { icon: React.ReactNode; label: string; count: number; href: string; colour: string; items: { label: string; sub?: string; href: string }[] }[] = [];
+
+      if (overdueActions.length > 0) {
+        groups.push({
+          icon: <AlertTriangle className="h-4 w-4" />,
+          label: "Overdue Actions",
+          count: overdueActions.length,
+          href: "/actions?status=OVERDUE",
+          colour: "text-red-600 bg-red-50 border-red-200",
+          items: overdueActions.slice(0, 3).map((a) => ({
+            label: a.title,
+            sub: a.dueDate ? `Due ${new Date(a.dueDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : undefined,
+            href: `/actions?edit=${a.id}`,
+          })),
+        });
+      }
+
+      if (reviewList.length > 0) {
+        groups.push({
+          icon: <ShieldAlert className="h-4 w-4" />,
+          label: "Risks Due for Review",
+          count: reviewList.length,
+          href: "/risk-register",
+          colour: "text-amber-600 bg-amber-50 border-amber-200",
+          items: reviewList.slice(0, 3).map((r) => ({
+            label: r.name,
+            sub: r.reference,
+            href: `/risk-register?risk=${r.id}`,
+          })),
+        });
+      }
+
+      if (hasPending) {
+        groups.push({
+          icon: <Bell className="h-4 w-4" />,
+          label: "Pending Approvals",
+          count: pendingNewEntities.length,
+          href: "/risk-register",
+          colour: "text-blue-600 bg-blue-50 border-blue-200",
+          items: pendingNewEntities.slice(0, 3).map((e) => ({
+            label: e.name,
+            sub: e.reference,
+            href: e.type === "risk" ? `/risk-register?risk=${e.id}` : e.type === "action" ? `/actions?edit=${e.id}` : `/controls?id=${e.id}`,
+          })),
+        });
+      }
+
+      if (hasChanges) {
+        groups.push({
+          icon: <Clock className="h-4 w-4" />,
+          label: "Proposed Changes",
+          count: allPendingChanges.length,
+          href: "#proposed-changes",
+          colour: "text-purple-600 bg-purple-50 border-purple-200",
+          items: allPendingChanges.slice(0, 3).map((c) => ({
+            label: c._parentTitle,
+            sub: c._parentRef,
+            href: c._type === "risk" ? `/risk-register?risk=${c._parentId}` : c._type === "action" ? `/actions?edit=${c._parentId}` : `/controls?id=${c._parentId}`,
+          })),
+        });
+      }
+
+      return (
+        <div className="bento-card border-l-4 border-l-red-400">
+          <div className="flex items-center gap-2 mb-4">
+            <AlertTriangle className="h-5 w-5 text-red-500" />
+            <h2 className="text-base font-bold text-updraft-deep font-poppins">Action Required</h2>
+            <span className="ml-auto text-xs text-gray-400">{groups.reduce((s, g) => s + g.count, 0)} item{groups.reduce((s, g) => s + g.count, 0) !== 1 ? "s" : ""} need attention</span>
+          </div>
+          <div className={`grid grid-cols-1 gap-3 ${groups.length > 1 ? "sm:grid-cols-2" : ""}`}>
+            {groups.map((g) => (
+              <div key={g.label} className={`rounded-xl border ${g.colour} p-3`}>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <span className={g.colour.split(" ")[0]}>{g.icon}</span>
+                  <span className={`text-xs font-semibold ${g.colour.split(" ")[0]}`}>{g.label}</span>
+                  <span className={`ml-auto text-xs font-bold ${g.colour.split(" ")[0]}`}>{g.count}</span>
+                </div>
+                <div className="space-y-1">
+                  {g.items.map((item, i) => (
+                    <Link key={i} href={item.href} className="flex items-center justify-between hover:opacity-80 transition-opacity">
+                      <span className="text-xs text-gray-700 truncate flex-1 min-w-0">{item.label}</span>
+                      {item.sub && <span className="text-[10px] text-gray-400 ml-2 shrink-0">{item.sub}</span>}
+                    </Link>
+                  ))}
+                  {g.count > 3 && (
+                    <Link href={g.href} className={`text-[10px] font-medium ${g.colour.split(" ")[0]} hover:underline`}>
+                      +{g.count - 3} more
+                    </Link>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    })(),
+
     "priority-actions": (
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {(["P1", "P2", "P3"] as ActionPriority[]).map((p, idx) => {

@@ -9,6 +9,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { ScrollToTop } from "@/components/common/ScrollToTop";
 import NavigationBackButton from "@/components/common/NavigationBackButton";
+import Breadcrumb from "@/components/common/Breadcrumb";
 import { useAppStore } from "@/lib/store";
 import type { User } from "@/lib/types";
 
@@ -118,7 +119,10 @@ function AppShell({ children }: { children: React.ReactNode }) {
                 <div className="h-10 w-10 animate-spin rounded-full border-4 border-updraft-bright-purple border-t-transparent" />
               </div>
             }>
-              <div className="p-6 max-w-[1400px] mx-auto">{children}</div>
+              <div className="p-6 max-w-[1400px] mx-auto">
+                <Breadcrumb />
+                {children}
+              </div>
             </Suspense>
           </ErrorBoundary>
         </main>
