@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 // Mock the Zustand store before importing api-client (it's imported at module level)
 vi.mock("@/lib/store", () => ({
