@@ -180,11 +180,42 @@ body > * {
 
 /* Print Styles */
 @media print {
-  aside, header, nav { display: none !important; }
-  main { width: 100% !important; margin: 0 !important; }
-  section { page-break-inside: avoid; }
-  h2 { page-break-after: avoid; }
-  a[href]:after { content: " (" attr(href) ")"; }
+  /* Hide navigation chrome */
+  aside,
+  nav,
+  [data-print-hide],
+  .print\:hidden { display: none !important; }
+
+  /* Ensure main content fills the page */
+  main {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  body { background: white !important; }
+
+  /* Page layout */
+  @page {
+    margin: 20mm 15mm;
+    size: A4;
+  }
+
+  /* Avoid breaking inside cards and sections */
+  .bento-card,
+  section,
+  table { page-break-inside: avoid; break-inside: avoid; }
+
+  h1, h2, h3, h4 { page-break-after: avoid; break-after: avoid; }
+
+  /* Don't print URLs after links in report content */
+  a[href]:after { content: none; }
+
+  /* Ensure full-width tables */
+  table { width: 100% !important; }
+
+  /* Print-specific text */
+  .print-only { display: block !important; }
 }
 
 /* DnD drag overlay */

@@ -33,10 +33,10 @@
 |---|---|---|---|
 | 1.2 | Sidebar is a flat list of 11 items with no semantic grouping or hierarchy | ✅ Fixed | `src/components/layout/Sidebar.tsx` |
 | 1.3 | No breadcrumbs on any page — users cannot tell where they are or navigate up | ✅ Fixed | `src/components/common/Breadcrumb.tsx` |
-| 1.4 | No global search — with 15+ pages and hundreds of entities, users cannot quickly find anything | ❌ Outstanding | — |
+| 1.4 | No global search — with 15+ pages and hundreds of entities, users cannot quickly find anything | ✅ Fixed (GlobalSearch command palette created; Cmd+K opens it from any page; searches across risks (reference, name, category), policies (reference, name), controls (ref, name, area), actions (reference, title), regulations (reference, name, shortName, body), and users (name, email); results grouped by type, capped at 5 per type, keyboard navigable (↑↓ + Enter + Esc); search button added to sidebar with ⌘K hint; mobile search button in hamburger header) | `src/components/common/GlobalSearch.tsx`, `src/app/layout.tsx`, `src/components/layout/Sidebar.tsx` |
 | 1.5 | Dashboard shows 18 sections with no role-based defaults — new users are overwhelmed | ✅ Fixed (same mechanism as 1.11 — ROLE_DEFAULT_HIDDEN in dashboard-sections.ts hides CCRO-only sections for OWNER and REVIEWER roles on first load; OWNERs see 13 sections, REVIEWERs see 14, CCROs see all 18; sections are fully customisable via the Edit Layout panel) | `src/lib/dashboard-sections.ts`, `src/app/page.tsx` |
 | 1.6 | Proposed Changes panel leads with field diffs rather than who proposed it, why, and when | ✅ Fixed | `src/app/page.tsx` |
-| 1.7 | No first-time user onboarding or welcome flow on first login | ❌ Outstanding | — |
+| 1.7 | No first-time user onboarding or welcome flow on first login | ✅ Fixed (WelcomeBanner component created; shown once per user ID (localStorage key `ccro_welcome_dismissed_{userId}`); role-specific content — CCRO team sees tips on Action Required, Compliance, Reports, and Cmd+K; Risk Owners see tips on Actions, Risk Register, Consumer Duty; Reviewers see tips on Compliance, Reports; dismisses with "Got it" button; tile grid layout with icons; banner rendered at top of dashboard before sections) | `src/components/common/WelcomeBanner.tsx`, `src/app/page.tsx` |
 
 ### 🟡 MEDIUM
 
@@ -47,7 +47,7 @@
 | 1.10 | Audit Trail has no visual prominence — sandwiched with no grouping cue | ✅ Fixed (moved to Administration group) | `src/components/layout/Sidebar.tsx` |
 | 1.11 | Role-based content mismatch — OWNERs see empty sections like "Pending Approvals" that are never populated for them | ✅ Fixed (ROLE_DEFAULT_HIDDEN applied on first load) | `src/app/page.tsx` |
 | 1.12 | No global notification centre — scattered bell icons per section, no unified drawer | ❌ Outstanding | — |
-| 1.13 | No keyboard shortcuts — no Cmd+K for search, no Cmd+? for help | ❌ Outstanding | — |
+| 1.13 | No keyboard shortcuts — no Cmd+K for search, no Cmd+? for help | ✅ Fixed (Cmd+K opens GlobalSearch command palette from any page; `?` key (when outside inputs) opens KeyboardShortcutsModal showing all shortcuts grouped by Navigation, Global, Tables & Lists, and Risk Register; modal dismisses on Esc or click-outside; keyboard handler added to layout.tsx; both shortcuts visible in GlobalSearch footer and sidebar search button) | `src/app/layout.tsx`, `src/components/common/KeyboardShortcutsModal.tsx` |
 | 1.14 | No role indicator visible to the logged-in user | ✅ Fixed (role label shown in sidebar user section + dropdown) | `src/components/layout/Sidebar.tsx` |
 | 1.15 | No in-app help or glossary — terms like "Residual Risk," "RAG," "2LOD," and "Consumer Duty" are unexplained | ✅ Fixed (GlossaryTooltip component created with definitions for RAG, Residual Risk, Inherent Risk, Consumer Duty, 2LOD, CCRO, Appetite, MI, SM&CR, Control Effectiveness; added to Consumer Duty page header + RAG filter, MIModal RAG column, QuarterlySummaryTab 2LOD section, Risk Detail Panel Appetite field, and RiskHeatmap mode buttons with title tooltips) | `src/components/common/GlossaryTooltip.tsx` |
 | 1.16 | Mobile sidebar collapses to icons with no hamburger menu alternative | ✅ Fixed (mobile mode detected via window.innerWidth < 768px; on mobile the sidebar overlays the content (ml-0 on main) with a dark backdrop that closes sidebar on tap; sticky hamburger header bar added at top of main content (md:hidden equivalent logic); sidebar auto-closes on navigate on mobile) | `src/app/layout.tsx` |
@@ -77,7 +77,7 @@
 | 2.10 | Two separate control sections in risk detail panel — inline controls vs library controls with different UX | ✅ Fixed (merged into a single "4. Controls" collapsible with unified count badge; inside has two clearly labelled sub-sections "Inline Controls" and "Control Library" with a horizontal divider; libraryControlsOpen state removed; colour unified to blue) | `src/components/risk-register/RiskDetailPanel.tsx` |
 | 2.11 | Table showed "Last Reviewed" — replaced with "Next Review Due" (more actionable) | ✅ Fixed | `src/components/risk-register/RiskTable.tsx` |
 | 2.12 | Filter state resets when navigating away from the page | ✅ Fixed (Risk Register: all 5 filters synced to URL; Actions: all 6 filters synced to URL; Compliance: active tab synced to URL via router.replace; Consumer Duty: ragFilter + searchQuery synced to URL via debounced effect) | Multiple |
-| 2.13 | No "Export to PDF" for audit packs | ❌ Outstanding | — |
+| 2.13 | No "Export to PDF" for audit packs | ✅ Fixed ("Print / PDF" button added to report view toolbar; calls window.print() which lets users Save as PDF via browser dialog; print CSS enhanced — sidebar/nav/buttons hidden on print, @page A4 margins set, bento-card/section/table get break-inside:avoid, no URL-after-links; Edit/Export/History buttons all have print:hidden class; Printer icon used for button) | `src/app/reports/[id]/page.tsx`, `src/app/globals.css` |
 
 ---
 
@@ -119,7 +119,7 @@
 | # | Issue | Status | File |
 |---|---|---|---|
 | 5.1 | Tab navigation uses wrong information architecture — SM&CR should be its own nav item, not a tab under Compliance | ✅ Fixed (SM&CR added as dedicated nav item in "Compliance & Controls" sidebar group; isActive updated to exclude "smcr" tab from generic /compliance highlight; BadgeCheck icon used) | `src/components/layout/Sidebar.tsx` |
-| 5.2 | Regulation → Policy → Control chain requires three separate clicks — no single coverage view | ❌ Outstanding | — |
+| 5.2 | Regulation → Policy → Control chain requires three separate clicks — no single coverage view | ✅ Fixed (CoverageChainTab added as new "Coverage" tab in Compliance page; Chain view: collapsible tree of Regulation → linked Policies (with expand to reveal linked Controls) + direct Regulation → Control links; Matrix view: scrollable grid of regulations × policies × direct controls with ✓ cells for linked pairs; filter by search + gaps only; expand/collapse all; pass/fail status on controls based on attestation issuesFlagged; shows compliance status on each regulation) | `src/components/compliance/CoverageChainTab.tsx`, `src/app/compliance/page.tsx` |
 
 ### 🟠 HIGH
 
@@ -136,9 +136,9 @@
 |---|---|---|---|
 | 5.7 | Consumer Duty tab is buried in PolicyDetailPanel and absent from Compliance Overview | ✅ Fixed (Consumer Duty RAG summary section added to Compliance Overview showing Green/Amber/Red outcome counts, total outcomes + measures, contextual alerts for Harm/Warning outcomes, and "View Consumer Duty" link) | `src/components/compliance/ComplianceOverview.tsx` |
 | 5.8 | SM&CR section is disconnected from regulations — no drill-down to accountability holder | ✅ Fixed (SMF cards now show Regulatory Basis text; inline Prescribed Responsibilities preview (up to 2) with PR ID badge and title; "+N more" link to Compliance/SMCR responsibilities tab when more than 2 exist) | `src/components/compliance/smcr/SMFDirectory.tsx` |
-| 5.9 | Missing compliance roadmap — no remediation plan with deadlines or priority order | ❌ Outstanding | — |
-| 5.10 | Missing coverage matrix — regulations × policies × controls in a single grid view | ❌ Outstanding | — |
-| 5.11 | No regulatory change log — no impact assessment when regulations are updated | ❌ Outstanding | — |
+| 5.9 | Missing compliance roadmap — no remediation plan with deadlines or priority order | ✅ Fixed (ComplianceRoadmapTab added as new "Roadmap" tab in Compliance page; aggregates nextReviewDate from regulations and policies plus computed next test dates for controls (last test date + frequency); groups into Overdue / This Month / Next 3 Months / Later buckets; each item shows due date, days remaining/overdue, compliance status badge, and links to relevant page; overdue count badge in header; summary counts at top) | `src/components/compliance/ComplianceRoadmapTab.tsx`, `src/app/compliance/page.tsx` |
+| 5.10 | Missing coverage matrix — regulations × policies × controls in a single grid view | ✅ Fixed (Matrix view built into CoverageChainTab (5.2) as a toggle — regulations as rows, linked policies + direct controls as columns; ✓ cells indicate links; sticky first column; policy/control group headers; regex count shown in footer; search filter works across both views) | `src/components/compliance/CoverageChainTab.tsx` |
+| 5.11 | No regulatory change log — no impact assessment when regulations are updated | ✅ Fixed (RegulatoryChangeLogTab added as new "Assessment Log" tab in Compliance page; shows all applicable regulations with last assessed date, next review date, compliance status; filter by: All / Recently assessed (90d) / Gaps & non-compliant / Not yet assessed; summary metrics at top (total, gaps, overdue, not assessed); expandable rows with assessment notes, metadata grid, link counts, and links to regulatory universe and official source; sorted by: overdue first, then gaps, then most recently assessed) | `src/components/compliance/RegulatoryChangeLogTab.tsx`, `src/app/compliance/page.tsx` |
 
 ---
 

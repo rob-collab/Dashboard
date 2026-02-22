@@ -26,6 +26,7 @@ import {
   ArrowLeft,
   BookOpen,
   BadgeCheck,
+  Search,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import type { User } from "@/lib/types";
@@ -39,6 +40,7 @@ interface SidebarProps {
   collapsed?: boolean;
   onToggle?: () => void;
   onSwitchUser?: (user: User) => void;
+  onSearch?: () => void;
 }
 
 const ROB_EMAIL = "rob@updraft.com";
@@ -88,7 +90,7 @@ const NAV_GROUPS: NavGroup[] = [
 ];
 
 
-export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwitchUser }: SidebarProps) {
+export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwitchUser, onSearch }: SidebarProps) {
   const [collapsedInternal, setCollapsedInternal] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const collapsed = collapsedProp ?? collapsedInternal;
@@ -362,6 +364,25 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
 
       {/* Refresh & Collapse */}
       <div className="px-2 pb-2 space-y-1">
+        {onSearch && (
+          <button
+            onClick={onSearch}
+            className={cn(
+              "flex w-full items-center gap-2 rounded-lg border py-2 text-xs transition-colors",
+              t.borderBtn, t.textMuted, t.hoverBg, t.hoverTextStrong
+            )}
+            aria-label="Search"
+            title="Search (⌘K)"
+          >
+            <Search size={14} className={cn("shrink-0", collapsed && "mx-auto")} />
+            {!collapsed && (
+              <>
+                <span className="flex-1 text-left">Search</span>
+                <kbd className={cn("text-[10px] font-mono opacity-50 mr-1", t.textMuted)}>⌘K</kbd>
+              </>
+            )}
+          </button>
+        )}
         {/* Data freshness indicator */}
         {!collapsed && hydratedAt && (
           <p className={cn("text-center text-[9px] px-1 mb-0.5", t.textFaint)} title={hydratedAt.toLocaleString()}>

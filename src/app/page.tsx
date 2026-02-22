@@ -63,6 +63,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import WelcomeBanner from "@/components/common/WelcomeBanner";
 
 function daysUntilDue(dueDate: string | null): number | null {
   if (!dueDate) return null;
@@ -1935,6 +1936,9 @@ export default function DashboardHome() {
 
   return (
     <div className="space-y-6">
+      {/* First-time user welcome banner */}
+      {currentUser && <WelcomeBanner currentUser={currentUser} />}
+
       {/* Edit mode toolbar */}
       {editMode && (
         <div className="sticky top-0 z-30 rounded-2xl border-2 border-updraft-bright-purple/30 bg-white/95 backdrop-blur-sm px-6 py-3 shadow-lg space-y-3">

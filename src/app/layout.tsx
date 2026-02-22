@@ -12,13 +12,17 @@ import NavigationBackButton from "@/components/common/NavigationBackButton";
 import Breadcrumb from "@/components/common/Breadcrumb";
 import { useAppStore } from "@/lib/store";
 import type { User } from "@/lib/types";
-import { Menu } from "lucide-react";
+import { Menu, Search } from "lucide-react";
+import GlobalSearch from "@/components/common/GlobalSearch";
+import KeyboardShortcutsModal from "@/components/common/KeyboardShortcutsModal";
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   // Detect mobile breakpoint (< 768px = md)
   useEffect(() => {
@@ -32,6 +36,28 @@ function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isMobile) setSidebarOpen(false);
   }, [pathname, isMobile]);
+
+  // Cmd+K / Ctrl+K global search shortcut; ? for keyboard shortcuts help
+  useEffect(() => {
+    function handler(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen((v) => !v);
+        return;
+      }
+      // ? shortcut — only when not inside a text input
+      if (e.key === "?" && !e.metaKey && !e.ctrlKey) {
+        const tag = (e.target as HTMLElement)?.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+        const el = e.target as HTMLElement;
+        if (el.isContentEditable) return;
+        e.preventDefault();
+        setShortcutsOpen((v) => !v);
+      }
+    }
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
 
   const setAuthUser = useAppStore((s) => s.setAuthUser);
   const setCurrentUser = useAppStore((s) => s.setCurrentUser);
@@ -130,6 +156,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
           collapsed={isMobile ? false : !sidebarOpen}
           onToggle={() => setSidebarOpen((v) => !v)}
           onSwitchUser={switchUser}
+          onSearch={() => setSearchOpen(true)}
         />
         <main
           className={`flex-1 overflow-y-auto transition-all duration-300 ${
@@ -147,7 +174,15 @@ function AppShell({ children }: { children: React.ReactNode }) {
               >
                 <Menu size={20} className="text-gray-600" />
               </button>
-              <span className="text-sm font-semibold text-updraft-deep font-poppins">CCRO Dashboard</span>
+              <span className="flex-1 text-sm font-semibold text-updraft-deep font-poppins">CCRO Dashboard</span>
+              <button
+                type="button"
+                onClick={() => setSearchOpen(true)}
+                className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors"
+                aria-label="Search"
+              >
+                <Search size={18} className="text-gray-600" />
+              </button>
             </div>
           )}
           <ErrorBoundary>
@@ -166,6 +201,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
         <ScrollToTop />
         <NavigationBackButton sidebarOpen={sidebarOpen} />
       </div>
+      <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       <Toaster position="top-right" richColors closeButton toastOptions={{ style: { zIndex: 99999 } }} style={{ zIndex: 99999 }} />
     </>
   );

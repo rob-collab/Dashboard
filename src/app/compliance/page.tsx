@@ -7,12 +7,18 @@ import ComplianceOverview from "@/components/compliance/ComplianceOverview";
 import RegulatoryUniverseTab from "@/components/compliance/RegulatoryUniverseTab";
 import SMCRTab from "@/components/compliance/SMCRTab";
 import PoliciesTab from "@/components/compliance/PoliciesTab";
+import CoverageChainTab from "@/components/compliance/CoverageChainTab";
+import ComplianceRoadmapTab from "@/components/compliance/ComplianceRoadmapTab";
+import RegulatoryChangeLogTab from "@/components/compliance/RegulatoryChangeLogTab";
 import { cn } from "@/lib/utils";
 import { usePageTitle } from "@/lib/usePageTitle";
 
 const TABS = [
   { id: "overview", label: "Overview" },
   { id: "regulatory-universe", label: "Regulatory Universe" },
+  { id: "coverage", label: "Coverage" },
+  { id: "roadmap", label: "Roadmap" },
+  { id: "assessment-log", label: "Assessment Log" },
   { id: "smcr", label: "SM&CR" },
   { id: "policies", label: "Policies" },
 ] as const;
@@ -77,6 +83,9 @@ export default function CompliancePage() {
         {/* Tab content */}
         {activeTab === "overview" && <ComplianceOverview onNavigate={handleTabChange} />}
         {activeTab === "regulatory-universe" && <RegulatoryUniverseTab initialRegulationId={initialRegulationId} />}
+        {activeTab === "coverage" && <CoverageChainTab />}
+        {activeTab === "roadmap" && <ComplianceRoadmapTab />}
+        {activeTab === "assessment-log" && <RegulatoryChangeLogTab />}
         {activeTab === "smcr" && <SMCRTab />}
         {activeTab === "policies" && <PoliciesTab initialPolicyId={initialPolicyId} />}
       </div>

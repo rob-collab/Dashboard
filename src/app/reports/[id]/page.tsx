@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   Pencil,
   Download,
+  Printer,
   History,
   Calendar,
   User,
@@ -166,6 +167,10 @@ export default function ReportViewPage() {
     );
   }
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   const handleExportHTML = () => {
     const html = generateHTMLExport(report, sections, outcomes, {}, branding, versions);
     const blob = new Blob([html], { type: "text/html" });
@@ -222,20 +227,27 @@ export default function ReportViewPage() {
         <div className="flex items-center gap-2">
           <Link
             href={`/reports/${reportId}/edit`}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors print:hidden"
           >
             <Pencil size={14} /> Edit
           </Link>
           <button
+            onClick={handlePrint}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors print:hidden"
+            title="Print or save as PDF"
+          >
+            <Printer size={14} /> Print / PDF
+          </button>
+          <button
             onClick={handleExportHTML}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors print:hidden"
           >
             <Download size={14} /> Export HTML
           </button>
           <button
             onClick={() => setShowHistory(!showHistory)}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
+              "inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors print:hidden",
               showHistory ? "border-updraft-light-purple bg-updraft-pale-purple/20 text-updraft-deep" : "border-gray-200 text-gray-700 hover:bg-gray-50"
             )}
           >
