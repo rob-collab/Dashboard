@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -23,6 +23,8 @@ import {
   Circle,
   Clock,
   CheckCircle2,
+  Settings2,
+  EyeOff,
   type LucideIcon,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
@@ -96,6 +98,38 @@ export default function ReportViewPage() {
   const [selectedOutcomeId, setSelectedOutcomeId] = useState<string | null>(null);
   const [selectedMeasure, setSelectedMeasure] = useState<ConsumerDutyMeasure | null>(null);
   const [openAccordions, setOpenAccordions] = useState<Record<string, number | null>>({});
+
+  // Configurable Consumer Duty — per-report visibility, persisted to localStorage
+  const cdConfigKey = `cd-config-${reportId}`;
+  const [cdHiddenIds, setCdHiddenIds] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const stored = localStorage.getItem(cdConfigKey);
+      return stored ? new Set<string>(JSON.parse(stored) as string[]) : new Set<string>();
+    } catch { return new Set(); }
+  });
+  const [showCdConfig, setShowCdConfig] = useState(false);
+  const cdConfigRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    try { localStorage.setItem(cdConfigKey, JSON.stringify(Array.from(cdHiddenIds))); }
+    catch { /* ignore */ }
+  }, [cdHiddenIds, cdConfigKey]);
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (cdConfigRef.current && !cdConfigRef.current.contains(e.target as Node)) {
+        setShowCdConfig(false);
+      }
+    }
+    if (showCdConfig) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showCdConfig]);
+
+  const visibleOutcomes = useMemo(
+    () => outcomes.filter((o) => !cdHiddenIds.has(o.id)),
+    [outcomes, cdHiddenIds]
+  );
 
   const selectedOutcome = outcomes.find((o) => o.id === selectedOutcomeId);
 
@@ -338,25 +372,111 @@ export default function ReportViewPage() {
             </div>
           ))}
 
-          {/* Consumer Duty Dashboard — always rendered */}
+          {/* Consumer Duty Dashboard — configurable */}
           {outcomes.length > 0 && (
             <div className="bento-card">
-              <h2 className="text-lg font-bold text-updraft-deep font-poppins mb-4">Consumer Duty Dashboard</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                {outcomes.map((outcome) => (
-                  <OutcomeCard
-                    key={outcome.id}
-                    outcome={outcome}
-                    selected={outcome.id === selectedOutcomeId}
-                    onClick={() => setSelectedOutcomeId(outcome.id === selectedOutcomeId ? null : outcome.id)}
-                    hasStaleData={hasStaleChildren(outcome, lastPublishDate)}
-                  />
-                ))}
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-updraft-deep font-poppins">
+                  Consumer Duty Dashboard
+                  {cdHiddenIds.size > 0 && (
+                    <span className="ml-2 text-xs font-normal text-gray-400">
+                      ({visibleOutcomes.length} of {outcomes.length} shown)
+                    </span>
+                  )}
+                </h2>
+                {isCCROTeam && (
+                  <div ref={cdConfigRef} className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowCdConfig((v) => !v)}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors",
+                        showCdConfig
+                          ? "border-updraft-bright-purple/40 bg-updraft-pale-purple/10 text-updraft-bright-purple"
+                          : "border-gray-200 text-gray-500 hover:bg-gray-50"
+                      )}
+                      title="Configure which outcomes appear in this report"
+                    >
+                      <Settings2 size={13} />Configure
+                    </button>
+                    {showCdConfig && (
+                      <div className="absolute right-0 top-full mt-1 z-50 w-72 rounded-xl border border-gray-200 bg-white shadow-lg">
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                          <p className="text-sm font-semibold text-gray-800">Visible Outcomes</p>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setCdHiddenIds(new Set())}
+                              className="text-xs text-updraft-bright-purple hover:underline"
+                            >Show all</button>
+                            <span className="text-gray-300">|</span>
+                            <button
+                              type="button"
+                              onClick={() => setCdHiddenIds(new Set(outcomes.map((o) => o.id)))}
+                              className="text-xs text-gray-500 hover:underline"
+                            >Hide all</button>
+                          </div>
+                        </div>
+                        <ul className="py-1.5 max-h-64 overflow-y-auto">
+                          {outcomes.map((outcome) => {
+                            const hidden = cdHiddenIds.has(outcome.id);
+                            return (
+                              <li key={outcome.id}>
+                                <label className="flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-gray-50 transition-colors">
+                                  <input
+                                    type="checkbox"
+                                    checked={!hidden}
+                                    onChange={() => {
+                                      setCdHiddenIds((prev) => {
+                                        const next = new Set(prev);
+                                        if (next.has(outcome.id)) next.delete(outcome.id);
+                                        else next.add(outcome.id);
+                                        // Clear selected outcome if it's being hidden
+                                        if (next.has(selectedOutcomeId ?? "")) setSelectedOutcomeId(null);
+                                        return next;
+                                      });
+                                    }}
+                                    className="h-4 w-4 rounded border-gray-300 accent-updraft-bright-purple"
+                                  />
+                                  <span className={cn("text-xs truncate", hidden ? "text-gray-400 line-through" : "text-gray-700")}>
+                                    {outcome.name}
+                                  </span>
+                                  {hidden && <EyeOff size={11} className="shrink-0 text-gray-300 ml-auto" />}
+                                </label>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-              {selectedOutcome && selectedOutcome.measures && (
-                <div className="animate-slide-up">
-                  <MeasurePanel measures={selectedOutcome.measures} onMeasureClick={(m) => setSelectedMeasure(m)} lastPublishDate={lastPublishDate} />
+              {visibleOutcomes.length === 0 ? (
+                <div className="py-8 text-center">
+                  <EyeOff size={32} className="mx-auto text-gray-300 mb-2" />
+                  <p className="text-sm text-gray-500">All outcomes are hidden</p>
+                  <button type="button" onClick={() => setCdHiddenIds(new Set())} className="mt-2 text-xs text-updraft-bright-purple hover:underline">Show all outcomes</button>
                 </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                    {visibleOutcomes.map((outcome) => (
+                      <OutcomeCard
+                        key={outcome.id}
+                        outcome={outcome}
+                        selected={outcome.id === selectedOutcomeId}
+                        onClick={() => setSelectedOutcomeId(outcome.id === selectedOutcomeId ? null : outcome.id)}
+                        hasStaleData={hasStaleChildren(outcome, lastPublishDate)}
+                      />
+                    ))}
+                  </div>
+                  {selectedOutcome && selectedOutcome.measures && (
+                    <div className="animate-slide-up">
+                      <MeasurePanel measures={selectedOutcome.measures} onMeasureClick={(m) => setSelectedMeasure(m)} lastPublishDate={lastPublishDate} />
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}

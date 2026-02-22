@@ -28,6 +28,10 @@ import {
   XCircle,
   CheckCircle,
   GitBranch,
+  CheckSquare,
+  Square,
+  UserRoundCheck,
+  X,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 // Audit logging is handled server-side by the API routes
@@ -134,6 +138,9 @@ function ActionsPageContent() {
   const [showCSVImport, setShowCSVImport] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showUpdateForm, setShowUpdateForm] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkReassignTo, setBulkReassignTo] = useState("");
+  const [showBulkReassign, setShowBulkReassign] = useState(false);
   const [showDateProposal, setShowDateProposal] = useState<string | null>(null);
   const [showReassignProposal, setShowReassignProposal] = useState<string | null>(null);
   const [proposedDate, setProposedDate] = useState("");
@@ -305,6 +312,48 @@ function ActionsPageContent() {
     if (reportFilter !== "ALL") params.set("reportId", reportFilter);
     window.open(`/api/actions/export?${params.toString()}`, "_blank");
   }, [statusFilter, reportFilter]);
+
+  const handleBulkClose = useCallback(async () => {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    const confirmed = confirm(`Mark ${ids.length} action${ids.length === 1 ? "" : "s"} as Completed?`);
+    if (!confirmed) return;
+    for (const id of ids) {
+      updateAction(id, { status: "COMPLETED", completedAt: new Date().toISOString() });
+    }
+    setSelectedIds(new Set());
+    toast.success(`${ids.length} action${ids.length === 1 ? "" : "s"} marked as Completed`);
+  }, [selectedIds, updateAction]);
+
+  const handleBulkReassign = useCallback(async () => {
+    if (!bulkReassignTo) return;
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    const targetUser = users.find((u) => u.id === bulkReassignTo);
+    for (const id of ids) {
+      updateAction(id, { assignedTo: bulkReassignTo });
+    }
+    setSelectedIds(new Set());
+    setShowBulkReassign(false);
+    setBulkReassignTo("");
+    toast.success(`${ids.length} action${ids.length === 1 ? "" : "s"} reassigned to ${targetUser?.name ?? "new owner"}`);
+  }, [selectedIds, bulkReassignTo, users, updateAction]);
+
+  const handleBulkExport = useCallback(() => {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    const params = new URLSearchParams();
+    params.set("ids", ids.join(","));
+    window.open(`/api/actions/export?${params.toString()}`, "_blank");
+  }, [selectedIds]);
+
+  const toggleSelectAll = useCallback(() => {
+    if (selectedIds.size === filteredActions.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredActions.map((a) => a.id)));
+    }
+  }, [selectedIds, filteredActions]);
 
   const handleImportComplete = useCallback(async () => {
     try {
@@ -565,8 +614,94 @@ function ActionsPageContent() {
         </div>
       )}
 
+      {/* Bulk Action Toolbar */}
+      {isCCRO && selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 rounded-xl border border-updraft-bright-purple/30 bg-updraft-pale-purple/10 px-4 py-3">
+          <span className="text-sm font-semibold text-updraft-deep">
+            {selectedIds.size} selected
+          </span>
+          <div className="h-4 w-px bg-gray-300" />
+          <button
+            type="button"
+            onClick={handleBulkClose}
+            className="flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 transition-colors"
+          >
+            <CheckCircle size={12} />Mark Completed
+          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowBulkReassign((v) => !v)}
+              className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <UserRoundCheck size={12} />Reassign...
+            </button>
+            {showBulkReassign && (
+              <div className="absolute left-0 top-full mt-1 z-50 w-56 rounded-xl border border-gray-200 bg-white shadow-lg p-3 space-y-2">
+                <p className="text-xs font-semibold text-gray-600">Reassign {selectedIds.size} action{selectedIds.size === 1 ? "" : "s"} to:</p>
+                <select
+                  value={bulkReassignTo}
+                  onChange={(e) => setBulkReassignTo(e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-sm outline-none"
+                >
+                  <option value="">Select new owner...</option>
+                  {users.filter((u) => u.isActive).map((u) => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  disabled={!bulkReassignTo}
+                  onClick={handleBulkReassign}
+                  className="w-full rounded-lg bg-updraft-bright-purple px-3 py-1.5 text-xs font-medium text-white hover:bg-updraft-deep transition-colors disabled:opacity-50"
+                >
+                  Confirm Reassign
+                </button>
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={handleBulkExport}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <Download size={12} />Export Selected
+          </button>
+          <div className="ml-auto">
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X size={12} />Clear
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Actions Table */}
       <div className="bento-card p-0 overflow-hidden">
+        {/* Select-all header row */}
+        {isCCRO && filteredActions.length > 0 && (
+          <div className="flex items-center gap-3 px-4 py-2 border-b border-gray-100 bg-gray-50/60">
+            <button
+              type="button"
+              onClick={toggleSelectAll}
+              className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              {selectedIds.size === filteredActions.length && filteredActions.length > 0 ? (
+                <CheckSquare size={15} className="text-updraft-bright-purple" />
+              ) : (
+                <Square size={15} />
+              )}
+              {selectedIds.size > 0 && selectedIds.size < filteredActions.length
+                ? `${selectedIds.size} of ${filteredActions.length} selected`
+                : selectedIds.size === filteredActions.length && filteredActions.length > 0
+                ? "All selected"
+                : "Select all"}
+            </button>
+          </div>
+        )}
         {filteredActions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <ListChecks size={40} className="mb-3 text-gray-300" />
@@ -583,15 +718,42 @@ function ActionsPageContent() {
               const StatusIcon = STATUS_CONFIG[action.status].icon;
               const days = daysUntilDue(action.dueDate);
 
+              const isSelected = selectedIds.has(action.id);
               return (
-                <div key={action.id}>
+                <div key={action.id} className={cn(isSelected && "bg-updraft-pale-purple/5")}>
                   {/* Row */}
+                  <div
+                    className={cn(
+                      "flex w-full items-center gap-2 border-l-4",
+                      rowBorderColor(action),
+                      isExpanded && "bg-updraft-pale-purple/10"
+                    )}
+                  >
+                    {/* Checkbox (CCRO only) */}
+                    {isCCRO && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(action.id)) next.delete(action.id);
+                            else next.add(action.id);
+                            return next;
+                          });
+                        }}
+                        className="pl-3 py-3 shrink-0"
+                      >
+                        {isSelected
+                          ? <CheckSquare size={15} className="text-updraft-bright-purple" />
+                          : <Square size={15} className="text-gray-300 hover:text-gray-500" />}
+                      </button>
+                    )}
                   <button
                     onClick={() => setExpandedId(isExpanded ? null : action.id)}
                     className={cn(
-                      "flex w-full items-center gap-4 px-4 py-3 text-left hover:bg-gray-50/80 transition-colors border-l-4",
-                      rowBorderColor(action),
-                      isExpanded && "bg-updraft-pale-purple/10"
+                      "flex flex-1 items-center gap-4 px-4 py-3 text-left hover:bg-gray-50/80 transition-colors",
+                      !isCCRO && "pl-4"
                     )}
                   >
                     <div className="shrink-0">
@@ -673,6 +835,7 @@ function ActionsPageContent() {
                       </span>
                     )}
                   </button>
+                  </div>{/* end row outer div */}
 
                   {/* Expanded Detail Card */}
                   {isExpanded && expandedAction && (() => {

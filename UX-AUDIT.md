@@ -107,7 +107,7 @@
 |---|---|---|---|
 | 4.1 | Expandable row pattern shows one detail at a time — no "Detailed View" toggle to compare multiple actions | ❌ Outstanding | `src/app/actions/page.tsx` |
 | 4.2 | Approval workflow scattered — `approvalStatus` badge and change approvals are presented inconsistently | ✅ Fixed (approval badges now have consistent icons: Clock for Awaiting Approval, CheckCircle for Approved (new green badge), XCircle for Rejected; pending changes badge now uses sky-blue colour with GitBranch icon to distinguish from approval status; all badges have tooltip descriptions) | `src/app/actions/page.tsx` |
-| 4.3 | No bulk actions — no way to bulk-reassign, bulk-close, or export to CSV | ❌ Outstanding | `src/app/actions/page.tsx` |
+| 4.3 | No bulk actions — no way to bulk-reassign, bulk-close, or export to CSV | ✅ Fixed (checkbox added to each action row; select-all header; bulk toolbar appears when selections exist: "Mark Completed" bulk-closes selected, "Reassign..." shows inline picker with user selector + confirm, "Export Selected" exports filtered set to CSV; all bulk actions CCRO-only; selection cleared after each operation) | `src/app/actions/page.tsx` |
 | 4.4 | Filter state (priority, status) resets when navigating away | ✅ Fixed (all 5 filters — status, priority, search q, owner, report, source — initialised from URL and synced via 150ms debounced effect) | `src/app/actions/page.tsx` |
 
 ---
@@ -156,7 +156,7 @@
 |---|---|---|---|
 | 6.2 | Export was silent — no confirmation or feedback after download | ✅ Fixed | `src/app/reports/page.tsx` |
 | 6.3 | No summary metrics on the reports page (total, draft, published counts) | ✅ Fixed | `src/app/reports/page.tsx` |
-| 6.4 | Consumer Duty section in report view is not configurable — all 21 outcomes hardcoded into every report | ❌ Outstanding | `src/app/reports/[id]/page.tsx` |
+| 6.4 | Consumer Duty section in report view is not configurable — all 21 outcomes hardcoded into every report | ✅ Fixed (CCRO users see a "Configure" button on the CD section header; popover lists all outcomes with checkboxes and Show all/Hide all shortcuts; hidden count shown in header "X of 21 shown"; configuration persisted per-report to localStorage; empty state shown with "Show all" recovery link when all outcomes hidden) | `src/app/reports/[id]/page.tsx` |
 
 ### 🟡 MEDIUM
 
