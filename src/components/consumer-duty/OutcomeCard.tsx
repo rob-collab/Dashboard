@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { ConsumerDutyOutcome } from "@/lib/types";
 import { cn, ragBgColor } from "@/lib/utils";
 import {
@@ -11,6 +11,8 @@ import {
   Scale,
   HelpCircle,
   AlertTriangle,
+  Pencil,
+  Clock,
   type LucideIcon,
 } from "lucide-react";
 
@@ -45,6 +47,21 @@ interface OutcomeCardProps {
 /* ------------------------------------------------------------------ */
 /* Component                                                           */
 /* ------------------------------------------------------------------ */
+/** Format relative time for last-updated label */
+function relativeTime(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 60) return mins <= 1 ? "just now" : `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) return `${weeks}w ago`;
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
 export default function OutcomeCard({
   outcome,
   selected,
@@ -54,6 +71,39 @@ export default function OutcomeCard({
 }: OutcomeCardProps) {
   const Icon = useMemo(() => resolveIcon(outcome.icon), [outcome.icon]);
   const measureCount = outcome.measures?.length ?? 0;
+  const [showRagTooltip, setShowRagTooltip] = useState(false);
+
+  // RAG breakdown for tooltip
+  const ragBreakdown = useMemo(() => {
+    const measures = outcome.measures ?? [];
+    return {
+      good: measures.filter((m) => m.ragStatus === "GOOD").length,
+      warning: measures.filter((m) => m.ragStatus === "WARNING").length,
+      harm: measures.filter((m) => m.ragStatus === "HARM").length,
+    };
+  }, [outcome.measures]);
+
+  // Detect CCRO manual override: computed worst-of-measures vs actual ragStatus
+  const computedRag = useMemo(() => {
+    const measures = outcome.measures ?? [];
+    if (measures.length === 0) return outcome.ragStatus;
+    if (measures.some((m) => m.ragStatus === "HARM")) return "HARM";
+    if (measures.some((m) => m.ragStatus === "WARNING")) return "WARNING";
+    return "GOOD";
+  }, [outcome.measures, outcome.ragStatus]);
+  const isCCROOverride = computedRag !== outcome.ragStatus && measureCount > 0;
+
+  // Last-updated time: take most recent measure.lastUpdatedAt, fallback to outcome.updatedAt
+  const lastUpdated = useMemo(() => {
+    const measures = outcome.measures ?? [];
+    const times = measures
+      .map((m) => m.lastUpdatedAt)
+      .filter(Boolean)
+      .map((t) => new Date(t!).getTime());
+    if (times.length > 0) return new Date(Math.max(...times)).toISOString();
+    return outcome.updatedAt ?? null;
+  }, [outcome.measures, outcome.updatedAt]);
+  const lastUpdatedLabel = relativeTime(lastUpdated);
 
   return (
     <button
@@ -83,7 +133,7 @@ export default function OutcomeCard({
           <Icon size={22} />
         </div>
 
-        {/* RAG status dot + stale badge */}
+        {/* RAG status dot + stale/override badges */}
         <div className="flex items-center gap-2">
           {hasStaleData && (
             <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700">
@@ -91,15 +141,58 @@ export default function OutcomeCard({
               Stale
             </span>
           )}
-          <span
-            className={cn(
-              "h-3.5 w-3.5 rounded-full border-2 border-white/80 shadow-sm",
-              ragBgColor(outcome.ragStatus),
-              outcome.ragStatus === "HARM" && "rag-pulse",
-              outcome.ragStatus === "GOOD" && "rag-glow"
+          {isCCROOverride && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-semibold text-purple-700 cursor-help"
+              title={`CCRO override: computed status was ${computedRag}, manually set to ${outcome.ragStatus}`}
+            >
+              <Pencil size={9} />
+              Override
+            </span>
+          )}
+          <div
+            className="relative"
+            onMouseEnter={() => setShowRagTooltip(true)}
+            onMouseLeave={() => setShowRagTooltip(false)}
+          >
+            <span
+              className={cn(
+                "block h-3.5 w-3.5 rounded-full border-2 border-white/80 shadow-sm cursor-help",
+                ragBgColor(outcome.ragStatus),
+                outcome.ragStatus === "HARM" && "rag-pulse",
+                outcome.ragStatus === "GOOD" && "rag-glow"
+              )}
+            />
+            {showRagTooltip && measureCount > 0 && (
+              <div className="absolute right-0 top-full mt-2 z-50 w-52 rounded-lg bg-gray-900 p-3 text-white shadow-xl pointer-events-none">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">RAG Breakdown</p>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500 inline-block" />Good</span>
+                    <span className="font-bold">{ragBreakdown.good}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />Warning</span>
+                    <span className="font-bold">{ragBreakdown.warning}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500 inline-block" />Harm</span>
+                    <span className="font-bold">{ragBreakdown.harm}</span>
+                  </div>
+                </div>
+                {isCCROOverride ? (
+                  <p className="text-[10px] text-purple-300 mt-2 border-t border-white/10 pt-2">
+                    CCRO override active — computed {computedRag}, shown as {outcome.ragStatus}
+                  </p>
+                ) : (
+                  <p className="text-[10px] text-gray-400 mt-2 border-t border-white/10 pt-2">Status set by worst-performing measure</p>
+                )}
+                {outcome.previousRAG && outcome.previousRAG !== outcome.ragStatus && (
+                  <p className="text-[10px] text-gray-400 mt-1">Changed from {outcome.previousRAG}</p>
+                )}
+              </div>
             )}
-            title={`Status: ${outcome.ragStatus}`}
-          />
+          </div>
         </div>
       </div>
 
@@ -119,7 +212,7 @@ export default function OutcomeCard({
       </p>
 
       {/* Measure count badge and details button */}
-      <div className="mt-auto flex items-center justify-between gap-2">
+      <div className="mt-auto flex items-center justify-between gap-2 w-full">
         <span
           className={cn(
             "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
@@ -142,6 +235,14 @@ export default function OutcomeCard({
           </button>
         )}
       </div>
+
+      {/* Last updated time */}
+      {lastUpdatedLabel && (
+        <div className="flex items-center gap-1 text-[10px] text-gray-400 -mt-2">
+          <Clock size={9} />
+          <span>Updated {lastUpdatedLabel}</span>
+        </div>
+      )}
 
       {/* RAG-coloured top accent border */}
       <div

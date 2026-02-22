@@ -106,6 +106,7 @@ export interface ConsumerDutyOutcome {
   icon: string | null;
   ragStatus: RAGStatus;
   position: number;
+  updatedAt?: string;
   measures?: ConsumerDutyMeasure[];
 }
 

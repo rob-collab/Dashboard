@@ -69,6 +69,16 @@ export default function OutcomeFormDialog({
     }
   }, [open, outcome]);
 
+  function validateField(field: "name" | "outcomeId" | "shortDesc") {
+    setErrors((prev) => {
+      const next = { ...prev };
+      if (field === "name") { if (!name.trim()) next.name = "Name is required"; else delete next.name; }
+      if (field === "outcomeId") { if (!outcomeId.trim()) next.outcomeId = "Outcome ID is required"; else delete next.outcomeId; }
+      if (field === "shortDesc") { if (!shortDesc.trim()) next.shortDesc = "Short description is required"; else delete next.shortDesc; }
+      return next;
+    });
+  }
+
   function validate(): boolean {
     const newErrors: Record<string, string> = {};
     if (!name.trim()) newErrors.name = "Name is required";
@@ -134,43 +144,55 @@ export default function OutcomeFormDialog({
       <form id="outcome-form" onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label htmlFor="outcome-id" className={labelClasses}>Outcome ID</label>
+            <label htmlFor="outcome-id" className={labelClasses}>Outcome ID <span className="text-red-500 ml-0.5">*</span></label>
             <input
               id="outcome-id"
               type="text"
               value={outcomeId}
               onChange={(e) => setOutcomeId(e.target.value)}
+              onBlur={() => validateField("outcomeId")}
               placeholder="e.g. O1"
               className={inputClasses}
+              aria-required="true"
+              aria-invalid={!!errors.outcomeId}
+              aria-describedby={errors.outcomeId ? "outcome-id-error" : undefined}
             />
-            {errors.outcomeId && <p className={errorClasses}>{errors.outcomeId}</p>}
+            {errors.outcomeId && <p id="outcome-id-error" className={errorClasses}>{errors.outcomeId}</p>}
           </div>
 
           <div>
-            <label htmlFor="outcome-name" className={labelClasses}>Name</label>
+            <label htmlFor="outcome-name" className={labelClasses}>Name <span className="text-red-500 ml-0.5">*</span></label>
             <input
               id="outcome-name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              onBlur={() => validateField("name")}
               placeholder="e.g. Products & Services"
               className={inputClasses}
+              aria-required="true"
+              aria-invalid={!!errors.name}
+              aria-describedby={errors.name ? "outcome-name-error" : undefined}
             />
-            {errors.name && <p className={errorClasses}>{errors.name}</p>}
+            {errors.name && <p id="outcome-name-error" className={errorClasses}>{errors.name}</p>}
           </div>
         </div>
 
         <div>
-          <label htmlFor="outcome-desc" className={labelClasses}>Short Description</label>
+          <label htmlFor="outcome-desc" className={labelClasses}>Short Description <span className="text-red-500 ml-0.5">*</span></label>
           <input
             id="outcome-desc"
             type="text"
             value={shortDesc}
             onChange={(e) => setShortDesc(e.target.value)}
+            onBlur={() => validateField("shortDesc")}
             placeholder="Brief description of this outcome"
             className={inputClasses}
+            aria-required="true"
+            aria-invalid={!!errors.shortDesc}
+            aria-describedby={errors.shortDesc ? "outcome-desc-error" : undefined}
           />
-          {errors.shortDesc && <p className={errorClasses}>{errors.shortDesc}</p>}
+          {errors.shortDesc && <p id="outcome-desc-error" className={errorClasses}>{errors.shortDesc}</p>}
         </div>
 
         <div>

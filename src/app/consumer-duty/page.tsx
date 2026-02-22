@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
+import { useState, useEffect, useMemo, useCallback, Suspense, useRef } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ShieldCheck, Search, Filter, ClipboardEdit, Plus, Upload, Pencil, Trash2, Shield } from "lucide-react";
 import { useAppStore } from "@/lib/store";
@@ -53,7 +54,7 @@ function ConsumerDutyContent() {
     if (param === "GOOD" || param === "WARNING" || param === "HARM" || param === "ATTENTION") return param;
     return "ALL";
   });
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") ?? "");
   const [viewMode, setViewMode] = useState<"all" | "my" | "admin">("all");
   const [measureRagFilter, setMeasureRagFilter] = useState<RAGStatus | "ALL">("ALL");
 
@@ -87,11 +88,25 @@ function ConsumerDutyContent() {
     }
   }, [outcomes, searchParams, deepLinkHandled]);
 
-  // URL-synced RAG filter (for filter bar)
+  // Debounced URL sync for ragFilter + searchQuery
+  const cdSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (cdSyncTimerRef.current) clearTimeout(cdSyncTimerRef.current);
+    cdSyncTimerRef.current = setTimeout(() => {
+      const params = new URLSearchParams();
+      if (ragFilter !== "ALL") params.set("rag", ragFilter);
+      if (searchQuery.trim()) params.set("q", searchQuery.trim());
+      const qs = params.toString();
+      router.replace(qs ? `/consumer-duty?${qs}` : "/consumer-duty", { scroll: false });
+    }, 150);
+    return () => { if (cdSyncTimerRef.current) clearTimeout(cdSyncTimerRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ragFilter, searchQuery]);
+
+  // RAG filter handler (just set state — URL synced by effect above)
   const handleRagFilter = useCallback((value: RagFilterValue) => {
     setRagFilter(value);
-    router.replace(value === "ALL" ? "/consumer-duty" : `/consumer-duty?rag=${value}`, { scroll: false });
-  }, [router]);
+  }, []);
 
   // Stat card click — toggle (click active card resets to ALL)
   const handleStatRagClick = useCallback((value: RAGStatus | "ALL") => {
@@ -298,6 +313,12 @@ function ConsumerDutyContent() {
           {/* CCRO Team management buttons */}
           {isCCROTeam && (
             <>
+              <Link
+                href="/audit?q=consumer_duty"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Audit Trail
+              </Link>
               <button
                 onClick={() => { setEditingOutcome(undefined); setOutcomeDialogOpen(true); }}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
@@ -509,13 +530,30 @@ function ConsumerDutyContent() {
                 {myMeasures.length}
               </span>
             </div>
-            {myMeasures.length === 0 ? (
-              <div className="text-center py-12">
-                <ClipboardEdit size={48} className="mx-auto mb-3 text-gray-300" />
-                <p className="text-sm font-medium text-gray-500">No measures assigned to you</p>
-                <p className="text-xs text-gray-400 mt-1">Contact the CCRO team to get measures assigned</p>
-              </div>
-            ) : (
+            {myMeasures.length === 0 ? (() => {
+              const ccroTeam = users.filter((u) => u.role === "CCRO_TEAM" && u.isActive !== false);
+              return (
+                <div className="text-center py-12">
+                  <ClipboardEdit size={48} className="mx-auto mb-3 text-gray-300" />
+                  <p className="text-sm font-medium text-gray-500">No measures assigned to you</p>
+                  <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto">
+                    Measures are assigned by your CCRO team. Ask them to assign you as the owner of specific measures.
+                  </p>
+                  {ccroTeam.length > 0 && (
+                    <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                      {ccroTeam.map((u) => (
+                        <span key={u.id} className="inline-flex items-center gap-1.5 rounded-full bg-updraft-pale-purple/30 px-3 py-1 text-xs font-medium text-updraft-deep">
+                          <span className="w-5 h-5 rounded-full bg-updraft-bright-purple/20 text-updraft-bright-purple text-[10px] font-bold flex items-center justify-center shrink-0">
+                            {u.name.charAt(0)}
+                          </span>
+                          {u.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })() : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {myMeasures.map((measure) => (
                   <button

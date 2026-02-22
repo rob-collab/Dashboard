@@ -172,7 +172,16 @@ export default function ReportViewPage() {
             <div className="flex items-center gap-4 mt-1 text-sm text-fca-gray">
               <span className="flex items-center gap-1"><Calendar size={14} /> {report.period}</span>
               <span className="flex items-center gap-1"><User size={14} /> {report.createdBy}</span>
-              <span>Last updated {formatDate(report.updatedAt)}</span>
+              {lastPublishDate && report.status === "PUBLISHED" ? (
+                <span className="flex items-center gap-1 text-green-600 font-medium">
+                  Published {formatDate(lastPublishDate)}
+                </span>
+              ) : (
+                <span>Last updated {formatDate(report.updatedAt)}</span>
+              )}
+              {versions.length > 1 && (
+                <span className="text-xs text-gray-400">{versions.length} versions</span>
+              )}
             </div>
           </div>
         </div>
@@ -197,6 +206,9 @@ export default function ReportViewPage() {
             )}
           >
             <History size={14} /> History
+            {versions.length > 0 && (
+              <span className="ml-0.5 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500">{versions.length}</span>
+            )}
           </button>
         </div>
       </div>

@@ -302,11 +302,30 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
           </CollapsibleSection>
 
           {/* 4. Controls & Mitigations */}
-          {(risk || acceptance.linkedControlId || acceptance.linkedActionIds.length > 0) && (
+          {(risk || acceptance.linkedControlId || acceptance.linkedActionIds.length > 0) && (() => {
+            const hasFailingControl = acceptance.linkedControl?.approvalStatus === "REJECTED";
+            const hasPendingControl = acceptance.linkedControl && acceptance.linkedControl.approvalStatus !== "APPROVED";
+            const overdueActions = acceptance.linkedActionIds.filter((aid) => storeActions.find((a) => a.id === aid)?.status === "OVERDUE").length;
+            const totalCount = (risk?.controls?.length ?? 0) + (risk?.mitigations?.length ?? 0) + (acceptance.linkedControlId ? 1 : 0);
+            const hasIssues = hasFailingControl || overdueActions > 0;
+            return (
             <CollapsibleSection title="Controls & Mitigations" badge={
-              <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
-                {(risk?.controls?.length ?? 0) + (risk?.mitigations?.length ?? 0) + (acceptance.linkedControlId ? 1 : 0)}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">{totalCount}</span>
+                {hasIssues && (
+                  <span className="inline-flex items-center gap-0.5 text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-semibold"
+                    title={hasFailingControl ? "Linked control rejected" : `${overdueActions} overdue action${overdueActions !== 1 ? "s" : ""}`}
+                  >
+                    <AlertTriangle size={9} />
+                    {hasFailingControl ? "Rejected" : `${overdueActions} overdue`}
+                  </span>
+                )}
+                {!hasIssues && hasPendingControl && (
+                  <span className="text-[10px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full font-semibold" title="Linked control pending approval">
+                    Pending
+                  </span>
+                )}
+              </div>
             }>
               <div className="space-y-3 text-sm">
                 {/* Linked Control (from Control Testing source) */}
@@ -380,7 +399,8 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
                 </div>
               </div>
             </CollapsibleSection>
-          )}
+            );
+          })()}
 
           {/* 5. Comments & Discussion */}
           <CollapsibleSection title="Comments & Discussion" defaultOpen badge={

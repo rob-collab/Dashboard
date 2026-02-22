@@ -55,6 +55,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
   const priorityDefinitions = useAppStore((s) => s.priorityDefinitions);
   const riskAcceptances = useAppStore((s) => s.riskAcceptances);
   const storeControls = useAppStore((s) => s.controls);
+  const controlBusinessAreas = useAppStore((s) => s.controlBusinessAreas);
   const toggleRiskInFocus = useAppStore((s) => s.toggleRiskInFocus);
   const linkControlToRisk = useAppStore((s) => s.linkControlToRisk);
   const unlinkControlFromRisk = useAppStore((s) => s.unlinkControlFromRisk);
@@ -104,6 +105,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
   const [mitigationsOpen, setMitigationsOpen] = useState(false);
   const [libraryControlsOpen, setLibraryControlsOpen] = useState(false);
   const [libCtrlSearch, setLibCtrlSearch] = useState("");
+  const [libCtrlAreaFilter, setLibCtrlAreaFilter] = useState<string>("");
 
   // Populate form when risk changes
   useEffect(() => {
@@ -425,6 +427,61 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
             </div>
           </section>
 
+          {/* Residual Assessment */}
+          <section className="space-y-3">
+            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center text-xs">3</span>
+              Residual Risk Assessment
+              <span className="text-[10px] text-gray-400 font-normal">(after controls)</span>
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <ScoreSelector
+                label="Likelihood"
+                value={residualLikelihood}
+                onChange={setResidualLikelihood}
+                options={LIKELIHOOD_SCALE.map((s) => ({ value: s.score, label: s.label, description: s.description }))}
+              />
+              <ScoreSelector
+                label="Impact"
+                value={residualImpact}
+                onChange={setResidualImpact}
+                options={IMPACT_SCALE.map((s) => ({ value: s.score, label: s.label, description: s.description }))}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">Residual Score:</span>
+              <ScoreBadge likelihood={residualLikelihood} impact={residualImpact} size="md" />
+            </div>
+            {residualWarning && (
+              <div className="flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                <span className="text-xs text-amber-700">
+                  Residual score exceeds inherent score on one or more axes. Controls typically reduce risk — please verify.
+                </span>
+              </div>
+            )}
+          </section>
+
+          {/* Inherent → Residual Visual */}
+          <section className="p-4 bg-gray-50 rounded-xl">
+            <div className="flex items-center justify-center gap-4">
+              <div className="text-center">
+                <div className="text-[10px] font-medium text-gray-400 uppercase mb-1">Inherent</div>
+                <ScoreBadge likelihood={inherentLikelihood} impact={inherentImpact} size="lg" />
+              </div>
+              <div className="flex flex-col items-center">
+                <div className="text-[10px] text-gray-400 mb-0.5">{controls.filter((c) => c.description.trim()).length} controls</div>
+                <div className="w-16 h-0.5 bg-gray-300 relative">
+                  <div className="absolute -right-1 -top-1 text-gray-400">→</div>
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-[10px] font-medium text-gray-400 uppercase mb-1">Residual</div>
+                <ScoreBadge likelihood={residualLikelihood} impact={residualImpact} size="lg" />
+              </div>
+            </div>
+          </section>
+
           {/* Controls (collapsible) */}
           <section className="space-y-3">
             <button
@@ -432,7 +489,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
               onClick={() => setControlsOpen(!controlsOpen)}
               className="w-full text-sm font-semibold text-gray-700 flex items-center gap-2"
             >
-              <span className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs">3</span>
+              <span className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs">4</span>
               Controls
               <span className="rounded-full bg-blue-100 text-blue-700 px-1.5 py-0.5 text-[10px] font-bold">{controls.filter((c) => c.description.trim()).length}</span>
               <span className="text-[10px] text-gray-400 font-normal">bridging inherent → residual</span>
@@ -506,7 +563,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
               onClick={() => setLibraryControlsOpen(!libraryControlsOpen)}
               className="w-full text-sm font-semibold text-gray-700 flex items-center gap-2"
             >
-              <span className="w-6 h-6 rounded-full bg-teal-500 text-white flex items-center justify-center text-xs">3b</span>
+              <span className="w-6 h-6 rounded-full bg-teal-500 text-white flex items-center justify-center text-xs">4b</span>
               Library Controls
               <span className="rounded-full bg-teal-100 text-teal-700 px-1.5 py-0.5 text-[10px] font-bold">{risk.controlLinks?.length ?? 0}</span>
               <span className="text-[10px] text-gray-400 font-normal">linked from control library</span>
@@ -551,6 +608,28 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                 {/* Search + link */}
                 {canEditRisk && (
                   <div className="space-y-2">
+                    {/* Area filter chips */}
+                    {controlBusinessAreas.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setLibCtrlAreaFilter("")}
+                          className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium border transition-colors ${!libCtrlAreaFilter ? "bg-updraft-deep text-white border-updraft-deep" : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"}`}
+                        >
+                          All areas
+                        </button>
+                        {controlBusinessAreas.filter((a) => a.isActive).map((area) => (
+                          <button
+                            key={area.id}
+                            type="button"
+                            onClick={() => setLibCtrlAreaFilter(libCtrlAreaFilter === area.id ? "" : area.id)}
+                            className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium border transition-colors ${libCtrlAreaFilter === area.id ? "bg-updraft-bright-purple/20 text-updraft-deep border-updraft-bright-purple/40" : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"}`}
+                          >
+                            {area.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     <div className="relative">
                       <input
                         type="text"
@@ -561,31 +640,54 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                       />
                       <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     </div>
-                    {libCtrlSearch.trim() && (
-                      <div className="max-h-40 overflow-y-auto space-y-1 rounded-lg border border-gray-200 bg-white p-2">
+                    {(libCtrlSearch.trim() || libCtrlAreaFilter) && (
+                      <div className="max-h-52 overflow-y-auto space-y-1 rounded-lg border border-gray-200 bg-white p-2">
                         {(() => {
                           const q = libCtrlSearch.toLowerCase();
                           const linkedIds = new Set((risk.controlLinks ?? []).map((l) => l.controlId));
-                          const matches = storeControls.filter(
-                            (c) => c.isActive && !linkedIds.has(c.id) && (c.controlRef.toLowerCase().includes(q) || c.controlName.toLowerCase().includes(q))
-                          ).slice(0, 10);
+                          const matches = storeControls.filter((c) => {
+                            if (!c.isActive) return false;
+                            if (libCtrlAreaFilter && c.businessAreaId !== libCtrlAreaFilter) return false;
+                            if (q && !c.controlRef.toLowerCase().includes(q) && !c.controlName.toLowerCase().includes(q)) return false;
+                            return true;
+                          });
                           if (matches.length === 0) return <p className="text-xs text-gray-400 py-2 text-center">No matching controls found</p>;
-                          return matches.map((c) => (
-                            <button
-                              key={c.id}
-                              type="button"
-                              onClick={() => {
-                                linkControlToRisk(risk.id, c.id, currentUser?.id ?? "");
-                                setLibCtrlSearch("");
-                              }}
-                              className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-xs hover:bg-updraft-pale-purple/20 rounded-md transition-colors"
-                            >
-                              <span className="font-mono font-medium text-updraft-deep whitespace-nowrap">{c.controlRef}</span>
-                              <span className="text-gray-600 truncate">{c.controlName}</span>
-                              <Plus className="w-3.5 h-3.5 ml-auto text-gray-400 shrink-0" />
-                            </button>
-                          ));
+                          return matches.slice(0, 25).map((c) => {
+                            const alreadyLinked = linkedIds.has(c.id);
+                            const areaName = controlBusinessAreas.find((a) => a.id === c.businessAreaId)?.name;
+                            return (
+                              <button
+                                key={c.id}
+                                type="button"
+                                disabled={alreadyLinked}
+                                onClick={() => {
+                                  if (!alreadyLinked) {
+                                    linkControlToRisk(risk.id, c.id, currentUser?.id ?? "");
+                                    setLibCtrlSearch("");
+                                  }
+                                }}
+                                className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-xs rounded-md transition-colors ${alreadyLinked ? "opacity-50 cursor-not-allowed bg-gray-50" : "hover:bg-updraft-pale-purple/20"}`}
+                              >
+                                <span className="font-mono font-medium text-updraft-deep whitespace-nowrap">{c.controlRef}</span>
+                                <span className="text-gray-600 truncate flex-1">{c.controlName}</span>
+                                {areaName && <span className="text-[10px] text-gray-400 whitespace-nowrap shrink-0">{areaName}</span>}
+                                {alreadyLinked
+                                  ? <span className="text-[10px] text-teal-600 font-medium whitespace-nowrap shrink-0">Linked</span>
+                                  : <Plus className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                                }
+                              </button>
+                            );
+                          });
                         })()}
+                        {storeControls.filter((c) => {
+                          if (!c.isActive) return false;
+                          if (libCtrlAreaFilter && c.businessAreaId !== libCtrlAreaFilter) return false;
+                          const q = libCtrlSearch.toLowerCase();
+                          if (q && !c.controlRef.toLowerCase().includes(q) && !c.controlName.toLowerCase().includes(q)) return false;
+                          return true;
+                        }).length > 25 && (
+                          <p className="text-[10px] text-gray-400 text-center pt-1 border-t border-gray-100">Showing first 25 — refine search to narrow results</p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -594,61 +696,6 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
             )}
           </section>
           )}
-
-          {/* Residual Assessment */}
-          <section className="space-y-3">
-            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center text-xs">4</span>
-              Residual Risk Assessment
-              <span className="text-[10px] text-gray-400 font-normal">(after controls)</span>
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <ScoreSelector
-                label="Likelihood"
-                value={residualLikelihood}
-                onChange={setResidualLikelihood}
-                options={LIKELIHOOD_SCALE.map((s) => ({ value: s.score, label: s.label, description: s.description }))}
-              />
-              <ScoreSelector
-                label="Impact"
-                value={residualImpact}
-                onChange={setResidualImpact}
-                options={IMPACT_SCALE.map((s) => ({ value: s.score, label: s.label, description: s.description }))}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">Residual Score:</span>
-              <ScoreBadge likelihood={residualLikelihood} impact={residualImpact} size="md" />
-            </div>
-            {residualWarning && (
-              <div className="flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
-                <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
-                <span className="text-xs text-amber-700">
-                  Residual score exceeds inherent score on one or more axes. Controls typically reduce risk — please verify.
-                </span>
-              </div>
-            )}
-          </section>
-
-          {/* Inherent → Residual Visual */}
-          <section className="p-4 bg-gray-50 rounded-xl">
-            <div className="flex items-center justify-center gap-4">
-              <div className="text-center">
-                <div className="text-[10px] font-medium text-gray-400 uppercase mb-1">Inherent</div>
-                <ScoreBadge likelihood={inherentLikelihood} impact={inherentImpact} size="lg" />
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="text-[10px] text-gray-400 mb-0.5">{controls.filter((c) => c.description.trim()).length} controls</div>
-                <div className="w-16 h-0.5 bg-gray-300 relative">
-                  <div className="absolute -right-1 -top-1 text-gray-400">→</div>
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-[10px] font-medium text-gray-400 uppercase mb-1">Residual</div>
-                <ScoreBadge likelihood={residualLikelihood} impact={residualImpact} size="lg" />
-              </div>
-            </div>
-          </section>
 
           {/* Direction & Appetite */}
           <section className="space-y-3">

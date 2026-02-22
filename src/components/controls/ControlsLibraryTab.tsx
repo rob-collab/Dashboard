@@ -457,6 +457,35 @@ export default function ControlsLibraryTab({ initialControlId }: { initialContro
         </div>
       </div>
 
+      {/* ── Area Quick-Filter Chips ─────────────────────────── */}
+      {activeAreas.length > 0 && (
+        <div className="flex flex-wrap gap-2 px-1">
+          <button
+            onClick={() => setAreaFilter("")}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors border ${
+              !areaFilter
+                ? "bg-updraft-deep text-white border-updraft-deep"
+                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            All Areas
+          </button>
+          {activeAreas.map((area) => (
+            <button
+              key={area.id}
+              onClick={() => setAreaFilter(areaFilter === area.id ? "" : area.id)}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors border ${
+                areaFilter === area.id
+                  ? "bg-updraft-deep text-white border-updraft-deep"
+                  : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              {area.name}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* ── Table ───────────────────────────────────────────── */}
       <div className="bento-card overflow-hidden">
         <div className="overflow-x-auto">
@@ -575,7 +604,9 @@ export default function ControlsLibraryTab({ initialControlId }: { initialContro
                             {control.riskLinks!.length}
                           </span>
                         ) : (
-                          <span className="text-xs text-gray-400">&mdash;</span>
+                          <span className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs font-medium text-amber-700" title="No risks linked — this control is orphaned">
+                            Orphaned
+                          </span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">

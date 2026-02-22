@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import type { Risk, RiskControl, RiskMitigation } from "@/lib/types";
 import { getRiskScore, getRiskLevel, L1_CATEGORY_COLOURS } from "@/lib/risk-categories";
@@ -29,18 +29,36 @@ function getScore(risk: Risk, mode: ScoreMode): number {
 export default function RiskRegisterPage() {
   usePageTitle("Risk Register");
   const { risks, setRisks, addRisk, updateRisk, deleteRisk, currentUser, users } = useAppStore();
-  const [viewTab, setViewTab] = useState<ViewTab>("table");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Initialise filter state from URL params
+  const [viewTab, setViewTab] = useState<ViewTab>(() => {
+    const v = searchParams.get("view");
+    return v === "heatmap" ? "heatmap" : "table";
+  });
   const [selectedRisk, setSelectedRisk] = useState<Risk | null>(null);
   const [isNewRisk, setIsNewRisk] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
 
-  // Lifted state from heatmap
-  const [scoreMode, setScoreMode] = useState<ScoreMode>("residual");
+  // Lifted state from heatmap — URL param takes priority, then localStorage, then default
+  const [scoreMode, setScoreMode] = useState<ScoreMode>(() => {
+    const m = searchParams.get("mode");
+    if (m === "inherent" || m === "residual" || m === "overlay") return m;
+    try {
+      const saved = localStorage.getItem("rrScoreMode");
+      if (saved === "inherent" || saved === "residual" || saved === "overlay") return saved as ScoreMode;
+    } catch { /* ignore */ }
+    return "residual";
+  });
 
-  // Filter state
-  const [cardFilter, setCardFilter] = useState<CardFilter>("ALL");
-  const [activeCategoryL1, setActiveCategoryL1] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  // Filter state — initialised from URL
+  const [cardFilter, setCardFilter] = useState<CardFilter>(() => {
+    const f = searchParams.get("filter") as CardFilter;
+    return ["ALL", "VERY_HIGH", "HIGH", "WORSENING", "IMPROVING", "IN_FOCUS"].includes(f) ? f : "ALL";
+  });
+  const [activeCategoryL1, setActiveCategoryL1] = useState<string | null>(() => searchParams.get("cat") || null);
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") ?? "");
 
   // History chart state
   const [historyRisk, setHistoryRisk] = useState<Risk | null>(null);
@@ -51,8 +69,30 @@ export default function RiskRegisterPage() {
   // Pending delete state
   const [pendingDeleteRisk, setPendingDeleteRisk] = useState<Risk | null>(null);
 
+  // Sync filter state → URL (debounced for search query)
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      // Preserve deep-link risk param
+      if (viewTab === "heatmap") params.set("view", "heatmap"); else params.delete("view");
+      if (scoreMode !== "residual") params.set("mode", scoreMode); else params.delete("mode");
+      if (cardFilter !== "ALL") params.set("filter", cardFilter); else params.delete("filter");
+      if (activeCategoryL1) params.set("cat", activeCategoryL1); else params.delete("cat");
+      if (searchQuery.trim()) params.set("q", searchQuery); else params.delete("q");
+      router.replace(`/risk-register?${params.toString()}`, { scroll: false });
+    }, 150);
+    return () => { if (syncTimerRef.current) clearTimeout(syncTimerRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewTab, scoreMode, cardFilter, activeCategoryL1, searchQuery]);
+
+  // Persist score mode preference to localStorage
+  useEffect(() => {
+    try { localStorage.setItem("rrScoreMode", scoreMode); } catch { /* ignore */ }
+  }, [scoreMode]);
+
   // Deep-link: ?risk=<id> opens detail panel
-  const searchParams = useSearchParams();
   useEffect(() => {
     const riskId = searchParams.get("risk");
     if (riskId && risks.length > 0) {

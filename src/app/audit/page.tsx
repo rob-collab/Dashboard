@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ClipboardList,
   Search,
@@ -77,14 +77,15 @@ function getEntityLink(entityType: string, entityId: string | null, reportId: st
   }
 }
 
-export default function AuditPage() {
+function AuditPageContent() {
   usePageTitle("Audit Trail");
   const router = useRouter();
+  const searchParams = useSearchParams();
   const auditLogs = useAppStore((s) => s.auditLogs);
   const reports = useAppStore((s) => s.reports);
   const users = useAppStore((s) => s.users);
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") ?? "");
   const [actionFilter, setActionFilter] = useState<string>("ALL");
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
   const [showFilters, setShowFilters] = useState(false);
@@ -400,5 +401,13 @@ export default function AuditPage() {
       </div>
     </div>
     </RoleGuard>
+  );
+}
+
+export default function AuditPage() {
+  return (
+    <Suspense>
+      <AuditPageContent />
+    </Suspense>
   );
 }

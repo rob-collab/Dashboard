@@ -126,10 +126,10 @@ export default function RiskHeatmap({
                           {score}
                         </span>
 
-                        {/* Risk markers */}
+                        {/* Risk markers — cap at 3 visible dots, then +N overflow badge */}
                         {cellRisks.length > 0 && (
-                          <div className="flex flex-wrap gap-1 justify-center mt-0.5 max-w-[95%]">
-                            {cellRisks.map(({ risk, type }) => {
+                          <div className="flex flex-wrap gap-0.5 justify-center mt-0.5 max-w-[95%]">
+                            {cellRisks.slice(0, 3).map(({ risk, type }) => {
                               const catColour = L1_CATEGORY_COLOURS[risk.categoryL1];
                               const isHovered = hoveredRisk === risk.id;
                               const isInherentInOverlay = type === "inherent" && viewMode === "overlay";
@@ -172,6 +172,15 @@ export default function RiskHeatmap({
                                 </div>
                               );
                             })}
+                            {/* Overflow badge — click cell to see full list in side panel */}
+                            {cellRisks.length > 3 && (
+                              <div
+                                className="w-6 h-6 rounded-full border-2 border-gray-500 bg-white flex items-center justify-center cursor-pointer"
+                                title={`${cellRisks.length - 3} more — click cell to see all`}
+                              >
+                                <span className="text-[7px] font-bold text-gray-700">+{cellRisks.length - 3}</span>
+                              </div>
+                            )}
                           </div>
                         )}
                       </button>

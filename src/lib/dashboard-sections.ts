@@ -33,3 +33,23 @@ export const DASHBOARD_SECTIONS: DashboardSectionDef[] = [
 ];
 
 export const DEFAULT_SECTION_ORDER = DASHBOARD_SECTIONS.map((s) => s.key);
+
+/**
+ * Sections hidden by default for each role when the user has no saved layout.
+ * CCRO_TEAM sees everything. OWNERs and REVIEWERs have CCRO-only sections hidden.
+ */
+export const ROLE_DEFAULT_HIDDEN: Record<string, string[]> = {
+  OWNER: [
+    "pending-approvals",   // Only CCRO reviews new entity submissions
+    "proposed-changes",    // Only CCRO reviews field-level change proposals
+    "cross-entity",        // Board/CCRO cross-entity reporting
+    "policy-health",       // Policy management is CCRO domain
+    "overdue-metrics",     // CCRO oversight of Consumer Duty measure updates
+  ],
+  REVIEWER: [
+    "pending-approvals",
+    "proposed-changes",
+    "cross-entity",
+    "overdue-metrics",
+  ],
+};

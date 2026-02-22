@@ -24,6 +24,9 @@ const SIZE_CLASSES: Record<ModalSize, string> = {
   xl: "max-w-4xl",
 };
 
+const FOCUSABLE_SELECTORS =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export default function Modal({
   open,
   onClose,
@@ -34,12 +37,36 @@ export default function Modal({
   preventBackdropClose = false,
 }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
-  // Close on Escape key
+  // Trap focus within modal and auto-focus first element on open
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
+        return;
+      }
+      if (e.key !== "Tab" || !panelRef.current) return;
+
+      const focusable = Array.from(
+        panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS)
+      ).filter((el) => el.offsetParent !== null); // exclude hidden elements
+
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     },
     [onClose]
@@ -47,9 +74,20 @@ export default function Modal({
 
   useEffect(() => {
     if (open) {
+      // Remember the element that triggered the modal so we can restore focus on close
+      previousFocusRef.current = document.activeElement as HTMLElement;
       document.addEventListener("keydown", handleKeyDown);
-      // Prevent body scroll when modal is open
       document.body.style.overflow = "hidden";
+
+      // Auto-focus the first focusable element inside the modal
+      requestAnimationFrame(() => {
+        if (!panelRef.current) return;
+        const first = panelRef.current.querySelector<HTMLElement>(FOCUSABLE_SELECTORS);
+        first?.focus();
+      });
+    } else {
+      // Restore focus to trigger element on close
+      previousFocusRef.current?.focus();
     }
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
@@ -76,6 +114,7 @@ export default function Modal({
       aria-label={title ? undefined : "Modal dialog"}
     >
       <div
+        ref={panelRef}
         className={cn(
           "relative w-full rounded-xl bg-white shadow-xl animate-slide-up",
           SIZE_CLASSES[size]

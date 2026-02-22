@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import RoleGuard from "@/components/common/RoleGuard";
 import ComplianceOverview from "@/components/compliance/ComplianceOverview";
 import RegulatoryUniverseTab from "@/components/compliance/RegulatoryUniverseTab";
@@ -22,6 +22,7 @@ type TabId = (typeof TABS)[number]["id"];
 export default function CompliancePage() {
   usePageTitle("Compliance");
   const searchParams = useSearchParams();
+  const router = useRouter();
   const initialPolicyId = searchParams.get("policy");
   const initialRegulationId = searchParams.get("regulation");
   const derivedTab: TabId = initialPolicyId
@@ -32,6 +33,17 @@ export default function CompliancePage() {
   const [activeTab, setActiveTab] = useState<TabId>(
     TABS.some((t) => t.id === derivedTab) ? derivedTab : "overview"
   );
+
+  const handleTabChange = useCallback((tab: TabId) => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab !== "overview") params.set("tab", tab); else params.delete("tab");
+    // Remove deep-link params when switching tabs manually
+    params.delete("policy");
+    params.delete("regulation");
+    const qs = params.toString();
+    router.replace(qs ? `/compliance?${qs}` : "/compliance", { scroll: false });
+  }, [router, searchParams]);
 
   return (
     <RoleGuard permission="page:compliance">
@@ -49,7 +61,7 @@ export default function CompliancePage() {
             <button
               key={tab.id}
               type="button"
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabChange(tab.id)}
               className={cn(
                 "px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
                 activeTab === tab.id
@@ -63,7 +75,7 @@ export default function CompliancePage() {
         </div>
 
         {/* Tab content */}
-        {activeTab === "overview" && <ComplianceOverview onNavigate={setActiveTab} />}
+        {activeTab === "overview" && <ComplianceOverview onNavigate={handleTabChange} />}
         {activeTab === "regulatory-universe" && <RegulatoryUniverseTab initialRegulationId={initialRegulationId} />}
         {activeTab === "smcr" && <SMCRTab />}
         {activeTab === "policies" && <PoliciesTab initialPolicyId={initialPolicyId} />}

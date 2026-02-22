@@ -45,7 +45,7 @@ import type { ComplianceStatus, DashboardLayoutConfig } from "@/lib/types";
 import ScoreBadge from "@/components/risk-register/ScoreBadge";
 import DirectionArrow from "@/components/risk-register/DirectionArrow";
 import { usePageTitle } from "@/lib/usePageTitle";
-import { DASHBOARD_SECTIONS, DEFAULT_SECTION_ORDER } from "@/lib/dashboard-sections";
+import { DASHBOARD_SECTIONS, DEFAULT_SECTION_ORDER, ROLE_DEFAULT_HIDDEN } from "@/lib/dashboard-sections";
 import {
   DndContext,
   closestCenter,
@@ -427,17 +427,26 @@ export default function DashboardHome() {
 
   const editTargetUser = users.find((u) => u.id === editTargetUserId);
 
-  // Effective order for rendering (from DB layout or default)
+  // Effective order for rendering (from DB layout or role-based defaults)
   const effectiveOrder = useMemo(() => {
     const savedOrder = dashboardLayout?.sectionOrder ?? DEFAULT_SECTION_ORDER;
-    const savedHidden = new Set(dashboardLayout?.hiddenSections ?? []);
+    let savedHidden: Set<string>;
+    if (dashboardLayout?.hiddenSections != null) {
+      // User has an explicit saved layout — honour it exactly
+      savedHidden = new Set(dashboardLayout.hiddenSections);
+    } else {
+      // No saved layout — apply role-appropriate defaults so OWNER/REVIEWER
+      // don't see CCRO-only sections (pending approvals, proposed changes, etc.)
+      const roleDefaults = role ? (ROLE_DEFAULT_HIDDEN[role] ?? []) : [];
+      savedHidden = new Set(roleDefaults);
+    }
     // Forward-compat: append any new section keys not in saved order
     const order = [...savedOrder];
     for (let i = 0; i < DEFAULT_SECTION_ORDER.length; i++) {
       if (!order.includes(DEFAULT_SECTION_ORDER[i])) order.push(DEFAULT_SECTION_ORDER[i]);
     }
     return { order, hidden: savedHidden };
-  }, [dashboardLayout]);
+  }, [dashboardLayout, role]);
 
   // dnd-kit sensors
   const sensors = useSensors(

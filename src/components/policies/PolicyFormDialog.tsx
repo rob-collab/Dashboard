@@ -20,6 +20,9 @@ export default function PolicyFormDialog({ open, onClose, onSave, editPolicy }: 
   const users = useAppStore((s) => s.users);
   const ccroUsers = users.filter((u) => u.role === "CCRO_TEAM");
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<PolicyStatus>("CURRENT");
@@ -79,6 +82,16 @@ export default function PolicyFormDialog({ open, onClose, onSave, editPolicy }: 
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const newErrors: Record<string, string> = {};
+    if (!name.trim()) newErrors.name = "Policy name is required";
+    if (!description.trim()) newErrors.description = "Description is required";
+    if (!ownerId) newErrors.ownerId = "Owner is required";
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    setErrors({});
+    setSaving(true);
     const now = new Date().toISOString();
     const policy: Policy = {
       id: editPolicy?.id ?? `temp-${Date.now()}`,
@@ -110,6 +123,7 @@ export default function PolicyFormDialog({ open, onClose, onSave, editPolicy }: 
       auditTrail: editPolicy?.auditTrail ?? [],
     };
     onSave(policy);
+    setSaving(false);
     onClose();
   }
 
@@ -125,18 +139,20 @@ export default function PolicyFormDialog({ open, onClose, onSave, editPolicy }: 
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} noValidate className="p-6 space-y-5">
           <div className="grid grid-cols-2 gap-4">
             {/* Name */}
             <div className="col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">Policy Name *</label>
-              <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple" />
+              <input type="text" value={name} onChange={(e) => { setName(e.target.value); if (errors.name) setErrors((p) => ({ ...p, name: "" })); }} onBlur={() => { if (!name.trim()) setErrors((p) => ({ ...p, name: "Policy name is required" })); }} className={cn("w-full rounded-lg border px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple", errors.name ? "border-red-400 bg-red-50" : "border-gray-300")} />
+              {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name}</p>}
             </div>
 
             {/* Description */}
             <div className="col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">Description *</label>
-              <textarea required value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple" />
+              <textarea value={description} onChange={(e) => { setDescription(e.target.value); if (errors.description) setErrors((p) => ({ ...p, description: "" })); }} onBlur={() => { if (!description.trim()) setErrors((p) => ({ ...p, description: "Description is required" })); }} rows={3} className={cn("w-full rounded-lg border px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple", errors.description ? "border-red-400 bg-red-50" : "border-gray-300")} />
+              {errors.description && <p className="mt-1 text-xs text-red-600">{errors.description}</p>}
             </div>
 
             {/* Status */}
@@ -156,10 +172,11 @@ export default function PolicyFormDialog({ open, onClose, onSave, editPolicy }: 
             {/* Owner */}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Owner *</label>
-              <select required value={ownerId} onChange={(e) => setOwnerId(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+              <select value={ownerId} onChange={(e) => { setOwnerId(e.target.value); if (errors.ownerId) setErrors((p) => ({ ...p, ownerId: "" })); }} onBlur={() => { if (!ownerId) setErrors((p) => ({ ...p, ownerId: "Owner is required" })); }} className={cn("w-full rounded-lg border px-3 py-2 text-sm", errors.ownerId ? "border-red-400 bg-red-50" : "border-gray-300")}>
                 <option value="">Select owner...</option>
                 {ccroUsers.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
               </select>
+              {errors.ownerId && <p className="mt-1 text-xs text-red-600">{errors.ownerId}</p>}
             </div>
 
             {/* Approved By */}
@@ -233,8 +250,8 @@ export default function PolicyFormDialog({ open, onClose, onSave, editPolicy }: 
 
           <div className="flex items-center justify-end gap-3 border-t border-gray-200 pt-4">
             <button type="button" onClick={onClose} className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">Cancel</button>
-            <button type="submit" className={cn("rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors", "bg-updraft-deep hover:bg-updraft-bar")}>
-              {editPolicy ? "Save Changes" : "Create Policy"}
+            <button type="submit" disabled={saving} className={cn("rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed", "bg-updraft-deep hover:bg-updraft-bar")}>
+              {saving ? "Saving..." : editPolicy ? "Save Changes" : "Create Policy"}
             </button>
           </div>
         </form>

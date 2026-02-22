@@ -80,6 +80,16 @@ export default function MeasureFormDialog({
     }
   }, [open, measure, outcomes, defaultOutcomeId]);
 
+  function validateField(field: "measureId" | "name" | "outcomeId") {
+    setErrors((prev) => {
+      const next = { ...prev };
+      if (field === "measureId") { if (!measureId.trim()) next.measureId = "Measure ID is required"; else delete next.measureId; }
+      if (field === "name") { if (!name.trim()) next.name = "Name is required"; else delete next.name; }
+      if (field === "outcomeId") { if (!outcomeId) next.outcomeId = "Please select an outcome"; else delete next.outcomeId; }
+      return next;
+    });
+  }
+
   function validate(): boolean {
     const newErrors: Record<string, string> = {};
     if (!measureId.trim()) newErrors.measureId = "Measure ID is required";
@@ -171,45 +181,57 @@ export default function MeasureFormDialog({
       <form id="measure-form" onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label htmlFor="measure-id" className={labelClasses}>Measure ID</label>
+            <label htmlFor="measure-id" className={labelClasses}>Measure ID <span className="text-red-500 ml-0.5">*</span></label>
             <input
               id="measure-id"
               type="text"
               value={measureId}
               onChange={(e) => setMeasureId(e.target.value)}
+              onBlur={() => validateField("measureId")}
               placeholder="e.g. 1.1"
               className={inputClasses}
+              aria-required="true"
+              aria-invalid={!!errors.measureId}
+              aria-describedby={errors.measureId ? "measure-id-error" : undefined}
             />
-            {errors.measureId && <p className={errorClasses}>{errors.measureId}</p>}
+            {errors.measureId && <p id="measure-id-error" className={errorClasses}>{errors.measureId}</p>}
           </div>
           <div>
-            <label htmlFor="measure-outcome" className={labelClasses}>Outcome</label>
+            <label htmlFor="measure-outcome" className={labelClasses}>Outcome <span className="text-red-500 ml-0.5">*</span></label>
             <select
               id="measure-outcome"
               value={outcomeId}
               onChange={(e) => setOutcomeId(e.target.value)}
+              onBlur={() => validateField("outcomeId")}
               className={inputClasses}
+              aria-required="true"
+              aria-invalid={!!errors.outcomeId}
+              aria-describedby={errors.outcomeId ? "measure-outcome-error" : undefined}
             >
               <option value="">Select outcome...</option>
               {outcomes.map((o) => (
                 <option key={o.id} value={o.id}>{o.name}</option>
               ))}
             </select>
-            {errors.outcomeId && <p className={errorClasses}>{errors.outcomeId}</p>}
+            {errors.outcomeId && <p id="measure-outcome-error" className={errorClasses}>{errors.outcomeId}</p>}
           </div>
         </div>
 
         <div>
-          <label htmlFor="measure-name" className={labelClasses}>Name</label>
+          <label htmlFor="measure-name" className={labelClasses}>Name <span className="text-red-500 ml-0.5">*</span></label>
           <input
             id="measure-name"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            onBlur={() => validateField("name")}
             placeholder="e.g. Customer Needs Met"
             className={inputClasses}
+            aria-required="true"
+            aria-invalid={!!errors.name}
+            aria-describedby={errors.name ? "measure-name-error" : undefined}
           />
-          {errors.name && <p className={errorClasses}>{errors.name}</p>}
+          {errors.name && <p id="measure-name-error" className={errorClasses}>{errors.name}</p>}
         </div>
 
         <div>

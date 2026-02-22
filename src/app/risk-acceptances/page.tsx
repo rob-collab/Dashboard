@@ -6,7 +6,7 @@ import { useAppStore } from "@/lib/store";
 import { toast } from "sonner";
 import { formatDate, cn } from "@/lib/utils";
 import { getRiskScore, calculateBreach } from "@/lib/risk-categories";
-import { ChevronRight, Download, Plus, Search, ShieldQuestion, AlertTriangle, Clock, Check, ShieldOff } from "lucide-react";
+import { ChevronRight, ChevronDown, Download, Plus, Search, ShieldQuestion, AlertTriangle, Clock, Check, ShieldOff, MessageSquare, Info, X as XIcon } from "lucide-react";
 import { EmptyState } from "@/components/common/EmptyState";
 import ScoreBadge from "@/components/risk-register/ScoreBadge";
 import RiskAcceptanceFormDialog from "@/components/risk-acceptances/RiskAcceptanceFormDialog";
@@ -32,6 +32,7 @@ export default function RiskAcceptancesPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
+  const [showWorkflowBanner, setShowWorkflowBanner] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [prefillSource, setPrefillSource] = useState<RiskAcceptanceSource | undefined>();
   const [prefillRiskId, setPrefillRiskId] = useState<string | undefined>();
@@ -196,6 +197,45 @@ export default function RiskAcceptancesPage() {
           </button>
         </div>
       </div>
+
+      {/* Workflow Process Banner */}
+      {showWorkflowBanner && (
+        <div className="rounded-xl border border-updraft-light-purple/40 bg-updraft-pale-purple/20 px-4 py-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-2 min-w-0">
+              <Info size={14} className="text-updraft-bar shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-updraft-deep mb-2">How Risk Acceptances Work</p>
+                <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-600">
+                  {[
+                    { label: "1. Propose", desc: "Submit a formal acceptance request with rationale" },
+                    { label: "2. CCRO Review", desc: "CCRO team reviews and routes to an approver" },
+                    { label: "3. Awaiting Approval", desc: "Designated approver accepts or rejects" },
+                    { label: "4. Decision", desc: "Approved acceptance is active until review date" },
+                  ].map((step, i, arr) => (
+                    <span key={step.label} className="flex items-center gap-1.5">
+                      <span
+                        className="inline-flex items-center rounded-md bg-white border border-updraft-light-purple/30 px-2 py-0.5 text-[11px] font-medium text-updraft-deep"
+                        title={step.desc}
+                      >
+                        {step.label}
+                      </span>
+                      {i < arr.length - 1 && <ChevronRight size={12} className="text-gray-400 shrink-0" />}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowWorkflowBanner(false)}
+              className="shrink-0 rounded-md p-1 text-gray-400 hover:text-gray-600 hover:bg-white/60 transition-colors"
+              title="Dismiss"
+            >
+              <XIcon size={14} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
@@ -366,10 +406,23 @@ export default function RiskAcceptancesPage() {
                   <tr
                     key={ra.id}
                     onClick={() => setSelectedAcceptance(ra)}
-                    className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
+                    className={cn(
+                      "border-b border-gray-100 cursor-pointer transition-colors",
+                      breach?.breached
+                        ? "border-l-[3px] border-l-red-500 bg-red-50/30 hover:bg-red-50/60"
+                        : "hover:bg-gray-50"
+                    )}
                   >
                     <td className="py-3 px-3">
-                      <span className="inline-flex items-center rounded bg-updraft-pale-purple/30 px-1.5 py-0.5 font-mono text-xs font-bold text-updraft-deep">{ra.reference}</span>
+                      <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                        <span className="inline-flex items-center rounded bg-updraft-pale-purple/30 px-1.5 py-0.5 font-mono text-xs font-bold text-updraft-deep">{ra.reference}</span>
+                        {(ra.comments?.length ?? 0) > 0 && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500" title={`${ra.comments!.length} comment${ra.comments!.length !== 1 ? "s" : ""}`}>
+                            <MessageSquare size={9} />
+                            {ra.comments!.length}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-800 truncate max-w-[200px]">{ra.title}</p>
                     </td>
                     <td className="py-3 px-3">

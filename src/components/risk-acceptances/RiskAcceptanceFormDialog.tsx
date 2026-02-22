@@ -53,6 +53,7 @@ export default function RiskAcceptanceFormDialog({ open, onClose, onSave, prefil
   const [acceptorId, setAcceptorId] = useState("");
   const [linkedControlId, setLinkedControlId] = useState("");
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Search states
   const [riskSearch, setRiskSearch] = useState("");
@@ -141,8 +142,14 @@ export default function RiskAcceptanceFormDialog({ open, onClose, onSave, prefil
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim() || !rationale.trim()) return;
-
+    const newErrors: Record<string, string> = {};
+    if (!title.trim()) newErrors.title = "Title is required";
+    if (!rationale.trim()) newErrors.rationale = "Rationale is required";
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    setErrors({});
     setSaving(true);
     try {
       const result = await api<RiskAcceptance>("/api/risk-acceptances", {
@@ -323,13 +330,18 @@ export default function RiskAcceptanceFormDialog({ open, onClose, onSave, prefil
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Title <span className="text-red-500">*</span></label>
           <input
+            id="ra-title"
             type="text"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => { setTitle(e.target.value); if (errors.title) setErrors((p) => ({ ...p, title: "" })); }}
+            onBlur={() => { if (!title.trim()) setErrors((p) => ({ ...p, title: "Title is required" })); }}
             placeholder="Risk acceptance title"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
-            required
+            className={`w-full rounded-lg border px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple ${errors.title ? "border-red-400 bg-red-50" : "border-gray-300"}`}
+            aria-required="true"
+            aria-invalid={!!errors.title}
+            aria-describedby={errors.title ? "ra-title-error" : undefined}
           />
+          {errors.title && <p id="ra-title-error" className="mt-1 text-xs text-red-600">{errors.title}</p>}
         </div>
 
         {/* Description */}
@@ -348,13 +360,18 @@ export default function RiskAcceptanceFormDialog({ open, onClose, onSave, prefil
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Rationale <span className="text-red-500">*</span></label>
           <textarea
+            id="ra-rationale"
             value={rationale}
-            onChange={(e) => setRationale(e.target.value)}
+            onChange={(e) => { setRationale(e.target.value); if (errors.rationale) setErrors((p) => ({ ...p, rationale: "" })); }}
+            onBlur={() => { if (!rationale.trim()) setErrors((p) => ({ ...p, rationale: "Rationale is required" })); }}
             rows={3}
             placeholder="Why should this risk be accepted?"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
-            required
+            className={`w-full rounded-lg border px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple ${errors.rationale ? "border-red-400 bg-red-50" : "border-gray-300"}`}
+            aria-required="true"
+            aria-invalid={!!errors.rationale}
+            aria-describedby={errors.rationale ? "ra-rationale-error" : undefined}
           />
+          {errors.rationale && <p id="ra-rationale-error" className="mt-1 text-xs text-red-600">{errors.rationale}</p>}
         </div>
 
         {/* Conditions */}

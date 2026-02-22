@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
@@ -24,6 +24,7 @@ import {
   LogOut,
   Eye,
   ArrowLeft,
+  BookOpen,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import type { User } from "@/lib/types";
@@ -63,6 +64,7 @@ const NAV_GROUPS: NavGroup[] = [
     groupLabel: "Compliance & Controls",
     items: [
       { label: "Compliance", href: "/compliance", icon: Scale, permission: "page:compliance", badgeKey: "compliance" },
+      { label: "Policies", href: "/compliance?tab=policies", icon: BookOpen, permission: "page:compliance" },
       { label: "Controls", href: "/controls", icon: FlaskConical, permission: "page:controls", badgeKey: "controls" },
     ],
   },
@@ -70,13 +72,13 @@ const NAV_GROUPS: NavGroup[] = [
     groupLabel: "Execution",
     items: [
       { label: "Actions", href: "/actions", icon: ListChecks, permission: "page:actions", badgeKey: "actions" },
-      { label: "Audit Trail", href: "/audit", icon: ClipboardList, permission: "page:audit" },
     ],
   },
   {
     groupLabel: "Administration",
     items: [
       { label: "Reports", href: "/reports", icon: FileText, permission: "page:reports" },
+      { label: "Audit Trail", href: "/audit", icon: ClipboardList, permission: "page:audit" },
       { label: "Settings", href: "/settings", icon: Settings, permission: "page:settings" },
       { label: "Users", href: "/users", icon: Users, permission: "page:users" },
     ],
@@ -100,6 +102,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
   const regulations = useAppStore((s) => s.regulations);
   const siteSettings = useAppStore((s) => s.siteSettings);
   const permissionSet = usePermissionSet();
+  const searchParams = useSearchParams();
 
   // Dynamic sidebar colour from site settings
   const sidebarColour = siteSettings?.primaryColour || DEFAULT_SIDEBAR_COLOUR;
@@ -223,6 +226,17 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
 
   function isActive(href: string): boolean {
     if (href === "/") return pathname === "/";
+    if (href.includes("?")) {
+      const [basePath, query] = href.split("?");
+      const params = new URLSearchParams(query);
+      const tabParam = params.get("tab");
+      if (tabParam) {
+        return pathname.startsWith(basePath) && searchParams.get("tab") === tabParam;
+      }
+    }
+    if (href === "/compliance") {
+      return pathname.startsWith("/compliance") && searchParams.get("tab") !== "policies";
+    }
     return pathname.startsWith(href);
   }
 
@@ -417,6 +431,9 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
               <p className={cn("text-sm font-medium truncate", t.textSecondary)}>
                 {currentUser.name}
               </p>
+              <p className={cn("text-[10px] font-semibold uppercase tracking-wider mt-0.5", dark ? "text-white/40" : "text-gray-400")}>
+                {currentUser.role === "CCRO_TEAM" ? "CCRO" : currentUser.role === "OWNER" ? "Risk Owner" : "Reviewer"}
+              </p>
             </div>
             <ChevronDown
               size={14}
@@ -470,6 +487,9 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
                       <p className="font-medium truncate text-xs">
                         {u.name}
                         {isSelf && <span className="ml-1 text-[10px] text-gray-400">(My Account)</span>}
+                      </p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">
+                        {u.role === "CCRO_TEAM" ? "CCRO" : u.role === "OWNER" ? "Risk Owner" : "Reviewer"}
                       </p>
                     </div>
                     {isSelected && (

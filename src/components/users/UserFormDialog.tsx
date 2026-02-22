@@ -51,6 +51,22 @@ export default function UserFormDialog({
     }
   }, [open, user]);
 
+  function validateField(field: "name" | "email") {
+    setErrors((prev) => {
+      const next = { ...prev };
+      if (field === "name") {
+        if (!name.trim()) next.name = "Name is required";
+        else delete next.name;
+      }
+      if (field === "email") {
+        if (!email.trim()) next.email = "Email is required";
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) next.email = "Please enter a valid email address";
+        else delete next.email;
+      }
+      return next;
+    });
+  }
+
   function validate(): boolean {
     const newErrors: Record<string, string> = {};
     if (!name.trim()) {
@@ -123,33 +139,41 @@ export default function UserFormDialog({
         {/* Name */}
         <div>
           <label htmlFor="user-name" className={labelClasses}>
-            Name
+            Name <span className="text-red-500 ml-0.5">*</span>
           </label>
           <input
             id="user-name"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            onBlur={() => validateField("name")}
             placeholder="e.g. Jane Smith"
             className={inputClasses}
+            aria-required="true"
+            aria-invalid={!!errors.name}
+            aria-describedby={errors.name ? "user-name-error" : undefined}
           />
-          {errors.name && <p className={errorClasses}>{errors.name}</p>}
+          {errors.name && <p id="user-name-error" className={errorClasses}>{errors.name}</p>}
         </div>
 
         {/* Email */}
         <div>
           <label htmlFor="user-email" className={labelClasses}>
-            Email
+            Email <span className="text-red-500 ml-0.5">*</span>
           </label>
           <input
             id="user-email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            onBlur={() => validateField("email")}
             placeholder="e.g. jane@updraft.com"
             className={inputClasses}
+            aria-required="true"
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? "user-email-error" : undefined}
           />
-          {errors.email && <p className={errorClasses}>{errors.email}</p>}
+          {errors.email && <p id="user-email-error" className={errorClasses}>{errors.email}</p>}
         </div>
 
         {/* Role */}

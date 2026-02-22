@@ -194,7 +194,7 @@ export default function ActionFormDialog({
       <form id="action-form" onSubmit={handleSubmit} className="space-y-4">
         {/* Title */}
         <div>
-          <label htmlFor="action-title" className={labelClasses}>Title</label>
+          <label htmlFor="action-title" className={labelClasses}>Title <span className="text-red-500 ml-0.5">*</span></label>
           <input
             id="action-title"
             type="text"
@@ -270,7 +270,7 @@ export default function ActionFormDialog({
         <div className="grid grid-cols-2 gap-4">
           {/* Assigned To */}
           <div>
-            <label htmlFor="action-owner" className={labelClasses}>Assigned To</label>
+            <label htmlFor="action-owner" className={labelClasses}>Assigned To <span className="text-red-500 ml-0.5">*</span></label>
             <select
               id="action-owner"
               value={assignedTo}

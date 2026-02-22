@@ -10,16 +10,20 @@ import {
   type Regulation,
   type ComplianceStatus,
   type Applicability,
+  type Policy,
+  type ControlRecord,
 } from "@/lib/types";
 import { cn, naturalCompare } from "@/lib/utils";
 import { useHasPermission } from "@/lib/usePermission";
 import RequestEditAccessButton from "@/components/common/RequestEditAccessButton";
 import RegulationDetailPanel from "./RegulationDetailPanel";
 import RegulationCSVDialog from "./RegulationCSVDialog";
-import { ChevronRight, ChevronDown, Search, X, Download, Upload } from "lucide-react";
+import { ChevronRight, ChevronDown, Search, X, Download, Upload, AlertTriangle } from "lucide-react";
 
 export default function RegulatoryUniverseTab({ initialRegulationId }: { initialRegulationId?: string | null } = {}) {
   const regulations = useAppStore((s) => s.regulations);
+  const policies = useAppStore((s) => s.policies);
+  const controls = useAppStore((s) => s.controls);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ComplianceStatus | "">("");
   const [smfFilter, setSmfFilter] = useState("");
@@ -259,6 +263,8 @@ export default function RegulatoryUniverseTab({ initialRegulationId }: { initial
                   childrenOf={childrenOf}
                   selectedId={selectedId}
                   onSelect={setSelectedId}
+                  allPolicies={policies}
+                  allControls={controls}
                 />
               ))}
               {topLevel.length === 0 && (
@@ -297,6 +303,8 @@ function RegulationRow({
   childrenOf,
   selectedId,
   onSelect,
+  allPolicies,
+  allControls,
 }: {
   reg: Regulation;
   depth: number;
@@ -305,6 +313,8 @@ function RegulationRow({
   childrenOf: (parentId: string) => Regulation[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  allPolicies: Policy[];
+  allControls: ControlRecord[];
 }) {
   const children = childrenOf(reg.id);
   const hasChildren = children.length > 0;
@@ -316,6 +326,21 @@ function RegulationRow({
   const appColours = APPLICABILITY_COLOURS[applicability];
   const policyCount = reg.policyLinks?.length ?? 0;
   const controlCount = reg.controlLinks?.length ?? 0;
+
+  // Compute failing indicators
+  const failingPolicies = (reg.policyLinks ?? []).filter((pl) => {
+    const policy = allPolicies.find((p) => p.id === pl.policyId);
+    return policy?.status === "OVERDUE" || policy?.status === "ARCHIVED";
+  }).length;
+  const failingControls = (reg.controlLinks ?? []).filter((cl) => {
+    const ctrl = allControls.find((c) => c.id === cl.controlId);
+    if (!ctrl) return false;
+    if (ctrl.approvalStatus === "REJECTED") return true;
+    const results = ctrl.testingSchedule?.testResults ?? [];
+    if (results.length === 0) return false;
+    const latest = [...results].sort((a, b) => new Date(b.testedDate).getTime() - new Date(a.testedDate).getTime())[0];
+    return latest.result === "FAIL";
+  }).length;
 
   return (
     <>
@@ -364,10 +389,24 @@ function RegulationRow({
           )}
         </td>
         <td className="px-3 py-2 text-center">
-          <span className={cn("text-xs", policyCount > 0 ? "text-gray-700 font-medium" : "text-gray-300")}>{policyCount}</span>
+          <div className="flex items-center justify-center gap-1">
+            <span className={cn("text-xs", policyCount > 0 ? "text-gray-700 font-medium" : "text-gray-300")}>{policyCount}</span>
+            {failingPolicies > 0 && (
+              <span title={`${failingPolicies} policy overdue`}>
+                <AlertTriangle size={11} className="text-amber-500" />
+              </span>
+            )}
+          </div>
         </td>
         <td className="px-3 py-2 text-center">
-          <span className={cn("text-xs", controlCount > 0 ? "text-gray-700 font-medium" : "text-gray-300")}>{controlCount}</span>
+          <div className="flex items-center justify-center gap-1">
+            <span className={cn("text-xs", controlCount > 0 ? "text-gray-700 font-medium" : "text-gray-300")}>{controlCount}</span>
+            {failingControls > 0 && (
+              <span title={`${failingControls} control failing`}>
+                <AlertTriangle size={11} className="text-red-500" />
+              </span>
+            )}
+          </div>
         </td>
       </tr>
       {isExpanded && children.map((child) => (
@@ -380,6 +419,8 @@ function RegulationRow({
           childrenOf={childrenOf}
           selectedId={selectedId}
           onSelect={onSelect}
+          allPolicies={allPolicies}
+          allControls={allControls}
         />
       ))}
     </>

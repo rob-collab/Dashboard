@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import Link from "next/link";
 import { useAppStore } from "@/lib/store";
 import {
   COMPLIANCE_STATUS_LABELS,
@@ -23,6 +24,7 @@ export default function ComplianceOverview({ onNavigate }: Props) {
   const conductRuleBreaches = useAppStore((s) => s.conductRuleBreaches);
   const smcrDocuments = useAppStore((s) => s.smcrDocuments);
   const controls = useAppStore((s) => s.controls);
+  const outcomes = useAppStore((s) => s.outcomes);
 
   const applicable = useMemo(() => regulations.filter((r) => r.isApplicable), [regulations]);
 
@@ -79,6 +81,15 @@ export default function ComplianceOverview({ onNavigate }: Props) {
     const overdueDocuments = smcrDocuments.filter((d) => d.status === "DOC_OVERDUE").length;
     return { filledRoles, vacantRoles, currentCerts, dueCerts, openBreaches, overdueDocuments };
   }, [smfRoles, certifiedPersons, conductRuleBreaches, smcrDocuments]);
+
+  // Consumer Duty summary
+  const cdHealth = useMemo(() => {
+    const good = outcomes.filter((o) => o.ragStatus === "GOOD").length;
+    const warning = outcomes.filter((o) => o.ragStatus === "WARNING").length;
+    const harm = outcomes.filter((o) => o.ragStatus === "HARM").length;
+    const totalMeasures = outcomes.reduce((n, o) => n + (o.measures?.length ?? 0), 0);
+    return { good, warning, harm, total: outcomes.length, totalMeasures };
+  }, [outcomes]);
 
   // Assessment pipeline
   const assessmentPipeline = useMemo(() => {
@@ -202,6 +213,69 @@ export default function ComplianceOverview({ onNavigate }: Props) {
           <SmcrTile label="Overdue Documents" value={smcrHealth.overdueDocuments} colour={smcrHealth.overdueDocuments > 0 ? "red" : "green"} />
         </div>
       </div>
+
+      {/* Consumer Duty Summary */}
+      {cdHealth.total > 0 && (
+        <div className="bento-card p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-updraft-deep font-poppins">Consumer Duty</h2>
+              <p className="text-xs text-gray-500 mt-0.5">{cdHealth.total} outcomes · {cdHealth.totalMeasures} measures</p>
+            </div>
+            <Link
+              href="/consumer-duty"
+              className="text-xs text-updraft-bright-purple hover:underline flex items-center gap-1"
+            >
+              View Consumer Duty <ArrowRight size={12} />
+            </Link>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center p-4 rounded-xl bg-green-50 border border-green-100">
+              <p className="text-3xl font-bold font-poppins text-green-700">{cdHealth.good}</p>
+              <div className="flex items-center justify-center gap-1.5 mt-1">
+                <div className="w-2 h-2 rounded-full bg-green-500" />
+                <p className="text-xs text-green-700 font-medium">Green</p>
+              </div>
+            </div>
+            <div className="text-center p-4 rounded-xl bg-amber-50 border border-amber-100">
+              <p className="text-3xl font-bold font-poppins text-amber-700">{cdHealth.warning}</p>
+              <div className="flex items-center justify-center gap-1.5 mt-1">
+                <div className="w-2 h-2 rounded-full bg-amber-500" />
+                <p className="text-xs text-amber-700 font-medium">Amber</p>
+              </div>
+            </div>
+            <div className={cn("text-center p-4 rounded-xl border", cdHealth.harm > 0 ? "bg-red-50 border-red-100" : "bg-gray-50 border-gray-100")}>
+              <p className={cn("text-3xl font-bold font-poppins", cdHealth.harm > 0 ? "text-red-700" : "text-gray-400")}>{cdHealth.harm}</p>
+              <div className="flex items-center justify-center gap-1.5 mt-1">
+                <div className={cn("w-2 h-2 rounded-full", cdHealth.harm > 0 ? "bg-red-500" : "bg-gray-300")} />
+                <p className={cn("text-xs font-medium", cdHealth.harm > 0 ? "text-red-700" : "text-gray-400")}>Red</p>
+              </div>
+            </div>
+          </div>
+          {cdHealth.harm > 0 && (
+            <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
+              <AlertTriangle size={13} className="text-red-500 shrink-0" />
+              <p className="text-xs text-red-700">
+                <strong>{cdHealth.harm}</strong> outcome{cdHealth.harm !== 1 ? "s" : ""} at Red — immediate attention required.
+              </p>
+              <Link href="/consumer-duty?rag=HARM" className="ml-auto text-xs font-medium text-red-600 hover:underline flex items-center gap-0.5 shrink-0">
+                Review <ArrowRight size={10} />
+              </Link>
+            </div>
+          )}
+          {cdHealth.warning > 0 && cdHealth.harm === 0 && (
+            <div className="mt-3 flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+              <AlertTriangle size={13} className="text-amber-500 shrink-0" />
+              <p className="text-xs text-amber-700">
+                <strong>{cdHealth.warning}</strong> outcome{cdHealth.warning !== 1 ? "s" : ""} at Amber — monitor closely.
+              </p>
+              <Link href="/consumer-duty?rag=WARNING" className="ml-auto text-xs font-medium text-amber-600 hover:underline flex items-center gap-0.5 shrink-0">
+                Review <ArrowRight size={10} />
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

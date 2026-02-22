@@ -29,6 +29,7 @@ import { formatDate, cn } from "@/lib/utils";
 interface Props {
   policy: Policy;
   onEdit: () => void;
+  onSwitchToControls?: () => void;
 }
 
 const HEALTH_COLOURS = {
@@ -38,7 +39,7 @@ const HEALTH_COLOURS = {
   "Not Tested": "#d1d5db",
 };
 
-export default function PolicyOverviewTab({ policy, onEdit }: Props) {
+export default function PolicyOverviewTab({ policy, onEdit, onSwitchToControls }: Props) {
   const users = useAppStore((s) => s.users);
   const currentUser = useAppStore((s) => s.currentUser);
   const isCCRO = currentUser?.role === "CCRO_TEAM";
@@ -185,10 +186,22 @@ export default function PolicyOverviewTab({ policy, onEdit }: Props) {
       {/* Control Health Donut */}
       {controlHealth.total > 0 && (
         <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-          <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+          <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 flex items-center justify-between">
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Controls Health</h3>
+            {onSwitchToControls && (
+              <button
+                onClick={onSwitchToControls}
+                className="text-[10px] font-medium text-updraft-bright-purple hover:underline"
+              >
+                View all controls →
+              </button>
+            )}
           </div>
-          <div className="p-4 flex items-center gap-6">
+          <div
+            className={cn("p-4 flex items-center gap-6", onSwitchToControls && "cursor-pointer hover:bg-gray-50/60 transition-colors")}
+            onClick={onSwitchToControls}
+            title={onSwitchToControls ? "Click to view Controls & Testing" : undefined}
+          >
             <ResponsiveContainer width={120} height={120}>
               <PieChart>
                 <Pie
@@ -211,27 +224,34 @@ export default function PolicyOverviewTab({ policy, onEdit }: Props) {
                 />
               </PieChart>
             </ResponsiveContainer>
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-green-500" />
-                <span className="text-xs text-gray-600">Pass</span>
-                <span className="text-xs font-bold text-gray-800">{controlHealth.pass}</span>
+            <div className="flex-1">
+              <div className="space-y-1.5 mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-green-500" />
+                  <span className="text-xs text-gray-600">Pass</span>
+                  <span className="text-xs font-bold text-gray-800">{controlHealth.pass}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-amber-500" />
+                  <span className="text-xs text-gray-600">Partial</span>
+                  <span className="text-xs font-bold text-gray-800">{controlHealth.partial}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-red-500" />
+                  <span className="text-xs text-gray-600">Fail</span>
+                  <span className="text-xs font-bold text-gray-800">{controlHealth.fail}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-gray-300" />
+                  <span className="text-xs text-gray-600">Not Tested</span>
+                  <span className="text-xs font-bold text-gray-800">{controlHealth.notTested}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-amber-500" />
-                <span className="text-xs text-gray-600">Partial</span>
-                <span className="text-xs font-bold text-gray-800">{controlHealth.partial}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-red-500" />
-                <span className="text-xs text-gray-600">Fail</span>
-                <span className="text-xs font-bold text-gray-800">{controlHealth.fail}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-gray-300" />
-                <span className="text-xs text-gray-600">Not Tested</span>
-                <span className="text-xs font-bold text-gray-800">{controlHealth.notTested}</span>
-              </div>
+              <p className="text-[10px] text-gray-400 leading-relaxed">
+                Based on the most recent test result per linked control.
+                {controlHealth.fail > 0 && <span className="text-red-500 font-medium"> {controlHealth.fail} control{controlHealth.fail !== 1 ? "s" : ""} failing.</span>}
+                {controlHealth.notTested > 0 && <span className="text-gray-500"> {controlHealth.notTested} untested.</span>}
+              </p>
             </div>
           </div>
         </div>

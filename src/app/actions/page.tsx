@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, Suspense } from "react";
+import { useState, useMemo, useCallback, Suspense, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -98,7 +98,7 @@ function ActionsPageContent() {
   const isCCRO = currentUser?.role === "CCRO_TEAM";
 
   // Filters — initialise from URL params
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState<string>(() => searchParams.get("q") ?? "");
   const [statusFilter, setStatusFilter] = useState<string>(() => {
     const param = searchParams.get("status");
     if (param === "OPEN" || param === "IN_PROGRESS" || param === "OVERDUE" || param === "COMPLETED" || param === "DUE_THIS_MONTH" || param === "PROPOSED_CLOSED") return param;
@@ -112,10 +112,10 @@ function ActionsPageContent() {
   const [ownerFilter, setOwnerFilter] = useState<string>(() => {
     // Non-CCRO users always see their own actions (including when deep-linking via ?edit=)
     if (!isCCRO && currentUser?.id) return currentUser.id;
-    return "ALL";
+    return searchParams.get("owner") ?? "ALL";
   });
-  const [reportFilter, setReportFilter] = useState<string>("ALL");
-  const [sourceFilter, setSourceFilter] = useState<string>("ALL");
+  const [reportFilter, setReportFilter] = useState<string>(() => searchParams.get("report") ?? "ALL");
+  const [sourceFilter, setSourceFilter] = useState<string>(() => searchParams.get("source") ?? "ALL");
 
   // Query-param prefill for "Create Action from Metric"
   const prefillNewAction = searchParams.get("newAction") === "true";
@@ -139,28 +139,30 @@ function ActionsPageContent() {
   const [editingIssue, setEditingIssue] = useState<string | null>(null);
   const [issueEditorValue, setIssueEditorValue] = useState("");
 
-  // URL-synced status/priority change
-  const buildUrl = useCallback((status: string, priority: string) => {
-    const params = new URLSearchParams();
-    if (status !== "ALL") params.set("status", status);
-    if (priority !== "ALL") params.set("priority", priority);
-    const qs = params.toString();
-    return qs ? `/actions?${qs}` : "/actions";
-  }, []);
+  // Debounced URL sync for all filters
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(() => {
+      const params = new URLSearchParams();
+      if (statusFilter !== "ALL") params.set("status", statusFilter);
+      if (priorityFilter !== "ALL") params.set("priority", priorityFilter);
+      if (search.trim()) params.set("q", search.trim());
+      if (isCCRO && ownerFilter !== "ALL") params.set("owner", ownerFilter);
+      if (reportFilter !== "ALL") params.set("report", reportFilter);
+      if (sourceFilter !== "ALL") params.set("source", sourceFilter);
+      const qs = params.toString();
+      router.replace(qs ? `/actions?${qs}` : "/actions", { scroll: false });
+    }, 150);
+    return () => { if (syncTimerRef.current) clearTimeout(syncTimerRef.current); };
+  }, [statusFilter, priorityFilter, search, ownerFilter, reportFilter, sourceFilter, isCCRO, router]);
 
-  const handleStatusChange = useCallback((value: string) => {
-    setStatusFilter(value);
-    router.replace(buildUrl(value, priorityFilter), { scroll: false });
-  }, [router, buildUrl, priorityFilter]);
-
-  const handlePriorityChange = useCallback((value: string) => {
-    setPriorityFilter(value);
-    router.replace(buildUrl(statusFilter, value), { scroll: false });
-  }, [router, buildUrl, statusFilter]);
+  const handleStatusChange = useCallback((value: string) => setStatusFilter(value), []);
+  const handlePriorityChange = useCallback((value: string) => setPriorityFilter(value), []);
 
   const handleStatClick = useCallback((filterKey: string) => {
-    handleStatusChange(statusFilter === filterKey ? "ALL" : filterKey);
-  }, [statusFilter, handleStatusChange]);
+    setStatusFilter((prev) => prev === filterKey ? "ALL" : filterKey);
+  }, []);
 
   // Stats
   const stats = useMemo(() => {
