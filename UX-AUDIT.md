@@ -95,7 +95,7 @@
 | # | Issue | Status | File |
 |---|---|---|---|
 | 3.3 | Control-linking UX in risk detail panel: results limited to 10, no area filter, no indication where a control is already linked | ✅ Fixed (area filter chips added; results increased to 25 with "refine search" notice; already-linked controls shown disabled with "Linked" badge; business area shown in results) | `src/components/risk-register/RiskDetailPanel.tsx` |
-| 3.4 | No bulk export for controls | ❌ Outstanding | — |
+| 3.4 | No bulk export for controls | ✅ Already implemented (ExportPanel component in ControlsDashboardTab exports controls + testing schedule as CSV, HTML, or Print; includes all control fields and test history) | `src/components/controls/ExportPanel.tsx` |
 
 ---
 
@@ -118,7 +118,7 @@
 
 | # | Issue | Status | File |
 |---|---|---|---|
-| 5.1 | Tab navigation uses wrong information architecture — SM&CR should be its own nav item, not a tab under Compliance | ❌ Outstanding | `src/app/compliance/page.tsx` |
+| 5.1 | Tab navigation uses wrong information architecture — SM&CR should be its own nav item, not a tab under Compliance | ✅ Fixed (SM&CR added as dedicated nav item in "Compliance & Controls" sidebar group; isActive updated to exclude "smcr" tab from generic /compliance highlight; BadgeCheck icon used) | `src/components/layout/Sidebar.tsx` |
 | 5.2 | Regulation → Policy → Control chain requires three separate clicks — no single coverage view | ❌ Outstanding | — |
 
 ### 🟠 HIGH
@@ -127,7 +127,7 @@
 |---|---|---|---|
 | 5.3 | Gap analysis metrics were not clickable — no remediation path | ✅ Fixed | `src/components/compliance/ComplianceOverview.tsx` |
 | 5.4 | Regulatory Universe tree doesn't show which linked policies or controls are failing | ✅ Fixed (amber ⚠ icon shown in Policies column when any linked policy is OVERDUE; red ⚠ icon shown in Controls column when any linked control has a failing test result or REJECTED approval; both with tooltip) | `src/components/compliance/RegulatoryUniverseTab.tsx` |
-| 5.5 | Policy creation is divorced from regulations — create dialog should include a "Regulations" step | ❌ Outstanding | `src/components/compliance/PoliciesTab.tsx` |
+| 5.5 | Policy creation is divorced from regulations — create dialog should include a "Regulations" step | ✅ Fixed (PolicyFormDialog converted to 2-step form: Step 1 = policy details; Step 2 = regulation linking with searchable list of applicable regulations, checkboxes, and count badge; selected regulations become PolicyRegulatoryLink entries on save; editing pre-populates selection from existing regulatoryLinks) | `src/components/policies/PolicyFormDialog.tsx` |
 | 5.6 | Policy control health score donut is not clickable and its scoring logic is unexplained | ✅ Fixed (donut container is now clickable → switches to Controls & Testing tab; scoring logic explained in footer: "Based on most recent test result per linked control"; failing and untested counts called out) | `src/components/policies/PolicyOverviewTab.tsx` |
 
 ### 🟡 MEDIUM
@@ -215,7 +215,7 @@
 |---|---|---|---|
 | 9.3 | Button component exists but is used in only 2 files — all other forms use raw `<button>` with inline styles | ✅ Partial (reports + ConfirmDialog updated) | Multiple |
 | 9.4 | Inline metric editing in MeasureFormDialog is painful — tiny inputs, no delete confirmation, no empty state guidance | ✅ Fixed (empty state improved with BarChart2 icon + descriptive placeholder text; column headers added above metrics list; value input widened to w-24 with descriptive placeholder "e.g. 94.2%"; metric name placeholder updated to "e.g. Complaint rate"; footer hint explains how to set targets after saving) | `src/components/consumer-duty/MeasureFormDialog.tsx` |
-| 9.5 | SearchableSelect pattern implemented in RiskAcceptanceFormDialog but not reused — ActionFormDialog uses raw `<select>` | ❌ Outstanding | Multiple |
+| 9.5 | SearchableSelect pattern implemented in RiskAcceptanceFormDialog but not reused — ActionFormDialog uses raw `<select>` | ✅ Fixed (SearchableSelect component created as a reusable combobox with inline search, keyboard navigation (arrow keys + Enter + Escape), and sublabel support; used in ActionFormDialog "Assigned To" field showing role as sublabel) | `src/components/common/SearchableSelect.tsx`, `src/components/actions/ActionFormDialog.tsx` |
 
 ### 🟡 MEDIUM
 
@@ -226,7 +226,7 @@
 | 9.8 | Modal focus trap missing — focus escapes to background on Escape; no auto-focus on first input | ✅ Fixed (Tab cycles within modal, auto-focus first element on open, restore focus on close) | `src/components/common/Modal.tsx` |
 | 9.9 | No blur-time validation — forms only validate on submit | ✅ Fixed (added onBlur validateField handlers to UserFormDialog, OutcomeFormDialog, MeasureFormDialog, PolicyFormDialog, RiskAcceptanceFormDialog) | Multiple |
 | 9.10 | Modal footer layout inconsistent — some use `justify-between` (Cancel floats far left), should always be `justify-end` | ✅ Fixed (already resolved — Modal component uses `justify-end`, all custom dialogs use `justify-end`) | Multiple |
-| 9.11 | Error messages are generic — raw API error details exposed to users with no actionable guidance | ❌ Outstanding | Multiple |
+| 9.11 | Error messages are generic — raw API error details exposed to users with no actionable guidance | ✅ Fixed (friendlyApiError() helper added to api-client.ts mapping HTTP status codes (400→invalid request, 401→session expired, 403→access denied, 404→not found, 409→conflict, 5xx→server error) and common DB error patterns (foreign key, unique constraint, timeout, connection) to user-friendly message + description pairs; Prisma stack traces and UUIDs sanitised; used in store sync toast, reports publish error, and dashboard change-review error) | `src/lib/api-client.ts`, `src/lib/store.ts` |
 | 9.12 | No loading state in many forms — `PolicyFormDialog` has no spinner | ✅ Fixed | `src/components/policies/PolicyFormDialog.tsx` |
 | 9.13 | Missing `aria-required`, `aria-invalid`, `aria-describedby` on error fields | ✅ Fixed (added aria-required, aria-invalid, aria-describedby with matching IDs on error paragraphs in UserFormDialog, OutcomeFormDialog, MeasureFormDialog, RiskAcceptanceFormDialog) | Multiple |
 

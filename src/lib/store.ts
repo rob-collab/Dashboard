@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry, RiskAcceptance, Policy, Regulation, DashboardNotification, Role, RiskControlLink, SMFRole, PrescribedResponsibility, CertificationFunction, CertifiedPerson, ConductRule, ConductRuleBreach, SMCRDocument, ComplianceStatus, AccessRequest, DashboardLayoutConfig } from "./types";
-import { api } from "./api-client";
+import { api, friendlyApiError } from "./api-client";
 
 interface AppState {
   // Hydration
@@ -244,9 +244,10 @@ function sync(fn: () => Promise<unknown>, options?: { maxRetries?: number }): vo
         // Dynamic import to avoid circular dependency
         if (typeof window !== "undefined") {
           import("sonner").then(({ toast }) => {
-            toast.error("Failed to sync changes to server. Please refresh the page.", {
-              description: err instanceof Error ? err.message : "Network error",
-              duration: 5000,
+            const { message, description } = friendlyApiError(err);
+            toast.error(message, {
+              description: description ?? "Your changes may not have been saved. Please refresh the page.",
+              duration: 6000,
             });
           });
         }

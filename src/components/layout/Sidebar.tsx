@@ -25,6 +25,7 @@ import {
   Eye,
   ArrowLeft,
   BookOpen,
+  BadgeCheck,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import type { User } from "@/lib/types";
@@ -65,6 +66,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Compliance", href: "/compliance", icon: Scale, permission: "page:compliance", badgeKey: "compliance" },
       { label: "Policies", href: "/compliance?tab=policies", icon: BookOpen, permission: "page:compliance" },
+      { label: "SM&CR", href: "/compliance?tab=smcr", icon: BadgeCheck, permission: "page:compliance" },
       { label: "Controls", href: "/controls", icon: FlaskConical, permission: "page:controls", badgeKey: "controls" },
     ],
   },
@@ -236,7 +238,8 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
       }
     }
     if (href === "/compliance") {
-      return pathname.startsWith("/compliance") && searchParams.get("tab") !== "policies";
+      const tab = searchParams.get("tab");
+      return pathname.startsWith("/compliance") && tab !== "policies" && tab !== "smcr";
     }
     return pathname.startsWith(href);
   }

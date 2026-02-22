@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAppStore } from "@/lib/store";
-import { api } from "@/lib/api-client";
+import { api, friendlyApiError } from "@/lib/api-client";
 import { formatDate, ragBgColor, naturalCompare, cn } from "@/lib/utils";
 import { getActionLabel } from "@/lib/audit";
 import { getRiskScore } from "@/lib/risk-categories";
@@ -204,9 +204,9 @@ function PendingChangesPanel({
       setProcessedIds((prev) => { const next = new Set(prev); next.add(change.id); return next; });
       toast.success(decision === "APPROVED" ? "Change approved" : "Change rejected");
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      setReviewErrors((prev) => ({ ...prev, [change.id]: msg }));
-      toast.error("Failed to process change", { description: msg });
+      const { message, description } = friendlyApiError(err);
+      setReviewErrors((prev) => ({ ...prev, [change.id]: `${message}${description ? ` — ${description}` : ""}` }));
+      toast.error(message, { description });
     } finally {
       setReviewingId(null);
     }

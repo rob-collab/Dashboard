@@ -9,7 +9,7 @@ import { generateHTMLExport } from "@/lib/export-html";
 import { ReportCard } from "@/components/reports/ReportCard";
 import type { Report, ReportStatus } from "@/lib/types";
 import { usePageTitle } from "@/lib/usePageTitle";
-import { api } from "@/lib/api-client";
+import { api, friendlyApiError } from "@/lib/api-client";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import Button from "@/components/common/Button";
@@ -86,7 +86,8 @@ function ReportsPageContent() {
       toast.success(`"${publishingReport.title}" published successfully`);
       setPublishingReport(null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to publish report");
+      const { message, description } = friendlyApiError(err);
+      toast.error(message, { description });
     } finally {
       setIsPublishing(false);
     }

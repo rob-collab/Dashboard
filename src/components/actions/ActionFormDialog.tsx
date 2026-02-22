@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Modal from "@/components/common/Modal";
+import SearchableSelect from "@/components/common/SearchableSelect";
 import type { Action, ActionStatus, ActionPriority, Report, User } from "@/lib/types";
 import { generateId, cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
@@ -271,17 +272,17 @@ export default function ActionFormDialog({
           {/* Assigned To */}
           <div>
             <label htmlFor="action-owner" className={labelClasses}>Assigned To <span className="text-red-500 ml-0.5">*</span></label>
-            <select
+            <SearchableSelect
               id="action-owner"
               value={assignedTo}
-              onChange={(e) => setAssignedTo(e.target.value)}
-              className={inputClasses}
-            >
-              <option value="">Select owner...</option>
-              {users.filter((u) => u.isActive).map((u) => (
-                <option key={u.id} value={u.id}>{u.name}</option>
-              ))}
-            </select>
+              onChange={(v) => { setAssignedTo(v); if (errors.assignedTo) setErrors((p) => ({ ...p, assignedTo: "" })); }}
+              options={users.filter((u) => u.isActive).map((u) => ({
+                value: u.id,
+                label: u.name,
+                sublabel: u.role === "CCRO_TEAM" ? "CCRO" : u.role === "OWNER" ? "Risk Owner" : "Reviewer",
+              }))}
+              placeholder="Search and select owner..."
+            />
             {errors.assignedTo && <p className={errorClasses}>{errors.assignedTo}</p>}
           </div>
 
