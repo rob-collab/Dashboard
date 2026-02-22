@@ -264,8 +264,8 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
             </div>
           ) : results.length === 0 ? (
             <div className="px-4 py-8 text-center">
-              <p className="text-sm text-gray-500">No results for <strong>"{query}"</strong></p>
-              <p className="text-xs text-gray-400 mt-1">Try a risk reference, policy name, or person's name</p>
+              <p className="text-sm text-gray-500">No results for <strong>&quot;{query}&quot;</strong></p>
+              <p className="text-xs text-gray-400 mt-1">Try a risk reference, policy name, or person&apos;s name</p>
             </div>
           ) : (
             <div className="py-2">

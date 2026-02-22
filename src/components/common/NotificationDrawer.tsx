@@ -15,7 +15,6 @@ import {
   ShieldQuestion,
   ClipboardList,
   CheckCircle2,
-  AlertTriangle,
   Clock,
   ExternalLink,
 } from "lucide-react";

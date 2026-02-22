@@ -21,7 +21,7 @@ export default function ConsumerDutySettings() {
           <p className="text-sm font-semibold text-updraft-deep">CCRO RAG Override</p>
           <p className="text-xs text-gray-600 mt-0.5">
             Override the computed RAG status for any outcome or measure. Overrides are visibly flagged
-            to users with a purple "Override" badge so the distinction from auto-calculated status is clear.
+            to users with a purple &quot;Override&quot; badge so the distinction from auto-calculated status is clear.
             Changes are logged in the Audit Trail.
           </p>
         </div>

@@ -6,7 +6,7 @@ import { useAppStore } from "@/lib/store";
 import { toast } from "sonner";
 import { formatDate, cn } from "@/lib/utils";
 import { getRiskScore, calculateBreach } from "@/lib/risk-categories";
-import { ChevronRight, ChevronDown, Download, Plus, Search, ShieldQuestion, AlertTriangle, Clock, Check, ShieldOff, MessageSquare, Info, X as XIcon } from "lucide-react";
+import { ChevronRight, Download, Plus, Search, ShieldQuestion, AlertTriangle, Clock, Check, ShieldOff, MessageSquare, Info, X as XIcon } from "lucide-react";
 import { EmptyState } from "@/components/common/EmptyState";
 import ScoreBadge from "@/components/risk-register/ScoreBadge";
 import RiskAcceptanceFormDialog from "@/components/risk-acceptances/RiskAcceptanceFormDialog";

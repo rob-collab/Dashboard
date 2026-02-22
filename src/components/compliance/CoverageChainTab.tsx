@@ -7,7 +7,6 @@ import {
   COMPLIANCE_STATUS_COLOURS,
   POLICY_STATUS_LABELS,
   POLICY_STATUS_COLOURS,
-  type Regulation,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
@@ -438,7 +437,6 @@ function MatrixView() {
           </thead>
           <tbody>
             {applicableRegs.map((reg, ri) => {
-              const cfg = COMPLIANCE_STATUS_COLOURS[reg.complianceStatus];
               return (
                 <tr key={reg.id} className={ri % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
                   <td className="sticky left-0 z-10 border-b border-r border-gray-200 px-3 py-2 bg-inherit min-w-[200px]">

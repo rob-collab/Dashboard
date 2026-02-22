@@ -16,9 +16,7 @@ import {
   AlertTriangle,
   Clock,
   CalendarCheck,
-  CalendarDays,
   CalendarRange,
-  CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 
