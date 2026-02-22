@@ -106,7 +106,7 @@
 | # | Issue | Status | File |
 |---|---|---|---|
 | 4.1 | Expandable row pattern shows one detail at a time — no "Detailed View" toggle to compare multiple actions | ❌ Outstanding | `src/app/actions/page.tsx` |
-| 4.2 | Approval workflow scattered — `approvalStatus` badge and change approvals are presented inconsistently | ❌ Outstanding | `src/app/actions/page.tsx` |
+| 4.2 | Approval workflow scattered — `approvalStatus` badge and change approvals are presented inconsistently | ✅ Fixed (approval badges now have consistent icons: Clock for Awaiting Approval, CheckCircle for Approved (new green badge), XCircle for Rejected; pending changes badge now uses sky-blue colour with GitBranch icon to distinguish from approval status; all badges have tooltip descriptions) | `src/app/actions/page.tsx` |
 | 4.3 | No bulk actions — no way to bulk-reassign, bulk-close, or export to CSV | ❌ Outstanding | `src/app/actions/page.tsx` |
 | 4.4 | Filter state (priority, status) resets when navigating away | ✅ Fixed (all 5 filters — status, priority, search q, owner, report, source — initialised from URL and synced via 150ms debounced effect) | `src/app/actions/page.tsx` |
 
@@ -173,7 +173,7 @@
 
 | # | Issue | Status | File |
 |---|---|---|---|
-| 7.1 | Three conflicting views on one page — "RAG Admin" configuration should live in Settings, not a tab | ❌ Outstanding | `src/app/consumer-duty/page.tsx` |
+| 7.1 | Three conflicting views on one page — "RAG Admin" configuration should live in Settings, not a tab | ✅ Fixed (AdminRAGPanel moved to Settings → Consumer Duty tab; Settings page now reads ?tab= URL param so /settings?tab=consumer-duty deep-links work; Consumer Duty page "RAG Admin" button replaced with "RAG Override →" link to Settings; viewMode type simplified to "all" | "my") | `src/app/settings/page.tsx`, `src/components/settings/ConsumerDutySettings.tsx` |
 | 7.2 | RAG status calculation is hidden — outcome cards show a dot but never explain how the RAG is derived | ✅ Fixed (hover tooltip on RAG dot shows Good/Warning/Harm measure breakdown + logic explanation) | `src/components/consumer-duty/OutcomeCard.tsx` |
 | 7.3 | Metrics entry has no targets, no 12-month trend, no indication of which metric is dragging the outcome down | ✅ Fixed (Target column added to metrics table showing appetite operator + value e.g. "≥ 95%"; Met/Missed badge shown based on current value vs target; hint text updated to prompt target-setting; 12-month trend history already accessible via row click into MetricDrillDown) | `src/components/consumer-duty/MIModal.tsx` |
 
@@ -214,7 +214,7 @@
 | # | Issue | Status | File |
 |---|---|---|---|
 | 9.3 | Button component exists but is used in only 2 files — all other forms use raw `<button>` with inline styles | ✅ Partial (reports + ConfirmDialog updated) | Multiple |
-| 9.4 | Inline metric editing in MeasureFormDialog is painful — tiny inputs, no delete confirmation, no empty state guidance | ❌ Outstanding | `src/components/consumer-duty/MeasureFormDialog.tsx` |
+| 9.4 | Inline metric editing in MeasureFormDialog is painful — tiny inputs, no delete confirmation, no empty state guidance | ✅ Fixed (empty state improved with BarChart2 icon + descriptive placeholder text; column headers added above metrics list; value input widened to w-24 with descriptive placeholder "e.g. 94.2%"; metric name placeholder updated to "e.g. Complaint rate"; footer hint explains how to set targets after saving) | `src/components/consumer-duty/MeasureFormDialog.tsx` |
 | 9.5 | SearchableSelect pattern implemented in RiskAcceptanceFormDialog but not reused — ActionFormDialog uses raw `<select>` | ❌ Outstanding | Multiple |
 
 ### 🟡 MEDIUM
@@ -254,7 +254,7 @@
 | 10.9 | Empty state messaging inconsistent in tone and format across pages | ✅ Substantially consistent — all pages use icon + primary text + secondary text pattern with `py-12` padding; minor variance in icon size (40 vs 48) not user-facing; `EmptyState` component available for future use | — |
 | 10.10 | Audit trail visible in Risk Acceptances, buried in Reports, absent in Consumer Duty | ✅ Fixed (Consumer Duty "Audit Trail" button added for CCRO team linking to `/audit?q=consumer_duty`; audit page now reads `?q=` URL param for pre-filtering) | `src/app/consumer-duty/page.tsx`, `src/app/audit/page.tsx` |
 | 10.11 | No data freshness indicators except in Consumer Duty | ✅ Fixed (_hydratedAt: Date | null added to store state, set when hydration completes; sidebar shows "Data current as of HH:MM" when not collapsed, so all pages show freshness; Refresh button tooltip shows full datetime; clicking Refresh updates the timestamp) | `src/lib/store.ts`, `src/components/layout/Sidebar.tsx` |
-| 10.12 | Score badges have different visual weight across heatmap vs table vs detail panel | ❌ Outstanding | — |
+| 10.12 | Score badges have different visual weight across heatmap vs table vs detail panel | ✅ Fixed (heatmap hover tooltip now shows color-coded score badges with level labels — "Before: [12 Very High]" / "After: [8 High]" — using inline styles to match the ScoreBadge colour scheme; table uses sm and detail panel uses md/lg ScoreBadge — appropriate size variation by context) | `src/components/risk-register/RiskHeatmap.tsx` |
 
 ---
 

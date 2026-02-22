@@ -10,8 +10,11 @@ import ComponentsPanel from "@/components/settings/ComponentsPanel";
 import NotificationsEditor from "@/components/settings/NotificationsEditor";
 import RegulationManagementTab from "@/components/settings/RegulationManagementTab";
 import AccessRequestsPanel from "@/components/settings/AccessRequestsPanel";
+import ConsumerDutySettings from "@/components/settings/ConsumerDutySettings";
 import { cn } from "@/lib/utils";
 import { usePageTitle } from "@/lib/usePageTitle";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 const TABS = [
   { id: "branding", label: "Branding" },
@@ -21,16 +24,21 @@ const TABS = [
   { id: "templates", label: "Templates" },
   { id: "components", label: "Components" },
   { id: "regulations", label: "Regulations" },
+  { id: "consumer-duty", label: "Consumer Duty" },
   { id: "access-requests", label: "Access Requests" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
 
-const FULL_WIDTH_TABS: TabId[] = ["templates", "components", "regulations"];
+const FULL_WIDTH_TABS: TabId[] = ["templates", "components", "regulations", "consumer-duty"];
 
-export default function SettingsPage() {
+function SettingsPageContent() {
   usePageTitle("Settings");
-  const [activeTab, setActiveTab] = useState<TabId>("branding");
+  const searchParams = useSearchParams();
+  const initialTab = (searchParams.get("tab") as TabId) ?? "branding";
+  const [activeTab, setActiveTab] = useState<TabId>(
+    TABS.some((t) => t.id === initialTab) ? initialTab : "branding"
+  );
 
   const isFullWidth = FULL_WIDTH_TABS.includes(activeTab);
 
@@ -71,8 +79,17 @@ export default function SettingsPage() {
         {activeTab === "templates" && <TemplatesPanel />}
         {activeTab === "components" && <ComponentsPanel />}
         {activeTab === "regulations" && <RegulationManagementTab />}
+        {activeTab === "consumer-duty" && <ConsumerDutySettings />}
         {activeTab === "access-requests" && <AccessRequestsPanel />}
       </div>
     </RoleGuard>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense>
+      <SettingsPageContent />
+    </Suspense>
   );
 }

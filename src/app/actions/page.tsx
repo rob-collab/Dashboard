@@ -25,6 +25,9 @@ import {
   History,
   MessageSquare,
   Info,
+  XCircle,
+  CheckCircle,
+  GitBranch,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 // Audit logging is handled server-side by the API routes
@@ -644,20 +647,29 @@ function ActionsPageContent() {
 
                     {/* Approval status badge */}
                     {action.approvalStatus === "PENDING_APPROVAL" && (
-                      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-semibold">
+                      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-semibold" title="This action is awaiting CCRO approval">
+                        <Clock size={10} />
                         Awaiting Approval
                       </span>
                     )}
+                    {action.approvalStatus === "APPROVED" && (
+                      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-green-100 text-green-700 px-2 py-0.5 text-[10px] font-semibold" title="This action has been approved">
+                        <CheckCircle size={10} />
+                        Approved
+                      </span>
+                    )}
                     {action.approvalStatus === "REJECTED" && (
-                      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-red-100 text-red-700 px-2 py-0.5 text-[10px] font-semibold">
+                      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-red-100 text-red-700 px-2 py-0.5 text-[10px] font-semibold" title="This action has been rejected — review the reason in the detail view">
+                        <XCircle size={10} />
                         Rejected
                       </span>
                     )}
 
-                    {/* Pending changes badge */}
+                    {/* Pending changes badge — distinct from approval status */}
                     {action.changes && action.changes.filter((c) => c.status === "PENDING").length > 0 && (
-                      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-semibold">
-                        {action.changes.filter((c) => c.status === "PENDING").length} pending
+                      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-sky-100 text-sky-700 px-2 py-0.5 text-[10px] font-semibold" title="This action has proposed changes awaiting review">
+                        <GitBranch size={10} />
+                        {action.changes.filter((c) => c.status === "PENDING").length} change{action.changes.filter((c) => c.status === "PENDING").length !== 1 ? "s" : ""} pending
                       </span>
                     )}
                   </button>

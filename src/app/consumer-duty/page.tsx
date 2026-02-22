@@ -13,7 +13,6 @@ import OutcomeFormDialog from "@/components/consumer-duty/OutcomeFormDialog";
 import MeasureFormDialog from "@/components/consumer-duty/MeasureFormDialog";
 import CSVUploadDialog from "@/components/consumer-duty/CSVUploadDialog";
 import MIImportDialog from "@/components/consumer-duty/MIImportDialog";
-import AdminRAGPanel from "@/components/consumer-duty/AdminRAGPanel";
 import RiskDetailModal from "@/components/consumer-duty/RiskDetailModal";
 import { cn, ragBgColor, ragLabelShort, naturalCompare } from "@/lib/utils";
 import type { ConsumerDutyMeasure, ConsumerDutyOutcome, ConsumerDutyMI, RAGStatus } from "@/lib/types";
@@ -56,7 +55,7 @@ function ConsumerDutyContent() {
     return "ALL";
   });
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") ?? "");
-  const [viewMode, setViewMode] = useState<"all" | "my" | "admin">("all");
+  const [viewMode, setViewMode] = useState<"all" | "my">("all");
   const [measureRagFilter, setMeasureRagFilter] = useState<RAGStatus | "ALL">("ALL");
 
   // Management dialog state
@@ -384,18 +383,14 @@ function ConsumerDutyContent() {
                 )}
               </button>
               {isCCROTeam && (
-                <button
-                  onClick={() => setViewMode("admin")}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                    viewMode === "admin"
-                      ? "bg-updraft-pale-purple/40 text-updraft-deep"
-                      : "text-gray-500 hover:text-gray-700"
-                  )}
+                <Link
+                  href="/settings?tab=consumer-duty"
+                  className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors text-gray-500 hover:text-updraft-deep hover:bg-updraft-pale-purple/20"
+                  title="Override RAG statuses — available in Settings"
                 >
                   <Shield size={12} />
-                  RAG Admin
-                </button>
+                  RAG Override →
+                </Link>
               )}
             </div>
           )}
@@ -516,14 +511,8 @@ function ConsumerDutyContent() {
       )}
 
       {/* ADMIN RAG VIEW */}
-      {viewMode === "admin" && isCCROTeam ? (
-        <AdminRAGPanel
-          outcomes={outcomes}
-          onUpdateOutcomeRAG={(id, rag) => updateOutcome(id, { ragStatus: rag })}
-          onUpdateMeasureRAG={(id, rag) => updateMeasure(id, { ragStatus: rag })}
-        />
-      ) : /* MY MEASURES VIEW */
-      viewMode === "my" && canEdit ? (
+      {/* MY MEASURES VIEW */}
+      {viewMode === "my" && canEdit ? (
         <div className="space-y-4">
           <div className="bento-card">
             <div className="flex items-center gap-2 mb-4">

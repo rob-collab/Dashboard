@@ -5,7 +5,7 @@ import Modal from "@/components/common/Modal";
 import type { ConsumerDutyMeasure, ConsumerDutyOutcome, ConsumerDutyMI, RAGStatus } from "@/lib/types";
 import { generateId } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
-import { Plus, X } from "lucide-react";
+import { Plus, X, BarChart2 } from "lucide-react";
 
 interface MeasureFormDialogProps {
   open: boolean;
@@ -297,34 +297,43 @@ export default function MeasureFormDialog({
           </div>
 
           {inlineMetrics.length === 0 ? (
-            <p className="text-xs text-gray-400 py-2">
-              No metrics yet. Click &ldquo;Add Metric&rdquo; to add one.
-            </p>
+            <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50/50 py-6 text-center">
+              <BarChart2 size={24} className="mx-auto mb-2 text-gray-300" />
+              <p className="text-xs font-medium text-gray-500">No metrics yet</p>
+              <p className="text-[11px] text-gray-400 mt-0.5">Add MI metrics that measure this outcome — e.g. complaint rate, satisfaction score</p>
+            </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
+              {/* Column headers */}
+              <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-2">
+                <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Metric Name</span>
+                <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide w-24 text-right">Current Value</span>
+                <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide w-20 text-center">RAG</span>
+                <span className="w-6" />
+              </div>
               {inlineMetrics.map((m, idx) => (
                 <div
                   key={m.id}
-                  className="flex items-center gap-2 rounded-lg border border-gray-100 bg-gray-50/50 p-2"
+                  className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-2 rounded-lg border border-gray-100 bg-gray-50/50 px-2 py-1.5"
                 >
                   <input
                     type="text"
                     value={m.metric}
                     onChange={(e) => updateInlineMetric(idx, "metric", e.target.value)}
-                    placeholder="Metric name"
-                    className="flex-1 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-updraft-light-purple"
+                    placeholder="e.g. Complaint rate"
+                    className="rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-updraft-light-purple"
                   />
                   <input
                     type="text"
                     value={m.current}
                     onChange={(e) => updateInlineMetric(idx, "current", e.target.value)}
-                    placeholder="Value"
-                    className="w-20 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-right outline-none focus:border-updraft-light-purple"
+                    placeholder="e.g. 94.2%"
+                    className="w-24 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-right outline-none focus:border-updraft-light-purple"
                   />
                   <select
                     value={m.ragStatus}
                     onChange={(e) => updateInlineMetric(idx, "ragStatus", e.target.value)}
-                    className="rounded-md border border-gray-200 bg-white px-1.5 py-1.5 text-xs outline-none focus:border-updraft-light-purple"
+                    className="w-20 rounded-md border border-gray-200 bg-white px-1.5 py-1.5 text-xs outline-none focus:border-updraft-light-purple"
                   >
                     {RAG_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -334,12 +343,16 @@ export default function MeasureFormDialog({
                     type="button"
                     onClick={() => removeMetric(idx)}
                     className="shrink-0 rounded-md p-1 text-gray-400 hover:text-risk-red hover:bg-red-50 transition-colors"
-                    title="Remove metric"
+                    title="Remove this metric"
+                    aria-label="Remove metric"
                   >
                     <X size={14} />
                   </button>
                 </div>
               ))}
+              <p className="text-[10px] text-gray-400 px-1 mt-1">
+                Targets and trend history can be set after saving — click a metric row in the MI modal.
+              </p>
             </div>
           )}
         </div>

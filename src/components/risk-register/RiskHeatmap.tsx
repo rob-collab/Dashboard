@@ -172,16 +172,32 @@ export default function RiskHeatmap({
                                   </span>
 
                                   {/* Tooltip */}
-                                  {isHovered && (
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-xs rounded-lg shadow-xl z-50 pointer-events-none">
-                                      <div className="font-bold">{risk.reference}: {risk.name}</div>
-                                      <div className="text-gray-300 mt-0.5">{risk.categoryL1}</div>
-                                      <div className="flex justify-between mt-1">
-                                        <span>Inherent: {getRiskScore(risk.inherentLikelihood, risk.inherentImpact)}</span>
-                                        <span>Residual: {getRiskScore(risk.residualLikelihood, risk.residualImpact)}</span>
+                                  {isHovered && (() => {
+                                    const iSc = getRiskScore(risk.inherentLikelihood, risk.inherentImpact);
+                                    const rSc = getRiskScore(risk.residualLikelihood, risk.residualImpact);
+                                    const iLvl = getRiskLevel(iSc);
+                                    const rLvl = getRiskLevel(rSc);
+                                    return (
+                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 p-2.5 bg-gray-900 text-white text-xs rounded-lg shadow-xl z-50 pointer-events-none">
+                                        <div className="font-bold leading-tight">{risk.reference}: {risk.name}</div>
+                                        <div className="text-gray-400 mt-0.5">{risk.categoryL1}</div>
+                                        <div className="flex gap-3 mt-1.5">
+                                          <span className="flex items-center gap-1">
+                                            <span className="text-gray-400">Before:</span>
+                                            <span className="font-bold rounded px-1 py-0.5 text-[10px]" style={{ backgroundColor: iLvl.colour, color: "#fff" }}>
+                                              {iSc} {iLvl.level}
+                                            </span>
+                                          </span>
+                                          <span className="flex items-center gap-1">
+                                            <span className="text-gray-400">After:</span>
+                                            <span className="font-bold rounded px-1 py-0.5 text-[10px]" style={{ backgroundColor: rLvl.colour, color: "#fff" }}>
+                                              {rSc} {rLvl.level}
+                                            </span>
+                                          </span>
+                                        </div>
                                       </div>
-                                    </div>
-                                  )}
+                                    );
+                                  })()}
                                 </div>
                               );
                             })}
