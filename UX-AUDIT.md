@@ -34,7 +34,7 @@
 | 1.2 | Sidebar is a flat list of 11 items with no semantic grouping or hierarchy | ✅ Fixed | `src/components/layout/Sidebar.tsx` |
 | 1.3 | No breadcrumbs on any page — users cannot tell where they are or navigate up | ✅ Fixed | `src/components/common/Breadcrumb.tsx` |
 | 1.4 | No global search — with 15+ pages and hundreds of entities, users cannot quickly find anything | ❌ Outstanding | — |
-| 1.5 | Dashboard shows 18 sections with no role-based defaults — new users are overwhelmed | ❌ Outstanding | `src/app/page.tsx` |
+| 1.5 | Dashboard shows 18 sections with no role-based defaults — new users are overwhelmed | ✅ Fixed (same mechanism as 1.11 — ROLE_DEFAULT_HIDDEN in dashboard-sections.ts hides CCRO-only sections for OWNER and REVIEWER roles on first load; OWNERs see 13 sections, REVIEWERs see 14, CCROs see all 18; sections are fully customisable via the Edit Layout panel) | `src/lib/dashboard-sections.ts`, `src/app/page.tsx` |
 | 1.6 | Proposed Changes panel leads with field diffs rather than who proposed it, why, and when | ✅ Fixed | `src/app/page.tsx` |
 | 1.7 | No first-time user onboarding or welcome flow on first login | ❌ Outstanding | — |
 
@@ -50,7 +50,7 @@
 | 1.13 | No keyboard shortcuts — no Cmd+K for search, no Cmd+? for help | ❌ Outstanding | — |
 | 1.14 | No role indicator visible to the logged-in user | ✅ Fixed (role label shown in sidebar user section + dropdown) | `src/components/layout/Sidebar.tsx` |
 | 1.15 | No in-app help or glossary — terms like "Residual Risk," "RAG," "2LOD," and "Consumer Duty" are unexplained | ✅ Fixed (GlossaryTooltip component created with definitions for RAG, Residual Risk, Inherent Risk, Consumer Duty, 2LOD, CCRO, Appetite, MI, SM&CR, Control Effectiveness; added to Consumer Duty page header + RAG filter, MIModal RAG column, QuarterlySummaryTab 2LOD section, Risk Detail Panel Appetite field, and RiskHeatmap mode buttons with title tooltips) | `src/components/common/GlossaryTooltip.tsx` |
-| 1.16 | Mobile sidebar collapses to icons with no hamburger menu alternative | ❌ Outstanding | `src/components/layout/Sidebar.tsx` |
+| 1.16 | Mobile sidebar collapses to icons with no hamburger menu alternative | ✅ Fixed (mobile mode detected via window.innerWidth < 768px; on mobile the sidebar overlays the content (ml-0 on main) with a dark backdrop that closes sidebar on tap; sticky hamburger header bar added at top of main content (md:hidden equivalent logic); sidebar auto-closes on navigate on mobile) | `src/app/layout.tsx` |
 
 ---
 
@@ -105,7 +105,7 @@
 
 | # | Issue | Status | File |
 |---|---|---|---|
-| 4.1 | Expandable row pattern shows one detail at a time — no "Detailed View" toggle to compare multiple actions | ❌ Outstanding | `src/app/actions/page.tsx` |
+| 4.1 | Expandable row pattern shows one detail at a time — no "Detailed View" toggle to compare multiple actions | ✅ Fixed (expanded state changed from single expandedId string to expandedIds Set<string>; clicking a row toggles its expansion independently; multiple rows can be expanded simultaneously to compare actions; initial URL param still supported for deep links) | `src/app/actions/page.tsx` |
 | 4.2 | Approval workflow scattered — `approvalStatus` badge and change approvals are presented inconsistently | ✅ Fixed (approval badges now have consistent icons: Clock for Awaiting Approval, CheckCircle for Approved (new green badge), XCircle for Rejected; pending changes badge now uses sky-blue colour with GitBranch icon to distinguish from approval status; all badges have tooltip descriptions) | `src/app/actions/page.tsx` |
 | 4.3 | No bulk actions — no way to bulk-reassign, bulk-close, or export to CSV | ✅ Fixed (checkbox added to each action row; select-all header; bulk toolbar appears when selections exist: "Mark Completed" bulk-closes selected, "Reassign..." shows inline picker with user selector + confirm, "Export Selected" exports filtered set to CSV; all bulk actions CCRO-only; selection cleared after each operation) | `src/app/actions/page.tsx` |
 | 4.4 | Filter state (priority, status) resets when navigating away | ✅ Fixed (all 5 filters — status, priority, search q, owner, report, source — initialised from URL and synced via 150ms debounced effect) | `src/app/actions/page.tsx` |

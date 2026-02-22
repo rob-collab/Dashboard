@@ -12,11 +12,26 @@ import NavigationBackButton from "@/components/common/NavigationBackButton";
 import Breadcrumb from "@/components/common/Breadcrumb";
 import { useAppStore } from "@/lib/store";
 import type { User } from "@/lib/types";
+import { Menu } from "lucide-react";
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile breakpoint (< 768px = md)
+  useEffect(() => {
+    function check() { setIsMobile(window.innerWidth < 768); }
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  // Close sidebar overlay when navigating on mobile
+  useEffect(() => {
+    if (isMobile) setSidebarOpen(false);
+  }, [pathname, isMobile]);
 
   const setAuthUser = useAppStore((s) => s.setAuthUser);
   const setCurrentUser = useAppStore((s) => s.setCurrentUser);
@@ -102,17 +117,39 @@ function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <div className="flex h-screen overflow-hidden">
+        {/* Mobile backdrop — closes sidebar on tap outside */}
+        {isMobile && sidebarOpen && (
+          <div
+            className="fixed inset-0 z-30 bg-black/40"
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
+          />
+        )}
         <Sidebar
           currentUser={currentUser}
-          collapsed={!sidebarOpen}
-          onToggle={() => setSidebarOpen(!sidebarOpen)}
+          collapsed={isMobile ? false : !sidebarOpen}
+          onToggle={() => setSidebarOpen((v) => !v)}
           onSwitchUser={switchUser}
         />
         <main
           className={`flex-1 overflow-y-auto transition-all duration-300 ${
-            sidebarOpen ? "ml-64" : "ml-16"
+            isMobile ? "ml-0" : sidebarOpen ? "ml-64" : "ml-16"
           }`}
         >
+          {/* Mobile hamburger header */}
+          {isMobile && (
+            <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-gray-200 bg-white/90 backdrop-blur-sm px-4 py-3">
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(true)}
+                className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors"
+                aria-label="Open navigation menu"
+              >
+                <Menu size={20} className="text-gray-600" />
+              </button>
+              <span className="text-sm font-semibold text-updraft-deep font-poppins">CCRO Dashboard</span>
+            </div>
+          )}
           <ErrorBoundary>
             <Suspense fallback={
               <div className="flex items-center justify-center min-h-[400px]">

@@ -134,7 +134,10 @@ function ActionsPageContent() {
   // UI State
   const [showForm, setShowForm] = useState(prefillNewAction);
   const [editAction, setEditAction] = useState<Action | undefined>(undefined);
-  const [expandedId, setExpandedId] = useState<string | null>(() => searchParams.get("action") || searchParams.get("edit"));
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
+    const initial = searchParams.get("action") || searchParams.get("edit");
+    return initial ? new Set([initial]) : new Set();
+  });
   const [showCSVImport, setShowCSVImport] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showUpdateForm, setShowUpdateForm] = useState<string | null>(null);
@@ -424,7 +427,7 @@ function ActionsPageContent() {
     return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
   }
 
-  const expandedAction = expandedId ? actions.find((a) => a.id === expandedId) : null;
+  // expandedIds — multi-row expansion (replaces single expandedId)
 
   const statCards = [
     { label: "Total", value: stats.total, color: "text-gray-700", bg: "bg-gray-50", filterKey: "ALL", type: "status" as const },
@@ -714,7 +717,7 @@ function ActionsPageContent() {
           <div className="divide-y divide-gray-100">
             {filteredActions.map((action) => {
               const owner = users.find((u) => u.id === action.assignedTo);
-              const isExpanded = expandedId === action.id;
+              const isExpanded = expandedIds.has(action.id);
               const StatusIcon = STATUS_CONFIG[action.status].icon;
               const days = daysUntilDue(action.dueDate);
 
@@ -750,7 +753,7 @@ function ActionsPageContent() {
                       </button>
                     )}
                   <button
-                    onClick={() => setExpandedId(isExpanded ? null : action.id)}
+                    onClick={() => setExpandedIds((prev) => { const next = new Set(prev); if (next.has(action.id)) next.delete(action.id); else next.add(action.id); return next; })}
                     className={cn(
                       "flex flex-1 items-center gap-4 px-4 py-3 text-left hover:bg-gray-50/80 transition-colors",
                       !isCCRO && "pl-4"
@@ -838,15 +841,15 @@ function ActionsPageContent() {
                   </div>{/* end row outer div */}
 
                   {/* Expanded Detail Card */}
-                  {isExpanded && expandedAction && (() => {
-                    const creator = users.find((u) => u.id === expandedAction.createdBy);
-                    const originalOwnerVal = getOriginalValue(expandedAction, "assignedTo");
+                  {isExpanded && (() => {
+                    const creator = users.find((u) => u.id === action.createdBy);
+                    const originalOwnerVal = getOriginalValue(action, "assignedTo");
                     const originalOwnerUser = originalOwnerVal ? users.find((u) => u.id === originalOwnerVal) : null;
-                    const originalDueDateVal = getOriginalValue(expandedAction, "dueDate");
-                    const totalDelay = getTotalDelayDays(expandedAction);
-                    const dateChangeCount = (expandedAction.changes || []).filter((c) => c.fieldChanged === "dueDate").length;
-                    const isMyAction = expandedAction.assignedTo === currentUser?.id;
-                    const isActive = expandedAction.status !== "COMPLETED";
+                    const originalDueDateVal = getOriginalValue(action, "dueDate");
+                    const totalDelay = getTotalDelayDays(action);
+                    const dateChangeCount = (action.changes || []).filter((c) => c.fieldChanged === "dueDate").length;
+                    const isMyAction = action.assignedTo === currentUser?.id;
+                    const isActive = action.status !== "COMPLETED";
 
                     return (
                       <div className="border-t border-updraft-pale-purple/40 bg-white px-6 py-5 animate-slide-up">
@@ -857,10 +860,10 @@ function ActionsPageContent() {
                               <Info size={14} className="text-updraft-bar shrink-0" />
                               <span className="text-xs font-semibold text-updraft-bar uppercase tracking-wider">Issue to be Addressed</span>
                             </div>
-                            {isCCRO && editingIssue !== expandedAction.id && (
+                            {isCCRO && editingIssue !== action.id && (
                               <button
                                 type="button"
-                                onClick={() => { setEditingIssue(expandedAction.id); setIssueEditorValue(expandedAction.issueDescription || ""); }}
+                                onClick={() => { setEditingIssue(action.id); setIssueEditorValue(action.issueDescription || ""); }}
                                 className="text-[10px] font-medium text-updraft-bright-purple hover:underline"
                               >
                                 Edit
@@ -869,14 +872,14 @@ function ActionsPageContent() {
                           </div>
 
                           {/* Risk link (always shown if present) */}
-                          {expandedAction.linkedMitigation && (() => {
-                            const linkedRisk = risks.find((r) => r.id === expandedAction.linkedMitigation!.riskId);
+                          {action.linkedMitigation && (() => {
+                            const linkedRisk = risks.find((r) => r.id === action.linkedMitigation!.riskId);
                             const riskLabel = linkedRisk
                               ? `${linkedRisk.reference}: ${linkedRisk.name}`
-                              : expandedAction.linkedMitigation.riskId;
+                              : action.linkedMitigation.riskId;
                             return (
                               <Link
-                                href={`/risk-register?risk=${expandedAction.linkedMitigation.riskId}`}
+                                href={`/risk-register?risk=${action.linkedMitigation.riskId}`}
                                 className="mb-2 text-sm text-updraft-bright-purple hover:underline inline-flex items-center gap-1"
                               >
                                 <ShieldAlert size={13} />
@@ -887,7 +890,7 @@ function ActionsPageContent() {
                           })()}
 
                           {/* Editable issue description (CCRO inline editor) */}
-                          {editingIssue === expandedAction.id ? (
+                          {editingIssue === action.id ? (
                             <div className="space-y-2">
                               <RichTextEditor
                                 value={issueEditorValue}
@@ -905,19 +908,19 @@ function ActionsPageContent() {
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => handleSaveIssueDescription(expandedAction.id, issueEditorValue)}
+                                  onClick={() => handleSaveIssueDescription(action.id, issueEditorValue)}
                                   className="rounded-lg bg-updraft-bright-purple px-3 py-1 text-xs font-medium text-white hover:bg-updraft-deep transition-colors"
                                 >
                                   Save
                                 </button>
                               </div>
                             </div>
-                          ) : expandedAction.issueDescription ? (
+                          ) : action.issueDescription ? (
                             <RichTextEditor
-                              value={expandedAction.issueDescription}
+                              value={action.issueDescription}
                               readOnly
                             />
-                          ) : !expandedAction.linkedMitigation ? (
+                          ) : !action.linkedMitigation ? (
                             <p className="text-sm text-gray-400 italic">No issue description provided</p>
                           ) : null}
                         </div>
@@ -927,19 +930,19 @@ function ActionsPageContent() {
                           <div>
                             <div className="flex items-center gap-2 mb-1">
                               <span className="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs font-bold font-mono text-updraft-deep">
-                                {expandedAction.reference}
+                                {action.reference}
                               </span>
-                              {expandedAction.priority && (
-                                <span className={cn("inline-flex items-center rounded px-2 py-0.5 text-xs font-bold", PRIORITY_CONFIG[expandedAction.priority].bgColor)}>
-                                  {PRIORITY_CONFIG[expandedAction.priority].label}
+                              {action.priority && (
+                                <span className={cn("inline-flex items-center rounded px-2 py-0.5 text-xs font-bold", PRIORITY_CONFIG[action.priority].bgColor)}>
+                                  {PRIORITY_CONFIG[action.priority].label}
                                 </span>
                               )}
-                              <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold", STATUS_CONFIG[expandedAction.status].bgColor)}>
-                                {(() => { const SI = STATUS_CONFIG[expandedAction.status].icon; return <SI size={11} />; })()}
-                                {STATUS_CONFIG[expandedAction.status].label}
+                              <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold", STATUS_CONFIG[action.status].bgColor)}>
+                                {(() => { const SI = STATUS_CONFIG[action.status].icon; return <SI size={11} />; })()}
+                                {STATUS_CONFIG[action.status].label}
                               </span>
                             </div>
-                            <h3 className="font-poppins text-lg font-semibold text-gray-900">{expandedAction.title}</h3>
+                            <h3 className="font-poppins text-lg font-semibold text-gray-900">{action.title}</h3>
                           </div>
                         </div>
 
@@ -949,9 +952,9 @@ function ActionsPageContent() {
                           isCCRO ? "border-gray-200 bg-white" : "border-gray-100 bg-gray-50"
                         )}>
                           <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Description</label>
-                          {expandedAction.description ? (
+                          {action.description ? (
                             <div className={cn(!isCCRO && "opacity-50")}>
-                              <RichTextEditor value={expandedAction.description} readOnly />
+                              <RichTextEditor value={action.description} readOnly />
                             </div>
                           ) : (
                             <p className="text-sm text-gray-400 italic">No description provided.</p>
@@ -966,25 +969,25 @@ function ActionsPageContent() {
                           <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
                             <span className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Current Owner</span>
                             <p className="text-sm font-medium text-gray-800">{owner?.name || "Unassigned"}</p>
-                            {originalOwnerUser && originalOwnerUser.id !== expandedAction.assignedTo && (
+                            {originalOwnerUser && originalOwnerUser.id !== action.assignedTo && (
                               <p className="text-[10px] text-gray-400 mt-0.5">Originally: {originalOwnerUser.name}</p>
                             )}
                           </div>
                           <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
                             <span className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Due Date</span>
-                            <p className={cn("text-sm font-medium", dueDateColor(expandedAction))}>
-                              {expandedAction.dueDate ? formatDateShort(expandedAction.dueDate) : "No date"}
+                            <p className={cn("text-sm font-medium", dueDateColor(action))}>
+                              {action.dueDate ? formatDateShort(action.dueDate) : "No date"}
                               {days !== null && days > 0 && isActive && (
                                 <span className="text-gray-400 font-normal ml-1">({days}d)</span>
                               )}
                             </p>
-                            {originalDueDateVal && originalDueDateVal !== expandedAction.dueDate && (
+                            {originalDueDateVal && originalDueDateVal !== action.dueDate && (
                               <p className="text-[10px] text-gray-400 mt-0.5">Originally: {formatDateShort(originalDueDateVal)}</p>
                             )}
                           </div>
                           <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
                             <span className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Created</span>
-                            <p className="text-sm font-medium text-gray-800">{formatDateShort(expandedAction.createdAt)}</p>
+                            <p className="text-sm font-medium text-gray-800">{formatDateShort(action.createdAt)}</p>
                             <p className="text-[10px] text-gray-400 mt-0.5">by {creator?.name || "Unknown"}</p>
                           </div>
                           <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
@@ -1007,21 +1010,21 @@ function ActionsPageContent() {
                           {isCCRO && (
                             <>
                               <button
-                                onClick={() => { setEditAction(expandedAction); setShowForm(true); }}
+                                onClick={() => { setEditAction(action); setShowForm(true); }}
                                 className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 transition-colors"
                               >
                                 Edit
                               </button>
                               {isActive && (
                                 <button
-                                  onClick={() => updateAction(expandedAction.id, { status: "COMPLETED", completedAt: new Date().toISOString() })}
+                                  onClick={() => updateAction(action.id, { status: "COMPLETED", completedAt: new Date().toISOString() })}
                                   className="rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100 transition-colors"
                                 >
                                   Mark Complete
                                 </button>
                               )}
                               <button
-                                onClick={() => handleDeleteAction(expandedAction.id)}
+                                onClick={() => handleDeleteAction(action.id)}
                                 className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
                               >
                                 Delete
@@ -1031,10 +1034,10 @@ function ActionsPageContent() {
                           {isActive && (isMyAction || isCCRO) && (
                             <>
                               <button
-                                onClick={() => setShowUpdateForm(showUpdateForm === expandedAction.id ? null : expandedAction.id)}
+                                onClick={() => setShowUpdateForm(showUpdateForm === action.id ? null : action.id)}
                                 className={cn(
                                   "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
-                                  showUpdateForm === expandedAction.id
+                                  showUpdateForm === action.id
                                     ? "border-updraft-bright-purple bg-updraft-pale-purple/30 text-updraft-deep"
                                     : "border-updraft-light-purple bg-updraft-pale-purple/20 text-updraft-deep hover:bg-updraft-pale-purple/40"
                                 )}
@@ -1045,12 +1048,12 @@ function ActionsPageContent() {
                                 <>
                                   <button
                                     onClick={() => {
-                                      setShowDateProposal(showDateProposal === expandedAction.id ? null : expandedAction.id);
+                                      setShowDateProposal(showDateProposal === action.id ? null : action.id);
                                       setShowReassignProposal(null);
                                     }}
                                     className={cn(
                                       "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
-                                      showDateProposal === expandedAction.id
+                                      showDateProposal === action.id
                                         ? "border-amber-400 bg-amber-50 text-amber-700"
                                         : "border-amber-200 text-amber-700 hover:bg-amber-50"
                                     )}
@@ -1059,12 +1062,12 @@ function ActionsPageContent() {
                                   </button>
                                   <button
                                     onClick={() => {
-                                      setShowReassignProposal(showReassignProposal === expandedAction.id ? null : expandedAction.id);
+                                      setShowReassignProposal(showReassignProposal === action.id ? null : action.id);
                                       setShowDateProposal(null);
                                     }}
                                     className={cn(
                                       "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
-                                      showReassignProposal === expandedAction.id
+                                      showReassignProposal === action.id
                                         ? "border-blue-400 bg-blue-50 text-blue-700"
                                         : "border-blue-200 text-blue-700 hover:bg-blue-50"
                                     )}
@@ -1072,7 +1075,7 @@ function ActionsPageContent() {
                                     <UserRoundPen size={12} /> Request Reassignment
                                   </button>
                                   <button
-                                    onClick={() => handleProposeChange(expandedAction.id, "status", expandedAction.status, "PROPOSED_CLOSED")}
+                                    onClick={() => handleProposeChange(action.id, "status", action.status, "PROPOSED_CLOSED")}
                                     className="rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100 transition-colors"
                                   >
                                     Propose Closed
@@ -1086,16 +1089,16 @@ function ActionsPageContent() {
                         {/* Inline Forms */}
                         <div className="space-y-3 mb-5">
                           {/* Progress Update Form */}
-                          {showUpdateForm === expandedAction.id && (
+                          {showUpdateForm === action.id && (
                             <ActionUpdateForm
-                              actionId={expandedAction.id}
-                              onSubmit={(data) => handleSubmitUpdate(expandedAction.id, data)}
+                              actionId={action.id}
+                              onSubmit={(data) => handleSubmitUpdate(action.id, data)}
                               onCancel={() => setShowUpdateForm(null)}
                             />
                           )}
 
                           {/* Date Change Proposal Form */}
-                          {showDateProposal === expandedAction.id && (
+                          {showDateProposal === action.id && (
                             <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4 space-y-3">
                               <div className="flex items-center gap-2 mb-1">
                                 <CalendarClock size={14} className="text-amber-600" />
@@ -1110,7 +1113,7 @@ function ActionsPageContent() {
                                 <div>
                                   <label className="block text-xs font-medium text-gray-700 mb-1">Current Due Date</label>
                                   <p className="text-sm text-gray-500 px-3 py-2 rounded-lg bg-gray-100 border border-gray-200">
-                                    {expandedAction.dueDate ? formatDateShort(expandedAction.dueDate) : "Not set"}
+                                    {action.dueDate ? formatDateShort(action.dueDate) : "Not set"}
                                   </p>
                                 </div>
                                 <div>
@@ -1141,7 +1144,7 @@ function ActionsPageContent() {
                                   Cancel
                                 </button>
                                 <button
-                                  onClick={() => handleProposeDateChange(expandedAction.id)}
+                                  onClick={() => handleProposeDateChange(action.id)}
                                   disabled={!proposedDate || !proposalReason.trim()}
                                   className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
@@ -1152,7 +1155,7 @@ function ActionsPageContent() {
                           )}
 
                           {/* Reassignment Proposal Form */}
-                          {showReassignProposal === expandedAction.id && (
+                          {showReassignProposal === action.id && (
                             <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4 space-y-3">
                               <div className="flex items-center gap-2 mb-1">
                                 <UserRoundPen size={14} className="text-blue-600" />
@@ -1178,7 +1181,7 @@ function ActionsPageContent() {
                                     className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple"
                                   >
                                     <option value="">Select...</option>
-                                    {users.filter((u) => u.isActive && u.id !== expandedAction.assignedTo).map((u) => (
+                                    {users.filter((u) => u.isActive && u.id !== action.assignedTo).map((u) => (
                                       <option key={u.id} value={u.id}>{u.name}</option>
                                     ))}
                                   </select>
@@ -1202,7 +1205,7 @@ function ActionsPageContent() {
                                   Cancel
                                 </button>
                                 <button
-                                  onClick={() => handleProposeReassign(expandedAction.id)}
+                                  onClick={() => handleProposeReassign(action.id)}
                                   disabled={!proposedOwner || !proposalReason.trim()}
                                   className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
@@ -1218,17 +1221,17 @@ function ActionsPageContent() {
                           <div className="flex items-center gap-2 mb-3">
                             <History size={14} className="text-gray-500" />
                             <h4 className="text-sm font-semibold text-gray-700">Change History</h4>
-                            {(expandedAction.changes || []).length > 0 && (
+                            {(action.changes || []).length > 0 && (
                               <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500">
-                                {(expandedAction.changes || []).length}
+                                {(action.changes || []).length}
                               </span>
                             )}
                           </div>
                           <ActionChangePanel
-                            changes={expandedAction.changes || []}
+                            changes={action.changes || []}
                             isCCRO={isCCRO}
-                            onApprove={(changeId, note) => handleApproveChange(expandedAction.id, changeId, note)}
-                            onReject={(changeId, note) => handleRejectChange(expandedAction.id, changeId, note)}
+                            onApprove={(changeId, note) => handleApproveChange(action.id, changeId, note)}
+                            onReject={(changeId, note) => handleRejectChange(action.id, changeId, note)}
                           />
                         </div>
                       </div>
