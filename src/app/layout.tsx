@@ -12,9 +12,10 @@ import NavigationBackButton from "@/components/common/NavigationBackButton";
 import Breadcrumb from "@/components/common/Breadcrumb";
 import { useAppStore } from "@/lib/store";
 import type { User } from "@/lib/types";
-import { Menu, Search } from "lucide-react";
+import { Menu, Search, Bell } from "lucide-react";
 import GlobalSearch from "@/components/common/GlobalSearch";
 import KeyboardShortcutsModal from "@/components/common/KeyboardShortcutsModal";
+import NotificationDrawer, { useNotificationCount } from "@/components/common/NotificationDrawer";
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -23,6 +24,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const [isMobile, setIsMobile] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifCount = useNotificationCount();
 
   // Detect mobile breakpoint (< 768px = md)
   useEffect(() => {
@@ -183,6 +186,19 @@ function AppShell({ children }: { children: React.ReactNode }) {
               >
                 <Search size={18} className="text-gray-600" />
               </button>
+              <button
+                type="button"
+                onClick={() => setNotifOpen((v) => !v)}
+                className="relative rounded-lg p-1.5 hover:bg-gray-100 transition-colors"
+                aria-label="Notifications"
+              >
+                <Bell size={18} className="text-gray-600" />
+                {notifCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                    {notifCount > 9 ? "9+" : notifCount}
+                  </span>
+                )}
+              </button>
             </div>
           )}
           <ErrorBoundary>
@@ -201,6 +217,23 @@ function AppShell({ children }: { children: React.ReactNode }) {
         <ScrollToTop />
         <NavigationBackButton sidebarOpen={sidebarOpen} />
       </div>
+      {/* Desktop notification bell — fixed top-right */}
+      {!isMobile && (
+        <button
+          type="button"
+          onClick={() => setNotifOpen((v) => !v)}
+          className="fixed top-3 right-4 z-[9990] flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white/90 shadow-sm hover:bg-gray-50 transition-colors backdrop-blur-sm"
+          aria-label="Notifications"
+        >
+          <Bell size={16} className="text-gray-600" />
+          {notifCount > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+              {notifCount > 9 ? "9+" : notifCount}
+            </span>
+          )}
+        </button>
+      )}
+      <NotificationDrawer open={notifOpen} onClose={() => setNotifOpen(false)} />
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
       <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       <Toaster position="top-right" richColors closeButton toastOptions={{ style: { zIndex: 99999 } }} style={{ zIndex: 99999 }} />
