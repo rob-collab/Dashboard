@@ -7,7 +7,7 @@ import { L1_CATEGORY_COLOURS, L1_CATEGORIES as FALLBACK_L1, getRiskScore, getApp
 import ScoreBadge from "./ScoreBadge";
 import DirectionArrow from "./DirectionArrow";
 import { EmptyState } from "@/components/common/EmptyState";
-import { formatDateShort, naturalCompare } from "@/lib/utils";
+import { naturalCompare } from "@/lib/utils";
 import { ChevronUp, ChevronDown, Search, Filter, ShieldAlert, Star, AlertTriangle } from "lucide-react";
 import { useHasPermission } from "@/lib/usePermission";
 
