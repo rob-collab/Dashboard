@@ -697,9 +697,11 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
             {mitigations.map((mit, i) => (
               <div key={i} className="space-y-2 p-3 bg-gray-50 rounded-lg">
                 {mit.actionId && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold bg-updraft-pale-purple/40 text-updraft-deep rounded-full">
-                    <Link2 className="w-3 h-3" /> Linked to Action
-                  </span>
+                  <EntityLink
+                    type="action"
+                    id={mit.actionId}
+                    label="View linked action"
+                  />
                 )}
                 <div className="flex gap-2">
                   <input

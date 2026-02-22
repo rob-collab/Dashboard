@@ -209,9 +209,9 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
                       {risk.reference}
                     </span>
                   </td>
-                  <td className="px-3 py-3 font-medium text-gray-800">
-                    <span className="inline-flex items-center gap-1.5">
-                      {risk.name}
+                  <td className="px-3 py-3 font-medium text-gray-800 max-w-[280px]">
+                    <span className="inline-flex items-center gap-1.5 min-w-0">
+                      <span className="truncate">{risk.name}</span>
                       {risk.approvalStatus === "PENDING_APPROVAL" && (
                         <span className="rounded-full bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[9px] font-semibold shrink-0">Pending</span>
                       )}
@@ -222,13 +222,13 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
                   </td>
                   <td className="px-3 py-3">
                     <span
-                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium text-white"
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium text-white whitespace-nowrap"
                       style={{ backgroundColor: catColour?.fill ?? "#888" }}
                     >
                       {catColour?.label ?? risk.categoryL1}
                     </span>
                   </td>
-                  <td className="px-3 py-3 text-gray-600">{getOwnerName(risk)}</td>
+                  <td className="px-3 py-3 text-gray-600 max-w-[120px] truncate">{getOwnerName(risk)}</td>
                   <td className="px-3 py-3">
                     <ScoreBadge likelihood={risk.inherentLikelihood} impact={risk.inherentImpact} size="sm" />
                   </td>

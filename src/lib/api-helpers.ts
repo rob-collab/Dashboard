@@ -7,25 +7,22 @@ import { naturalCompare } from "./utils";
 export { prisma, naturalCompare };
 
 /**
- * Returns the real authenticated user ID.
- * Prefers X-Verified-User-Id (set by middleware from JWT) for tamper-proof identity,
- * then falls back to X-Auth-User-Id / X-User-Id for backwards compatibility.
+ * Returns the real authenticated user ID — only from the JWT-verified header
+ * set by middleware. Client-supplied headers are NOT trusted for auth checks.
  */
 export function getUserId(request: Request): string | null {
-  return request.headers.get("X-Verified-User-Id")
-    || request.headers.get("X-Auth-User-Id")
-    || request.headers.get("X-User-Id");
+  return request.headers.get("X-Verified-User-Id");
 }
 
 /**
- * Returns the effective user ID for read-scoped operations.
+ * Returns the effective user ID for read-scoped / view-as operations.
  * In "View As" mode, X-User-Id carries the impersonated user;
- * otherwise falls back to the verified identity from JWT.
+ * otherwise falls back to the verified JWT identity.
+ * Do NOT use this for write operations or role checks.
  */
 export function getViewAsUserId(request: Request): string | null {
   return request.headers.get("X-User-Id")
-    || request.headers.get("X-Verified-User-Id")
-    || request.headers.get("X-Auth-User-Id");
+    || request.headers.get("X-Verified-User-Id");
 }
 
 /** @deprecated Use getUserId() — now always returns real identity */

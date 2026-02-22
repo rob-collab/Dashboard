@@ -6,19 +6,24 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
+  try {
+    const { id } = await params;
 
-  const links = await prisma.riskControlLink.findMany({
-    where: { riskId: id },
-    include: {
-      control: {
-        select: { id: true, controlRef: true, controlName: true, businessArea: true },
+    const links = await prisma.riskControlLink.findMany({
+      where: { riskId: id },
+      include: {
+        control: {
+          select: { id: true, controlRef: true, controlName: true, businessArea: true },
+        },
       },
-    },
-    orderBy: { linkedAt: "desc" },
-  });
+      orderBy: { linkedAt: "desc" },
+    });
 
-  return jsonResponse(serialiseDates(links));
+    return jsonResponse(serialiseDates(links));
+  } catch (error) {
+    console.error("[GET /api/risks/[id]/control-links]", error);
+    return errorResponse("Failed to fetch control links", 500);
+  }
 }
 
 const createSchema = z.object({

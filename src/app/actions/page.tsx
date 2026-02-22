@@ -89,6 +89,7 @@ function ActionsPageContent() {
   const actions = useAppStore((s) => s.actions);
   const reports = useAppStore((s) => s.reports);
   const users = useAppStore((s) => s.users);
+  const risks = useAppStore((s) => s.risks);
   const addAction = useAppStore((s) => s.addAction);
   const updateAction = useAppStore((s) => s.updateAction);
   const deleteAction = useAppStore((s) => s.deleteAction);
@@ -691,16 +692,22 @@ function ActionsPageContent() {
                           </div>
 
                           {/* Risk link (always shown if present) */}
-                          {expandedAction.linkedMitigation && (
-                            <Link
-                              href={`/risk-register?risk=${expandedAction.linkedMitigation.riskId}`}
-                              className="mb-2 text-sm text-updraft-bright-purple hover:underline inline-flex items-center gap-1"
-                            >
-                              <ShieldAlert size={13} />
-                              Linked to risk: {expandedAction.linkedMitigation.riskId}
-                              <ArrowUpRight size={11} />
-                            </Link>
-                          )}
+                          {expandedAction.linkedMitigation && (() => {
+                            const linkedRisk = risks.find((r) => r.id === expandedAction.linkedMitigation!.riskId);
+                            const riskLabel = linkedRisk
+                              ? `${linkedRisk.reference}: ${linkedRisk.name}`
+                              : expandedAction.linkedMitigation.riskId;
+                            return (
+                              <Link
+                                href={`/risk-register?risk=${expandedAction.linkedMitigation.riskId}`}
+                                className="mb-2 text-sm text-updraft-bright-purple hover:underline inline-flex items-center gap-1"
+                              >
+                                <ShieldAlert size={13} />
+                                {riskLabel}
+                                <ArrowUpRight size={11} />
+                              </Link>
+                            );
+                          })()}
 
                           {/* Editable issue description (CCRO inline editor) */}
                           {editingIssue === expandedAction.id ? (

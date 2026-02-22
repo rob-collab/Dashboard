@@ -18,29 +18,34 @@ const createOutcomeSchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
-  const includeSnapshots = request.nextUrl.searchParams.get("includeSnapshots") === "true";
+  try {
+    const includeSnapshots = request.nextUrl.searchParams.get("includeSnapshots") === "true";
 
-  const outcomes = await prisma.consumerDutyOutcome.findMany({
-    orderBy: { position: "asc" },
-    include: {
-      measures: {
-        orderBy: { position: "asc" },
-        include: {
-          metrics: {
-            orderBy: { metric: "asc" },
-            include: includeSnapshots ? { snapshots: { orderBy: { month: "asc" } } } : undefined,
+    const outcomes = await prisma.consumerDutyOutcome.findMany({
+      orderBy: { position: "asc" },
+      include: {
+        measures: {
+          orderBy: { position: "asc" },
+          include: {
+            metrics: {
+              orderBy: { metric: "asc" },
+              include: includeSnapshots ? { snapshots: { orderBy: { month: "asc" } } } : undefined,
+            },
           },
         },
       },
-    },
-  });
-  // Secondary sort: within each outcome, sort measures by position then measureId naturally
-  for (const o of outcomes) {
-    if (o.measures) {
-      o.measures.sort((a, b) => a.position - b.position || naturalCompare(a.measureId, b.measureId));
+    });
+    // Secondary sort: within each outcome, sort measures by position then measureId naturally
+    for (const o of outcomes) {
+      if (o.measures) {
+        o.measures.sort((a, b) => a.position - b.position || naturalCompare(a.measureId, b.measureId));
+      }
     }
+    return jsonResponse(serialiseDates(outcomes));
+  } catch (error) {
+    console.error("[GET /api/consumer-duty]", error);
+    return errorResponse("Failed to fetch consumer duty outcomes", 500);
   }
-  return jsonResponse(serialiseDates(outcomes));
 }
 
 export async function POST(request: NextRequest) {
