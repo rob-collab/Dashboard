@@ -9,7 +9,7 @@ import RiskHeatmap from "@/components/risk-register/RiskHeatmap";
 import RiskTable from "@/components/risk-register/RiskTable";
 import RiskDetailPanel from "@/components/risk-register/RiskDetailPanel";
 import RiskHistoryChart from "@/components/risk-register/RiskHistoryChart";
-import { Grid3X3, List, Plus, Download, Upload, ShieldAlert, TrendingDown, TrendingUp, FileText, Bell, Search } from "lucide-react";
+import { Grid3X3, List, Plus, Download, Upload, ShieldAlert, TrendingDown, TrendingUp, FileText, Bell, Search, Star } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
 import RiskCSVUploadDialog from "@/components/risk-register/RiskCSVUploadDialog";
@@ -19,7 +19,7 @@ import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 type ViewTab = "heatmap" | "table";
 type ScoreMode = "inherent" | "residual" | "overlay";
-type CardFilter = "ALL" | "VERY_HIGH" | "HIGH" | "WORSENING" | "IMPROVING";
+type CardFilter = "ALL" | "VERY_HIGH" | "HIGH" | "WORSENING" | "IMPROVING" | "IN_FOCUS";
 
 function getScore(risk: Risk, mode: ScoreMode): number {
   if (mode === "inherent") return getRiskScore(risk.inherentLikelihood, risk.inherentImpact);
@@ -29,7 +29,7 @@ function getScore(risk: Risk, mode: ScoreMode): number {
 export default function RiskRegisterPage() {
   usePageTitle("Risk Register");
   const { risks, setRisks, addRisk, updateRisk, deleteRisk, currentUser, users } = useAppStore();
-  const [viewTab, setViewTab] = useState<ViewTab>("heatmap");
+  const [viewTab, setViewTab] = useState<ViewTab>("table");
   const [selectedRisk, setSelectedRisk] = useState<Risk | null>(null);
   const [isNewRisk, setIsNewRisk] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -91,6 +91,10 @@ export default function RiskRegisterPage() {
     () => risks.filter((r) => r.directionOfTravel === "IMPROVING").length,
     [risks]
   );
+  const inFocusCount = useMemo(
+    () => risks.filter((r) => r.inFocus).length,
+    [risks]
+  );
 
   // Filter pipeline: risks → cardFilter → categoryFilter → displayRisks
   const displayRisks = useMemo(() => {
@@ -109,6 +113,9 @@ export default function RiskRegisterPage() {
         break;
       case "IMPROVING":
         result = result.filter((r) => r.directionOfTravel === "IMPROVING");
+        break;
+      case "IN_FOCUS":
+        result = result.filter((r) => r.inFocus);
         break;
     }
 
@@ -487,6 +494,7 @@ export default function RiskRegisterPage() {
     { key: "HIGH", value: highCount, label: `High (${scoreModeLabel})`, colour: "text-orange-600" },
     { key: "WORSENING", value: worseningCount, label: "Worsening", colour: "text-red-500" },
     { key: "IMPROVING", value: improvingCount, label: "Improving", colour: "text-green-600" },
+    { key: "IN_FOCUS", value: inFocusCount, label: "In Focus", colour: "text-amber-500" },
   ];
 
   return (
@@ -552,10 +560,10 @@ export default function RiskRegisterPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {cards.map((card) => {
           const isActive = cardFilter === card.key;
-          const Icon = card.key === "WORSENING" ? TrendingDown : card.key === "IMPROVING" ? TrendingUp : null;
+          const Icon = card.key === "WORSENING" ? TrendingDown : card.key === "IMPROVING" ? TrendingUp : card.key === "IN_FOCUS" ? Star : null;
           return (
             <button
               key={card.key}

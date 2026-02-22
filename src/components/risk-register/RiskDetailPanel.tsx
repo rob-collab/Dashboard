@@ -15,7 +15,7 @@ import {
   getL2Categories as getFallbackL2,
 } from "@/lib/risk-categories";
 import ScoreBadge from "./ScoreBadge";
-import { X, Plus, Trash2, AlertTriangle, ChevronRight, ChevronDown, History, Link2, ShieldQuestion, Star } from "lucide-react";
+import { X, Plus, Trash2, AlertTriangle, ChevronRight, ChevronDown, History, Link2, ShieldQuestion, Star, Clock, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api-client";
 import { useHasPermission } from "@/lib/usePermission";
@@ -271,7 +271,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Approval info banner */}
+          {/* Approval info banner — new risk */}
           {isNew && !canBypassApproval && (
             <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
@@ -280,6 +280,43 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
               </span>
             </div>
           )}
+
+          {/* Approval status banner — existing risk awaiting approval */}
+          {!isNew && risk?.approvalStatus === "PENDING_APPROVAL" && (
+            <div className="sticky top-0 z-10 flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <Clock className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-semibold text-amber-800">Pending Approval</p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Submitted by{" "}
+                  <strong>{users.find((u) => u.id === risk.createdBy)?.name ?? "Unknown"}</strong>
+                  {" "}· awaiting CCRO review before this risk is visible to all users.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Approval status banner — existing risk rejected */}
+          {!isNew && risk?.approvalStatus === "REJECTED" && (() => {
+            const rejectedChange = [...(risk.changes ?? [])]
+              .filter((c) => c.status === "REJECTED")
+              .sort((a, b) => new Date(b.proposedAt).getTime() - new Date(a.proposedAt).getTime())[0];
+            return (
+              <div className="sticky top-0 z-10 flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <XCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-semibold text-red-800">Rejected</p>
+                  <p className="text-xs text-red-700 mt-0.5">
+                    Submitted by{" "}
+                    <strong>{users.find((u) => u.id === risk.createdBy)?.name ?? "Unknown"}</strong>
+                  </p>
+                  {rejectedChange?.reviewNote && (
+                    <p className="text-xs text-red-700 mt-1 italic">Reason: {rejectedChange.reviewNote}</p>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Basic Info */}
           <section className="space-y-3">

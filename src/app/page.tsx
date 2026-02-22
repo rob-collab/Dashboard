@@ -156,6 +156,16 @@ function PendingChangesPanel({
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [processedIds, setProcessedIds] = useState<Set<string>>(new Set());
   const [reviewErrors, setReviewErrors] = useState<Record<string, string>>({});
+  const [collapsedDiffs, setCollapsedDiffs] = useState<Set<string>>(
+    () => new Set(changes.map((c) => c.id))
+  );
+  function toggleDiff(id: string) {
+    setCollapsedDiffs((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      return next;
+    });
+  }
 
   const handleReview = useCallback(async (
     change: PendingItem,
@@ -252,15 +262,26 @@ function PendingChangesPanel({
                 </Link>
               </div>
 
-              {/* Change Details */}
+              {/* Change Details — lead with who/when/why */}
               <div className="px-4 py-3 space-y-2">
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <span>Proposed by <strong className="text-gray-700">{proposerName}</strong></span>
-                  <span className="text-gray-300">·</span>
-                  <span>{formatDate(c.proposedAt)}</span>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{proposerName}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{formatDate(c.proposedAt)}</p>
+                    {cc?.rationale && (
+                      <p className="text-xs text-gray-600 mt-1 italic">&ldquo;{cc.rationale}&rdquo;</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => toggleDiff(c.id)}
+                    className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-updraft-bright-purple hover:text-updraft-deep transition-colors"
+                  >
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${collapsedDiffs.has(c.id) ? "" : "rotate-180"}`} />
+                    {collapsedDiffs.has(c.id) ? "Show changes" : "Hide changes"}
+                  </button>
                 </div>
 
-                {ac?.isUpdate ? (
+                {!collapsedDiffs.has(c.id) && (ac?.isUpdate ? (
                   <div className="rounded-lg bg-blue-50/60 border border-blue-100 p-3">
                     <p className="text-xs font-semibold text-blue-700 mb-1">Progress Update</p>
                     <p className="text-sm text-gray-800 whitespace-pre-wrap">{ac.newValue ?? "No details provided"}</p>
@@ -295,14 +316,8 @@ function PendingChangesPanel({
                         </p>
                       </div>
                     </div>
-                    {cc?.rationale && (
-                      <div className="mt-2">
-                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Rationale</p>
-                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{cc.rationale}</p>
-                      </div>
-                    )}
                   </div>
-                )}
+                ))}
 
                 {/* Review note input + action buttons */}
                 <div className="pt-2 border-t border-gray-100 space-y-2">

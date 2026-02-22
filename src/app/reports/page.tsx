@@ -137,6 +137,23 @@ function ReportsPageContent() {
         )}
       </div>
 
+      {/* Stats row */}
+      <div className="flex items-center gap-4 text-sm">
+        <span className="text-gray-500">{reports.length} report{reports.length !== 1 ? "s" : ""}</span>
+        {isCCROTeam && reports.filter((r) => r.status === "DRAFT").length > 0 && (
+          <>
+            <span className="text-gray-200">|</span>
+            <span className="text-amber-600 font-medium">{reports.filter((r) => r.status === "DRAFT").length} draft</span>
+          </>
+        )}
+        {reports.filter((r) => r.status === "PUBLISHED").length > 0 && (
+          <>
+            <span className="text-gray-200">|</span>
+            <span className="text-green-600 font-medium">{reports.filter((r) => r.status === "PUBLISHED").length} published</span>
+          </>
+        )}
+      </div>
+
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-md">

@@ -75,7 +75,7 @@ export default function RiskHeatmap({
                   : "text-gray-500 hover:text-gray-700"
               }`}
             >
-              {mode === "overlay" ? "Overlay" : mode.charAt(0).toUpperCase() + mode.slice(1)}
+              {{ inherent: "Before Controls", residual: "After Controls", overlay: "Compare" }[mode]}
             </button>
           ))}
         </div>

@@ -45,8 +45,8 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
   const canToggleFocus = useHasPermission("can:toggle-risk-focus");
   const L1_CATEGORIES = storeCategories.length > 0 ? storeCategories.map((c) => c.name) : FALLBACK_L1;
   const getOwnerName = (risk: Risk) => risk.riskOwner?.name ?? storeUsers.find(u => u.id === risk.ownerId)?.name ?? "Unknown";
-  const [sortField, setSortField] = useState<SortField>("reference");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [sortField, setSortField] = useState<SortField>("residual");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [search, setSearch] = useState("");
   const [filterL1, setFilterL1] = useState<string>("");
   const [filterOwner, setFilterOwner] = useState<string>("");
