@@ -316,7 +316,7 @@ export default function PublishDialog({
           value={publishNote}
           onChange={(e) => setPublishNote(e.target.value)}
           placeholder="Add a note about this version, e.g. key changes..."
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-updraft-bar focus:outline-none focus:ring-2 focus:ring-updraft-pale-purple/40 transition-colors"
+          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-updraft-bar focus:outline-none focus:ring-2 focus:ring-updraft-pale-purple/40 transition-colors"
         />
       </div>
 

@@ -213,7 +213,7 @@ export default function ConductRulesPanel() {
                   <select
                     value={newRuleId}
                     onChange={(e) => setNewRuleId(e.target.value)}
-                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-updraft-light-purple"
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 pr-8 appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-updraft-light-purple"
                   >
                     <option value="">Select rule...</option>
                     {conductRules.map((r) => (
@@ -229,7 +229,7 @@ export default function ConductRulesPanel() {
                   <select
                     value={newUserId}
                     onChange={(e) => setNewUserId(e.target.value)}
-                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-updraft-light-purple"
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 pr-8 appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-updraft-light-purple"
                   >
                     <option value="">Select person...</option>
                     {users.filter((u) => u.isActive).map((u) => (
@@ -247,7 +247,7 @@ export default function ConductRulesPanel() {
                 onChange={(e) => setNewDescription(e.target.value)}
                 rows={3}
                 placeholder="Describe the breach..."
-                className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-updraft-light-purple resize-none"
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-updraft-light-purple resize-none"
               />
             </div>
             <button
@@ -297,7 +297,7 @@ export default function ConductRulesPanel() {
                               <select
                                 value={editBreachStatus}
                                 onChange={(e) => setEditBreachStatus(e.target.value as BreachStatus)}
-                                className="text-xs border border-gray-300 rounded-md px-2 py-1.5 pr-6 appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-updraft-light-purple"
+                                className="text-xs border border-gray-200 rounded-md px-2 py-1.5 pr-6 appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-updraft-light-purple"
                               >
                                 {(Object.entries(BREACH_STATUS_LABELS) as [BreachStatus, string][]).map(([val, label]) => (
                                   <option key={val} value={val}>{label}</option>

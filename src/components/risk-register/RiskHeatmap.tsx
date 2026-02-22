@@ -65,19 +65,32 @@ export default function RiskHeatmap({
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium text-gray-600">View:</span>
         <div className="inline-flex rounded-lg bg-gray-100 p-1">
-          {(["inherent", "residual", "overlay"] as const).map((mode) => (
-            <button
-              key={mode}
-              onClick={() => onViewModeChange(mode)}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                viewMode === mode
-                  ? "bg-white text-updraft-deep shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              {{ inherent: "Before Controls", residual: "After Controls", overlay: "Compare" }[mode]}
-            </button>
-          ))}
+          {(["inherent", "residual", "overlay"] as const).map((mode) => {
+            const labels: Record<string, string> = {
+              inherent: "Before Controls",
+              residual: "After Controls",
+              overlay: "Compare",
+            };
+            const titles: Record<string, string> = {
+              inherent: "Inherent Risk — the raw exposure before any controls are applied",
+              residual: "Residual Risk — the remaining exposure after controls are applied",
+              overlay: "Show both Inherent and Residual scores side-by-side",
+            };
+            return (
+              <button
+                key={mode}
+                onClick={() => onViewModeChange(mode)}
+                title={titles[mode]}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  viewMode === mode
+                    ? "bg-white text-updraft-deep shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {labels[mode]}
+              </button>
+            );
+          })}
         </div>
       </div>
 

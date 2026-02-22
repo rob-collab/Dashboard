@@ -13,6 +13,7 @@ import {
   TEST_RESULT_LABELS,
 } from "@/lib/types";
 import { naturalCompare } from "@/lib/utils";
+import GlossaryTooltip from "@/components/common/GlossaryTooltip";
 import {
   Calendar,
   Save,
@@ -575,7 +576,7 @@ export default function QuarterlySummaryTab() {
           <select
             value={selectedQuarter}
             onChange={(e) => setSelectedQuarter(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
+            className="rounded-md border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
           >
             {quarterOptions.map((q) => (
               <option key={q} value={q}>
@@ -744,7 +745,7 @@ export default function QuarterlySummaryTab() {
                       {/* 2LOD Results row */}
                       <div>
                         <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-                          2LOD Results
+                          <GlossaryTooltip term="2LOD">2LOD</GlossaryTooltip> Results
                         </p>
                         <div className="flex items-center gap-4 flex-wrap">
                           {quarterResults.map((result, idx) =>
@@ -781,7 +782,7 @@ export default function QuarterlySummaryTab() {
                             disabled={!canEdit || isSaving}
                             placeholder="Summarise the quarterly testing outcomes, any discrepancies, and recommended actions..."
                             rows={4}
-                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30 resize-y disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+                            className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30 resize-y disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
                           />
                         )}
                       </div>
@@ -819,7 +820,7 @@ export default function QuarterlySummaryTab() {
                               <button
                                 onClick={() => handleSaveDraft(entry)}
                                 disabled={isSaving}
-                                className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colours"
+                                className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colours"
                               >
                                 <Save className="w-3.5 h-3.5" />
                                 {isSaving ? "Saving..." : "Save Draft"}
@@ -841,7 +842,7 @@ export default function QuarterlySummaryTab() {
                               <button
                                 onClick={() => handleReturnToDraft(entry)}
                                 disabled={isSaving}
-                                className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colours"
+                                className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colours"
                               >
                                 <RotateCcw className="w-3.5 h-3.5" />
                                 {isSaving ? "Returning..." : "Return to Draft"}
@@ -862,7 +863,7 @@ export default function QuarterlySummaryTab() {
                             <button
                               onClick={() => handleReturnToDraft(entry)}
                               disabled={isSaving}
-                              className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colours"
+                              className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colours"
                             >
                               <RotateCcw className="w-3.5 h-3.5" />
                               {isSaving ? "Returning..." : "Reopen as Draft"}

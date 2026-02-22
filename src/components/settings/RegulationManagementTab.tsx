@@ -199,7 +199,7 @@ export default function RegulationManagementTab() {
             placeholder="Search regulations..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-8 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-updraft-bright-purple/30 focus:border-updraft-bright-purple"
+            className="w-full pl-9 pr-8 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-updraft-bright-purple/30 focus:border-updraft-bright-purple"
             aria-label="Search regulations"
           />
           {search && (
@@ -217,7 +217,7 @@ export default function RegulationManagementTab() {
           <select
             value={bodyFilter}
             onChange={(e) => setBodyFilter(e.target.value)}
-            className="text-sm border border-gray-300 rounded-lg px-3 py-2"
+            className="text-sm border border-gray-200 rounded-lg px-3 py-2"
             aria-label="Filter by regulatory body"
           >
             <option value="">All Bodies</option>

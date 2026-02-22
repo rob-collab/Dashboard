@@ -367,7 +367,7 @@ export default function PoliciesTab({ initialPolicyId }: { initialPolicyId?: str
             <>
               <button
                 onClick={() => setShowImport(true)}
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 <FileUp size={14} />
                 Import CSV
@@ -450,7 +450,7 @@ export default function PoliciesTab({ initialPolicyId }: { initialPolicyId?: str
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search reference, name, owner, approving body..."
-            className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
+            className="w-full rounded-lg border border-gray-200 pl-9 pr-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
           />
           {search && (
             <button

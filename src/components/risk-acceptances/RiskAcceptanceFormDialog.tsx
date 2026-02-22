@@ -214,7 +214,7 @@ export default function RiskAcceptanceFormDialog({ open, onClose, onSave, prefil
               setRiskSearch("");
               setControlSearch("");
             }}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
           >
             {SOURCES.map((s) => (
               <option key={s} value={s}>{RISK_ACCEPTANCE_SOURCE_LABELS[s]}</option>
@@ -244,7 +244,7 @@ export default function RiskAcceptanceFormDialog({ open, onClose, onSave, prefil
                     value={riskSearch}
                     onChange={(e) => setRiskSearch(e.target.value)}
                     placeholder="Search by reference or name..."
-                    className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
+                    className="w-full rounded-lg border border-gray-200 pl-9 pr-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
                   />
                 </div>
                 <div className="max-h-32 overflow-y-auto rounded-lg border border-gray-200">
@@ -298,7 +298,7 @@ export default function RiskAcceptanceFormDialog({ open, onClose, onSave, prefil
                     value={controlSearch}
                     onChange={(e) => setControlSearch(e.target.value)}
                     placeholder="Search by control ref or name..."
-                    className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
+                    className="w-full rounded-lg border border-gray-200 pl-9 pr-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
                   />
                 </div>
                 <div className="max-h-32 overflow-y-auto rounded-lg border border-gray-200">
@@ -336,7 +336,7 @@ export default function RiskAcceptanceFormDialog({ open, onClose, onSave, prefil
             onChange={(e) => { setTitle(e.target.value); if (errors.title) setErrors((p) => ({ ...p, title: "" })); }}
             onBlur={() => { if (!title.trim()) setErrors((p) => ({ ...p, title: "Title is required" })); }}
             placeholder="Risk acceptance title"
-            className={`w-full rounded-lg border px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple ${errors.title ? "border-red-400 bg-red-50" : "border-gray-300"}`}
+            className={`w-full rounded-lg border px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple ${errors.title ? "border-red-400 bg-red-50" : "border-gray-200"}`}
             aria-required="true"
             aria-invalid={!!errors.title}
             aria-describedby={errors.title ? "ra-title-error" : undefined}
@@ -352,7 +352,7 @@ export default function RiskAcceptanceFormDialog({ open, onClose, onSave, prefil
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
             placeholder="Describe the risk being accepted..."
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
           />
         </div>
 
@@ -366,7 +366,7 @@ export default function RiskAcceptanceFormDialog({ open, onClose, onSave, prefil
             onBlur={() => { if (!rationale.trim()) setErrors((p) => ({ ...p, rationale: "Rationale is required" })); }}
             rows={3}
             placeholder="Why should this risk be accepted?"
-            className={`w-full rounded-lg border px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple ${errors.rationale ? "border-red-400 bg-red-50" : "border-gray-300"}`}
+            className={`w-full rounded-lg border px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple ${errors.rationale ? "border-red-400 bg-red-50" : "border-gray-200"}`}
             aria-required="true"
             aria-invalid={!!errors.rationale}
             aria-describedby={errors.rationale ? "ra-rationale-error" : undefined}
@@ -382,7 +382,7 @@ export default function RiskAcceptanceFormDialog({ open, onClose, onSave, prefil
             onChange={(e) => setConditions(e.target.value)}
             rows={2}
             placeholder="Any conditions attached to this acceptance..."
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
           />
         </div>
 
@@ -393,7 +393,7 @@ export default function RiskAcceptanceFormDialog({ open, onClose, onSave, prefil
             type="date"
             value={reviewDate}
             onChange={(e) => setReviewDate(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
           />
           {showReviewWarning && (
             <div className="flex items-center gap-2 mt-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
@@ -411,7 +411,7 @@ export default function RiskAcceptanceFormDialog({ open, onClose, onSave, prefil
           <select
             value={acceptorId}
             onChange={(e) => setAcceptorId(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
           >
             <option value="">Select approver (optional)...</option>
             {users
@@ -450,7 +450,7 @@ export default function RiskAcceptanceFormDialog({ open, onClose, onSave, prefil
               value={actionSearch}
               onChange={(e) => setActionSearch(e.target.value)}
               placeholder="Search actions by reference or title..."
-              className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
+              className="w-full rounded-lg border border-gray-200 pl-9 pr-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
             />
           </div>
           {/* Results */}

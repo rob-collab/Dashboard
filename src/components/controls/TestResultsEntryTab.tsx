@@ -423,7 +423,7 @@ export default function TestResultsEntryTab() {
               setSelectedMonth(Number(e.target.value));
               handlePeriodChange();
             }}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
+            className="rounded-md border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
           >
             {MONTH_NAMES.map((name, idx) => (
               <option key={idx} value={idx + 1}>
@@ -438,7 +438,7 @@ export default function TestResultsEntryTab() {
               setSelectedYear(Number(e.target.value));
               handlePeriodChange();
             }}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
+            className="rounded-md border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
           >
             {yearOptions.map((yr) => (
               <option key={yr} value={yr}>

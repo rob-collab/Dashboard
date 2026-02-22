@@ -144,21 +144,21 @@ export default function PolicyFormDialog({ open, onClose, onSave, editPolicy }: 
             {/* Name */}
             <div className="col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">Policy Name *</label>
-              <input type="text" value={name} onChange={(e) => { setName(e.target.value); if (errors.name) setErrors((p) => ({ ...p, name: "" })); }} onBlur={() => { if (!name.trim()) setErrors((p) => ({ ...p, name: "Policy name is required" })); }} className={cn("w-full rounded-lg border px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple", errors.name ? "border-red-400 bg-red-50" : "border-gray-300")} />
+              <input type="text" value={name} onChange={(e) => { setName(e.target.value); if (errors.name) setErrors((p) => ({ ...p, name: "" })); }} onBlur={() => { if (!name.trim()) setErrors((p) => ({ ...p, name: "Policy name is required" })); }} className={cn("w-full rounded-lg border px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple", errors.name ? "border-red-400 bg-red-50" : "border-gray-200")} />
               {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name}</p>}
             </div>
 
             {/* Description */}
             <div className="col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">Description *</label>
-              <textarea value={description} onChange={(e) => { setDescription(e.target.value); if (errors.description) setErrors((p) => ({ ...p, description: "" })); }} onBlur={() => { if (!description.trim()) setErrors((p) => ({ ...p, description: "Description is required" })); }} rows={3} className={cn("w-full rounded-lg border px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple", errors.description ? "border-red-400 bg-red-50" : "border-gray-300")} />
+              <textarea value={description} onChange={(e) => { setDescription(e.target.value); if (errors.description) setErrors((p) => ({ ...p, description: "" })); }} onBlur={() => { if (!description.trim()) setErrors((p) => ({ ...p, description: "Description is required" })); }} rows={3} className={cn("w-full rounded-lg border px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple", errors.description ? "border-red-400 bg-red-50" : "border-gray-200")} />
               {errors.description && <p className="mt-1 text-xs text-red-600">{errors.description}</p>}
             </div>
 
             {/* Status */}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
-              <select value={status} onChange={(e) => setStatus(e.target.value as PolicyStatus)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+              <select value={status} onChange={(e) => setStatus(e.target.value as PolicyStatus)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm">
                 {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s.replace(/_/g, " ")}</option>)}
               </select>
             </div>
@@ -166,13 +166,13 @@ export default function PolicyFormDialog({ open, onClose, onSave, editPolicy }: 
             {/* Version */}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Version</label>
-              <input type="text" value={version} onChange={(e) => setVersion(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple" />
+              <input type="text" value={version} onChange={(e) => setVersion(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple" />
             </div>
 
             {/* Owner */}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Owner *</label>
-              <select value={ownerId} onChange={(e) => { setOwnerId(e.target.value); if (errors.ownerId) setErrors((p) => ({ ...p, ownerId: "" })); }} onBlur={() => { if (!ownerId) setErrors((p) => ({ ...p, ownerId: "Owner is required" })); }} className={cn("w-full rounded-lg border px-3 py-2 text-sm", errors.ownerId ? "border-red-400 bg-red-50" : "border-gray-300")}>
+              <select value={ownerId} onChange={(e) => { setOwnerId(e.target.value); if (errors.ownerId) setErrors((p) => ({ ...p, ownerId: "" })); }} onBlur={() => { if (!ownerId) setErrors((p) => ({ ...p, ownerId: "Owner is required" })); }} className={cn("w-full rounded-lg border px-3 py-2 text-sm", errors.ownerId ? "border-red-400 bg-red-50" : "border-gray-200")}>
                 <option value="">Select owner...</option>
                 {ccroUsers.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
               </select>
@@ -182,13 +182,13 @@ export default function PolicyFormDialog({ open, onClose, onSave, editPolicy }: 
             {/* Approved By */}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Approved By</label>
-              <input type="text" value={approvedBy} onChange={(e) => setApprovedBy(e.target.value)} placeholder="Name or role" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple" />
+              <input type="text" value={approvedBy} onChange={(e) => setApprovedBy(e.target.value)} placeholder="Name or role" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple" />
             </div>
 
             {/* Classification */}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Classification</label>
-              <select value={classification} onChange={(e) => setClassification(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+              <select value={classification} onChange={(e) => setClassification(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm">
                 {CLASSIFICATION_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
@@ -196,60 +196,60 @@ export default function PolicyFormDialog({ open, onClose, onSave, editPolicy }: 
             {/* Review Frequency */}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Review Frequency (days)</label>
-              <input type="number" value={reviewFrequencyDays} onChange={(e) => setReviewFrequencyDays(parseInt(e.target.value) || 365)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple" />
+              <input type="number" value={reviewFrequencyDays} onChange={(e) => setReviewFrequencyDays(parseInt(e.target.value) || 365)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple" />
             </div>
 
             {/* Last Reviewed Date */}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Last Reviewed Date</label>
-              <input type="date" value={lastReviewedDate} onChange={(e) => setLastReviewedDate(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple" />
+              <input type="date" value={lastReviewedDate} onChange={(e) => setLastReviewedDate(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple" />
             </div>
 
             {/* Next Review Date */}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Next Review Date</label>
-              <input type="date" value={nextReviewDate} onChange={(e) => setNextReviewDate(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple" />
+              <input type="date" value={nextReviewDate} onChange={(e) => setNextReviewDate(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple" />
             </div>
 
             {/* Effective Date */}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Effective Date</label>
-              <input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple" />
+              <input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple" />
             </div>
 
             {/* Scope */}
             <div className="col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">Scope</label>
-              <textarea value={scope} onChange={(e) => setScope(e.target.value)} rows={2} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple" />
+              <textarea value={scope} onChange={(e) => setScope(e.target.value)} rows={2} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple" />
             </div>
 
             {/* Applicability */}
             <div className="col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">Applicability</label>
-              <textarea value={applicability} onChange={(e) => setApplicability(e.target.value)} rows={2} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple" />
+              <textarea value={applicability} onChange={(e) => setApplicability(e.target.value)} rows={2} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple" />
             </div>
 
             {/* Exceptions */}
             <div className="col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">Exceptions</label>
-              <textarea value={exceptions} onChange={(e) => setExceptions(e.target.value)} rows={2} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple" />
+              <textarea value={exceptions} onChange={(e) => setExceptions(e.target.value)} rows={2} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple" />
             </div>
 
             {/* Related Policies */}
             <div className="col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">Related Policies (comma-separated)</label>
-              <input type="text" value={relatedPolicies} onChange={(e) => setRelatedPolicies(e.target.value)} placeholder="e.g. Data Protection Policy, Anti-Fraud Policy" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple" />
+              <input type="text" value={relatedPolicies} onChange={(e) => setRelatedPolicies(e.target.value)} placeholder="e.g. Data Protection Policy, Anti-Fraud Policy" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple" />
             </div>
 
             {/* Storage URL */}
             <div className="col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">Storage URL</label>
-              <input type="url" value={storageUrl} onChange={(e) => setStorageUrl(e.target.value)} placeholder="https://..." className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple" />
+              <input type="url" value={storageUrl} onChange={(e) => setStorageUrl(e.target.value)} placeholder="https://..." className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple" />
             </div>
           </div>
 
           <div className="flex items-center justify-end gap-3 border-t border-gray-200 pt-4">
-            <button type="button" onClick={onClose} className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">Cancel</button>
+            <button type="button" onClick={onClose} className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">Cancel</button>
             <button type="submit" disabled={saving} className={cn("rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed", "bg-updraft-deep hover:bg-updraft-bar")}>
               {saving ? "Saving..." : editPolicy ? "Save Changes" : "Create Policy"}
             </button>

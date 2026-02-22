@@ -435,7 +435,7 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   placeholder="Add a comment..."
-                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
+                  className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
                   onKeyDown={(e) => e.key === "Enter" && handleComment()}
                 />
                 <button
@@ -475,7 +475,7 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
                   <div className="space-y-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Approver</label>
-                      <select value={selectedApprover} onChange={(e) => setSelectedApprover(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                      <select value={selectedApprover} onChange={(e) => setSelectedApprover(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm">
                         <option value="">Select approver...</option>
                         {users.filter((u) => u.isActive).map((u) => (
                           <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
@@ -484,11 +484,11 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">CCRO Note (optional)</label>
-                      <textarea value={ccroNote} onChange={(e) => setCcroNote(e.target.value)} rows={2} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="Note for the approver..." />
+                      <textarea value={ccroNote} onChange={(e) => setCcroNote(e.target.value)} rows={2} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" placeholder="Note for the approver..." />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Review Date</label>
-                      <input type="date" value={reviewDate} onChange={(e) => setReviewDate(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+                      <input type="date" value={reviewDate} onChange={(e) => setReviewDate(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" />
                     </div>
                   </div>
                 )}
@@ -496,7 +496,7 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
                 {ccroDecision === "return" && (
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Reason for Return</label>
-                    <textarea value={returnComment} onChange={(e) => setReturnComment(e.target.value)} rows={2} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="Why is this being returned?" required />
+                    <textarea value={returnComment} onChange={(e) => setReturnComment(e.target.value)} rows={2} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" placeholder="Why is this being returned?" required />
                   </div>
                 )}
 
@@ -539,12 +539,12 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Rationale <span className="text-red-500">*</span></label>
-                  <textarea value={approverRationale} onChange={(e) => setApproverRationale(e.target.value)} rows={3} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="Reason for your decision..." required />
+                  <textarea value={approverRationale} onChange={(e) => setApproverRationale(e.target.value)} rows={3} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" placeholder="Reason for your decision..." required />
                 </div>
                 {approverDecision === "accept" && (
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Review Date</label>
-                    <input type="date" value={approverReviewDate || (acceptance.reviewDate ? new Date(acceptance.reviewDate).toISOString().split("T")[0] : "")} onChange={(e) => setApproverReviewDate(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+                    <input type="date" value={approverReviewDate || (acceptance.reviewDate ? new Date(acceptance.reviewDate).toISOString().split("T")[0] : "")} onChange={(e) => setApproverReviewDate(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" />
                   </div>
                 )}
                 <button

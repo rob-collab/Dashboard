@@ -276,7 +276,7 @@ function CreateMode({
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Consumer Duty Summary Card"
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-updraft-light-purple focus:ring-2 focus:ring-updraft-light-purple/30 outline-none transition-shadow"
+          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-updraft-light-purple focus:ring-2 focus:ring-updraft-light-purple/30 outline-none transition-shadow"
         />
       </div>
 
@@ -290,7 +290,7 @@ function CreateMode({
           onChange={(e) => setDescription(e.target.value)}
           rows={3}
           placeholder="Brief description of this template..."
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-updraft-light-purple focus:ring-2 focus:ring-updraft-light-purple/30 outline-none transition-shadow resize-none"
+          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-updraft-light-purple focus:ring-2 focus:ring-updraft-light-purple/30 outline-none transition-shadow resize-none"
         />
       </div>
 
@@ -304,7 +304,7 @@ function CreateMode({
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-updraft-light-purple focus:ring-2 focus:ring-updraft-light-purple/30 outline-none transition-shadow"
+              className="w-full appearance-none rounded-lg border border-gray-200 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-updraft-light-purple focus:ring-2 focus:ring-updraft-light-purple/30 outline-none transition-shadow"
             >
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>
@@ -497,7 +497,7 @@ interface FieldInputProps {
 
 function FieldInput({ field, value, onChange }: FieldInputProps) {
   const baseInputClasses =
-    "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-updraft-light-purple focus:ring-2 focus:ring-updraft-light-purple/30 outline-none transition-shadow";
+    "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-updraft-light-purple focus:ring-2 focus:ring-updraft-light-purple/30 outline-none transition-shadow";
 
   return (
     <div>

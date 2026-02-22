@@ -136,7 +136,7 @@ export default function DocumentTracker() {
                               <select
                                 value={editStatus}
                                 onChange={(e) => setEditStatus(e.target.value as DocumentStatus)}
-                                className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 pr-6 appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-updraft-light-purple"
+                                className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 pr-6 appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-updraft-light-purple"
                               >
                                 {(Object.entries(DOCUMENT_STATUS_LABELS) as [DocumentStatus, string][]).map(([val, label]) => (
                                   <option key={val} value={val}>{label}</option>
@@ -148,7 +148,7 @@ export default function DocumentTracker() {
                               <select
                                 value={editOwnerId}
                                 onChange={(e) => setEditOwnerId(e.target.value)}
-                                className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 pr-6 appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-updraft-light-purple"
+                                className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 pr-6 appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-updraft-light-purple"
                               >
                                 <option value="">-- No Owner --</option>
                                 {users.filter((u) => u.isActive).map((u) => (
@@ -161,7 +161,7 @@ export default function DocumentTracker() {
                               type="date"
                               value={editNextUpdate}
                               onChange={(e) => setEditNextUpdate(e.target.value)}
-                              className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-updraft-light-purple"
+                              className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-updraft-light-purple"
                             />
                             <div className="flex gap-1">
                               <button

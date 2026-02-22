@@ -95,6 +95,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
   const storeUsers = useAppStore((s) => s.users);
   const authUser = useAppStore((s) => s.authUser);
   const hydrate = useAppStore((s) => s.hydrate);
+  const hydratedAt = useAppStore((s) => s._hydratedAt);
   const actions = useAppStore((s) => s.actions);
   const controls = useAppStore((s) => s.controls);
   const risks = useAppStore((s) => s.risks);
@@ -358,6 +359,12 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
 
       {/* Refresh & Collapse */}
       <div className="px-2 pb-2 space-y-1">
+        {/* Data freshness indicator */}
+        {!collapsed && hydratedAt && (
+          <p className={cn("text-center text-[9px] px-1 mb-0.5", t.textFaint)} title={hydratedAt.toLocaleString()}>
+            Data current as of {hydratedAt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+          </p>
+        )}
         <button
           onClick={async () => {
             setRefreshing(true);

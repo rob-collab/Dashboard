@@ -46,7 +46,7 @@ export default function PolicyAuditTab({ policy }: Props) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search audit log..."
-          className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-1.5 text-xs focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
+          className="w-full rounded-lg border border-gray-200 pl-9 pr-3 py-1.5 text-xs focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
         />
       </div>
 

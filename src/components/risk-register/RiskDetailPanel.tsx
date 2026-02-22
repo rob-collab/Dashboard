@@ -21,6 +21,7 @@ import { api } from "@/lib/api-client";
 import { useHasPermission } from "@/lib/usePermission";
 import EntityLink from "@/components/common/EntityLink";
 import RequestEditAccessButton from "@/components/common/RequestEditAccessButton";
+import GlossaryTooltip from "@/components/common/GlossaryTooltip";
 
 interface RiskDetailPanelProps {
   risk: Risk | null;
@@ -103,7 +104,6 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
   const [mitigations, setMitigations] = useState<FormMitigation[]>([]);
   const [controlsOpen, setControlsOpen] = useState(false);
   const [mitigationsOpen, setMitigationsOpen] = useState(false);
-  const [libraryControlsOpen, setLibraryControlsOpen] = useState(false);
   const [libCtrlSearch, setLibCtrlSearch] = useState("");
   const [libCtrlAreaFilter, setLibCtrlAreaFilter] = useState<string>("");
 
@@ -483,6 +483,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
           </section>
 
           {/* Controls (collapsible) */}
+          {/* Controls — unified: inline (risk-specific) + library (linked) */}
           <section className="space-y-3">
             <button
               type="button"
@@ -491,211 +492,209 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
             >
               <span className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs">4</span>
               Controls
-              <span className="rounded-full bg-blue-100 text-blue-700 px-1.5 py-0.5 text-[10px] font-bold">{controls.filter((c) => c.description.trim()).length}</span>
+              <span className="rounded-full bg-blue-100 text-blue-700 px-1.5 py-0.5 text-[10px] font-bold">
+                {controls.filter((c) => c.description.trim()).length + (risk?.controlLinks?.length ?? 0)}
+              </span>
               <span className="text-[10px] text-gray-400 font-normal">bridging inherent → residual</span>
               <span className="ml-auto">
                 {controlsOpen ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
               </span>
             </button>
-            {controlsOpen && (<>
-            {controls.map((ctrl, i) => (
-              <div key={i} className="flex gap-2">
-                <input
-                  value={ctrl.description}
-                  onChange={(e) => {
-                    const next = [...controls];
-                    next[i] = { ...next[i], description: e.target.value };
-                    setControls(next);
-                  }}
-                  placeholder="Control description"
-                  className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
-                />
-                <select
-                  value={ctrl.controlOwner}
-                  onChange={(e) => {
-                    const next = [...controls];
-                    next[i] = { ...next[i], controlOwner: e.target.value };
-                    setControls(next);
-                  }}
-                  className="w-36 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
-                >
-                  <option value="">Owner...</option>
-                  {activeUsers.map((u) => (
-                    <option key={u.id} value={u.id}>{u.name}</option>
+            {controlsOpen && (
+              <div className="space-y-4">
+                {/* Sub-section A: Risk-specific inline controls */}
+                <div className="space-y-2">
+                  <p className="text-[11px] font-semibold text-blue-600 uppercase tracking-wide">
+                    Inline Controls
+                    <span className="ml-1.5 rounded-full bg-blue-50 text-blue-500 px-1.5 py-0.5 text-[10px] font-bold normal-case">{controls.filter((c) => c.description.trim()).length}</span>
+                    <span className="ml-1 text-gray-400 font-normal normal-case">— risk-specific, entered here</span>
+                  </p>
+                  {controls.map((ctrl, i) => (
+                    <div key={i} className="flex gap-2">
+                      <input
+                        value={ctrl.description}
+                        onChange={(e) => {
+                          const next = [...controls];
+                          next[i] = { ...next[i], description: e.target.value };
+                          setControls(next);
+                        }}
+                        placeholder="Control description"
+                        className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
+                      />
+                      <select
+                        value={ctrl.controlOwner}
+                        onChange={(e) => {
+                          const next = [...controls];
+                          next[i] = { ...next[i], controlOwner: e.target.value };
+                          setControls(next);
+                        }}
+                        className="w-36 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
+                      >
+                        <option value="">Owner...</option>
+                        {activeUsers.map((u) => (
+                          <option key={u.id} value={u.id}>{u.name}</option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => setControls(controls.filter((_, j) => j !== i))}
+                        className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                        aria-label="Delete control"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   ))}
-                </select>
-                <button
-                  onClick={() => setControls(controls.filter((_, j) => j !== i))}
-                  className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                  aria-label="Delete control"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
-            <button
-              onClick={() => setControls([...controls, { description: "", controlOwner: "" }])}
-              className="flex items-center gap-1.5 text-sm text-updraft-bright-purple hover:text-updraft-deep transition-colors"
-            >
-              <Plus className="w-4 h-4" /> Add control
-            </button>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Control Effectiveness</label>
-              <select
-                value={controlEffectiveness}
-                onChange={(e) => setControlEffectiveness(e.target.value as ControlEffectiveness | "")}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white"
-              >
-                <option value="">Not assessed</option>
-                {(Object.keys(EFFECTIVENESS_DISPLAY) as ControlEffectiveness[]).map((k) => (
-                  <option key={k} value={k}>{EFFECTIVENESS_DISPLAY[k].label}</option>
-                ))}
-              </select>
-            </div>
-            </>)}
-          </section>
-
-          {/* Library Controls — linked from control library */}
-          {risk && !isNew && (
-          <section className="space-y-3">
-            <button
-              type="button"
-              onClick={() => setLibraryControlsOpen(!libraryControlsOpen)}
-              className="w-full text-sm font-semibold text-gray-700 flex items-center gap-2"
-            >
-              <span className="w-6 h-6 rounded-full bg-teal-500 text-white flex items-center justify-center text-xs">4b</span>
-              Library Controls
-              <span className="rounded-full bg-teal-100 text-teal-700 px-1.5 py-0.5 text-[10px] font-bold">{risk.controlLinks?.length ?? 0}</span>
-              <span className="text-[10px] text-gray-400 font-normal">linked from control library</span>
-              <span className="ml-auto">
-                {libraryControlsOpen ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
-              </span>
-            </button>
-            {libraryControlsOpen && (
-              <>
-                {/* Linked controls list */}
-                {(risk.controlLinks ?? []).length > 0 && (
-                  <div className="space-y-1.5">
-                    {risk.controlLinks!.map((link) => (
-                      <div key={link.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg group">
-                        <span className="font-mono text-[10px] font-bold text-updraft-deep bg-updraft-pale-purple/30 px-1.5 py-0.5 rounded shrink-0">
-                          {link.control?.controlRef ?? "CTRL"}
-                        </span>
-                        <EntityLink
-                          type="control"
-                          id={link.controlId}
-                          reference={link.control?.controlRef ?? "CTRL"}
-                          label={link.control?.controlName ?? "Control"}
-                        />
-                        {link.control?.businessArea?.name && (
-                          <span className="text-[10px] text-gray-400 shrink-0">{link.control.businessArea.name}</span>
-                        )}
-                        {canEditRisk && (
-                          <button
-                            type="button"
-                            onClick={() => unlinkControlFromRisk(risk.id, link.controlId)}
-                            className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all"
-                            title="Unlink control"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                  <button
+                    onClick={() => setControls([...controls, { description: "", controlOwner: "" }])}
+                    className="flex items-center gap-1.5 text-sm text-updraft-bright-purple hover:text-updraft-deep transition-colors"
+                  >
+                    <Plus className="w-4 h-4" /> Add inline control
+                  </button>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Overall Control Effectiveness</label>
+                    <select
+                      value={controlEffectiveness}
+                      onChange={(e) => setControlEffectiveness(e.target.value as ControlEffectiveness | "")}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white"
+                    >
+                      <option value="">Not assessed</option>
+                      {(Object.keys(EFFECTIVENESS_DISPLAY) as ControlEffectiveness[]).map((k) => (
+                        <option key={k} value={k}>{EFFECTIVENESS_DISPLAY[k].label}</option>
+                      ))}
+                    </select>
                   </div>
-                )}
+                </div>
 
-                {/* Search + link */}
-                {canEditRisk && (
-                  <div className="space-y-2">
-                    {/* Area filter chips */}
-                    {controlBusinessAreas.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => setLibCtrlAreaFilter("")}
-                          className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium border transition-colors ${!libCtrlAreaFilter ? "bg-updraft-deep text-white border-updraft-deep" : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"}`}
-                        >
-                          All areas
-                        </button>
-                        {controlBusinessAreas.filter((a) => a.isActive).map((area) => (
-                          <button
-                            key={area.id}
-                            type="button"
-                            onClick={() => setLibCtrlAreaFilter(libCtrlAreaFilter === area.id ? "" : area.id)}
-                            className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium border transition-colors ${libCtrlAreaFilter === area.id ? "bg-updraft-bright-purple/20 text-updraft-deep border-updraft-bright-purple/40" : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"}`}
-                          >
-                            {area.name}
-                          </button>
+                {/* Sub-section B: Library controls — only for saved risks */}
+                {risk && !isNew && (
+                  <div className="space-y-2 pt-3 border-t border-gray-100">
+                    <p className="text-[11px] font-semibold text-blue-600 uppercase tracking-wide">
+                      Control Library
+                      <span className="ml-1.5 rounded-full bg-blue-50 text-blue-500 px-1.5 py-0.5 text-[10px] font-bold normal-case">{risk.controlLinks?.length ?? 0}</span>
+                      <span className="ml-1 text-gray-400 font-normal normal-case">— shared controls linked from library</span>
+                    </p>
+                    {/* Linked controls list */}
+                    {(risk.controlLinks ?? []).length > 0 && (
+                      <div className="space-y-1.5">
+                        {risk.controlLinks!.map((link) => (
+                          <div key={link.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg group">
+                            <span className="font-mono text-[10px] font-bold text-updraft-deep bg-updraft-pale-purple/30 px-1.5 py-0.5 rounded shrink-0">
+                              {link.control?.controlRef ?? "CTRL"}
+                            </span>
+                            <EntityLink
+                              type="control"
+                              id={link.controlId}
+                              reference={link.control?.controlRef ?? "CTRL"}
+                              label={link.control?.controlName ?? "Control"}
+                            />
+                            {link.control?.businessArea?.name && (
+                              <span className="text-[10px] text-gray-400 shrink-0">{link.control.businessArea.name}</span>
+                            )}
+                            {canEditRisk && (
+                              <button
+                                type="button"
+                                onClick={() => unlinkControlFromRisk(risk.id, link.controlId)}
+                                className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all ml-auto"
+                                title="Unlink control"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
                         ))}
                       </div>
                     )}
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={libCtrlSearch}
-                        onChange={(e) => setLibCtrlSearch(e.target.value)}
-                        placeholder="Search control library to link..."
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30 pl-9"
-                      />
-                      <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    </div>
-                    {(libCtrlSearch.trim() || libCtrlAreaFilter) && (
-                      <div className="max-h-52 overflow-y-auto space-y-1 rounded-lg border border-gray-200 bg-white p-2">
-                        {(() => {
-                          const q = libCtrlSearch.toLowerCase();
-                          const linkedIds = new Set((risk.controlLinks ?? []).map((l) => l.controlId));
-                          const matches = storeControls.filter((c) => {
-                            if (!c.isActive) return false;
-                            if (libCtrlAreaFilter && c.businessAreaId !== libCtrlAreaFilter) return false;
-                            if (q && !c.controlRef.toLowerCase().includes(q) && !c.controlName.toLowerCase().includes(q)) return false;
-                            return true;
-                          });
-                          if (matches.length === 0) return <p className="text-xs text-gray-400 py-2 text-center">No matching controls found</p>;
-                          return matches.slice(0, 25).map((c) => {
-                            const alreadyLinked = linkedIds.has(c.id);
-                            const areaName = controlBusinessAreas.find((a) => a.id === c.businessAreaId)?.name;
-                            return (
+                    {/* Search + link */}
+                    {canEditRisk && (
+                      <div className="space-y-2">
+                        {controlBusinessAreas.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setLibCtrlAreaFilter("")}
+                              className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium border transition-colors ${!libCtrlAreaFilter ? "bg-updraft-deep text-white border-updraft-deep" : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"}`}
+                            >
+                              All areas
+                            </button>
+                            {controlBusinessAreas.filter((a) => a.isActive).map((area) => (
                               <button
-                                key={c.id}
+                                key={area.id}
                                 type="button"
-                                disabled={alreadyLinked}
-                                onClick={() => {
-                                  if (!alreadyLinked) {
-                                    linkControlToRisk(risk.id, c.id, currentUser?.id ?? "");
-                                    setLibCtrlSearch("");
-                                  }
-                                }}
-                                className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-xs rounded-md transition-colors ${alreadyLinked ? "opacity-50 cursor-not-allowed bg-gray-50" : "hover:bg-updraft-pale-purple/20"}`}
+                                onClick={() => setLibCtrlAreaFilter(libCtrlAreaFilter === area.id ? "" : area.id)}
+                                className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium border transition-colors ${libCtrlAreaFilter === area.id ? "bg-updraft-bright-purple/20 text-updraft-deep border-updraft-bright-purple/40" : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"}`}
                               >
-                                <span className="font-mono font-medium text-updraft-deep whitespace-nowrap">{c.controlRef}</span>
-                                <span className="text-gray-600 truncate flex-1">{c.controlName}</span>
-                                {areaName && <span className="text-[10px] text-gray-400 whitespace-nowrap shrink-0">{areaName}</span>}
-                                {alreadyLinked
-                                  ? <span className="text-[10px] text-teal-600 font-medium whitespace-nowrap shrink-0">Linked</span>
-                                  : <Plus className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                                }
+                                {area.name}
                               </button>
-                            );
-                          });
-                        })()}
-                        {storeControls.filter((c) => {
-                          if (!c.isActive) return false;
-                          if (libCtrlAreaFilter && c.businessAreaId !== libCtrlAreaFilter) return false;
-                          const q = libCtrlSearch.toLowerCase();
-                          if (q && !c.controlRef.toLowerCase().includes(q) && !c.controlName.toLowerCase().includes(q)) return false;
-                          return true;
-                        }).length > 25 && (
-                          <p className="text-[10px] text-gray-400 text-center pt-1 border-t border-gray-100">Showing first 25 — refine search to narrow results</p>
+                            ))}
+                          </div>
+                        )}
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={libCtrlSearch}
+                            onChange={(e) => setLibCtrlSearch(e.target.value)}
+                            placeholder="Search control library to link..."
+                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30 pl-9"
+                          />
+                          <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        </div>
+                        {(libCtrlSearch.trim() || libCtrlAreaFilter) && (
+                          <div className="max-h-52 overflow-y-auto space-y-1 rounded-lg border border-gray-200 bg-white p-2">
+                            {(() => {
+                              const q = libCtrlSearch.toLowerCase();
+                              const linkedIds = new Set((risk.controlLinks ?? []).map((l) => l.controlId));
+                              const matches = storeControls.filter((c) => {
+                                if (!c.isActive) return false;
+                                if (libCtrlAreaFilter && c.businessAreaId !== libCtrlAreaFilter) return false;
+                                if (q && !c.controlRef.toLowerCase().includes(q) && !c.controlName.toLowerCase().includes(q)) return false;
+                                return true;
+                              });
+                              if (matches.length === 0) return <p className="text-xs text-gray-400 py-2 text-center">No matching controls found</p>;
+                              return matches.slice(0, 25).map((c) => {
+                                const alreadyLinked = linkedIds.has(c.id);
+                                const areaName = controlBusinessAreas.find((a) => a.id === c.businessAreaId)?.name;
+                                return (
+                                  <button
+                                    key={c.id}
+                                    type="button"
+                                    disabled={alreadyLinked}
+                                    onClick={() => {
+                                      if (!alreadyLinked) {
+                                        linkControlToRisk(risk.id, c.id, currentUser?.id ?? "");
+                                        setLibCtrlSearch("");
+                                      }
+                                    }}
+                                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-xs rounded-md transition-colors ${alreadyLinked ? "opacity-50 cursor-not-allowed bg-gray-50" : "hover:bg-updraft-pale-purple/20"}`}
+                                  >
+                                    <span className="font-mono font-medium text-updraft-deep whitespace-nowrap">{c.controlRef}</span>
+                                    <span className="text-gray-600 truncate flex-1">{c.controlName}</span>
+                                    {areaName && <span className="text-[10px] text-gray-400 whitespace-nowrap shrink-0">{areaName}</span>}
+                                    {alreadyLinked
+                                      ? <span className="text-[10px] text-blue-600 font-medium whitespace-nowrap shrink-0">Linked</span>
+                                      : <Plus className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                                    }
+                                  </button>
+                                );
+                              });
+                            })()}
+                            {storeControls.filter((c) => {
+                              if (!c.isActive) return false;
+                              if (libCtrlAreaFilter && c.businessAreaId !== libCtrlAreaFilter) return false;
+                              const q = libCtrlSearch.toLowerCase();
+                              if (q && !c.controlRef.toLowerCase().includes(q) && !c.controlName.toLowerCase().includes(q)) return false;
+                              return true;
+                            }).length > 25 && (
+                              <p className="text-[10px] text-gray-400 text-center pt-1 border-t border-gray-100">Showing first 25 — refine search to narrow results</p>
+                            )}
+                          </div>
                         )}
                       </div>
                     )}
                   </div>
                 )}
-              </>
+              </div>
             )}
           </section>
-          )}
 
           {/* Direction & Appetite */}
           <section className="space-y-3">
@@ -717,7 +716,9 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Risk Appetite</label>
+                <label className="block text-xs font-medium text-gray-500 mb-1">
+                  <GlossaryTooltip term="Appetite">Risk Appetite</GlossaryTooltip>
+                </label>
                 <select
                   value={riskAppetite}
                   onChange={(e) => setRiskAppetite(e.target.value as RiskAppetite | "")}

@@ -6,6 +6,7 @@ interface AppState {
   // Hydration
   _hydrated: boolean;
   _hydrateError: string | null;
+  _hydratedAt: Date | null;
   hydrate: () => Promise<void>;
 
   // Auth
@@ -260,6 +261,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   // ── Hydration ──────────────────────────────────────────────
   _hydrated: false,
   _hydrateError: null,
+  _hydratedAt: null,
   hydrate: async () => {
     try {
       const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, permissionsData, smfRoles, prescribedResponsibilities, certificationFunctions, conductRules, conductRuleBreaches, smcrDocuments, accessRequests, dashboardLayout] = await Promise.all([
@@ -295,7 +297,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const allCertifiedPersons = certificationFunctions.flatMap((cf: CertificationFunction & { certifiedPersons?: CertifiedPerson[] }) => cf.certifiedPersons ?? []);
       // Fire-and-forget: expire any access grants that have lapsed
       api("/api/access-requests/expiry-check", { method: "POST" }).catch(() => {});
-      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, rolePermissions: permissionsData.rolePermissions, userPermissions: permissionsData.userPermissions, smfRoles, prescribedResponsibilities, certificationFunctions, certifiedPersons: allCertifiedPersons, conductRules, conductRuleBreaches, smcrDocuments, accessRequests, dashboardLayout, _hydrated: true, _hydrateError: null });
+      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, rolePermissions: permissionsData.rolePermissions, userPermissions: permissionsData.userPermissions, smfRoles, prescribedResponsibilities, certificationFunctions, certifiedPersons: allCertifiedPersons, conductRules, conductRuleBreaches, smcrDocuments, accessRequests, dashboardLayout, _hydrated: true, _hydrateError: null, _hydratedAt: new Date() });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to connect to server";
       console.error("[hydrate] API unreachable:", message);

@@ -168,7 +168,7 @@ export default function RequestEditAccessButton({
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 rows={3}
-                className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-updraft-bright-purple/30 focus:border-updraft-bright-purple"
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-updraft-bright-purple/30 focus:border-updraft-bright-purple"
                 placeholder="Explain why you need edit access..."
               />
             </div>

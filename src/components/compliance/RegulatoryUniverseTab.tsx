@@ -173,7 +173,7 @@ export default function RegulatoryUniverseTab({ initialRegulationId }: { initial
               placeholder="Search regulations..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-updraft-bright-purple/30 focus:border-updraft-bright-purple"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-updraft-bright-purple/30 focus:border-updraft-bright-purple"
               aria-label="Search regulations"
             />
             {search && (
@@ -185,7 +185,7 @@ export default function RegulatoryUniverseTab({ initialRegulationId }: { initial
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as ComplianceStatus | "")}
-            className="text-sm border border-gray-300 rounded-lg px-3 py-2"
+            className="text-sm border border-gray-200 rounded-lg px-3 py-2"
             aria-label="Filter by compliance status"
           >
             <option value="">All Statuses</option>
@@ -196,7 +196,7 @@ export default function RegulatoryUniverseTab({ initialRegulationId }: { initial
           <select
             value={smfFilter}
             onChange={(e) => setSmfFilter(e.target.value)}
-            className="text-sm border border-gray-300 rounded-lg px-3 py-2"
+            className="text-sm border border-gray-200 rounded-lg px-3 py-2"
             aria-label="Filter by SMF"
           >
             <option value="">All SMFs</option>

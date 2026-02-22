@@ -15,9 +15,10 @@ import {
   suggestRAG,
 } from "@/lib/utils";
 import Modal from "@/components/common/Modal";
+import GlossaryTooltip from "@/components/common/GlossaryTooltip";
 import MetricDrillDown from "@/components/consumer-duty/MetricDrillDown";
 import { useAppStore } from "@/lib/store";
-import { TrendingUp, TrendingDown, Minus, Save } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Save, Target, Check, X } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
 /* Props                                                               */
@@ -62,6 +63,25 @@ function changeColor(change: string): string {
   if (isNaN(val) || val === 0) return "text-gray-400";
   if (val > 0) return "text-risk-green";
   return "text-risk-red";
+}
+
+function parseNumeric(value: string): number | null {
+  const num = parseFloat(value.replace(/[%,]/g, ""));
+  return isNaN(num) ? null : num;
+}
+
+function appetiteMet(current: string, appetite: string, operator: string): boolean {
+  const curr = parseNumeric(current);
+  const target = parseNumeric(appetite);
+  if (curr === null || target === null) return false;
+  switch (operator) {
+    case ">=": return curr >= target;
+    case "<=": return curr <= target;
+    case ">":  return curr > target;
+    case "<":  return curr < target;
+    case "==": return curr === target;
+    default:   return false;
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -153,7 +173,7 @@ export default function MIModal({
           <>
             <button
               onClick={onClose}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
               Cancel
             </button>
@@ -232,8 +252,14 @@ export default function MIModal({
                 <th className="pb-3 px-3 text-right font-semibold text-gray-700">
                   Change
                 </th>
+                <th className="pb-3 px-3 text-center font-semibold text-gray-700 whitespace-nowrap">
+                  <span className="inline-flex items-center gap-1">
+                    <Target size={12} className="text-gray-400" />
+                    Target
+                  </span>
+                </th>
                 <th className="pb-3 pl-3 text-center font-semibold text-gray-700">
-                  RAG
+                  <GlossaryTooltip term="RAG">RAG</GlossaryTooltip>
                 </th>
               </tr>
             </thead>
@@ -299,6 +325,35 @@ export default function MIModal({
                         ? editedMetrics[idx].change || "--"
                         : metric.change || "--"}
                     </span>
+                  </td>
+
+                  {/* Target / appetite */}
+                  <td className="py-3 px-3 text-center">
+                    {metric.appetite && metric.appetiteOperator ? (
+                      <span className="inline-flex flex-col items-center gap-0.5">
+                        <span className="text-[11px] font-mono text-gray-600 whitespace-nowrap">
+                          {metric.appetiteOperator} {metric.appetite}
+                        </span>
+                        {(() => {
+                          const met = appetiteMet(
+                            editable && editedMetrics[idx] ? editedMetrics[idx].current : metric.current,
+                            metric.appetite,
+                            metric.appetiteOperator
+                          );
+                          return met ? (
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-risk-green/10 text-risk-green px-1.5 py-0.5 text-[10px] font-semibold">
+                              <Check size={9} />Met
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-risk-red/10 text-risk-red px-1.5 py-0.5 text-[10px] font-semibold">
+                              <X size={9} />Missed
+                            </span>
+                          );
+                        })()}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-300" title="Click row to set a target">—</span>
+                    )}
                   </td>
 
                   {/* RAG status */}
@@ -367,7 +422,7 @@ export default function MIModal({
 
       {metrics.length > 0 && (
         <p className="mt-3 text-center text-xs text-gray-400">
-          Click a metric row to view history and target details
+          Click a metric row to view 12-month trend history and set targets
         </p>
       )}
 

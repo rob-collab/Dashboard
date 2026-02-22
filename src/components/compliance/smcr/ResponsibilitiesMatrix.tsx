@@ -116,7 +116,7 @@ export default function ResponsibilitiesMatrix() {
                             <select
                               value={editSMFId}
                               onChange={(e) => setEditSMFId(e.target.value)}
-                              className="text-xs border border-gray-300 rounded-md px-2 py-1.5 pr-6 appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-updraft-light-purple"
+                              className="text-xs border border-gray-200 rounded-md px-2 py-1.5 pr-6 appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-updraft-light-purple"
                             >
                               <option value="">-- None --</option>
                               {smfRoles.map((r) => (

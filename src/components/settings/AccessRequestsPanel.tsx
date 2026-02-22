@@ -159,7 +159,7 @@ function PendingRequestCard({
           type="text"
           value={reviewNote}
           onChange={(e) => setReviewNote(e.target.value)}
-          className="w-full text-sm border border-gray-300 rounded-lg px-3 py-1.5"
+          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-1.5"
           placeholder="Add a note..."
         />
       </div>

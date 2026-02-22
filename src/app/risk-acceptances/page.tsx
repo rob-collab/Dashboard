@@ -183,7 +183,7 @@ export default function RiskAcceptancesPage() {
           <button
             onClick={handleExport}
             disabled={exporting}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
             <Download size={14} />
             {exporting ? "Exporting..." : "Export CSV"}
@@ -313,13 +313,13 @@ export default function RiskAcceptancesPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search reference, title, user..."
-              className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
+              className="w-full rounded-lg border border-gray-200 pl-9 pr-3 py-2 text-sm focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
             />
           </div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as RiskAcceptanceStatus | "")}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
           >
             <option value="">All Statuses</option>
             {ALL_STATUSES.map((s) => <option key={s} value={s}>{RISK_ACCEPTANCE_STATUS_LABELS[s]}</option>)}
@@ -327,7 +327,7 @@ export default function RiskAcceptancesPage() {
           <select
             value={sourceFilter}
             onChange={(e) => setSourceFilter(e.target.value as RiskAcceptanceSource | "")}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
           >
             <option value="">All Sources</option>
             {ALL_SOURCES.map((s) => <option key={s} value={s}>{RISK_ACCEPTANCE_SOURCE_LABELS[s]}</option>)}

@@ -101,7 +101,7 @@ export default function PolicyOverviewTab({ policy, onEdit, onSwitchToControls }
       {/* Edit Button / Request Access */}
       <div className="flex justify-end gap-2">
         {isCCRO ? (
-          <button onClick={onEdit} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+          <button onClick={onEdit} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
             <Pencil size={12} /> Edit Policy
           </button>
         ) : (

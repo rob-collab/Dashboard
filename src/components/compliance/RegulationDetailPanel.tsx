@@ -197,7 +197,7 @@ export default function RegulationDetailPanel({ regulation, onClose }: Props) {
                 <select
                   value={editStatus}
                   onChange={(e) => setEditStatus(e.target.value as ComplianceStatus)}
-                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2"
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
                 >
                   {(Object.entries(COMPLIANCE_STATUS_LABELS) as [ComplianceStatus, string][]).map(([k, v]) => (
                     <option key={k} value={k}>{v}</option>
@@ -210,7 +210,7 @@ export default function RegulationDetailPanel({ regulation, onClose }: Props) {
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
                   rows={3}
-                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2"
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
                   placeholder="Add assessment notes..."
                 />
               </div>
@@ -220,7 +220,7 @@ export default function RegulationDetailPanel({ regulation, onClose }: Props) {
                   type="date"
                   value={editNextReview}
                   onChange={(e) => setEditNextReview(e.target.value)}
-                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2"
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
                 />
               </div>
               <button

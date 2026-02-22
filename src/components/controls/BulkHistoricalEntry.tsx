@@ -675,7 +675,7 @@ export default function BulkHistoricalEntry({ open, onClose, onSuccess }: BulkHi
             <select
               value={qfFromMonth}
               onChange={(e) => setQfFromMonth(Number(e.target.value))}
-              className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
+              className="rounded-md border border-gray-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
             >
               {MONTH_NAMES.map((name, idx) => (
                 <option key={idx} value={idx + 1}>{name}</option>
@@ -684,7 +684,7 @@ export default function BulkHistoricalEntry({ open, onClose, onSuccess }: BulkHi
             <select
               value={qfFromYear}
               onChange={(e) => setQfFromYear(Number(e.target.value))}
-              className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
+              className="rounded-md border border-gray-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
             >
               {yearOptions.map((yr) => (
                 <option key={yr} value={yr}>{yr}</option>
@@ -695,7 +695,7 @@ export default function BulkHistoricalEntry({ open, onClose, onSuccess }: BulkHi
             <select
               value={qfToMonth}
               onChange={(e) => setQfToMonth(Number(e.target.value))}
-              className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
+              className="rounded-md border border-gray-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
             >
               {MONTH_NAMES.map((name, idx) => (
                 <option key={idx} value={idx + 1}>{name}</option>
@@ -704,7 +704,7 @@ export default function BulkHistoricalEntry({ open, onClose, onSuccess }: BulkHi
             <select
               value={qfToYear}
               onChange={(e) => setQfToYear(Number(e.target.value))}
-              className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
+              className="rounded-md border border-gray-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
             >
               {yearOptions.map((yr) => (
                 <option key={yr} value={yr}>{yr}</option>

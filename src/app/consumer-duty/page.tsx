@@ -18,6 +18,7 @@ import RiskDetailModal from "@/components/consumer-duty/RiskDetailModal";
 import { cn, ragBgColor, ragLabelShort, naturalCompare } from "@/lib/utils";
 import type { ConsumerDutyMeasure, ConsumerDutyOutcome, ConsumerDutyMI, RAGStatus } from "@/lib/types";
 import { usePageTitle } from "@/lib/usePageTitle";
+import GlossaryTooltip from "@/components/common/GlossaryTooltip";
 
 type RagFilterValue = RAGStatus | "ALL" | "ATTENTION";
 
@@ -304,7 +305,9 @@ function ConsumerDutyContent() {
               <ShieldCheck className="h-6 w-6 text-updraft-bright-purple" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-updraft-deep font-poppins">Consumer Duty Dashboard</h1>
+              <h1 className="text-2xl font-bold text-updraft-deep font-poppins">
+                <GlossaryTooltip term="Consumer Duty">Consumer Duty</GlossaryTooltip> Dashboard
+              </h1>
               <p className="text-sm text-fca-gray mt-0.5">FCA Consumer Duty outcomes and measures overview</p>
             </div>
           </div>
@@ -632,6 +635,9 @@ function ConsumerDutyContent() {
             </div>
             <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-1">
               <Filter size={14} className="ml-2 text-gray-400" />
+              <span className="text-[11px] text-gray-400 ml-0.5 mr-1 hidden sm:inline">
+                <GlossaryTooltip term="RAG">RAG</GlossaryTooltip>:
+              </span>
               {RAG_FILTERS.map((f) => {
                 const isActive = ragFilter === f.value;
                 const colourClasses =

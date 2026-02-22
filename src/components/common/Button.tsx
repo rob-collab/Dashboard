@@ -20,7 +20,7 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
     "bg-updraft-bar text-white hover:bg-updraft-bright-purple active:bg-updraft-deep shadow-sm",
   secondary:
-    "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 active:bg-gray-100 shadow-sm",
+    "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 active:bg-gray-100 shadow-sm",
   danger:
     "bg-risk-red text-white hover:bg-red-700 active:bg-red-800 shadow-sm",
   ghost:

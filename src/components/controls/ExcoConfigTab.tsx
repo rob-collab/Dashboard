@@ -276,7 +276,7 @@ export default function ExcoConfigTab() {
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
+              className="rounded-md border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
             >
               {MONTH_NAMES.map((name, idx) => (
                 <option key={idx} value={idx + 1}>
@@ -288,7 +288,7 @@ export default function ExcoConfigTab() {
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
+              className="rounded-md border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
             >
               {yearOptions.map((yr) => (
                 <option key={yr} value={yr}>

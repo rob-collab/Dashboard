@@ -11,12 +11,15 @@ import {
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { formatDateShort } from "@/lib/utils";
+import Link from "next/link";
 import {
   Shield,
   User as UserIcon,
   AlertTriangle,
   ChevronDown,
   Sparkles,
+  Scale,
+  ExternalLink,
 } from "lucide-react";
 
 export default function SMFDirectory() {
@@ -153,6 +156,41 @@ export default function SMFDirectory() {
                 <p className="text-xs text-gray-500 line-clamp-2">{role.keyDuties}</p>
               )}
 
+              {/* Regulatory basis */}
+              {role.regulatoryBasis && (
+                <div className="flex items-start gap-1.5 text-xs text-gray-500">
+                  <Scale size={11} className="text-updraft-bright-purple shrink-0 mt-0.5" />
+                  <span className="line-clamp-1">{role.regulatoryBasis}</span>
+                </div>
+              )}
+
+              {/* Prescribed responsibilities — inline preview */}
+              {prCount > 0 && (() => {
+                const rolePRs = prescribedResponsibilities
+                  .filter((pr) => pr.assignedSMFId === role.id)
+                  .slice(0, 2);
+                return (
+                  <div className="border-t border-gray-100 pt-2 space-y-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Prescribed Responsibilities</p>
+                    {rolePRs.map((pr) => (
+                      <div key={pr.id} className="flex items-start gap-1.5">
+                        <span className="font-mono text-[10px] font-bold text-updraft-deep bg-updraft-pale-purple/30 px-1 py-0.5 rounded shrink-0">{pr.prId}</span>
+                        <span className="text-xs text-gray-600 line-clamp-1">{pr.title}</span>
+                      </div>
+                    ))}
+                    {prCount > 2 && (
+                      <Link
+                        href="/compliance?tab=smcr"
+                        className="inline-flex items-center gap-1 text-[10px] text-updraft-bright-purple hover:underline"
+                      >
+                        +{prCount - 2} more
+                        <ExternalLink size={9} />
+                      </Link>
+                    )}
+                  </div>
+                );
+              })()}
+
               {/* Edit panel */}
               {isEditing && canManage && (
                 <div className="border-t border-gray-200 pt-3 mt-1 space-y-3">
@@ -162,7 +200,7 @@ export default function SMFDirectory() {
                       <select
                         value={editHolder}
                         onChange={(e) => setEditHolder(e.target.value)}
-                        className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-updraft-light-purple"
+                        className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 pr-8 appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-updraft-light-purple"
                       >
                         <option value="">-- Vacant --</option>
                         {users.filter((u) => u.isActive).map((u) => (
@@ -179,7 +217,7 @@ export default function SMFDirectory() {
                       <select
                         value={editStatus}
                         onChange={(e) => setEditStatus(e.target.value as SMFStatus)}
-                        className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-updraft-light-purple"
+                        className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 pr-8 appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-updraft-light-purple"
                       >
                         {(Object.entries(SMF_STATUS_LABELS) as [SMFStatus, string][]).map(([val, label]) => (
                           <option key={val} value={val}>{label}</option>
@@ -195,7 +233,7 @@ export default function SMFDirectory() {
                       value={editNotes}
                       onChange={(e) => setEditNotes(e.target.value)}
                       rows={2}
-                      className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-updraft-light-purple resize-none"
+                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-updraft-light-purple resize-none"
                     />
                   </div>
 

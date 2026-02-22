@@ -624,7 +624,7 @@ export default function AttestationTab() {
       <select
         value={selectedMonth}
         onChange={(e) => setSelectedMonth(Number(e.target.value))}
-        className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
+        className="rounded-md border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
       >
         {MONTH_NAMES.map((name, idx) => (
           <option key={idx} value={idx + 1}>
@@ -636,7 +636,7 @@ export default function AttestationTab() {
       <select
         value={selectedYear}
         onChange={(e) => setSelectedYear(Number(e.target.value))}
-        className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
+        className="rounded-md border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
       >
         {yearOptions.map((yr) => (
           <option key={yr} value={yr}>
@@ -970,7 +970,7 @@ export default function AttestationTab() {
                             }
                             placeholder="Optional comments..."
                             rows={2}
-                            className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30 resize-y"
+                            className="mt-2 w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30 resize-y"
                           />
                         )}
                       </div>
@@ -1457,7 +1457,7 @@ export default function AttestationTab() {
                                 )
                               }
                               placeholder="Optional CCRO comments..."
-                              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
+                              className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
                             />
                           </div>
 

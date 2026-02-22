@@ -451,7 +451,7 @@ export default function CardViewTestEntry({
                   onChange={(e) => onEditNotes(entry.id, e.target.value)}
                   placeholder="Enter testing notes, observations, or evidence references..."
                   rows={3}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30 resize-y"
+                  className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30 resize-y"
                 />
                 {(effectiveResult === "FAIL" ||
                   effectiveResult === "PARTIALLY") &&

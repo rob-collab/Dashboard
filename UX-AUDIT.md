@@ -49,7 +49,7 @@
 | 1.12 | No global notification centre — scattered bell icons per section, no unified drawer | ❌ Outstanding | — |
 | 1.13 | No keyboard shortcuts — no Cmd+K for search, no Cmd+? for help | ❌ Outstanding | — |
 | 1.14 | No role indicator visible to the logged-in user | ✅ Fixed (role label shown in sidebar user section + dropdown) | `src/components/layout/Sidebar.tsx` |
-| 1.15 | No in-app help or glossary — terms like "Residual Risk," "RAG," "2LOD," and "Consumer Duty" are unexplained | ❌ Outstanding | — |
+| 1.15 | No in-app help or glossary — terms like "Residual Risk," "RAG," "2LOD," and "Consumer Duty" are unexplained | ✅ Fixed (GlossaryTooltip component created with definitions for RAG, Residual Risk, Inherent Risk, Consumer Duty, 2LOD, CCRO, Appetite, MI, SM&CR, Control Effectiveness; added to Consumer Duty page header + RAG filter, MIModal RAG column, QuarterlySummaryTab 2LOD section, Risk Detail Panel Appetite field, and RiskHeatmap mode buttons with title tooltips) | `src/components/common/GlossaryTooltip.tsx` |
 | 1.16 | Mobile sidebar collapses to icons with no hamburger menu alternative | ❌ Outstanding | `src/components/layout/Sidebar.tsx` |
 
 ---
@@ -74,7 +74,7 @@
 | 2.7 | Score mode toggle uses jargon: "Inherent / Residual / Overlay" | ✅ Fixed (→ Before Controls / After Controls / Compare) | `src/components/risk-register/RiskHeatmap.tsx` |
 | 2.8 | Heatmap cell density — 5+ risks in one cell shows tiny dots; needs a count badge with modal on click | ✅ Fixed (cells cap at 3 dots then show +N overflow badge; click cell for full list in side panel) | `src/components/risk-register/RiskHeatmap.tsx` |
 | 2.9 | Score mode preference doesn't persist across sessions | ✅ Fixed (scoreMode saved to localStorage; URL param takes priority, then localStorage, then default "residual") | `src/app/risk-register/page.tsx` |
-| 2.10 | Two separate control sections in risk detail panel — inline controls vs library controls with different UX | ❌ Outstanding | `src/components/risk-register/RiskDetailPanel.tsx` |
+| 2.10 | Two separate control sections in risk detail panel — inline controls vs library controls with different UX | ✅ Fixed (merged into a single "4. Controls" collapsible with unified count badge; inside has two clearly labelled sub-sections "Inline Controls" and "Control Library" with a horizontal divider; libraryControlsOpen state removed; colour unified to blue) | `src/components/risk-register/RiskDetailPanel.tsx` |
 | 2.11 | Table showed "Last Reviewed" — replaced with "Next Review Due" (more actionable) | ✅ Fixed | `src/components/risk-register/RiskTable.tsx` |
 | 2.12 | Filter state resets when navigating away from the page | ✅ Fixed (Risk Register: all 5 filters synced to URL; Actions: all 6 filters synced to URL; Compliance: active tab synced to URL via router.replace; Consumer Duty: ragFilter + searchQuery synced to URL via debounced effect) | Multiple |
 | 2.13 | No "Export to PDF" for audit packs | ❌ Outstanding | — |
@@ -135,7 +135,7 @@
 | # | Issue | Status | File |
 |---|---|---|---|
 | 5.7 | Consumer Duty tab is buried in PolicyDetailPanel and absent from Compliance Overview | ✅ Fixed (Consumer Duty RAG summary section added to Compliance Overview showing Green/Amber/Red outcome counts, total outcomes + measures, contextual alerts for Harm/Warning outcomes, and "View Consumer Duty" link) | `src/components/compliance/ComplianceOverview.tsx` |
-| 5.8 | SM&CR section is disconnected from regulations — no drill-down to accountability holder | ❌ Outstanding | `src/components/compliance/SMCRTab.tsx` |
+| 5.8 | SM&CR section is disconnected from regulations — no drill-down to accountability holder | ✅ Fixed (SMF cards now show Regulatory Basis text; inline Prescribed Responsibilities preview (up to 2) with PR ID badge and title; "+N more" link to Compliance/SMCR responsibilities tab when more than 2 exist) | `src/components/compliance/smcr/SMFDirectory.tsx` |
 | 5.9 | Missing compliance roadmap — no remediation plan with deadlines or priority order | ❌ Outstanding | — |
 | 5.10 | Missing coverage matrix — regulations × policies × controls in a single grid view | ❌ Outstanding | — |
 | 5.11 | No regulatory change log — no impact assessment when regulations are updated | ❌ Outstanding | — |
@@ -175,7 +175,7 @@
 |---|---|---|---|
 | 7.1 | Three conflicting views on one page — "RAG Admin" configuration should live in Settings, not a tab | ❌ Outstanding | `src/app/consumer-duty/page.tsx` |
 | 7.2 | RAG status calculation is hidden — outcome cards show a dot but never explain how the RAG is derived | ✅ Fixed (hover tooltip on RAG dot shows Good/Warning/Harm measure breakdown + logic explanation) | `src/components/consumer-duty/OutcomeCard.tsx` |
-| 7.3 | Metrics entry has no targets, no 12-month trend, no indication of which metric is dragging the outcome down | ❌ Outstanding | `src/components/consumer-duty/MIModal.tsx` |
+| 7.3 | Metrics entry has no targets, no 12-month trend, no indication of which metric is dragging the outcome down | ✅ Fixed (Target column added to metrics table showing appetite operator + value e.g. "≥ 95%"; Met/Missed badge shown based on current value vs target; hint text updated to prompt target-setting; 12-month trend history already accessible via row click into MetricDrillDown) | `src/components/consumer-duty/MIModal.tsx` |
 
 ### 🟡 MEDIUM
 
@@ -222,7 +222,7 @@
 | # | Issue | Status | File |
 |---|---|---|---|
 | 9.6 | Required field indicators inconsistent — some forms use `*`, others nothing | ✅ Fixed (added * to ActionFormDialog Title + Assigned To; UserFormDialog Name + Email; OutcomeFormDialog Outcome ID + Name + Short Description; MeasureFormDialog Measure ID + Outcome + Name) | Multiple |
-| 9.7 | Form input styling inconsistent — `border-gray-300` vs `border-gray-200`, some use local `inputClasses`, some inline styles | ❌ Outstanding | Multiple |
+| 9.7 | Form input styling inconsistent — `border-gray-300` vs `border-gray-200`, some use local `inputClasses`, some inline styles | ✅ Fixed (batch replaced `border border-gray-300` → `border border-gray-200` across all TSX files; additionally fixed conditional border classes in PolicyFormDialog, RiskAcceptanceFormDialog, RiskAcceptanceDetailPanel where `border-gray-300` was used as the non-error state; checkbox inputs, hover states, and drop zones with border-gray-300 intentionally left as-is) | Multiple |
 | 9.8 | Modal focus trap missing — focus escapes to background on Escape; no auto-focus on first input | ✅ Fixed (Tab cycles within modal, auto-focus first element on open, restore focus on close) | `src/components/common/Modal.tsx` |
 | 9.9 | No blur-time validation — forms only validate on submit | ✅ Fixed (added onBlur validateField handlers to UserFormDialog, OutcomeFormDialog, MeasureFormDialog, PolicyFormDialog, RiskAcceptanceFormDialog) | Multiple |
 | 9.10 | Modal footer layout inconsistent — some use `justify-between` (Cancel floats far left), should always be `justify-end` | ✅ Fixed (already resolved — Modal component uses `justify-end`, all custom dialogs use `justify-end`) | Multiple |
@@ -253,7 +253,7 @@
 | 10.8 | Filter state not persisted in URL for Risk Register (uses local state, not params) — filters lost on navigate | ✅ Fixed (view, mode, filter, cat, q params initialised from URL and synced on state change with 150ms debounce) | `src/app/risk-register/page.tsx` |
 | 10.9 | Empty state messaging inconsistent in tone and format across pages | ✅ Substantially consistent — all pages use icon + primary text + secondary text pattern with `py-12` padding; minor variance in icon size (40 vs 48) not user-facing; `EmptyState` component available for future use | — |
 | 10.10 | Audit trail visible in Risk Acceptances, buried in Reports, absent in Consumer Duty | ✅ Fixed (Consumer Duty "Audit Trail" button added for CCRO team linking to `/audit?q=consumer_duty`; audit page now reads `?q=` URL param for pre-filtering) | `src/app/consumer-duty/page.tsx`, `src/app/audit/page.tsx` |
-| 10.11 | No data freshness indicators except in Consumer Duty | ❌ Outstanding | — |
+| 10.11 | No data freshness indicators except in Consumer Duty | ✅ Fixed (_hydratedAt: Date | null added to store state, set when hydration completes; sidebar shows "Data current as of HH:MM" when not collapsed, so all pages show freshness; Refresh button tooltip shows full datetime; clicking Refresh updates the timestamp) | `src/lib/store.ts`, `src/components/layout/Sidebar.tsx` |
 | 10.12 | Score badges have different visual weight across heatmap vs table vs detail panel | ❌ Outstanding | — |
 
 ---
