@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Loader2 } from "lucide-react";
 import Modal from "@/components/common/Modal";
 import type { User, Role } from "@/lib/types";
-import { generateId } from "@/lib/utils";
+import { api, ApiError } from "@/lib/api-client";
 
 interface UserFormDialogProps {
   open: boolean;
@@ -32,6 +33,8 @@ export default function UserFormDialog({
   const [role, setRole] = useState<Role>("VIEWER");
   const [measuresInput, setMeasuresInput] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Reset form whenever the dialog opens or the user prop changes
   useEffect(() => {
@@ -48,6 +51,7 @@ export default function UserFormDialog({
         setMeasuresInput("");
       }
       setErrors({});
+      setSubmitError(null);
     }
   }, [open, user]);
 
@@ -81,7 +85,7 @@ export default function UserFormDialog({
     return Object.keys(newErrors).length === 0;
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!validate()) return;
 
@@ -90,19 +94,56 @@ export default function UserFormDialog({
       .map((m) => m.trim())
       .filter(Boolean);
 
-    const savedUser: User = {
-      id: user?.id ?? `user-${generateId()}`,
-      name: name.trim(),
-      email: email.trim(),
-      role,
-      assignedMeasures,
-      isActive: user?.isActive ?? true,
-      createdAt: user?.createdAt ?? new Date().toISOString(),
-      lastLoginAt: user?.lastLoginAt ?? null,
-    };
+    setSubmitting(true);
+    setSubmitError(null);
 
-    onSave(savedUser);
-    onClose();
+    try {
+      let serverUser: User;
+
+      if (isEdit && user) {
+        // Update existing user — PATCH persists to DB immediately
+        serverUser = await api<User>(`/api/users/${user.id}`, {
+          method: "PATCH",
+          body: {
+            name: name.trim(),
+            email: email.trim(),
+            role,
+            assignedMeasures,
+          },
+        });
+      } else {
+        // Create new user — POST to DB; server generates the ID
+        serverUser = await api<User>("/api/users", {
+          method: "POST",
+          body: {
+            name: name.trim(),
+            email: email.trim(),
+            role,
+            assignedMeasures,
+            isActive: true,
+          },
+        });
+      }
+
+      onSave(serverUser);
+      onClose();
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.status === 409) {
+          setSubmitError("A user with this email address already exists.");
+        } else if (err.status === 403) {
+          setSubmitError("You don't have permission to manage users.");
+        } else if (err.status === 400) {
+          setSubmitError("Please check your inputs and try again.");
+        } else {
+          setSubmitError("Failed to save user. Please try again.");
+        }
+      } else {
+        setSubmitError("Could not reach the server. Check your connection and try again.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const inputClasses =
@@ -121,21 +162,31 @@ export default function UserFormDialog({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+            disabled={submitting}
+            className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             type="submit"
             form="user-form"
-            className="rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colors"
+            disabled={submitting}
+            className="inline-flex items-center gap-2 rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colors disabled:opacity-60"
           >
+            {submitting && <Loader2 size={14} className="animate-spin" />}
             {isEdit ? "Save Changes" : "Add User"}
           </button>
         </>
       }
     >
       <form id="user-form" onSubmit={handleSubmit} className="space-y-4">
+        {/* Submit error banner */}
+        {submitError && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+            {submitError}
+          </div>
+        )}
+
         {/* Name */}
         <div>
           <label htmlFor="user-name" className={labelClasses}>

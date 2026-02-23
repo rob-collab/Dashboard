@@ -59,8 +59,8 @@ const ROLE_CONFIG: Record<Role, { label: string; color: string; description: str
 export default function UsersPage() {
   usePageTitle("Users");
   const users = useAppStore((s) => s.users);
+  const setUsers = useAppStore((s) => s.setUsers);
   const currentUser = useAppStore((s) => s.currentUser);
-  const addUser = useAppStore((s) => s.addUser);
   const updateUser = useAppStore((s) => s.updateUser);
   const deleteUser = useAppStore((s) => s.deleteUser);
   const ownedRiskCounts = useOwnedRiskCounts();
@@ -120,14 +120,16 @@ export default function UsersPage() {
   const handleSave = useCallback(
     (saved: User) => {
       if (editingUser) {
-        updateUser(saved.id, saved);
+        // API already persisted — just update local state
+        setUsers(users.map((u) => (u.id === saved.id ? { ...u, ...saved } : u)));
         logAuditEvent({ action: "update_user", entityType: "user", entityId: saved.id, changes: { name: saved.name, role: saved.role } });
       } else {
-        addUser(saved);
+        // API already persisted — just add to local state
+        setUsers([...users, saved]);
         logAuditEvent({ action: "add_user", entityType: "user", entityId: saved.id, changes: { name: saved.name, role: saved.role } });
       }
     },
-    [editingUser, addUser, updateUser]
+    [editingUser, setUsers, users]
   );
 
   const handleToggleActive = useCallback(
