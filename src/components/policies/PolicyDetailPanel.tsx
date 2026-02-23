@@ -12,8 +12,9 @@ import PolicyObligationsTab from "./PolicyObligationsTab";
 import PolicyAuditTab from "./PolicyAuditTab";
 import PolicyConsumerDutyTab from "./PolicyConsumerDutyTab";
 import PolicyFormDialog from "./PolicyFormDialog";
+import PolicyProcessesTab from "./PolicyProcessesTab";
 
-type TabKey = "overview" | "regulations" | "controls" | "obligations" | "consumer-duty" | "audit";
+type TabKey = "overview" | "regulations" | "controls" | "obligations" | "consumer-duty" | "processes" | "audit";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "overview", label: "Overview" },
@@ -21,6 +22,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "controls", label: "Controls & Testing" },
   { key: "obligations", label: "Requirements" },
   { key: "consumer-duty", label: "Consumer Duty" },
+  { key: "processes", label: "Processes" },
   { key: "audit", label: "Audit History" },
 ];
 
@@ -156,6 +158,7 @@ export default function PolicyDetailPanel({ policy, onClose, onUpdate }: Props) 
           {tab === "controls" && <PolicyControlsTab policy={policy} onUpdate={onUpdate} />}
           {tab === "obligations" && <PolicyObligationsTab policy={policy} onUpdate={onUpdate} />}
           {tab === "consumer-duty" && <PolicyConsumerDutyTab policy={policy} onUpdate={onUpdate} />}
+          {tab === "processes" && <PolicyProcessesTab policy={policy} />}
           {tab === "audit" && <PolicyAuditTab policy={policy} />}
         </div>
       </div>

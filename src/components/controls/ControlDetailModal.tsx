@@ -8,7 +8,7 @@ import ActionFormDialog from "@/components/actions/ActionFormDialog";
 import { deriveTestingStatus } from "@/lib/controls-utils";
 import { api } from "@/lib/api-client";
 import { useAppStore } from "@/lib/store";
-import type { ControlRecord, Action, ControlChange, RegulationControlLink, RiskAcceptance } from "@/lib/types";
+import type { ControlRecord, Action, ControlChange, RegulationControlLink, RiskAcceptance, Process } from "@/lib/types";
 import {
   CD_OUTCOME_LABELS,
   CONTROL_FREQUENCY_LABELS,
@@ -35,6 +35,7 @@ import {
   FileText,
   Scale,
   TrendingUp,
+  Layers,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -49,6 +50,7 @@ import {
 import { cn, formatDateShort } from "@/lib/utils";
 import ScoreBadge from "@/components/risk-register/ScoreBadge";
 import EntityLink from "@/components/common/EntityLink";
+import MaturityBadge from "@/components/processes/MaturityBadge";
 import RequestEditAccessButton from "@/components/common/RequestEditAccessButton";
 
 interface ControlDetailModalProps {
@@ -77,6 +79,7 @@ export default function ControlDetailModal({
   const reports = useAppStore((s) => s.reports);
   const allActions = useAppStore((s) => s.actions);
   const policies = useAppStore((s) => s.policies);
+  const allProcesses = useAppStore((s) => s.processes);
   const addAction = useAppStore((s) => s.addAction);
   const isCCRO = currentUser?.role === "CCRO_TEAM";
   const canEditActions = currentUser?.role === "CCRO_TEAM" || currentUser?.role === "OWNER";
@@ -234,6 +237,11 @@ export default function ControlDetailModal({
     result: TEST_RESULT_LABELS[tr.result],
     colour: TEST_RESULT_COLOURS[tr.result].dot,
   }));
+
+  // Processes using this control
+  const linkedProcesses: Process[] = controlId
+    ? allProcesses.filter((p) => p.controlLinks?.some((l) => l.controlId === controlId))
+    : [];
 
   // Attestation
   const latestAttestation = control?.attestations?.[0] ?? null;
@@ -737,6 +745,27 @@ export default function ControlDetailModal({
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* ── Linked Processes ── */}
+          {linkedProcesses.length > 0 && (
+            <div className="bento-card p-4">
+              <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-3">
+                <Layers size={14} className="text-teal-600" />
+                Processes
+                <span className="text-xs font-normal text-gray-400">({linkedProcesses.length})</span>
+              </h4>
+              <div className="space-y-1.5">
+                {linkedProcesses.map((proc) => (
+                  <div key={proc.id} className="flex items-center gap-3 rounded-lg bg-teal-50 px-3 py-2">
+                    <EntityLink type="process" id={proc.id} reference={proc.reference} label={proc.name} />
+                    <div className="ml-auto shrink-0">
+                      <MaturityBadge score={proc.maturityScore} size="sm" />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}

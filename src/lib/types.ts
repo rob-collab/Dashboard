@@ -1200,6 +1200,246 @@ export const ACCESS_REQUEST_STATUS_COLOURS: Record<AccessRequestStatus, { bg: st
   CANCELLED: { bg: "bg-gray-100", text: "text-gray-500" },
 };
 
+// ── Process Library ───────────────────────────────────────────────────────────
+
+export type IBSStatus = "ACTIVE" | "UNDER_REVIEW" | "RETIRED";
+export type ProcessStatus = "DRAFT" | "ACTIVE" | "UNDER_REVIEW" | "RETIRED";
+export type ProcessCategory =
+  | "CUSTOMER_ONBOARDING" | "PAYMENTS" | "LENDING" | "COMPLIANCE"
+  | "RISK_MANAGEMENT" | "FINANCE" | "TECHNOLOGY" | "PEOPLE" | "GOVERNANCE" | "OTHER";
+export type ProcessType = "CORE" | "SUPPORT" | "MANAGEMENT" | "GOVERNANCE";
+export type ProcessFrequency = "AD_HOC" | "DAILY" | "WEEKLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY" | "CONTINUOUS";
+export type AutomationLevel = "MANUAL" | "PARTIALLY_AUTOMATED" | "FULLY_AUTOMATED";
+export type ProcessCriticality = "CRITICAL" | "IMPORTANT" | "STANDARD";
+export type ProcessRiskLinkType = "CREATES" | "MITIGATES" | "AFFECTS";
+
+export interface ImportantBusinessService {
+  id: string;
+  reference: string;
+  name: string;
+  description: string | null;
+  impactToleranceStatement: string | null;
+  maxTolerableDisruptionHours: number | null;
+  rtoHours: number | null;
+  rpoHours: number | null;
+  smfAccountable: string | null;
+  ownerId: string | null;
+  status: IBSStatus;
+  createdAt: string;
+  updatedAt: string;
+  processLinks?: ProcessIBSLink[];
+}
+
+export interface ProcessStep {
+  id: string;
+  processId: string;
+  stepOrder: number;
+  title: string;
+  description: string | null;
+  responsibleRole: string | null;
+  accountableRole: string | null;
+  slaDays: number | null;
+  notes: string | null;
+}
+
+export interface ProcessControlLink {
+  id: string;
+  processId: string;
+  controlId: string;
+  control?: import("./types").ControlRecord;
+  linkedAt: string;
+  linkedBy: string;
+  notes: string | null;
+}
+
+export interface ProcessPolicyLink {
+  id: string;
+  processId: string;
+  policyId: string;
+  policy?: import("./types").Policy;
+  linkedAt: string;
+  linkedBy: string;
+  notes: string | null;
+}
+
+export interface ProcessRegulationLink {
+  id: string;
+  processId: string;
+  regulationId: string;
+  regulation?: import("./types").Regulation;
+  linkedAt: string;
+  linkedBy: string;
+  notes: string | null;
+}
+
+export interface ProcessRiskLink {
+  id: string;
+  processId: string;
+  riskId: string;
+  risk?: import("./types").Risk;
+  linkType: ProcessRiskLinkType;
+  linkedAt: string;
+  linkedBy: string;
+  notes: string | null;
+}
+
+export interface ProcessIBSLink {
+  id: string;
+  processId: string;
+  ibsId: string;
+  ibs?: ImportantBusinessService;
+  linkedAt: string;
+  linkedBy: string;
+  notes: string | null;
+}
+
+export interface Process {
+  id: string;
+  reference: string;
+  name: string;
+  description: string | null;
+  purpose: string | null;
+  scope: string | null;
+  category: ProcessCategory;
+  processType: ProcessType;
+  status: ProcessStatus;
+  version: string;
+  effectiveDate: string | null;
+  nextReviewDate: string | null;
+  reviewFrequencyDays: number;
+  frequency: ProcessFrequency;
+  automationLevel: AutomationLevel;
+  triggerDescription: string | null;
+  inputs: string | null;
+  outputs: string | null;
+  escalationPath: string | null;
+  exceptions: string | null;
+  endToEndSlaDays: number | null;
+  criticality: ProcessCriticality;
+  smfFunction: string | null;
+  prescribedResponsibilities: string[];
+  maturityScore: number;
+  ownerId: string | null;
+  owner?: { id: string; name: string; email: string } | null;
+  createdAt: string;
+  updatedAt: string;
+  steps?: ProcessStep[];
+  controlLinks?: ProcessControlLink[];
+  policyLinks?: ProcessPolicyLink[];
+  regulationLinks?: ProcessRegulationLink[];
+  riskLinks?: ProcessRiskLink[];
+  ibsLinks?: ProcessIBSLink[];
+}
+
+export const IBS_STATUS_LABELS: Record<IBSStatus, string> = {
+  ACTIVE: "Active",
+  UNDER_REVIEW: "Under Review",
+  RETIRED: "Retired",
+};
+
+export const PROCESS_STATUS_LABELS: Record<ProcessStatus, string> = {
+  DRAFT: "Draft",
+  ACTIVE: "Active",
+  UNDER_REVIEW: "Under Review",
+  RETIRED: "Retired",
+};
+
+export const PROCESS_STATUS_COLOURS: Record<ProcessStatus, { bg: string; text: string }> = {
+  DRAFT: { bg: "bg-gray-100", text: "text-gray-600" },
+  ACTIVE: { bg: "bg-green-100", text: "text-green-700" },
+  UNDER_REVIEW: { bg: "bg-amber-100", text: "text-amber-700" },
+  RETIRED: { bg: "bg-red-100", text: "text-red-600" },
+};
+
+export const PROCESS_CATEGORY_LABELS: Record<ProcessCategory, string> = {
+  CUSTOMER_ONBOARDING: "Customer Onboarding",
+  PAYMENTS: "Payments",
+  LENDING: "Lending",
+  COMPLIANCE: "Compliance",
+  RISK_MANAGEMENT: "Risk Management",
+  FINANCE: "Finance",
+  TECHNOLOGY: "Technology",
+  PEOPLE: "People",
+  GOVERNANCE: "Governance",
+  OTHER: "Other",
+};
+
+export const PROCESS_CATEGORY_COLOURS: Record<ProcessCategory, { bg: string; text: string }> = {
+  CUSTOMER_ONBOARDING: { bg: "bg-blue-100", text: "text-blue-700" },
+  PAYMENTS: { bg: "bg-emerald-100", text: "text-emerald-700" },
+  LENDING: { bg: "bg-violet-100", text: "text-violet-700" },
+  COMPLIANCE: { bg: "bg-purple-100", text: "text-purple-700" },
+  RISK_MANAGEMENT: { bg: "bg-red-100", text: "text-red-700" },
+  FINANCE: { bg: "bg-amber-100", text: "text-amber-700" },
+  TECHNOLOGY: { bg: "bg-cyan-100", text: "text-cyan-700" },
+  PEOPLE: { bg: "bg-pink-100", text: "text-pink-700" },
+  GOVERNANCE: { bg: "bg-indigo-100", text: "text-indigo-700" },
+  OTHER: { bg: "bg-gray-100", text: "text-gray-600" },
+};
+
+export const PROCESS_TYPE_LABELS: Record<ProcessType, string> = {
+  CORE: "Core",
+  SUPPORT: "Support",
+  MANAGEMENT: "Management",
+  GOVERNANCE: "Governance",
+};
+
+export const PROCESS_FREQUENCY_LABELS: Record<ProcessFrequency, string> = {
+  AD_HOC: "Ad Hoc",
+  DAILY: "Daily",
+  WEEKLY: "Weekly",
+  MONTHLY: "Monthly",
+  QUARTERLY: "Quarterly",
+  ANNUALLY: "Annually",
+  CONTINUOUS: "Continuous",
+};
+
+export const AUTOMATION_LEVEL_LABELS: Record<AutomationLevel, string> = {
+  MANUAL: "Manual",
+  PARTIALLY_AUTOMATED: "Partially Automated",
+  FULLY_AUTOMATED: "Fully Automated",
+};
+
+export const PROCESS_CRITICALITY_LABELS: Record<ProcessCriticality, string> = {
+  CRITICAL: "Critical",
+  IMPORTANT: "Important",
+  STANDARD: "Standard",
+};
+
+export const PROCESS_CRITICALITY_COLOURS: Record<ProcessCriticality, { bg: string; text: string }> = {
+  CRITICAL: { bg: "bg-red-100", text: "text-red-700" },
+  IMPORTANT: { bg: "bg-amber-100", text: "text-amber-700" },
+  STANDARD: { bg: "bg-gray-100", text: "text-gray-600" },
+};
+
+export const PROCESS_RISK_LINK_TYPE_LABELS: Record<ProcessRiskLinkType, string> = {
+  CREATES: "Creates",
+  MITIGATES: "Mitigates",
+  AFFECTS: "Affects",
+};
+
+export const PROCESS_RISK_LINK_TYPE_COLOURS: Record<ProcessRiskLinkType, { bg: string; text: string }> = {
+  CREATES: { bg: "bg-red-100", text: "text-red-700" },
+  MITIGATES: { bg: "bg-green-100", text: "text-green-700" },
+  AFFECTS: { bg: "bg-amber-100", text: "text-amber-700" },
+};
+
+export const MATURITY_LABELS: Record<number, string> = {
+  1: "Identified",
+  2: "Documented",
+  3: "Governed",
+  4: "Measured",
+  5: "Optimised",
+};
+
+export const MATURITY_COLOURS: Record<number, { bg: string; text: string; bar: string }> = {
+  1: { bg: "bg-red-100", text: "text-red-700", bar: "bg-red-400" },
+  2: { bg: "bg-orange-100", text: "text-orange-700", bar: "bg-orange-400" },
+  3: { bg: "bg-amber-100", text: "text-amber-700", bar: "bg-amber-400" },
+  4: { bg: "bg-blue-100", text: "text-blue-700", bar: "bg-blue-500" },
+  5: { bg: "bg-green-100", text: "text-green-700", bar: "bg-green-500" },
+};
+
 // ── Dashboard Layout ──────────────────────────────────────────────────────────
 
 export interface DashboardLayoutConfig {

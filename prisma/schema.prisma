@@ -209,6 +209,10 @@ model User {
   breachReports      ConductRuleBreach[]    @relation("BreachReporter")
   ownedDocuments     SMCRDocument[]         @relation("DocumentOwner")
 
+  // Process Library
+  ownedProcesses     Process[]              @relation("ProcessOwner")
+  ownedIBS           ImportantBusinessService[] @relation("IBSOwner")
+
   @@map("users")
 }
 
@@ -569,8 +573,9 @@ model Risk {
   auditTrail  RiskAuditLog[]
   snapshots   RiskSnapshot[]
   acceptances RiskAcceptance[]
-  changes     RiskChange[]
+  changes      RiskChange[]
   controlLinks RiskControlLink[]
+  processLinks ProcessRiskLink[]
 
   @@index([categoryL1])
   @@index([ownerId])
@@ -763,6 +768,7 @@ model Control {
   policyLinks         PolicyControlLink[]     @relation("PolicyControlLinks")
   riskLinks           RiskControlLink[]
   regulationLinks     RegulationControlLink[]
+  processLinks        ProcessControlLink[]
 
   @@index([businessAreaId])
   @@index([controlOwnerId])
@@ -931,6 +937,7 @@ model Policy {
   controlLinks    PolicyControlLink[]
   obligations     PolicyObligation[]
   auditTrail      PolicyAuditLog[]
+  processLinks    ProcessPolicyLink[]
 
   @@index([ownerId])
   @@index([status])
@@ -976,6 +983,7 @@ model Regulation {
 
   policyLinks   PolicyRegulatoryLink[]
   controlLinks  RegulationControlLink[]
+  processLinks  ProcessRegulationLink[]
 
   @@index([parentId])
   @@map("regulations")
@@ -1401,4 +1409,219 @@ model DashboardLayout {
   updatedAt      DateTime @updatedAt
 
   @@map("dashboard_layouts")
+}
+
+// ── Process Library ──────────────────────────────────────────────────────────
+
+enum IBSStatus {
+  ACTIVE
+  UNDER_REVIEW
+  RETIRED
+}
+
+enum ProcessStatus {
+  DRAFT
+  ACTIVE
+  UNDER_REVIEW
+  RETIRED
+}
+
+enum ProcessCategory {
+  CUSTOMER_ONBOARDING
+  PAYMENTS
+  LENDING
+  COMPLIANCE
+  RISK_MANAGEMENT
+  FINANCE
+  TECHNOLOGY
+  PEOPLE
+  GOVERNANCE
+  OTHER
+}
+
+enum ProcessType {
+  CORE
+  SUPPORT
+  MANAGEMENT
+  GOVERNANCE
+}
+
+enum ProcessFrequency {
+  AD_HOC
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  ANNUALLY
+  CONTINUOUS
+}
+
+enum AutomationLevel {
+  MANUAL
+  PARTIALLY_AUTOMATED
+  FULLY_AUTOMATED
+}
+
+enum ProcessCriticality {
+  CRITICAL
+  IMPORTANT
+  STANDARD
+}
+
+enum ProcessRiskLinkType {
+  CREATES
+  MITIGATES
+  AFFECTS
+}
+
+model ImportantBusinessService {
+  id                        String    @id @default(cuid())
+  reference                 String    @unique
+  name                      String
+  description               String?   @db.Text
+  impactToleranceStatement  String?   @db.Text
+  maxTolerableDisruptionHours Int?
+  rtoHours                  Int?
+  rpoHours                  Int?
+  smfAccountable            String?
+  ownerId                   String?
+  owner                     User?     @relation("IBSOwner", fields: [ownerId], references: [id])
+  status                    IBSStatus @default(ACTIVE)
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  processLinks              ProcessIBSLink[]
+
+  @@map("important_business_services")
+}
+
+model Process {
+  id                        String              @id @default(cuid())
+  reference                 String              @unique
+  name                      String
+  description               String?             @db.Text
+  purpose                   String?             @db.Text
+  scope                     String?             @db.Text
+  category                  ProcessCategory     @default(OTHER)
+  processType               ProcessType         @default(CORE)
+  status                    ProcessStatus       @default(DRAFT)
+  version                   String              @default("1.0")
+  effectiveDate             DateTime?
+  nextReviewDate            DateTime?
+  reviewFrequencyDays       Int                 @default(365)
+  frequency                 ProcessFrequency    @default(AD_HOC)
+  automationLevel           AutomationLevel     @default(MANUAL)
+  triggerDescription        String?             @db.Text
+  inputs                    String?             @db.Text
+  outputs                   String?             @db.Text
+  escalationPath            String?             @db.Text
+  exceptions                String?             @db.Text
+  endToEndSlaDays           Int?
+  criticality               ProcessCriticality  @default(STANDARD)
+  smfFunction               String?
+  prescribedResponsibilities String[]
+  maturityScore             Int                 @default(1)
+  ownerId                   String?
+  owner                     User?               @relation("ProcessOwner", fields: [ownerId], references: [id])
+  createdAt                 DateTime            @default(now())
+  updatedAt                 DateTime            @updatedAt
+
+  steps                     ProcessStep[]
+  controlLinks              ProcessControlLink[]
+  policyLinks               ProcessPolicyLink[]
+  regulationLinks           ProcessRegulationLink[]
+  riskLinks                 ProcessRiskLink[]
+  ibsLinks                  ProcessIBSLink[]
+
+  @@index([ownerId])
+  @@index([category, status])
+  @@map("processes")
+}
+
+model ProcessStep {
+  id               String   @id @default(cuid())
+  processId        String
+  process          Process  @relation(fields: [processId], references: [id], onDelete: Cascade)
+  stepOrder        Int
+  title            String
+  description      String?  @db.Text
+  responsibleRole  String?
+  accountableRole  String?
+  slaDays          Int?
+  notes            String?  @db.Text
+
+  @@unique([processId, stepOrder])
+  @@index([processId])
+  @@map("process_steps")
+}
+
+model ProcessControlLink {
+  id        String   @id @default(cuid())
+  processId String
+  process   Process  @relation(fields: [processId], references: [id], onDelete: Cascade)
+  controlId String
+  control   Control  @relation(fields: [controlId], references: [id], onDelete: Cascade)
+  linkedAt  DateTime @default(now())
+  linkedBy  String
+  notes     String?  @db.Text
+
+  @@unique([processId, controlId])
+  @@map("process_control_links")
+}
+
+model ProcessPolicyLink {
+  id        String   @id @default(cuid())
+  processId String
+  process   Process  @relation(fields: [processId], references: [id], onDelete: Cascade)
+  policyId  String
+  policy    Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  linkedAt  DateTime @default(now())
+  linkedBy  String
+  notes     String?  @db.Text
+
+  @@unique([processId, policyId])
+  @@map("process_policy_links")
+}
+
+model ProcessRegulationLink {
+  id           String     @id @default(cuid())
+  processId    String
+  process      Process    @relation(fields: [processId], references: [id], onDelete: Cascade)
+  regulationId String
+  regulation   Regulation @relation(fields: [regulationId], references: [id], onDelete: Cascade)
+  linkedAt     DateTime   @default(now())
+  linkedBy     String
+  notes        String?    @db.Text
+
+  @@unique([processId, regulationId])
+  @@map("process_regulation_links")
+}
+
+model ProcessRiskLink {
+  id        String              @id @default(cuid())
+  processId String
+  process   Process             @relation(fields: [processId], references: [id], onDelete: Cascade)
+  riskId    String
+  risk      Risk                @relation(fields: [riskId], references: [id], onDelete: Cascade)
+  linkType  ProcessRiskLinkType @default(AFFECTS)
+  linkedAt  DateTime            @default(now())
+  linkedBy  String
+  notes     String?             @db.Text
+
+  @@unique([processId, riskId])
+  @@map("process_risk_links")
+}
+
+model ProcessIBSLink {
+  id        String                   @id @default(cuid())
+  processId String
+  process   Process                  @relation(fields: [processId], references: [id], onDelete: Cascade)
+  ibsId     String
+  ibs       ImportantBusinessService @relation(fields: [ibsId], references: [id], onDelete: Cascade)
+  linkedAt  DateTime                 @default(now())
+  linkedBy  String
+  notes     String?                  @db.Text
+
+  @@unique([processId, ibsId])
+  @@map("process_ibs_links")
 }

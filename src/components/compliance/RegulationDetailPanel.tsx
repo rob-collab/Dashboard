@@ -13,8 +13,9 @@ import {
   type Applicability,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { X, ExternalLink, ShieldCheck, FileText, Link2, Plus, Search, Pencil, Loader2, ChevronDown, ChevronRight, History } from "lucide-react";
+import { X, ExternalLink, ShieldCheck, FileText, Link2, Plus, Search, Pencil, Loader2, ChevronDown, ChevronRight, History, Layers } from "lucide-react";
 import EntityLink from "@/components/common/EntityLink";
+import MaturityBadge from "@/components/processes/MaturityBadge";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
 import type { RegulationHistoryEvent } from "@/app/api/compliance/regulations/[id]/history/route";
@@ -38,6 +39,7 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
   const controls = useAppStore((s) => s.controls);
   const policies = useAppStore((s) => s.policies);
   const smfRoles = useAppStore((s) => s.smfRoles);
+  const allProcesses = useAppStore((s) => s.processes);
 
   const [editMode, setEditMode] = useState(false);
 
@@ -659,6 +661,32 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
             <p className="text-xs text-gray-400 italic">No controls linked</p>
           )}
         </section>
+
+        {/* Linked Processes */}
+        {regulation && (() => {
+          const linked = allProcesses.filter((p) =>
+            p.regulationLinks?.some((l) => l.regulationId === regulation.id)
+          );
+          if (linked.length === 0) return null;
+          return (
+            <section className="border-t border-gray-100 pt-4">
+              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                <Layers size={12} className="inline mr-1" />
+                Linked Processes ({linked.length})
+              </h4>
+              <div className="space-y-1.5">
+                {linked.map((proc) => (
+                  <div key={proc.id} className="flex items-center gap-2 bg-teal-50 rounded px-2 py-1.5">
+                    <EntityLink type="process" id={proc.id} reference={proc.reference} label={proc.name} />
+                    <div className="ml-auto shrink-0">
+                      <MaturityBadge score={proc.maturityScore} size="sm" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
 
         {/* Change History (collapsible) */}
         <section className="border-t border-gray-100 pt-2">

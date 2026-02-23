@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry, RiskAcceptance, Policy, Regulation, DashboardNotification, Role, RiskControlLink, SMFRole, PrescribedResponsibility, CertificationFunction, CertifiedPerson, ConductRule, ConductRuleBreach, SMCRDocument, ComplianceStatus, Applicability, AccessRequest, DashboardLayoutConfig } from "./types";
+import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry, RiskAcceptance, Policy, Regulation, DashboardNotification, Role, RiskControlLink, SMFRole, PrescribedResponsibility, CertificationFunction, CertifiedPerson, ConductRule, ConductRuleBreach, SMCRDocument, ComplianceStatus, Applicability, AccessRequest, DashboardLayoutConfig, ImportantBusinessService, Process } from "./types";
 import { api, friendlyApiError } from "./api-client";
 
 interface AppState {
@@ -123,6 +123,17 @@ interface AppState {
   addRegulation: (item: Regulation) => void;
   updateRegulation: (id: string, data: Partial<Regulation>) => void;
   deleteRegulation: (id: string) => void;
+
+  // Process Library
+  ibs: ImportantBusinessService[];
+  setIbs: (items: ImportantBusinessService[]) => void;
+  addIbs: (item: ImportantBusinessService) => void;
+  updateIbs: (id: string, data: Partial<ImportantBusinessService>) => void;
+  processes: Process[];
+  setProcesses: (items: Process[]) => void;
+  addProcess: (item: Process) => void;
+  updateProcess: (id: string, data: Partial<Process>) => void;
+  deleteProcess: (id: string) => void;
 
   // Dashboard Notifications
   notifications: DashboardNotification[];
@@ -267,7 +278,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   _hydratedAt: null,
   hydrate: async () => {
     try {
-      const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, permissionsData, smfRoles, prescribedResponsibilities, certificationFunctions, conductRules, conductRuleBreaches, smcrDocuments, accessRequests, dashboardLayout] = await Promise.all([
+      const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, permissionsData, smfRoles, prescribedResponsibilities, certificationFunctions, conductRules, conductRuleBreaches, smcrDocuments, accessRequests, dashboardLayout, ibs, processes] = await Promise.all([
         api<User[]>("/api/users"),
         api<Report[]>("/api/reports"),
         api<ConsumerDutyOutcome[]>("/api/consumer-duty"),
@@ -295,12 +306,14 @@ export const useAppStore = create<AppState>((set, get) => ({
         api<SMCRDocument[]>("/api/compliance/smcr/documents").catch(() => []),
         api<AccessRequest[]>("/api/access-requests").catch(() => []),
         api<DashboardLayoutConfig>("/api/dashboard-layout").catch(() => null),
+        api<ImportantBusinessService[]>("/api/ibs").catch(() => []),
+        api<Process[]>("/api/processes").catch(() => []),
       ]);
       // Extract certified persons from nested certification functions response
       const allCertifiedPersons = certificationFunctions.flatMap((cf: CertificationFunction & { certifiedPersons?: CertifiedPerson[] }) => cf.certifiedPersons ?? []);
       // Fire-and-forget: expire any access grants that have lapsed
       api("/api/access-requests/expiry-check", { method: "POST" }).catch(() => {});
-      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, rolePermissions: permissionsData.rolePermissions, userPermissions: permissionsData.userPermissions, smfRoles, prescribedResponsibilities, certificationFunctions, certifiedPersons: allCertifiedPersons, conductRules, conductRuleBreaches, smcrDocuments, accessRequests, dashboardLayout, _hydrated: true, _hydrateError: null, _hydratedAt: new Date() });
+      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, rolePermissions: permissionsData.rolePermissions, userPermissions: permissionsData.userPermissions, smfRoles, prescribedResponsibilities, certificationFunctions, certifiedPersons: allCertifiedPersons, conductRules, conductRuleBreaches, smcrDocuments, accessRequests, dashboardLayout, ibs, processes, _hydrated: true, _hydrateError: null, _hydratedAt: new Date() });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to connect to server";
       console.error("[hydrate] API unreachable:", message);
@@ -920,6 +933,20 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((s) => ({
       accessRequests: s.accessRequests.map((r) => (r.id === id ? { ...r, ...data } : r)),
     })),
+
+  // ── Process Library ────────────────────────────────────────
+  ibs: [],
+  setIbs: (items) => set({ ibs: items }),
+  addIbs: (item) => set((s) => ({ ibs: [item, ...s.ibs] })),
+  updateIbs: (id, data) =>
+    set((s) => ({ ibs: s.ibs.map((i) => (i.id === id ? { ...i, ...data } : i)) })),
+  processes: [],
+  setProcesses: (items) => set({ processes: items }),
+  addProcess: (item) => set((s) => ({ processes: [item, ...s.processes] })),
+  updateProcess: (id, data) =>
+    set((s) => ({ processes: s.processes.map((p) => (p.id === id ? { ...p, ...data } : p)) })),
+  deleteProcess: (id) =>
+    set((s) => ({ processes: s.processes.filter((p) => p.id !== id) })),
 
   // ── Dashboard Layout ───────────────────────────────────────
   dashboardLayout: null,

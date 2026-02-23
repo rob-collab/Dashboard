@@ -1714,6 +1714,122 @@ async function main() {
   }
   console.log(`  ✓ Enriched descriptions applied to ${descUpdated} regulations`);
 
+  // ── Process Library ───────────────────────────────────────────────────────
+
+  const IBS_RECORDS = [
+    { id: "ibs-retail-payments", reference: "IBS-001", name: "Retail Payments", description: "The end-to-end processing of retail payment instructions including direct debits, faster payments, and standing orders for customers.", maxTolerableDisruptionHours: 4, rtoHours: 2, rpoHours: 1, smfAccountable: "SMF3 - Chief Operating Officer", ownerId: "user-chris" },
+    { id: "ibs-customer-onboarding", reference: "IBS-002", name: "Customer Onboarding", description: "The full journey from account application through identity verification, credit assessment and account activation.", maxTolerableDisruptionHours: 24, rtoHours: 8, rpoHours: 4, smfAccountable: "SMF3 - Chief Operating Officer", ownerId: "user-ash" },
+    { id: "ibs-lending-decisioning", reference: "IBS-003", name: "Lending Decisioning", description: "Credit assessment and loan origination including affordability checks, credit bureau queries and underwriting decisions.", maxTolerableDisruptionHours: 8, rtoHours: 4, rpoHours: 2, smfAccountable: "SMF4 - Chief Risk Officer", ownerId: "user-micha" },
+    { id: "ibs-regulatory-reporting", reference: "IBS-004", name: "Regulatory Reporting", description: "Production and submission of all mandatory regulatory returns including FCA REP, CMAR, and CCD submissions.", maxTolerableDisruptionHours: 48, rtoHours: 24, rpoHours: 4, smfAccountable: "SMF16 - Compliance Oversight", ownerId: "user-cath" },
+    { id: "ibs-fraud-detection", reference: "IBS-005", name: "Fraud Detection & Prevention", description: "Real-time detection and interdiction of fraudulent transactions, identity fraud and account takeover attempts.", maxTolerableDisruptionHours: 2, rtoHours: 1, rpoHours: 0, smfAccountable: "SMF3 - Chief Operating Officer", ownerId: "user-chris" },
+    { id: "ibs-customer-servicing", reference: "IBS-006", name: "Customer Servicing", description: "Handling of customer enquiries, complaints, account management requests and dispute resolution.", maxTolerableDisruptionHours: 12, rtoHours: 4, rpoHours: 2, smfAccountable: "SMF6 - Head of Customer Operations", ownerId: "user-ash" },
+  ] as const;
+
+  for (const ibs of IBS_RECORDS) {
+    await prisma.importantBusinessService.upsert({
+      where: { id: ibs.id },
+      update: { name: ibs.name, description: ibs.description, maxTolerableDisruptionHours: ibs.maxTolerableDisruptionHours, rtoHours: ibs.rtoHours, rpoHours: ibs.rpoHours, smfAccountable: ibs.smfAccountable, ownerId: ibs.ownerId, status: "ACTIVE" },
+      create: { id: ibs.id, reference: ibs.reference, name: ibs.name, description: ibs.description, maxTolerableDisruptionHours: ibs.maxTolerableDisruptionHours, rtoHours: ibs.rtoHours, rpoHours: ibs.rpoHours, smfAccountable: ibs.smfAccountable, ownerId: ibs.ownerId, status: "ACTIVE" },
+    });
+  }
+  console.log(`  ✓ ${IBS_RECORDS.length} IBS records seeded`);
+
+  type ProcessSeed = {
+    id: string; reference: string; name: string;
+    category: "CUSTOMER_ONBOARDING"|"PAYMENTS"|"LENDING"|"COMPLIANCE"|"RISK_MANAGEMENT"|"FINANCE"|"TECHNOLOGY"|"PEOPLE"|"GOVERNANCE"|"OTHER";
+    processType: "CORE"|"SUPPORT"|"MANAGEMENT"|"GOVERNANCE";
+    criticality: "CRITICAL"|"IMPORTANT"|"STANDARD";
+    maturity: number;
+    ownerId?: string; description?: string; purpose?: string;
+    nextReviewDate?: Date; frequency?: "AD_HOC"|"DAILY"|"WEEKLY"|"MONTHLY"|"QUARTERLY"|"ANNUALLY"|"CONTINUOUS";
+    smfFunction?: string; prescribedResponsibilities?: string[]; endToEndSlaDays?: number;
+    ibsId?: string; policyRefs?: string[]; regulationRefs?: string[]; controlRefs?: string[];
+    steps?: { order: number; title: string; responsible: string; accountable: string }[];
+  };
+
+  const PROCESSES: ProcessSeed[] = [
+    // Level 1
+    { id: "proc-001", reference: "PROC-001", name: "Staff Onboarding Process", category: "PEOPLE", processType: "SUPPORT", criticality: "STANDARD", maturity: 1 },
+    { id: "proc-002", reference: "PROC-002", name: "Office Access Management", category: "TECHNOLOGY", processType: "SUPPORT", criticality: "STANDARD", maturity: 1 },
+    { id: "proc-003", reference: "PROC-003", name: "Vendor Onboarding", category: "GOVERNANCE", processType: "SUPPORT", criticality: "STANDARD", maturity: 1 },
+    { id: "proc-004", reference: "PROC-004", name: "Incident Response", category: "TECHNOLOGY", processType: "MANAGEMENT", criticality: "CRITICAL", maturity: 1 },
+    // Level 2
+    { id: "proc-005", reference: "PROC-005", name: "Customer Complaints Handling", category: "CUSTOMER_ONBOARDING", processType: "CORE", criticality: "IMPORTANT", maturity: 2, ownerId: "user-ash", description: "Handles all formal customer complaints from receipt through investigation to final response, in line with FCA DISP rules.", purpose: "To ensure fair, timely and well-evidenced responses to customer complaints, minimising regulatory risk and improving customer outcomes." },
+    { id: "proc-006", reference: "PROC-006", name: "Financial Crime Screening", category: "COMPLIANCE", processType: "CORE", criticality: "CRITICAL", maturity: 2, ownerId: "user-cath", description: "Screens customers and transactions against sanctions lists, PEP databases and adverse media to detect money laundering, terrorist financing and sanctions evasion.", purpose: "To comply with the Money Laundering Regulations 2017 and ensure no financial crime exposure." },
+    { id: "proc-007", reference: "PROC-007", name: "Regulatory Change Management", category: "COMPLIANCE", processType: "MANAGEMENT", criticality: "IMPORTANT", maturity: 2, ownerId: "user-cath", description: "Tracks, assesses and implements changes to regulatory requirements affecting the firm.", purpose: "To ensure the firm remains compliant with evolving regulatory requirements in a timely and evidenced manner." },
+    { id: "proc-008", reference: "PROC-008", name: "Credit Risk Appetite Review", category: "RISK_MANAGEMENT", processType: "MANAGEMENT", criticality: "IMPORTANT", maturity: 2, ownerId: "user-micha", description: "Quarterly review of credit risk appetite statements against actual portfolio performance, including breach escalation.", purpose: "To ensure credit risk exposure remains within Board-approved appetite." },
+    { id: "proc-009", reference: "PROC-009", name: "Finance Month-End Close", category: "FINANCE", processType: "CORE", criticality: "IMPORTANT", maturity: 2, ownerId: "user-david", description: "Monthly financial close process including reconciliation, journal postings, management accounts production and variance commentary.", purpose: "To produce accurate and timely management accounts and support regulatory and statutory reporting." },
+    // Level 3
+    { id: "proc-010", reference: "PROC-010", name: "Affordability Assessment", category: "LENDING", processType: "CORE", criticality: "CRITICAL", maturity: 3, ownerId: "user-micha", description: "Assessment of customer affordability for new lending decisions, including income verification, expenditure analysis and stress testing.", purpose: "To ensure customers are not provided with unaffordable credit in line with FCA Consumer Credit sourcebook.", nextReviewDate: new Date("2026-06-01"), regulationRefs: ["cu-0001"] },
+    { id: "proc-011", reference: "PROC-011", name: "Data Subject Access Request Handling", category: "COMPLIANCE", processType: "CORE", criticality: "IMPORTANT", maturity: 3, ownerId: "user-cath", description: "Processing of data subject access requests (DSARs) under UK GDPR Article 15 within the statutory 30-day deadline.", purpose: "To fulfil data subject rights obligations and avoid regulatory enforcement action by the ICO.", nextReviewDate: new Date("2026-03-01"), regulationRefs: ["cu-0001"] },
+    { id: "proc-012", reference: "PROC-012", name: "TCF / Consumer Duty Monitoring", category: "COMPLIANCE", processType: "MANAGEMENT", criticality: "CRITICAL", maturity: 3, ownerId: "user-cath", description: "Monthly monitoring of Consumer Duty outcome metrics across the four outcome areas, with board-level reporting.", purpose: "To demonstrate ongoing compliance with FCA Consumer Duty and provide the evidence base for annual board attestation.", nextReviewDate: new Date("2026-04-01"), policyRefs: ["POL-001"] },
+    { id: "proc-013", reference: "PROC-013", name: "Risk Register Review", category: "RISK_MANAGEMENT", processType: "MANAGEMENT", criticality: "IMPORTANT", maturity: 3, ownerId: "user-rob", description: "Quarterly review of the enterprise risk register including risk scoring, control effectiveness assessment and horizon scanning.", purpose: "To maintain an accurate and up-to-date risk register that reflects the firm's current risk profile.", nextReviewDate: new Date("2026-06-01"), policyRefs: ["POL-002"] },
+    { id: "proc-014", reference: "PROC-014", name: "Access Control Management", category: "TECHNOLOGY", processType: "SUPPORT", criticality: "IMPORTANT", maturity: 3, ownerId: "user-graham", description: "Lifecycle management of user access rights including provisioning, periodic reviews, and deprovisioning on staff departure.", purpose: "To prevent unauthorised access to systems and data.", nextReviewDate: new Date("2026-09-01"), policyRefs: ["POL-003"] },
+    // Level 4
+    { id: "proc-015", reference: "PROC-015", name: "Payment Processing & Reconciliation", category: "PAYMENTS", processType: "CORE", criticality: "CRITICAL", maturity: 4, ownerId: "user-chris", description: "End-to-end processing of customer payment instructions including faster payments, direct debits and BACS, with same-day and T+1 reconciliation.", purpose: "To ensure customer payment instructions are processed accurately, timely and within scheme rules.", nextReviewDate: new Date("2026-03-01"), frequency: "CONTINUOUS", policyRefs: ["POL-001"], regulationRefs: ["cu-0001"], controlRefs: ["FP-C001", "FP-C002"], steps: [{ order: 1, title: "Payment instruction receipt", responsible: "Payments Operations", accountable: "Head of Payments" }, { order: 2, title: "Sanctions and fraud screening", responsible: "Fraud & Financial Crime team", accountable: "Chief Risk Officer" }, { order: 3, title: "Scheme submission", responsible: "Payments Operations", accountable: "Head of Payments" }, { order: 4, title: "Confirmation and settlement", responsible: "Finance", accountable: "CFO" }, { order: 5, title: "Daily reconciliation", responsible: "Finance", accountable: "CFO" }] },
+    { id: "proc-016", reference: "PROC-016", name: "Know Your Customer (KYC) Onboarding", category: "CUSTOMER_ONBOARDING", processType: "CORE", criticality: "CRITICAL", maturity: 4, ownerId: "user-ash", description: "Customer identity verification, document collection, PEP/sanctions screening and risk rating at account opening for new retail customers.", purpose: "To meet Anti-Money Laundering and Counter-Terrorist Financing obligations.", nextReviewDate: new Date("2026-04-01"), frequency: "CONTINUOUS", policyRefs: ["POL-002"], regulationRefs: ["cu-0002"], controlRefs: ["FP-C003", "FP-C004"], steps: [{ order: 1, title: "Application receipt and identity document collection", responsible: "Customer Operations", accountable: "Head of Customer Ops" }, { order: 2, title: "Electronic identity verification (eIDV)", responsible: "Customer Operations", accountable: "Head of Customer Ops" }, { order: 3, title: "PEP and sanctions screening", responsible: "Financial Crime Team", accountable: "MLRO" }, { order: 4, title: "Risk rating assignment", responsible: "Financial Crime Team", accountable: "MLRO" }, { order: 5, title: "Account activation or referral to enhanced DD", responsible: "Customer Operations", accountable: "Head of Customer Ops" }] },
+    { id: "proc-017", reference: "PROC-017", name: "Credit Decisioning & Underwriting", category: "LENDING", processType: "CORE", criticality: "CRITICAL", maturity: 4, ownerId: "user-micha", description: "Automated and manual credit assessment process for personal loan applications, including bureau data, affordability scoring and decision output.", purpose: "To make fair, consistent and well-evidenced credit decisions that meet FCA Consumer Credit obligations.", nextReviewDate: new Date("2026-06-01"), frequency: "CONTINUOUS", policyRefs: ["POL-003"], regulationRefs: ["cu-0003"], controlRefs: ["FP-C005"], steps: [{ order: 1, title: "Application data validation", responsible: "Credit Ops", accountable: "Head of Credit" }, { order: 2, title: "Bureau data retrieval", responsible: "Credit Ops", accountable: "Head of Credit" }, { order: 3, title: "Affordability calculation", responsible: "Credit Models team", accountable: "Chief Risk Officer" }, { order: 4, title: "Decision engine output", responsible: "Credit Ops", accountable: "Head of Credit" }, { order: 5, title: "Manual referral review (if required)", responsible: "Senior Underwriter", accountable: "Head of Credit" }] },
+    { id: "proc-018", reference: "PROC-018", name: "Regulatory Reporting Submission", category: "COMPLIANCE", processType: "CORE", criticality: "CRITICAL", maturity: 4, ownerId: "user-cath", description: "Preparation, sign-off and submission of mandatory FCA regulatory returns including MLAR, GABRIEL submissions and ad-hoc notifications.", purpose: "To meet the firm's regulatory reporting obligations on time and with accurate data.", nextReviewDate: new Date("2026-03-01"), frequency: "QUARTERLY", policyRefs: ["POL-004"], regulationRefs: ["cu-0004"], controlRefs: ["FP-C006"], steps: [{ order: 1, title: "Data extraction from source systems", responsible: "Finance & Compliance", accountable: "CFO" }, { order: 2, title: "Data validation and reconciliation", responsible: "Compliance", accountable: "Head of Compliance" }, { order: 3, title: "Draft return preparation", responsible: "Compliance", accountable: "Head of Compliance" }, { order: 4, title: "Senior management sign-off", responsible: "SMF16", accountable: "SMF16" }, { order: 5, title: "Submission via RegData / GABRIEL", responsible: "Compliance", accountable: "Head of Compliance" }] },
+    // Level 5
+    { id: "proc-019", reference: "PROC-019", name: "Real-Time Fraud Detection", category: "PAYMENTS", processType: "CORE", criticality: "CRITICAL", maturity: 5, ownerId: "user-chris", description: "Continuous real-time monitoring of payment transactions using rule-based and ML-based fraud detection models, with automated interdiction and manual review queues.", purpose: "To detect and prevent fraudulent transactions with the lowest possible false positive rate, protecting customers and the firm from financial loss.", nextReviewDate: new Date("2026-06-01"), frequency: "CONTINUOUS", smfFunction: "SMF3 - Chief Operating Officer", prescribedResponsibilities: ["PR(e)", "PR(f)"], endToEndSlaDays: 1, ibsId: "ibs-fraud-detection", policyRefs: ["POL-005"], regulationRefs: ["cu-0005"], controlRefs: ["FP-C007"], steps: [{ order: 1, title: "Transaction monitoring ingestion", responsible: "Payments Tech", accountable: "CTO" }, { order: 2, title: "Rules and model scoring", responsible: "Fraud Team", accountable: "Head of Fraud" }, { order: 3, title: "Automated interdiction (high confidence)", responsible: "Payments System", accountable: "Head of Fraud" }, { order: 4, title: "Manual review queue (medium confidence)", responsible: "Fraud Analysts", accountable: "Head of Fraud" }, { order: 5, title: "Customer notification and case management", responsible: "Customer Operations", accountable: "SMF3" }] },
+    { id: "proc-020", reference: "PROC-020", name: "Consumer Duty Annual Board Attestation", category: "GOVERNANCE", processType: "GOVERNANCE", criticality: "CRITICAL", maturity: 5, ownerId: "user-rob", description: "Annual preparation and delivery of the Consumer Duty board report and attestation, including outcome monitoring data, gap analysis and remediation progress.", purpose: "To fulfil the FCA's requirement for the board to receive an annual Consumer Duty report and confirm that the firm is delivering good outcomes.", nextReviewDate: new Date("2027-01-01"), frequency: "ANNUALLY", smfFunction: "SMF16 - Compliance Oversight", prescribedResponsibilities: ["PR(c)", "PR(e)"], endToEndSlaDays: 30, ibsId: "ibs-regulatory-reporting", policyRefs: ["POL-006"], regulationRefs: ["cu-0006"], controlRefs: ["FP-C008"], steps: [{ order: 1, title: "Outcome data collation from all business areas", responsible: "Compliance", accountable: "SMF16" }, { order: 2, title: "Gap analysis against four Consumer Duty outcomes", responsible: "Compliance", accountable: "SMF16" }, { order: 3, title: "Remediation plan review and progress update", responsible: "All SMF holders", accountable: "SMF16" }, { order: 4, title: "Draft board report preparation", responsible: "Compliance", accountable: "SMF16" }, { order: 5, title: "Board review and formal attestation", responsible: "Board Secretary", accountable: "Board Chair" }] },
+  ];
+
+  for (const p of PROCESSES) {
+    await prisma.process.upsert({
+      where: { id: p.id },
+      update: { name: p.name, category: p.category, processType: p.processType, criticality: p.criticality, status: "ACTIVE", maturityScore: p.maturity, description: p.description ?? null, purpose: p.purpose ?? null, ownerId: p.ownerId ?? null, nextReviewDate: p.nextReviewDate ?? null, frequency: p.frequency ?? "AD_HOC", smfFunction: p.smfFunction ?? null, prescribedResponsibilities: p.prescribedResponsibilities ?? [], endToEndSlaDays: p.endToEndSlaDays ?? null },
+      create: { id: p.id, reference: p.reference, name: p.name, category: p.category, processType: p.processType, criticality: p.criticality, status: "ACTIVE", maturityScore: p.maturity, description: p.description ?? null, purpose: p.purpose ?? null, ownerId: p.ownerId ?? null, nextReviewDate: p.nextReviewDate ?? null, frequency: p.frequency ?? "AD_HOC", smfFunction: p.smfFunction ?? null, prescribedResponsibilities: p.prescribedResponsibilities ?? [], endToEndSlaDays: p.endToEndSlaDays ?? null },
+    });
+  }
+  console.log(`  ✓ ${PROCESSES.length} processes seeded`);
+
+  // Process Steps
+  let stepsSeeded = 0;
+  for (const p of PROCESSES) {
+    if (!p.steps) continue;
+    for (const s of p.steps) {
+      await prisma.processStep.upsert({
+        where: { processId_stepOrder: { processId: p.id, stepOrder: s.order } },
+        update: { title: s.title, responsibleRole: s.responsible, accountableRole: s.accountable },
+        create: { processId: p.id, stepOrder: s.order, title: s.title, responsibleRole: s.responsible, accountableRole: s.accountable },
+      });
+      stepsSeeded++;
+    }
+  }
+  console.log(`  ✓ ${stepsSeeded} process steps seeded`);
+
+  // Process links
+  let procLinks = 0;
+  for (const p of PROCESSES) {
+    for (const ref of p.policyRefs ?? []) {
+      const policy = await prisma.policy.findFirst({ where: { reference: ref } });
+      if (policy) {
+        await prisma.processPolicyLink.upsert({ where: { processId_policyId: { processId: p.id, policyId: policy.id } }, update: {}, create: { processId: p.id, policyId: policy.id, linkedBy: "user-rob" } });
+        procLinks++;
+      }
+    }
+    for (const ref of p.regulationRefs ?? []) {
+      const reg = await prisma.regulation.findFirst({ where: { id: ref } });
+      if (reg) {
+        await prisma.processRegulationLink.upsert({ where: { processId_regulationId: { processId: p.id, regulationId: reg.id } }, update: {}, create: { processId: p.id, regulationId: reg.id, linkedBy: "user-rob" } });
+        procLinks++;
+      }
+    }
+    for (const ref of p.controlRefs ?? []) {
+      const ctrl = await prisma.control.findFirst({ where: { controlRef: ref } });
+      if (ctrl) {
+        await prisma.processControlLink.upsert({ where: { processId_controlId: { processId: p.id, controlId: ctrl.id } }, update: {}, create: { processId: p.id, controlId: ctrl.id, linkedBy: "user-rob" } });
+        procLinks++;
+      }
+    }
+    if (p.ibsId) {
+      await prisma.processIBSLink.upsert({ where: { processId_ibsId: { processId: p.id, ibsId: p.ibsId } }, update: {}, create: { processId: p.id, ibsId: p.ibsId, linkedBy: "user-rob" } });
+      procLinks++;
+    }
+  }
+  console.log(`  ✓ ${procLinks} process links seeded`);
+
   console.log("Seed complete!");
 }
 

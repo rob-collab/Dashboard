@@ -10,7 +10,8 @@ export type NavigableEntity =
   | "regulation"
   | "risk"
   | "action"
-  | "risk-acceptance";
+  | "risk-acceptance"
+  | "process";
 
 const URL_BUILDERS: Record<NavigableEntity, (id: string) => string> = {
   policy: (id) => `/compliance?tab=policies&policy=${id}`,
@@ -19,6 +20,7 @@ const URL_BUILDERS: Record<NavigableEntity, (id: string) => string> = {
   risk: (id) => `/risk-register?risk=${id}`,
   action: (id) => `/actions?action=${id}`,
   "risk-acceptance": (id) => `/risk-acceptances?acceptance=${id}`,
+  process: (id) => `/processes?process=${id}`,
 };
 
 export function getEntityUrl(type: NavigableEntity, id: string): string {
@@ -72,5 +74,10 @@ export const ENTITY_BADGE_STYLES: Record<
     bg: "bg-purple-50",
     text: "text-purple-700",
     hoverBg: "hover:bg-purple-100",
+  },
+  process: {
+    bg: "bg-teal-50",
+    text: "text-teal-700",
+    hoverBg: "hover:bg-teal-100",
   },
 };
