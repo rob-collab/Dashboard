@@ -13,6 +13,7 @@ import {
   TrendingUp,
   Settings,
   Eye,
+  History,
 } from "lucide-react";
 import ControlsLibraryTab from "@/components/controls/ControlsLibraryTab";
 import TestingScheduleTab from "@/components/controls/TestingScheduleTab";
@@ -23,6 +24,7 @@ import QuarterlySummaryTab from "@/components/controls/QuarterlySummaryTab";
 import TrendAnalysisTab from "@/components/controls/TrendAnalysisTab";
 import ExcoConfigTab from "@/components/controls/ExcoConfigTab";
 import ExcoDashboardTab from "@/components/controls/ExcoDashboardTab";
+import HistoryTab from "@/components/common/HistoryTab";
 import { usePageTitle } from "@/lib/usePageTitle";
 
 type Tab =
@@ -34,7 +36,8 @@ type Tab =
   | "summaries"
   | "trends"
   | "exco-config"
-  | "exco-dashboard";
+  | "exco-dashboard"
+  | "history";
 
 const TABS: { id: Tab; label: string; icon: typeof Library; roles: string[] }[] = [
   { id: "dashboard", label: "Dashboard", icon: BarChart3, roles: ["CCRO_TEAM", "OWNER"] },
@@ -46,6 +49,7 @@ const TABS: { id: Tab; label: string; icon: typeof Library; roles: string[] }[] 
   { id: "trends", label: "Trend Analysis", icon: TrendingUp, roles: ["CCRO_TEAM"] },
   { id: "exco-config", label: "ExCo Config", icon: Settings, roles: ["CCRO_TEAM"] },
   { id: "exco-dashboard", label: "ExCo View", icon: Eye, roles: ["CCRO_TEAM", "VIEWER"] },
+  { id: "history", label: "History", icon: History, roles: ["CCRO_TEAM", "OWNER"] },
 ];
 
 export default function ControlsPage() {
@@ -64,7 +68,7 @@ function ControlsPageInner() {
   const tabParam = searchParams.get("tab") as Tab | null;
   const initialControlId = searchParams.get("control");
   const [activeTab, setActiveTab] = useState<Tab>(
-    tabParam && ["library", "testing", "results", "dashboard", "attestation", "summaries", "trends", "exco-config", "exco-dashboard"].includes(tabParam)
+    tabParam && ["library", "testing", "results", "dashboard", "attestation", "summaries", "trends", "exco-config", "exco-dashboard", "history"].includes(tabParam)
       ? tabParam
       : "dashboard"
   );
@@ -123,6 +127,13 @@ function ControlsPageInner() {
       {activeTab === "trends" && <TrendAnalysisTab />}
       {activeTab === "exco-config" && <ExcoConfigTab />}
       {activeTab === "exco-dashboard" && <ExcoDashboardTab />}
+      {activeTab === "history" && (
+        <HistoryTab
+          entityTypes={["control"]}
+          title="Controls Change History"
+          description="Audit trail of control changes, archives and updates."
+        />
+      )}
     </div>
   );
 }

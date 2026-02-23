@@ -10,6 +10,8 @@ import RiskTable from "@/components/risk-register/RiskTable";
 import RiskDetailPanel from "@/components/risk-register/RiskDetailPanel";
 import RiskHistoryChart from "@/components/risk-register/RiskHistoryChart";
 import { Grid3X3, List, Plus, Download, Upload, ShieldAlert, TrendingDown, TrendingUp, FileText, Bell, Search, Star } from "lucide-react";
+import HistoryTab from "@/components/common/HistoryTab";
+import { cn } from "@/lib/utils";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
 import RiskCSVUploadDialog from "@/components/risk-register/RiskCSVUploadDialog";
@@ -31,6 +33,16 @@ export default function RiskRegisterPage() {
   const { risks, setRisks, addRisk, updateRisk, deleteRisk, currentUser, users } = useAppStore();
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Top-level page tab: register view or history
+  const [activeTab, setActiveTab] = useState<"register" | "history">(() =>
+    searchParams.get("tab") === "history" ? "history" : "register"
+  );
+
+  // Sync activeTab from URL changes
+  useEffect(() => {
+    setActiveTab(searchParams.get("tab") === "history" ? "history" : "register");
+  }, [searchParams]);
 
   // Initialise filter state from URL params
   const [viewTab, setViewTab] = useState<ViewTab>(() => {
@@ -81,11 +93,13 @@ export default function RiskRegisterPage() {
       if (cardFilter !== "ALL") params.set("filter", cardFilter); else params.delete("filter");
       if (activeCategoryL1) params.set("cat", activeCategoryL1); else params.delete("cat");
       if (searchQuery.trim()) params.set("q", searchQuery); else params.delete("q");
+      // Preserve tab param
+      if (activeTab === "history") params.set("tab", "history"); else params.delete("tab");
       router.replace(`/risk-register?${params.toString()}`, { scroll: false });
     }, 150);
     return () => { if (syncTimerRef.current) clearTimeout(syncTimerRef.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewTab, scoreMode, cardFilter, activeCategoryL1, searchQuery]);
+  }, [viewTab, scoreMode, cardFilter, activeCategoryL1, searchQuery, activeTab]);
 
   // Persist score mode preference to localStorage
   useEffect(() => {
@@ -587,6 +601,35 @@ export default function RiskRegisterPage() {
         </div>
       </div>
 
+      {/* Page tab bar */}
+      <div className="flex gap-1 border-b border-gray-200">
+        {(["register", "history"] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setActiveTab(tab)}
+            className={cn(
+              "px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
+              activeTab === tab
+                ? "border-updraft-bright-purple text-updraft-deep"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            )}
+          >
+            {tab === "register" ? "Register" : "History"}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "history" && (
+        <HistoryTab
+          entityTypes={["risk"]}
+          title="Risk Register History"
+          description="Month-by-month audit trail of risk changes, score updates and status transitions."
+        />
+      )}
+
+      {activeTab === "register" && <>
+
       {/* Search Bar */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -723,6 +766,8 @@ export default function RiskRegisterPage() {
           onClose={() => setHistoryRisk(null)}
         />
       )}
+
+      </> /* end activeTab === "register" */ }
 
       {/* CSV Import Dialog */}
       <RiskCSVUploadDialog

@@ -3,6 +3,39 @@ Last updated: 2026-02-23
 
 ---
 
+## CURRENT SPRINT: History Tab — All Remaining Views ✅ COMPLETE
+
+### What
+Add a History tab to Controls, Risk Register, Actions, Consumer Duty, and Processes.
+Uses one generic API route + one generic HistoryTab component.
+
+### New Files
+- `src/app/api/audit/history/route.ts` — `GET /api/audit/history?entityTypes=...&months=12`
+- `src/components/common/HistoryTab.tsx` — reusable month-accordion history UI
+
+### Modified Files
+- `src/app/controls/page.tsx` — add "History" as 10th tab
+- `src/app/risk-register/page.tsx` — add "Register" / "History" 2-tab bar
+- `src/app/actions/page.tsx` — add "Actions" / "History" 2-tab bar
+- `src/app/consumer-duty/page.tsx` — add "Dashboard" / "History" 2-tab bar
+- `src/app/processes/page.tsx` — add "Process Library" / "History" 2-tab bar
+
+### Checklist
+- [x] `GET /api/audit/history` returns events grouped by month for given entityTypes
+- [x] HistoryTab renders month accordion with search + type filter
+- [x] Controls page — History tab visible and shows control audit events
+- [x] Risk Register — History tab shows risk audit events
+- [x] Actions — History tab shows action audit events
+- [x] Consumer Duty — History tab shows outcome/measure/MI events
+- [x] Processes — History tab shows process events
+- [x] URL ?tab=history syncs correctly on all pages
+- [x] Back button still works after tab navigation
+- [x] Build passes (zero type errors)
+
+---
+
+---
+
 ## CURRENT SPRINT: Bug Fix — Compliance nav + Back button ✅ COMPLETE
 
 ### Compliance sidebar navigation (tabs don't switch when already on /compliance)

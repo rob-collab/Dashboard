@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Layers, BarChart2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
@@ -11,6 +11,8 @@ import ProcessDetailPanel from "@/components/processes/ProcessDetailPanel";
 import ProcessFormDialog from "@/components/processes/ProcessFormDialog";
 import ProcessInsightsPanel from "@/components/processes/ProcessInsightsPanel";
 import { EmptyState } from "@/components/common/EmptyState";
+import HistoryTab from "@/components/common/HistoryTab";
+import { cn } from "@/lib/utils";
 
 export default function ProcessesPage() {
   const processes = useAppStore((s) => s.processes);
@@ -19,6 +21,31 @@ export default function ProcessesPage() {
   const currentUser = useAppStore((s) => s.currentUser);
   const isCCRO = currentUser?.role === "CCRO_TEAM";
   const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Page-level tab: process library or history
+  const [activeTab, setActiveTab] = useState<"processes" | "history">(() =>
+    searchParams.get("tab") === "history" ? "history" : "processes"
+  );
+
+  // Sync activeTab from URL
+  useEffect(() => {
+    setActiveTab(searchParams.get("tab") === "history" ? "history" : "processes");
+  }, [searchParams]);
+
+  function handleTabChange(tab: "processes" | "history") {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === "history") {
+      params.set("tab", "history");
+      params.delete("process");
+      setSelectedProcess(null);
+    } else {
+      params.delete("tab");
+    }
+    const qs = params.toString();
+    router.replace(qs ? `/processes?${qs}` : "/processes", { scroll: false });
+  }
 
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -109,15 +136,45 @@ export default function ProcessesPage() {
         </div>
       </div>
 
-      {/* Insights panel */}
-      {showInsights && insightsData && (
+      {/* Page tab bar */}
+      <div className="flex gap-1 px-6 border-b border-gray-200 bg-white shrink-0">
+        {(["processes", "history"] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => handleTabChange(tab)}
+            className={cn(
+              "px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
+              activeTab === tab
+                ? "border-updraft-bright-purple text-updraft-deep"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            )}
+          >
+            {tab === "processes" ? "Process Library" : "History"}
+          </button>
+        ))}
+      </div>
+
+      {/* History tab */}
+      {activeTab === "history" && (
+        <div className="flex-1 overflow-y-auto p-6">
+          <HistoryTab
+            entityTypes={["process"]}
+            title="Process Library History"
+            description="Audit trail of process changes, version updates and link events."
+          />
+        </div>
+      )}
+
+      {/* Insights panel — only on processes tab */}
+      {activeTab === "processes" && showInsights && insightsData && (
         <div className="px-6 pt-4 shrink-0">
           <ProcessInsightsPanel data={insightsData} onProcessClick={handleInsightsProcessClick} />
         </div>
       )}
 
       {/* Main content */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      {activeTab === "processes" && <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Table */}
         <div className={`flex-1 overflow-y-auto p-6 transition-all ${selectedProcess ? "hidden lg:block lg:pr-4" : ""}`}>
           {processes.length === 0 ? (
@@ -144,7 +201,7 @@ export default function ProcessesPage() {
             />
           </div>
         )}
-      </div>
+      </div>} {/* end activeTab === "processes" */}
 
       {/* Create dialog */}
       <ProcessFormDialog

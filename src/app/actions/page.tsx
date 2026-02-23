@@ -43,6 +43,7 @@ import ActionFormDialog from "@/components/actions/ActionFormDialog";
 import ActionChangePanel from "@/components/actions/ActionChangePanel";
 import ActionCSVUploadDialog from "@/components/actions/ActionCSVUploadDialog";
 import ActionUpdateForm from "@/components/actions/ActionUpdateForm";
+import HistoryTab from "@/components/common/HistoryTab";
 import dynamic from "next/dynamic";
 
 const RichTextEditor = dynamic(() => import("@/components/common/RichTextEditor"), { ssr: false });
@@ -104,6 +105,24 @@ function ActionsPageContent() {
 
   const isCCRO = currentUser?.role === "CCRO_TEAM";
 
+  // Page-level tab: actions list or history
+  const [activeTab, setActiveTab] = useState<"actions" | "history">(() =>
+    searchParams.get("tab") === "history" ? "history" : "actions"
+  );
+
+  // Sync activeTab from URL
+  useEffect(() => {
+    setActiveTab(searchParams.get("tab") === "history" ? "history" : "actions");
+  }, [searchParams]);
+
+  function handleTabChange(tab: "actions" | "history") {
+    setActiveTab(tab);
+    if (tab === "history") {
+      router.replace("/actions?tab=history", { scroll: false });
+    }
+    // Switching back to "actions": the filter sync effect below will rewrite the URL
+  }
+
   // Filters — initialise from URL params
   const [search, setSearch] = useState<string>(() => searchParams.get("q") ?? "");
   const [statusFilter, setStatusFilter] = useState<string>(() => {
@@ -155,6 +174,7 @@ function ActionsPageContent() {
   // Debounced URL sync for all filters
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
+    if (activeTab === "history") return; // don't overwrite ?tab=history with filter params
     if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
     syncTimerRef.current = setTimeout(() => {
       const params = new URLSearchParams();
@@ -168,7 +188,7 @@ function ActionsPageContent() {
       router.replace(qs ? `/actions?${qs}` : "/actions", { scroll: false });
     }, 150);
     return () => { if (syncTimerRef.current) clearTimeout(syncTimerRef.current); };
-  }, [statusFilter, priorityFilter, search, ownerFilter, reportFilter, sourceFilter, isCCRO, router]);
+  }, [statusFilter, priorityFilter, search, ownerFilter, reportFilter, sourceFilter, isCCRO, router, activeTab]);
 
   const handleStatusChange = useCallback((value: string) => setStatusFilter(value), []);
   const handlePriorityChange = useCallback((value: string) => setPriorityFilter(value), []);
@@ -479,6 +499,35 @@ function ActionsPageContent() {
           <RequestEditAccessButton permission="edit:actions" />
         )}
       </div>
+
+      {/* Page tab bar */}
+      <div className="flex gap-1 border-b border-gray-200">
+        {(["actions", "history"] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => handleTabChange(tab)}
+            className={cn(
+              "px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
+              activeTab === tab
+                ? "border-updraft-bright-purple text-updraft-deep"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            )}
+          >
+            {tab === "actions" ? "Actions" : "History"}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "history" && (
+        <HistoryTab
+          entityTypes={["action"]}
+          title="Actions History"
+          description="Audit trail of action changes, assignments and status updates."
+        />
+      )}
+
+      {activeTab === "actions" && <>
 
       {/* Priority cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1243,6 +1292,8 @@ function ActionsPageContent() {
           </div>
         )}
       </div>
+
+      </> /* end activeTab === "actions" */ }
 
       {/* Action Form Dialog */}
       <ActionFormDialog

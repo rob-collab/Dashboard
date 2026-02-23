@@ -18,6 +18,7 @@ import { cn, ragBgColor, ragLabelShort, naturalCompare } from "@/lib/utils";
 import type { ConsumerDutyMeasure, ConsumerDutyOutcome, ConsumerDutyMI, RAGStatus } from "@/lib/types";
 import { usePageTitle } from "@/lib/usePageTitle";
 import GlossaryTooltip from "@/components/common/GlossaryTooltip";
+import HistoryTab from "@/components/common/HistoryTab";
 
 type RagFilterValue = RAGStatus | "ALL" | "ATTENTION";
 
@@ -46,6 +47,23 @@ function ConsumerDutyContent() {
   const isOwner = currentUser?.role === "OWNER";
   const isCCROTeam = currentUser?.role === "CCRO_TEAM";
   const canEdit = isOwner || isCCROTeam;
+
+  // Page-level tab: dashboard or history
+  const [activeTab, setActiveTab] = useState<"dashboard" | "history">(() =>
+    searchParams.get("tab") === "history" ? "history" : "dashboard"
+  );
+
+  // Sync activeTab from URL
+  useEffect(() => {
+    setActiveTab(searchParams.get("tab") === "history" ? "history" : "dashboard");
+  }, [searchParams]);
+
+  function handleTabChange(tab: "dashboard" | "history") {
+    setActiveTab(tab);
+    if (tab === "history") {
+      router.replace("/consumer-duty?tab=history", { scroll: false });
+    }
+  }
 
   const [selectedOutcomeId, setSelectedOutcomeId] = useState<string | null>(null);
   const [selectedMeasure, setSelectedMeasure] = useState<ConsumerDutyMeasure | null>(null);
@@ -91,6 +109,7 @@ function ConsumerDutyContent() {
   // Debounced URL sync for ragFilter + searchQuery
   const cdSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
+    if (activeTab === "history") return; // don't overwrite ?tab=history with filter params
     if (cdSyncTimerRef.current) clearTimeout(cdSyncTimerRef.current);
     cdSyncTimerRef.current = setTimeout(() => {
       const params = new URLSearchParams();
@@ -101,7 +120,7 @@ function ConsumerDutyContent() {
     }, 150);
     return () => { if (cdSyncTimerRef.current) clearTimeout(cdSyncTimerRef.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ragFilter, searchQuery]);
+  }, [ragFilter, searchQuery, activeTab]);
 
   // RAG filter handler (just set state — URL synced by effect above)
   const handleRagFilter = useCallback((value: RagFilterValue) => {
@@ -396,6 +415,35 @@ function ConsumerDutyContent() {
           )}
         </div>
       </div>
+
+      {/* Page tab bar */}
+      <div className="flex gap-1 border-b border-gray-200">
+        {(["dashboard", "history"] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => handleTabChange(tab)}
+            className={cn(
+              "px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
+              activeTab === tab
+                ? "border-updraft-bright-purple text-updraft-deep"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            )}
+          >
+            {tab === "dashboard" ? "Dashboard" : "History"}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "history" && (
+        <HistoryTab
+          entityTypes={["consumer_duty_outcome", "consumer_duty_measure", "consumer_duty_mi"]}
+          title="Consumer Duty History"
+          description="Audit trail of outcome, measure and MI changes."
+        />
+      )}
+
+      {activeTab === "dashboard" && <>
 
       {/* Summary cards — measure-level RAG counts */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -850,6 +898,8 @@ function ConsumerDutyContent() {
         open={!!riskDetailOutcome}
         onClose={() => setRiskDetailOutcome(null)}
       />
+
+      </> /* end activeTab === "dashboard" */ }
     </div>
   );
 }
