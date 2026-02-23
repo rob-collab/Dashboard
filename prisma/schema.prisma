@@ -1491,6 +1491,8 @@ model ImportantBusinessService {
   updatedAt                 DateTime  @updatedAt
 
   processLinks              ProcessIBSLink[]
+  resourceMaps              IBSResourceMap[]
+  scenarios                 ResilienceScenario[]
 
   @@map("important_business_services")
 }
@@ -1624,4 +1626,95 @@ model ProcessIBSLink {
 
   @@unique([processId, ibsId])
   @@map("process_ibs_links")
+}
+
+// ── Operational Resilience Module ─────────────────────────────────────────────
+
+enum ResourceCategory {
+  PEOPLE
+  PROCESSES
+  TECHNOLOGY
+  FACILITIES
+  INFORMATION
+}
+
+enum ScenarioType {
+  CYBER_ATTACK
+  SYSTEM_OUTAGE
+  THIRD_PARTY_FAILURE
+  PANDEMIC
+  BUILDING_LOSS
+  DATA_CORRUPTION
+  KEY_PERSON_LOSS
+  REGULATORY_CHANGE
+}
+
+enum ScenarioStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETE
+}
+
+enum ScenarioOutcome {
+  WITHIN_TOLERANCE
+  BREACH
+  NOT_TESTED
+}
+
+enum AssessmentStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+}
+
+model IBSResourceMap {
+  id            String                   @id @default(cuid())
+  ibsId         String
+  ibs           ImportantBusinessService @relation(fields: [ibsId], references: [id], onDelete: Cascade)
+  category      ResourceCategory
+  content       Json                     @default("{}")
+  lastUpdatedAt DateTime?
+  lastUpdatedBy String?
+
+  @@unique([ibsId, category])
+  @@map("ibs_resource_maps")
+}
+
+model ResilienceScenario {
+  id                  String          @id @default(cuid())
+  reference           String          @unique
+  ibsId               String
+  ibs                 ImportantBusinessService @relation(fields: [ibsId], references: [id], onDelete: Cascade)
+  name                String
+  description         String?         @db.Text
+  scenarioType        ScenarioType
+  testedAt            DateTime?
+  nextTestDate        DateTime?
+  conductedBy         String?
+  status              ScenarioStatus  @default(PLANNED)
+  outcome             ScenarioOutcome @default(NOT_TESTED)
+  findings            String?         @db.Text
+  remediationRequired Boolean         @default(false)
+  createdAt           DateTime        @default(now())
+
+  @@index([ibsId])
+  @@map("resilience_scenarios")
+}
+
+model SelfAssessment {
+  id                   String           @id @default(cuid())
+  year                 Int              @unique
+  status               AssessmentStatus @default(DRAFT)
+  submittedAt          DateTime?
+  approvedBy           String?
+  boardApprovalDate    DateTime?
+  executiveSummary     String?          @db.Text
+  ibsCoverage          Json?
+  vulnerabilitiesCount Int              @default(0)
+  openRemediations     Int              @default(0)
+  documentUrl          String?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  @@map("self_assessments")
 }

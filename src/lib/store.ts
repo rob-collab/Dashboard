@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry, RiskAcceptance, Policy, Regulation, DashboardNotification, Role, RiskControlLink, SMFRole, PrescribedResponsibility, CertificationFunction, CertifiedPerson, ConductRule, ConductRuleBreach, SMCRDocument, ComplianceStatus, Applicability, AccessRequest, DashboardLayoutConfig, ImportantBusinessService, Process } from "./types";
+import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry, RiskAcceptance, Policy, Regulation, DashboardNotification, Role, RiskControlLink, SMFRole, PrescribedResponsibility, CertificationFunction, CertifiedPerson, ConductRule, ConductRuleBreach, SMCRDocument, ComplianceStatus, Applicability, AccessRequest, DashboardLayoutConfig, ImportantBusinessService, Process, ResilienceScenario, SelfAssessment } from "./types";
 import { api, friendlyApiError } from "./api-client";
 
 interface AppState {
@@ -134,6 +134,16 @@ interface AppState {
   addProcess: (item: Process) => void;
   updateProcess: (id: string, data: Partial<Process>) => void;
   deleteProcess: (id: string) => void;
+
+  // Operational Resilience
+  scenarios: ResilienceScenario[];
+  setScenarios: (items: ResilienceScenario[]) => void;
+  addScenario: (item: ResilienceScenario) => void;
+  updateScenario: (id: string, data: Partial<ResilienceScenario>) => void;
+  selfAssessments: SelfAssessment[];
+  setSelfAssessments: (items: SelfAssessment[]) => void;
+  addSelfAssessment: (item: SelfAssessment) => void;
+  updateSelfAssessment: (id: string, data: Partial<SelfAssessment>) => void;
 
   // Dashboard Notifications
   notifications: DashboardNotification[];
@@ -278,7 +288,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   _hydratedAt: null,
   hydrate: async () => {
     try {
-      const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, permissionsData, smfRoles, prescribedResponsibilities, certificationFunctions, conductRules, conductRuleBreaches, smcrDocuments, accessRequests, dashboardLayout, ibs, processes] = await Promise.all([
+      const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, permissionsData, smfRoles, prescribedResponsibilities, certificationFunctions, conductRules, conductRuleBreaches, smcrDocuments, accessRequests, dashboardLayout, ibs, processes, scenarios, selfAssessments] = await Promise.all([
         api<User[]>("/api/users"),
         api<Report[]>("/api/reports"),
         api<ConsumerDutyOutcome[]>("/api/consumer-duty"),
@@ -308,12 +318,14 @@ export const useAppStore = create<AppState>((set, get) => ({
         api<DashboardLayoutConfig>("/api/dashboard-layout").catch(() => null),
         api<ImportantBusinessService[]>("/api/ibs").catch(() => []),
         api<Process[]>("/api/processes").catch(() => []),
+        api<ResilienceScenario[]>("/api/ibs/scenarios").catch(() => []),
+        api<SelfAssessment[]>("/api/self-assessments").catch(() => []),
       ]);
       // Extract certified persons from nested certification functions response
       const allCertifiedPersons = certificationFunctions.flatMap((cf: CertificationFunction & { certifiedPersons?: CertifiedPerson[] }) => cf.certifiedPersons ?? []);
       // Fire-and-forget: expire any access grants that have lapsed
       api("/api/access-requests/expiry-check", { method: "POST" }).catch(() => {});
-      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, rolePermissions: permissionsData.rolePermissions, userPermissions: permissionsData.userPermissions, smfRoles, prescribedResponsibilities, certificationFunctions, certifiedPersons: allCertifiedPersons, conductRules, conductRuleBreaches, smcrDocuments, accessRequests, dashboardLayout, ibs, processes, _hydrated: true, _hydrateError: null, _hydratedAt: new Date() });
+      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, rolePermissions: permissionsData.rolePermissions, userPermissions: permissionsData.userPermissions, smfRoles, prescribedResponsibilities, certificationFunctions, certifiedPersons: allCertifiedPersons, conductRules, conductRuleBreaches, smcrDocuments, accessRequests, dashboardLayout, ibs, processes, scenarios, selfAssessments, _hydrated: true, _hydrateError: null, _hydratedAt: new Date() });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to connect to server";
       console.error("[hydrate] API unreachable:", message);
@@ -947,6 +959,18 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((s) => ({ processes: s.processes.map((p) => (p.id === id ? { ...p, ...data } : p)) })),
   deleteProcess: (id) =>
     set((s) => ({ processes: s.processes.filter((p) => p.id !== id) })),
+
+  // ── Operational Resilience ─────────────────────────────────
+  scenarios: [],
+  setScenarios: (items) => set({ scenarios: items }),
+  addScenario: (item) => set((s) => ({ scenarios: [item, ...s.scenarios] })),
+  updateScenario: (id, data) =>
+    set((s) => ({ scenarios: s.scenarios.map((sc) => (sc.id === id ? { ...sc, ...data } : sc)) })),
+  selfAssessments: [],
+  setSelfAssessments: (items) => set({ selfAssessments: items }),
+  addSelfAssessment: (item) => set((s) => ({ selfAssessments: [item, ...s.selfAssessments] })),
+  updateSelfAssessment: (id, data) =>
+    set((s) => ({ selfAssessments: s.selfAssessments.map((sa) => (sa.id === id ? { ...sa, ...data } : sa)) })),
 
   // ── Dashboard Layout ───────────────────────────────────────
   dashboardLayout: null,

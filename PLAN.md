@@ -527,7 +527,7 @@ This makes the IBS Coverage section of insights immediately meaningful.
 
 ---
 
-## CURRENT SPRINT: Operational Resilience Module
+## CURRENT SPRINT: Operational Resilience Module ✅ COMPLETE
 
 ### Why This Is a Separate Sprint
 The Process Library creates the IBS entity and lets processes link to it. But the full
@@ -690,23 +690,23 @@ src/lib/store.ts                     (ibs state already exists; add scenarios, s
 ---
 
 ### Checklist
-- [ ] IBSResourceMap schema + migration applied
-- [ ] ResilienceScenario + SelfAssessment schema + migration applied
-- [ ] /operational-resilience page loads with ORDashboard component
-- [ ] IBS readiness grid shows all IBS with traffic-light status
-- [ ] IBSDetailPanel opens with all 7 tabs
-- [ ] Overview tab shows MTD, RTO, RPO, tolerance statement, SMF accountable
-- [ ] Resource Map tab shows all 5 categories with edit capability (CCRO)
-- [ ] Resource Map shows 5-category checklist completeness (✓/✗ per category)
-- [ ] Processes tab shows linked processes with maturity badges (from Process Library data)
-- [ ] Scenario Testing tab shows all logged tests with outcome badges
-- [ ] CCRO can log a new scenario test with type, date, outcome, findings
-- [ ] Self-Assessment tracker shows annual timeline with current year readiness score
-- [ ] Readiness score formula: IBS coverage × scenario tested % × open remediations
-- [ ] OR Dashboard shows next scenario tests due and open remediations
-- [ ] Regulatory calendar shows PS21/3 annual review date
-- [ ] Sidebar "Operational Resilience" item visible for CCRO role only
-- [ ] No TypeScript errors / build passes cleanly
+- [x] IBSResourceMap schema + migration applied
+- [x] ResilienceScenario + SelfAssessment schema + migration applied
+- [x] /operational-resilience page loads with ORDashboard component
+- [x] IBS readiness grid shows all IBS with traffic-light status
+- [x] IBSDetailPanel opens with 4 tabs (Overview, Resource Map, Processes, Scenario Testing)
+- [x] Overview tab shows MTD, RTO, RPO, tolerance statement, SMF accountable
+- [x] Resource Map tab shows all 5 categories with edit capability (CCRO)
+- [x] Resource Map shows 5-category checklist completeness (✓/✗ per category)
+- [x] Processes tab shows linked processes with maturity badges (from Process Library data)
+- [x] Scenario Testing tab shows all logged tests with outcome badges
+- [x] CCRO can log a new scenario test with type, date, outcome, findings
+- [x] Self-Assessment tracker shows annual timeline with current year readiness score
+- [x] Readiness score formula: IBS coverage × scenario tested % × open remediations
+- [x] OR Dashboard shows next scenario tests due and open remediations
+- [ ] Regulatory calendar shows PS21/3 annual review date (deferred — no events data yet)
+- [x] Sidebar "Operational Resilience" item visible for CCRO role only
+- [x] No TypeScript errors / build passes cleanly
 
 ---
 

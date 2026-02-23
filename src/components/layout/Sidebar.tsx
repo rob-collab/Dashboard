@@ -29,6 +29,7 @@ import {
   Search,
   ArrowLeftRight,
   Layers,
+  Building2,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import type { User } from "@/lib/types";
@@ -73,6 +74,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "SM&CR", href: "/compliance?tab=smcr", icon: BadgeCheck, permission: "page:compliance" },
       { label: "Controls", href: "/controls", icon: FlaskConical, permission: "page:controls", badgeKey: "controls" },
       { label: "Process Library", href: "/processes", icon: Layers, permission: "page:compliance" },
+      { label: "Operational Resilience", href: "/operational-resilience", icon: Building2, permission: "page:operational-resilience" },
     ],
   },
   {

@@ -28,3 +28,12 @@ For every change request (features, fixes, improvements):
 - UK British spelling throughout (colour, authorised, sanitised, etc.)
 - Comprehensive review before declaring done
 - Build must pass (`npx next build`) before pushing
+
+## CRITICAL: Never Delete Existing Features
+**Do NOT remove, delete, or disable any existing feature, UI component, tab, route, API endpoint, or functionality unless the user explicitly and unambiguously requests it.**
+
+- If a feature is being replaced, keep the original until the replacement is confirmed working
+- If you are refactoring a file, preserve all existing tabs, panels, imports, and logic
+- If you are unsure whether something is still needed, KEEP IT and ask
+- When adding new code to a file, audit your changes to confirm nothing has been silently removed
+- Before committing any modification to an existing file, diff the before/after and explicitly state in the commit message if anything was removed

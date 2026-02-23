@@ -14,6 +14,7 @@ export type PermissionCode =
   | "page:audit"
   | "page:settings"
   | "page:users"
+  | "page:operational-resilience"
   // Data actions
   | "create:risk"
   | "create:action"
@@ -48,9 +49,10 @@ export const ALL_PERMISSIONS: Record<PermissionCode, { label: string; category: 
   "page:compliance":       { label: "View Compliance",            category: "Pages" },
   "page:reports":          { label: "View Reports",               category: "Pages" },
   "page:risk-acceptances": { label: "View Risk Acceptances",      category: "Pages" },
-  "page:audit":            { label: "View Audit Trail",           category: "Pages" },
-  "page:settings":         { label: "View Settings",              category: "Pages" },
-  "page:users":            { label: "View Users",                 category: "Pages" },
+  "page:audit":                     { label: "View Audit Trail",              category: "Pages" },
+  "page:settings":                  { label: "View Settings",                 category: "Pages" },
+  "page:users":                     { label: "View Users",                    category: "Pages" },
+  "page:operational-resilience":    { label: "View Operational Resilience",   category: "Pages" },
   // Data
   "create:risk":    { label: "Create Risks",    category: "Data" },
   "create:action":  { label: "Create Actions",  category: "Data" },

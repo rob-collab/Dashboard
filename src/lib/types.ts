@@ -1224,10 +1224,13 @@ export interface ImportantBusinessService {
   rpoHours: number | null;
   smfAccountable: string | null;
   ownerId: string | null;
+  owner?: { id: string; name: string; email: string } | null;
   status: IBSStatus;
   createdAt: string;
   updatedAt: string;
   processLinks?: ProcessIBSLink[];
+  resourceMaps?: IBSResourceMap[];
+  scenarios?: ResilienceScenario[];
 }
 
 export interface ProcessStep {
@@ -1288,6 +1291,7 @@ export interface ProcessIBSLink {
   processId: string;
   ibsId: string;
   ibs?: ImportantBusinessService;
+  process?: { id: string; reference: string; name: string; maturityScore: number; criticality: ProcessCriticality };
   linkedAt: string;
   linkedBy: string;
   notes: string | null;
@@ -1451,3 +1455,119 @@ export interface DashboardLayoutConfig {
   createdAt: string | null;
   updatedAt: string | null;
 }
+
+// ── Operational Resilience Module ─────────────────────────────────────────────
+
+export type ResourceCategory = "PEOPLE" | "PROCESSES" | "TECHNOLOGY" | "FACILITIES" | "INFORMATION";
+export type ScenarioType =
+  | "CYBER_ATTACK" | "SYSTEM_OUTAGE" | "THIRD_PARTY_FAILURE" | "PANDEMIC"
+  | "BUILDING_LOSS" | "DATA_CORRUPTION" | "KEY_PERSON_LOSS" | "REGULATORY_CHANGE";
+export type ScenarioStatus = "PLANNED" | "IN_PROGRESS" | "COMPLETE";
+export type ScenarioOutcome = "WITHIN_TOLERANCE" | "BREACH" | "NOT_TESTED";
+export type AssessmentStatus = "DRAFT" | "SUBMITTED" | "APPROVED";
+
+export interface IBSResourceMap {
+  id: string;
+  ibsId: string;
+  category: ResourceCategory;
+  content: Record<string, unknown>;
+  lastUpdatedAt: string | null;
+  lastUpdatedBy: string | null;
+}
+
+export interface ResilienceScenario {
+  id: string;
+  reference: string;
+  ibsId: string;
+  ibs?: { id: string; reference: string; name: string };
+  name: string;
+  description: string | null;
+  scenarioType: ScenarioType;
+  testedAt: string | null;
+  nextTestDate: string | null;
+  conductedBy: string | null;
+  status: ScenarioStatus;
+  outcome: ScenarioOutcome;
+  findings: string | null;
+  remediationRequired: boolean;
+  createdAt: string;
+}
+
+export interface SelfAssessment {
+  id: string;
+  year: number;
+  status: AssessmentStatus;
+  submittedAt: string | null;
+  approvedBy: string | null;
+  boardApprovalDate: string | null;
+  executiveSummary: string | null;
+  ibsCoverage: Record<string, unknown> | null;
+  vulnerabilitiesCount: number;
+  openRemediations: number;
+  documentUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const RESOURCE_CATEGORY_LABELS: Record<ResourceCategory, string> = {
+  PEOPLE: "People",
+  PROCESSES: "Processes",
+  TECHNOLOGY: "Technology",
+  FACILITIES: "Facilities",
+  INFORMATION: "Information & Data",
+};
+
+export const RESOURCE_CATEGORY_ICONS: Record<ResourceCategory, string> = {
+  PEOPLE: "Users",
+  PROCESSES: "Layers",
+  TECHNOLOGY: "Server",
+  FACILITIES: "Building",
+  INFORMATION: "Database",
+};
+
+export const SCENARIO_TYPE_LABELS: Record<ScenarioType, string> = {
+  CYBER_ATTACK: "Cyber Attack",
+  SYSTEM_OUTAGE: "System Outage",
+  THIRD_PARTY_FAILURE: "Third-Party Failure",
+  PANDEMIC: "Pandemic / Mass Absence",
+  BUILDING_LOSS: "Building Loss",
+  DATA_CORRUPTION: "Data Corruption",
+  KEY_PERSON_LOSS: "Key Person Loss",
+  REGULATORY_CHANGE: "Regulatory Change",
+};
+
+export const SCENARIO_STATUS_LABELS: Record<ScenarioStatus, string> = {
+  PLANNED: "Planned",
+  IN_PROGRESS: "In Progress",
+  COMPLETE: "Complete",
+};
+
+export const SCENARIO_STATUS_COLOURS: Record<ScenarioStatus, { bg: string; text: string }> = {
+  PLANNED: { bg: "bg-blue-100", text: "text-blue-700" },
+  IN_PROGRESS: { bg: "bg-amber-100", text: "text-amber-700" },
+  COMPLETE: { bg: "bg-green-100", text: "text-green-700" },
+};
+
+export const SCENARIO_OUTCOME_LABELS: Record<ScenarioOutcome, string> = {
+  WITHIN_TOLERANCE: "Within Tolerance",
+  BREACH: "Tolerance Breach",
+  NOT_TESTED: "Not Tested",
+};
+
+export const SCENARIO_OUTCOME_COLOURS: Record<ScenarioOutcome, { bg: string; text: string }> = {
+  WITHIN_TOLERANCE: { bg: "bg-green-100", text: "text-green-700" },
+  BREACH: { bg: "bg-red-100", text: "text-red-700" },
+  NOT_TESTED: { bg: "bg-gray-100", text: "text-gray-500" },
+};
+
+export const ASSESSMENT_STATUS_LABELS: Record<AssessmentStatus, string> = {
+  DRAFT: "Draft",
+  SUBMITTED: "Submitted",
+  APPROVED: "Board Approved",
+};
+
+export const ASSESSMENT_STATUS_COLOURS: Record<AssessmentStatus, { bg: string; text: string }> = {
+  DRAFT: { bg: "bg-gray-100", text: "text-gray-600" },
+  SUBMITTED: { bg: "bg-blue-100", text: "text-blue-700" },
+  APPROVED: { bg: "bg-green-100", text: "text-green-700" },
+};
