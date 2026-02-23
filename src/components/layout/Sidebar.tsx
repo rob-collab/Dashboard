@@ -27,6 +27,7 @@ import {
   BookOpen,
   BadgeCheck,
   Search,
+  ArrowLeftRight,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import type { User } from "@/lib/types";
@@ -76,6 +77,7 @@ const NAV_GROUPS: NavGroup[] = [
     groupLabel: "Execution",
     items: [
       { label: "Actions", href: "/actions", icon: ListChecks, permission: "page:actions", badgeKey: "actions" },
+      { label: "Change Requests", href: "/change-requests", icon: ArrowLeftRight, permission: "page:actions", badgeKey: "changeRequests" },
     ],
   },
   {
@@ -184,13 +186,19 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
       ? risks.reduce((n, r) => n + (r.changes ?? []).filter((ch) => ch.status === "PENDING").length, 0)
       : 0;
 
+    const pendingActionChanges = canViewPending
+      ? actions.reduce((n, a) => n + (a.changes ?? []).filter((ch) => ch.status === "PENDING").length, 0)
+      : 0;
+
+    const changeRequests = canViewPending ? pendingControlChanges + pendingRiskChanges + pendingActionChanges : 0;
+
     const complianceGaps = canViewPending
       ? regulations.filter((r) => r.isApplicable && (r.complianceStatus === "NON_COMPLIANT" || r.complianceStatus === "GAP_IDENTIFIED")).length
       : 0;
 
     if (canViewPending) {
-      const total = overdueActions + pendingControlChanges + riskAcceptance + pendingRiskChanges;
-      return { dashboard: total, compliance: complianceGaps } as Record<string, number>;
+      const total = overdueActions + pendingControlChanges + riskAcceptance + pendingRiskChanges + pendingActionChanges;
+      return { dashboard: total, compliance: complianceGaps, changeRequests } as Record<string, number>;
     }
 
     return { actions: overdueActions, riskAcceptance } as Record<string, number>;

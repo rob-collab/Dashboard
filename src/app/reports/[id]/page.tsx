@@ -33,6 +33,7 @@ import { sanitizeHTML } from "@/lib/sanitize";
 import { generateHTMLExport } from "@/lib/export-html";
 import VersionList from "@/components/reports/VersionList";
 import VersionCompare from "@/components/reports/VersionCompare";
+import ReportChart from "@/components/reports/ReportChart";
 import OutcomeCard from "@/components/consumer-duty/OutcomeCard";
 import MeasurePanel from "@/components/consumer-duty/MeasurePanel";
 import MIModal from "@/components/consumer-duty/MIModal";
@@ -353,12 +354,19 @@ export default function ReportViewPage() {
                 </div>
               )}
 
-              {/* CHART placeholder */}
-              {section.type === "CHART" && (
-                <div className="flex items-center justify-center py-12 text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
-                  <BarChart3 size={24} className="mr-2" /> Chart visualization
-                </div>
-              )}
+              {/* CHART */}
+              {section.type === "CHART" && (() => {
+                const chartType = (section.content?.chartType as string) || "bar";
+                const chartData = section.content?.chartData as { labels: string[]; datasets: { label: string; data: number[]; color?: string }[] } | undefined;
+                if (!chartData) {
+                  return (
+                    <div className="flex items-center justify-center py-12 text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
+                      <BarChart3 size={24} className="mr-2" /> No chart data — edit this section to add data
+                    </div>
+                  );
+                }
+                return <ReportChart chartType={chartType} chartData={chartData} />;
+              })()}
 
               {/* IMAGE_BLOCK */}
               {section.type === "IMAGE_BLOCK" && (() => {

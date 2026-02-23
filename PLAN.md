@@ -6,6 +6,136 @@ Each feature has a checklist — nothing is marked done until fully verified.
 
 ---
 
+## CURRENT SPRINT: Reports Charts & Change Requests Dashboard ✅ COMPLETE
+
+### Background
+Two feature gaps identified from production audit (2026-02-23):
+1. Report sections of type CHART are placeholders — chart data is already stored in the DB
+   (chartType + chartData JSON) but the view page just shows a grey dashed box.
+2. Pending change requests (control changes, risk changes, action changes) are scattered
+   across individual entity pages with no centralised CCRO review dashboard.
+
+---
+
+## FEATURE 1: Report Chart Rendering
+
+### What
+Replace the CHART section placeholder in `src/app/reports/[id]/page.tsx` with a real
+Recharts-based renderer. Three chart types to support (matching what the edit form saves):
+  - "bar"  — BarChart
+  - "line" — LineChart
+  - "pie"  — PieChart (use Recharts PieChart + Pie + Cell)
+
+Chart data format (already in DB):
+```json
+{
+  "chartType": "bar",
+  "chartData": {
+    "labels": ["Q1", "Q2", "Q3", "Q4"],
+    "datasets": [
+      { "label": "Performance", "data": [65, 78, 82, 91], "color": "#7B1FA2" }
+    ]
+  }
+}
+```
+
+For bar/line: X-axis = labels, one series per dataset entry.
+For pie: Each label is a slice, data[0] per dataset entry.
+
+### Files
+  - src/app/reports/[id]/page.tsx (replace placeholder, no new files needed)
+
+### Checklist
+- [x] Bar chart renders correctly from stored chartData
+- [x] Line chart renders correctly from stored chartData
+- [x] Pie chart renders correctly from stored chartData
+- [x] Multiple datasets rendered as multiple series/bars
+- [x] Chart uses brand colours as fallback if dataset color not set
+- [x] Chart is responsive (ResponsiveContainer with 100% width, fixed height)
+- [x] Empty state shown gracefully if chartData is missing/malformed
+- [x] Existing TEXT_BLOCK, DATA_TABLE, CARD_GRID, ACCORDION section types unaffected
+
+---
+
+## FEATURE 2: Change Requests Dashboard
+
+### What
+New page `/change-requests` (sidebar entry) that aggregates all PENDING changes
+across the three entities that support the change proposal workflow:
+  - ActionChange  (status=PENDING) — from `action_changes` table
+  - ControlChange (status=PENDING) — from `control_changes` table
+  - RiskChange    (status=PENDING) — from `risk_changes` table
+
+CCRO team can approve or reject each change from this single page. Non-CCRO users
+see a read-only view of changes they proposed (with their current status).
+
+### New Files
+  - src/app/change-requests/page.tsx
+  - src/app/api/change-requests/route.ts (aggregate GET)
+
+### Modified Files
+  - src/components/layout/Sidebar.tsx (add "Change Requests" nav item with badge)
+
+### API Design
+GET /api/change-requests?status=PENDING
+Aggregates all three change types, returns unified array:
+```typescript
+{
+  id: string;
+  changeId: string;          // the actual change record ID
+  entityType: "action" | "control" | "risk";
+  entityId: string;
+  entityRef: string;         // action title / control ref / risk ref
+  entityName: string;
+  fieldChanged: string;
+  oldValue: string | null;
+  newValue: string | null;
+  rationale?: string;        // controls only
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  proposedBy: string;        // user ID
+  proposerName: string;
+  proposedAt: string;
+  reviewNote?: string | null;
+}
+```
+
+Approve/reject: delegates to existing per-entity endpoints:
+  PATCH /api/actions/[id]/changes/[changeId]
+  PATCH /api/controls/library/[id]/changes/[changeId]
+  PATCH /api/risks/[id]/changes/[changeId]
+
+### UI Design
+Three-tab layout: "Actions" | "Controls" | "Risks" (+ badge on each with pending count)
+Or single "All Pending" with entity-type filter chips.
+
+Each change card shows:
+  - Entity badge (ACTION / CONTROL / RISK), entity ref/name as EntityLink
+  - Field changed, old value → new value
+  - Rationale (if provided)
+  - Proposed by + date
+  - Approve / Reject buttons (CCRO only) with optional review note
+  - If already reviewed: status badge + reviewer name + review note
+
+Sidebar badge (red count of total pending changes) to draw CCRO attention.
+
+### Checklist
+- [x] /change-requests page loads and shows pending changes
+- [x] Action changes appear with correct field, old value, new value
+- [x] Control changes appear with correct field + rationale
+- [x] Risk changes appear with correct field, old value, new value
+- [x] Approve button calls correct per-entity PATCH endpoint and applies the change
+- [x] Reject button calls correct per-entity PATCH endpoint
+- [x] Review note captured and stored when approving/rejecting
+- [x] After approve/reject, change disappears from pending list
+- [x] Non-CCRO users see read-only view of their own proposed changes
+- [x] Sidebar shows badge count of total pending changes
+- [x] EntityLink on each card navigates to the entity correctly
+- [x] Empty state shown when no pending changes
+
+---
+
+## PREVIOUSLY COMPLETED (this session, 2026-02-23)
+
 ## CURRENT SPRINT: History, Control Detail & Back Button ✅ COMPLETE
 
 ### Background
