@@ -9,7 +9,7 @@ const updateSchema = z.object({
   summaryOfTest: z.string().min(1).optional(),
   standingComments: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
-  removedReason: z.string().optional(),
+  removedReason: z.string().nullable().optional(),
 });
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

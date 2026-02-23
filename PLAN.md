@@ -1,5 +1,30 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-23 (sprint completed)
+Last updated: 2026-02-23
+
+---
+
+## CURRENT SPRINT: Bug Fix — Testing Schedule Edit Error ✅ COMPLETE
+
+### Background
+Editing any testing schedule entry produced a toast "Please check your inputs and try again."
+after saving, despite the save succeeding visually.
+
+### Root Cause
+Two bugs:
+1. `RemoveFromScheduleDialog` / `EditScheduleDialog` called `api()` directly to PATCH, then
+   called `onSave(id, updated)` where `onSave = updateTestingScheduleEntry`. That store action
+   fires a second `sync()` PATCH with the *full API response* (including `removedReason: null`).
+2. The PATCH schema had `removedReason: z.string().optional()` which rejects `null` → 400 error
+   → after 2 retries the `sync()` helper emitted the "Please check your inputs" toast.
+
+### Files Changed
+- `src/app/api/controls/testing-schedule/[id]/route.ts` — schema fix
+- `src/components/controls/TestingScheduleTab.tsx` — pass delta not full response to onSave
+
+### Checklist
+- [x] `removedReason: z.string().nullable().optional()` in PATCH schema
+- [x] `EditScheduleDialog` passes `updates` (delta) not `updated` (full API response) to `onSave`
+- [x] No redundant second PATCH with null-containing full entry
 
 This file tracks all planned and in-progress changes. Updated after every session.
 Each feature has a checklist — nothing is marked done until fully verified.

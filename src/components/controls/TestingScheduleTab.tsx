@@ -781,11 +781,11 @@ function EditScheduleDialog({ entry, ccroUsers, onSave, onClose }: EditDialogPro
     }
 
     try {
-      const updated = await api<TestingScheduleEntry>(
+      await api<TestingScheduleEntry>(
         `/api/controls/testing-schedule/${entry.id}`,
         { method: "PATCH", body: updates }
       );
-      onSave(entry.id, updated);
+      onSave(entry.id, updates);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update entry.");
