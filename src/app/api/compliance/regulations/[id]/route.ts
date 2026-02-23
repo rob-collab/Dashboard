@@ -71,6 +71,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       data.lastAssessedAt = new Date();
     }
 
+    // Capture old values before update for rich audit history
+    const before = await prisma.regulation.findUnique({ where: { id } });
+
     const regulation = await prisma.regulation.update({
       where: { id },
       data,
@@ -81,7 +84,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       },
     });
 
-    auditLog({ userId: auth.userId, action: "update_regulation_compliance", entityType: "regulation", entityId: id, changes: result.data as Record<string, unknown> });
+    // Build changes map with from/to for each field that was actually updated
+    const changesWithOldValues = Object.fromEntries(
+      Object.entries(result.data).map(([k, v]) => [
+        k,
+        { from: before?.[k as keyof typeof before] ?? null, to: v },
+      ])
+    );
+
+    auditLog({ userId: auth.userId, action: "update_regulation_compliance", entityType: "regulation", entityId: id, changes: changesWithOldValues });
     return jsonResponse(serialiseDates(regulation));
   } catch (err) {
     console.error("[PATCH /api/compliance/regulations/:id]", err);

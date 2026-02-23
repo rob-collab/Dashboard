@@ -8,7 +8,7 @@ import ActionFormDialog from "@/components/actions/ActionFormDialog";
 import { deriveTestingStatus } from "@/lib/controls-utils";
 import { api } from "@/lib/api-client";
 import { useAppStore } from "@/lib/store";
-import type { ControlRecord, Action, ControlChange, RegulationControlLink } from "@/lib/types";
+import type { ControlRecord, Action, ControlChange, RegulationControlLink, RiskAcceptance } from "@/lib/types";
 import {
   CD_OUTCOME_LABELS,
   CONTROL_FREQUENCY_LABELS,
@@ -16,6 +16,8 @@ import {
   TEST_RESULT_LABELS,
   TEST_RESULT_COLOURS,
   TESTING_FREQUENCY_LABELS,
+  RISK_ACCEPTANCE_STATUS_LABELS,
+  RISK_ACCEPTANCE_STATUS_COLOURS,
 } from "@/lib/types";
 import type { ControlType } from "@/lib/types";
 import {
@@ -32,7 +34,18 @@ import {
   Search,
   FileText,
   Scale,
+  TrendingUp,
 } from "lucide-react";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  ReferenceLine,
+} from "recharts";
 import { cn, formatDateShort } from "@/lib/utils";
 import ScoreBadge from "@/components/risk-register/ScoreBadge";
 import EntityLink from "@/components/common/EntityLink";
@@ -203,6 +216,7 @@ export default function ControlDetailModal({
 
   const changes: ControlChange[] = control?.changes ?? [];
   const actions: Action[] = control?.actions ?? [];
+  const riskAcceptances: RiskAcceptance[] = (control as (ControlRecord & { riskAcceptances?: RiskAcceptance[] }) | null)?.riskAcceptances ?? [];
   const pendingCount = changes.filter((c) => c.status === "PENDING").length;
 
   // Testing status
@@ -212,6 +226,14 @@ export default function ControlDetailModal({
     if (a.periodYear !== b.periodYear) return b.periodYear - a.periodYear;
     return b.periodMonth - a.periodMonth;
   });
+
+  // Performance chart data — last 24 months, 1 = PASS, 0 = FAIL, 0.5 = PARTIAL/EXCEPTION
+  const chartData = sortedResults.slice(0, 24).reverse().map((tr) => ({
+    label: `${MONTH_ABBR[tr.periodMonth - 1]} ${String(tr.periodYear).slice(2)}`,
+    score: tr.result === "PASS" ? 1 : tr.result === "FAIL" ? 0 : 0.5,
+    result: TEST_RESULT_LABELS[tr.result],
+    colour: TEST_RESULT_COLOURS[tr.result].dot,
+  }));
 
   // Attestation
   const latestAttestation = control?.attestations?.[0] ?? null;
@@ -403,6 +425,51 @@ export default function ControlDetailModal({
               <p className="text-xs text-gray-400">This control is not in the testing schedule.</p>
             )}
           </div>
+
+          {/* ── Performance Over Time ── */}
+          {chartData.length >= 2 && (
+            <div className="bento-card p-4">
+              <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-3">
+                <TrendingUp size={14} className="text-updraft-bright-purple" />
+                Performance Over Time
+                <span className="text-xs font-normal text-gray-400">({chartData.length} results)</span>
+              </h4>
+              <div className="h-36">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                    <XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="#d1d5db" interval="preserveStartEnd" />
+                    <YAxis domain={[-0.1, 1.1]} ticks={[0, 0.5, 1]} tickFormatter={(v) => v === 1 ? "Pass" : v === 0 ? "Fail" : "Part"} tick={{ fontSize: 9 }} stroke="#d1d5db" />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        if (!active || !payload?.length) return null;
+                        return (
+                          <div className="bg-white border border-gray-200 rounded-lg p-2 shadow text-xs">
+                            <div className="font-semibold text-gray-700">{label}</div>
+                            <div className="text-gray-600">{payload[0]?.payload?.result}</div>
+                          </div>
+                        );
+                      }}
+                    />
+                    <ReferenceLine y={1} stroke="#22c55e" strokeDasharray="4 2" />
+                    <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="4 2" />
+                    <Line
+                      type="monotone"
+                      dataKey="score"
+                      stroke="#7C3AED"
+                      strokeWidth={2}
+                      dot={(props) => {
+                        const { cx, cy, payload } = props;
+                        const fill = payload.score === 1 ? "#22c55e" : payload.score === 0 ? "#ef4444" : "#f59e0b";
+                        return <circle key={`dot-${cx}-${cy}`} cx={cx} cy={cy} r={4} fill={fill} stroke="white" strokeWidth={1} />;
+                      }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
 
           {/* ── Linked Risks ── */}
           {(control.riskLinks ?? []).length > 0 && (
@@ -625,6 +692,54 @@ export default function ControlDetailModal({
               </div>
             )}
           </div>
+
+          {/* ── Risk Acceptances ── */}
+          {riskAcceptances.length > 0 && (
+            <div className="bento-card p-4">
+              <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-3">
+                <Scale size={14} className="text-amber-600" />
+                Risk Acceptances
+                <span className="text-xs font-normal text-gray-400">({riskAcceptances.length})</span>
+              </h4>
+              <div className="space-y-2">
+                {riskAcceptances.map((ra) => {
+                  const cols = RISK_ACCEPTANCE_STATUS_COLOURS[ra.status];
+                  return (
+                    <div key={ra.id} className="flex items-start gap-3 p-2.5 rounded-lg bg-gray-50">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-xs font-bold text-updraft-deep">{ra.reference}</span>
+                          <span className={cn("inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold", cols.bg, cols.text)}>
+                            {RISK_ACCEPTANCE_STATUS_LABELS[ra.status]}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-700 mt-0.5 truncate">{ra.title}</p>
+                        {(ra.risk as { reference?: string; name?: string } | undefined)?.reference && (
+                          <p className="text-[11px] text-gray-400 mt-0.5">
+                            Risk: {(ra.risk as { reference: string; name: string }).reference} — {(ra.risk as { reference: string; name: string }).name}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-3 mt-1 text-[11px] text-gray-400">
+                          {(ra.proposer as { name?: string } | undefined)?.name && (
+                            <span>Proposer: {(ra.proposer as { name: string }).name}</span>
+                          )}
+                          {ra.reviewDate && (
+                            <span>Review: {new Date(ra.reviewDate).toLocaleDateString("en-GB")}</span>
+                          )}
+                        </div>
+                      </div>
+                      <EntityLink
+                        type="risk-acceptance"
+                        id={ra.id}
+                        reference={ra.reference}
+                        label={ra.title}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* ── Change History Banner (at bottom) ── */}
           {changes.length > 0 && (

@@ -10,6 +10,7 @@ import PoliciesTab from "@/components/compliance/PoliciesTab";
 import CoverageChainTab from "@/components/compliance/CoverageChainTab";
 import ComplianceRoadmapTab from "@/components/compliance/ComplianceRoadmapTab";
 import RegulatoryChangeLogTab from "@/components/compliance/RegulatoryChangeLogTab";
+import ComplianceHistoryTab from "@/components/compliance/ComplianceHistoryTab";
 import { cn } from "@/lib/utils";
 import { usePageTitle } from "@/lib/usePageTitle";
 
@@ -21,6 +22,7 @@ const TABS = [
   { id: "assessment-log", label: "Assessment Log" },
   { id: "smcr", label: "SM&CR" },
   { id: "policies", label: "Policies" },
+  { id: "history", label: "History" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -88,6 +90,7 @@ export default function CompliancePage() {
         {activeTab === "assessment-log" && <RegulatoryChangeLogTab />}
         {activeTab === "smcr" && <SMCRTab />}
         {activeTab === "policies" && <PoliciesTab initialPolicyId={initialPolicyId} />}
+        {activeTab === "history" && <ComplianceHistoryTab />}
       </div>
     </RoleGuard>
   );

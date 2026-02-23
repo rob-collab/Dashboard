@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import { ArrowLeft } from "lucide-react";
 
@@ -8,20 +10,33 @@ interface Props {
 }
 
 /**
- * Floating "Back" pill that appears after cross-entity click-through navigation.
- * Pops the navigation stack and returns the user to their previous location.
+ * Floating "Back" pill that appears whenever the browser has navigable history.
+ * - If the custom navigation stack has items: uses popNavigationStack() for exact URL
+ * - Otherwise: falls back to router.back() (standard browser back)
  */
 export default function NavigationBackButton({ sidebarOpen }: Props) {
+  const router = useRouter();
   const stackLength = useAppStore((s) => s.navigationStack.length);
   const popNavigationStack = useAppStore((s) => s.popNavigationStack);
+  const [canGoBack, setCanGoBack] = useState(false);
 
-  if (stackLength === 0) return null;
+  useEffect(() => {
+    // window.history.length > 1 means there's at least one page to go back to
+    setCanGoBack(window.history.length > 1);
+  }, []);
+
+  const visible = stackLength > 0 || canGoBack;
+  if (!visible) return null;
 
   function handleBack() {
-    const prev = popNavigationStack();
-    if (prev) {
-      window.location.href = prev;
+    if (stackLength > 0) {
+      const prev = popNavigationStack();
+      if (prev) {
+        window.location.href = prev;
+        return;
+      }
     }
+    router.back();
   }
 
   return (

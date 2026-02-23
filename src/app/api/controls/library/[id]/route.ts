@@ -34,6 +34,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         },
         riskLinks: { include: { risk: { select: { id: true, reference: true, name: true, residualLikelihood: true, residualImpact: true } } } },
         regulationLinks: { include: { regulation: { select: { id: true, reference: true, name: true, complianceStatus: true } } } },
+        riskAcceptances: {
+          where: {
+            OR: [
+              { linkedControlId: id },
+              { risk: { controlLinks: { some: { controlId: id } } } },
+            ],
+          },
+          include: {
+            proposer: { select: { name: true } },
+            risk: { select: { reference: true, name: true } },
+          },
+          orderBy: { createdAt: "desc" },
+        },
       },
     });
 

@@ -13,10 +13,11 @@ import {
   type Applicability,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { X, ExternalLink, ShieldCheck, FileText, Link2, Plus, Search, Pencil, Loader2 } from "lucide-react";
+import { X, ExternalLink, ShieldCheck, FileText, Link2, Plus, Search, Pencil, Loader2, ChevronDown, ChevronRight, History } from "lucide-react";
 import EntityLink from "@/components/common/EntityLink";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
+import type { RegulationHistoryEvent } from "@/app/api/compliance/regulations/[id]/history/route";
 
 interface Props {
   regulation: Regulation | null;
@@ -61,6 +62,11 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
   const [policySearch, setPolicySearch] = useState("");
   const [linkingPolicy, setLinkingPolicy] = useState<string | null>(null);
 
+  // History section state
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyEvents, setHistoryEvents] = useState<RegulationHistoryEvent[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
   useEffect(() => {
     if (regulation) {
       setEditDescription(regulation.description ?? "");
@@ -77,7 +83,18 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
     setEditMode(false);
     setShowControlPicker(false);
     setShowPolicyPicker(false);
+    setHistoryOpen(false);
+    setHistoryEvents([]);
   }, [regulation?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!historyOpen || !regulation) return;
+    setHistoryLoading(true);
+    api<RegulationHistoryEvent[]>(`/api/compliance/regulations/${regulation.id}/history`)
+      .then(setHistoryEvents)
+      .catch(() => {/* silent */})
+      .finally(() => setHistoryLoading(false));
+  }, [historyOpen, regulation?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const status = (regulation?.complianceStatus ?? "NOT_ASSESSED") as ComplianceStatus;
   const applicability = (regulation?.applicability ?? "ASSESS") as Applicability;
@@ -642,6 +659,108 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
             <p className="text-xs text-gray-400 italic">No controls linked</p>
           )}
         </section>
+
+        {/* Change History (collapsible) */}
+        <section className="border-t border-gray-100 pt-2">
+          <button
+            type="button"
+            onClick={() => setHistoryOpen((v) => !v)}
+            className="flex w-full items-center gap-2 py-2 text-xs font-semibold text-gray-500 hover:text-updraft-deep transition-colors"
+          >
+            {historyOpen
+              ? <ChevronDown size={13} className="shrink-0" />
+              : <ChevronRight size={13} className="shrink-0" />
+            }
+            <History size={12} className="shrink-0" />
+            Change History
+          </button>
+
+          {historyOpen && (
+            <div className="mt-1 space-y-2 pb-2">
+              {historyLoading ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 size={16} className="animate-spin text-gray-400" />
+                </div>
+              ) : historyEvents.length === 0 ? (
+                <p className="text-xs text-gray-400 italic py-2">No history recorded yet.</p>
+              ) : (
+                historyEvents.map((ev) => (
+                  <HistoryEventRow key={ev.id} event={ev} />
+                ))
+              )}
+            </div>
+          )}
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function HistoryEventRow({ event }: { event: RegulationHistoryEvent }) {
+  const dotColour =
+    event.type === "status_change" ? "bg-blue-500" :
+    event.type === "control_linked" ? "bg-green-500" :
+    event.type === "policy_linked" ? "bg-purple-500" :
+    "bg-gray-400";
+
+  const dateStr = new Date(event.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+
+  function fieldLabel(f: string) {
+    const MAP: Record<string, string> = {
+      complianceStatus: "Compliance Status",
+      assessmentNotes: "Assessment Notes",
+      applicability: "Applicability",
+      applicabilityNotes: "Applicability Notes",
+      primarySMF: "Primary SMF",
+      secondarySMF: "Secondary SMF",
+      smfNotes: "SMF Notes",
+      description: "Description",
+      provisions: "Provisions",
+      nextReviewDate: "Next Review Date",
+    };
+    return MAP[f] ?? f;
+  }
+
+  return (
+    <div className="flex gap-2">
+      <div className="flex flex-col items-center shrink-0 pt-1">
+        <div className={cn("w-2 h-2 rounded-full shrink-0", dotColour)} />
+        <div className="w-px flex-1 bg-gray-100 mt-1" />
+      </div>
+      <div className="pb-2 min-w-0">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[10px] text-gray-400">{dateStr}</span>
+          <span className="text-[10px] font-medium text-gray-600">{event.userName}</span>
+        </div>
+        {event.type === "status_change" && (
+          <p className="text-xs text-gray-700 mt-0.5">
+            Status: <span className="text-gray-400 line-through">{event.from}</span>
+            {" → "}
+            <span className="font-medium text-updraft-deep">{event.to}</span>
+          </p>
+        )}
+        {event.type === "field_updated" && event.field && (
+          <p className="text-xs text-gray-700 mt-0.5">
+            Updated <span className="font-medium">{fieldLabel(event.field)}</span>
+            {event.from != null && event.to != null && (
+              <span className="text-gray-400"> ({event.from} → {event.to})</span>
+            )}
+          </p>
+        )}
+        {(event.type === "control_linked" || event.type === "control_unlinked") && (
+          <p className="text-xs text-gray-700 mt-0.5">
+            {event.type === "control_linked" ? "Linked control" : "Unlinked control"}{" "}
+            {event.entityRef && <span className="font-mono font-bold text-updraft-deep">{event.entityRef}</span>}
+            {event.entityName && <span className="text-gray-500"> {event.entityName}</span>}
+          </p>
+        )}
+        {(event.type === "policy_linked" || event.type === "policy_unlinked") && (
+          <p className="text-xs text-gray-700 mt-0.5">
+            {event.type === "policy_linked" ? "Linked policy" : "Unlinked policy"}{" "}
+            {event.entityRef && <span className="font-mono font-bold text-updraft-deep">{event.entityRef}</span>}
+            {event.entityName && <span className="text-gray-500"> {event.entityName}</span>}
+          </p>
+        )}
       </div>
     </div>
   );
