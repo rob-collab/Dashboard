@@ -1,5 +1,5 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-23
+Last updated: 2026-02-23 (Process Library retrospectively completed; OR sprint active)
 
 ---
 
@@ -217,7 +217,7 @@ Sidebar badge (red count of total pending changes) to draw CCRO attention.
 
 ---
 
-## NEXT SPRINT: Process Library
+## PREVIOUSLY COMPLETED: Process Library ✅ COMPLETE
 
 ### Why This Matters (Research Context)
 Grounded in: OMG BPMM, APQC PCF v7.2 (Banking), FCA PS21/3 (Operational Resilience),
@@ -493,41 +493,41 @@ This makes the IBS Coverage section of insights immediately meaningful.
 ---
 
 ### Checklist
-- [ ] Prisma schema updated (8 models, 8 enums) — migration applied
-- [ ] Seed adds ~6 IBS records + ~20 processes at mixed maturity
-- [ ] Types updated in src/lib/types.ts (IBS, Process, ProcessStep, enums, LABELS, COLOURS)
-- [ ] Store updated with ibs[] + processes[] arrays and CRUD actions
-- [ ] GET /api/ibs returns all IBS records (used in link pickers)
-- [ ] POST /api/ibs creates with IBS-NNN reference
-- [ ] GET /api/processes returns list with linked counts + maturityScore
-- [ ] POST /api/processes creates with PROC-NNN reference + maturity calculation
-- [ ] PATCH /api/processes/[id] updates and recalculates maturityScore correctly
-- [ ] All link POST/DELETE routes working (control, policy, regulation, risk, ibs, steps)
-- [ ] GET /api/processes/insights returns maturity distribution + IBS coverage + gaps + heatmap
-- [ ] /processes page loads with sortable, filterable table
-- [ ] ProcessDetailPanel opens on row click with all 7 tabs rendered correctly
-- [ ] Overview tab shows linked IBS chips and maturity card with "what's needed next"
-- [ ] Steps tab shows ordered steps; CCRO can add/edit/delete steps
-- [ ] Controls tab shows controls with CONTROL_TYPE_LABELS badge + RAG dot
-- [ ] Policies tab shows linked policies + link/unlink
-- [ ] Regulations tab shows linked regulations + link/unlink
-- [ ] Risks tab shows linked risks with linkType pill (Creates/Mitigates/Affects)
-- [ ] IBS tab shows linked IBS with MTD + SMF accountable; link/unlink (CCRO)
-- [ ] IBS zero-state callout mentions FCA PS21/3
-- [ ] MaturityBadge renders 5 levels with distinct colours
-- [ ] ProcessInsightsPanel shows all 5 sections (distribution, IBS coverage, gaps, SMF gaps, heatmap)
-- [ ] IBS Coverage table flags IBS with <2 processes or low maturity
-- [ ] CRITICAL processes at maturity ≤2 flagged red in insights
-- [ ] Sidebar "Process Library" nav item visible for all roles (read-only for non-CCRO)
-- [ ] EntityLink supports "process" type → navigates to /processes?process=:id
-- [ ] PolicyDetailPanel Processes tab lists processes linked to the policy
-- [ ] ControlDetailModal Processes section lists processes using this control
-- [ ] RegulationDetailPanel Processes section lists processes under this regulation
-- [ ] No TypeScript errors / build passes cleanly
+- [x] Prisma schema updated (8 models, 8 enums) — migration applied
+- [x] Seed adds ~6 IBS records + ~20 processes at mixed maturity
+- [x] Types updated in src/lib/types.ts (IBS, Process, ProcessStep, enums, LABELS, COLOURS)
+- [x] Store updated with ibs[] + processes[] arrays and CRUD actions
+- [x] GET /api/ibs returns all IBS records (used in link pickers)
+- [x] POST /api/ibs creates with IBS-NNN reference
+- [x] GET /api/processes returns list with linked counts + maturityScore
+- [x] POST /api/processes creates with PROC-NNN reference + maturity calculation
+- [x] PATCH /api/processes/[id] updates and recalculates maturityScore correctly
+- [x] All link POST/DELETE routes working (control, policy, regulation, risk, ibs, steps)
+- [x] GET /api/processes/insights returns maturity distribution + IBS coverage + gaps + heatmap
+- [x] /processes page loads with sortable, filterable table
+- [x] ProcessDetailPanel opens on row click with all 7 tabs rendered correctly
+- [x] Overview tab shows linked IBS chips and maturity card with "what's needed next"
+- [x] Steps tab shows ordered steps; CCRO can add/edit/delete steps
+- [x] Controls tab shows controls with CONTROL_TYPE_LABELS badge + RAG dot
+- [x] Policies tab shows linked policies + link/unlink
+- [x] Regulations tab shows linked regulations + link/unlink
+- [x] Risks tab shows linked risks with linkType pill (Creates/Mitigates/Affects)
+- [x] IBS tab shows linked IBS with MTD + SMF accountable; link/unlink (CCRO)
+- [x] IBS zero-state callout mentions FCA PS21/3
+- [x] MaturityBadge renders 5 levels with distinct colours
+- [x] ProcessInsightsPanel shows all 5 sections (distribution, IBS coverage, gaps, SMF gaps, heatmap)
+- [x] IBS Coverage table flags IBS with <2 processes or low maturity
+- [x] CRITICAL processes at maturity ≤2 flagged red in insights
+- [x] Sidebar "Process Library" nav item visible for all roles (read-only for non-CCRO)
+- [x] EntityLink supports "process" type → navigates to /processes?process=:id
+- [x] PolicyDetailPanel Processes tab lists processes linked to the policy
+- [x] ControlDetailModal Processes section lists processes using this control
+- [x] RegulationDetailPanel Processes section lists processes under this regulation
+- [x] No TypeScript errors / build passes cleanly
 
 ---
 
-## SPRINT AFTER NEXT: Operational Resilience Module
+## CURRENT SPRINT: Operational Resilience Module
 
 ### Why This Is a Separate Sprint
 The Process Library creates the IBS entity and lets processes link to it. But the full
