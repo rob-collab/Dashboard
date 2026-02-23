@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useAppStore } from "@/lib/store";
 import {
   APPLICABILITY_LABELS,
@@ -18,6 +18,7 @@ import { useHasPermission } from "@/lib/usePermission";
 import RequestEditAccessButton from "@/components/common/RequestEditAccessButton";
 import RegulationDetailPanel from "./RegulationDetailPanel";
 import RegulationCSVDialog from "./RegulationCSVDialog";
+import { api } from "@/lib/api-client";
 import { ChevronRight, ChevronDown, Search, X, Download, Upload, AlertTriangle } from "lucide-react";
 
 export default function RegulatoryUniverseTab({ initialRegulationId }: { initialRegulationId?: string | null } = {}) {
@@ -32,11 +33,34 @@ export default function RegulatoryUniverseTab({ initialRegulationId }: { initial
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
+  const [detailReg, setDetailReg] = useState<Regulation | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
   const canEditCompliance = useHasPermission("edit:compliance");
 
   useEffect(() => {
     if (initialRegulationId) setSelectedId(initialRegulationId);
   }, [initialRegulationId]);
+
+  const loadDetail = useCallback(async (id: string) => {
+    setDetailLoading(true);
+    try {
+      const full = await api<Regulation>(`/api/compliance/regulations/${id}`);
+      setDetailReg(full);
+    } catch {
+      // Fallback to store version if fetch fails
+      setDetailReg(regulations.find((r) => r.id === id) ?? null);
+    } finally {
+      setDetailLoading(false);
+    }
+  }, [regulations]);
+
+  useEffect(() => {
+    if (selectedId) {
+      loadDetail(selectedId);
+    } else {
+      setDetailReg(null);
+    }
+  }, [selectedId, loadDetail]);
 
   // Build hierarchy
   const tree = useMemo(() => {
@@ -278,8 +302,13 @@ export default function RegulatoryUniverseTab({ initialRegulationId }: { initial
       </div>
 
       {/* Detail Panel */}
-      {selectedReg && (
-        <RegulationDetailPanel regulation={selectedReg} onClose={() => setSelectedId(null)} />
+      {selectedId && (
+        <RegulationDetailPanel
+          regulation={detailReg ?? (regulations.find((r) => r.id === selectedId) ?? null)}
+          loading={detailLoading}
+          onClose={() => setSelectedId(null)}
+          onRefresh={() => loadDetail(selectedId)}
+        />
       )}
 
       {/* CSV Import Dialog */}

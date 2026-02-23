@@ -1,68 +1,105 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAppStore } from "@/lib/store";
 import { usePermissionSet } from "@/lib/usePermission";
 import {
   APPLICABILITY_LABELS,
-  APPLICABILITY_COLOURS,
   COMPLIANCE_STATUS_LABELS,
   COMPLIANCE_STATUS_COLOURS,
+  APPLICABILITY_COLOURS,
   type Regulation,
   type ComplianceStatus,
   type Applicability,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { X, ExternalLink, ShieldCheck, FileText, Link2, Plus, Search } from "lucide-react";
+import { X, ExternalLink, ShieldCheck, FileText, Link2, Plus, Search, Pencil, Loader2 } from "lucide-react";
 import EntityLink from "@/components/common/EntityLink";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
 
 interface Props {
-  regulation: Regulation;
+  regulation: Regulation | null;
+  loading?: boolean;
   onClose: () => void;
+  onRefresh?: () => void;
 }
 
-export default function RegulationDetailPanel({ regulation, onClose }: Props) {
+export default function RegulationDetailPanel({ regulation, loading, onClose, onRefresh }: Props) {
   const permissionSet = usePermissionSet();
   const canEdit = permissionSet.has("edit:compliance");
   const updateRegulationCompliance = useAppStore((s) => s.updateRegulationCompliance);
   const linkRegulationToControl = useAppStore((s) => s.linkRegulationToControl);
   const unlinkRegulationFromControl = useAppStore((s) => s.unlinkRegulationFromControl);
+  const linkRegulationToPolicy = useAppStore((s) => s.linkRegulationToPolicy);
+  const unlinkRegulationFromPolicy = useAppStore((s) => s.unlinkRegulationFromPolicy);
   const currentUser = useAppStore((s) => s.currentUser);
   const controls = useAppStore((s) => s.controls);
   const policies = useAppStore((s) => s.policies);
   const smfRoles = useAppStore((s) => s.smfRoles);
 
+  const [editMode, setEditMode] = useState(false);
+
+  // Edit state — reset when regulation changes
+  const [editDescription, setEditDescription] = useState("");
+  const [editProvisions, setEditProvisions] = useState("");
+  const [editApplicability, setEditApplicability] = useState<Applicability>("ASSESS");
+  const [editApplicabilityNotes, setEditApplicabilityNotes] = useState("");
+  const [editPrimarySMF, setEditPrimarySMF] = useState("");
+  const [editSecondarySMF, setEditSecondarySMF] = useState("");
+  const [editSMFNotes, setEditSMFNotes] = useState("");
+  const [editStatus, setEditStatus] = useState<ComplianceStatus>("NOT_ASSESSED");
+  const [editNotes, setEditNotes] = useState("");
+  const [editNextReview, setEditNextReview] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  // Control / Policy picker state
   const [showControlPicker, setShowControlPicker] = useState(false);
   const [ctrlSearch, setCtrlSearch] = useState("");
   const [linkingCtrl, setLinkingCtrl] = useState<string | null>(null);
+  const [showPolicyPicker, setShowPolicyPicker] = useState(false);
+  const [policySearch, setPolicySearch] = useState("");
+  const [linkingPolicy, setLinkingPolicy] = useState<string | null>(null);
 
-  const status = (regulation.complianceStatus ?? "NOT_ASSESSED") as ComplianceStatus;
-  const applicability = (regulation.applicability ?? "ASSESS") as Applicability;
+  useEffect(() => {
+    if (regulation) {
+      setEditDescription(regulation.description ?? "");
+      setEditProvisions(regulation.provisions ?? "");
+      setEditApplicability((regulation.applicability ?? "ASSESS") as Applicability);
+      setEditApplicabilityNotes(regulation.applicabilityNotes ?? "");
+      setEditPrimarySMF(regulation.primarySMF ?? "");
+      setEditSecondarySMF(regulation.secondarySMF ?? "");
+      setEditSMFNotes(regulation.smfNotes ?? "");
+      setEditStatus((regulation.complianceStatus ?? "NOT_ASSESSED") as ComplianceStatus);
+      setEditNotes(regulation.assessmentNotes ?? "");
+      setEditNextReview(regulation.nextReviewDate?.slice(0, 10) ?? "");
+    }
+    setEditMode(false);
+    setShowControlPicker(false);
+    setShowPolicyPicker(false);
+  }, [regulation?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const status = (regulation?.complianceStatus ?? "NOT_ASSESSED") as ComplianceStatus;
+  const applicability = (regulation?.applicability ?? "ASSESS") as Applicability;
   const statusColours = COMPLIANCE_STATUS_COLOURS[status];
   const appColours = APPLICABILITY_COLOURS[applicability];
 
-  // SM&CR holder names
-  const primaryHolder = regulation.primarySMF
+  const primaryHolder = regulation?.primarySMF
     ? smfRoles.find((r) => r.smfId === regulation.primarySMF)
     : null;
-  const secondaryHolder = regulation.secondarySMF
+  const secondaryHolder = regulation?.secondarySMF
     ? smfRoles.find((r) => r.smfId === regulation.secondarySMF)
     : null;
 
-  const [editStatus, setEditStatus] = useState(status);
-  const [editNotes, setEditNotes] = useState(regulation.assessmentNotes ?? "");
-  const [editNextReview, setEditNextReview] = useState(regulation.nextReviewDate?.slice(0, 10) ?? "");
-  const [saving, setSaving] = useState(false);
-
-  // Controls already linked to this regulation (from regulation.controlLinks)
   const linkedControlIds = useMemo(
-    () => new Set((regulation.controlLinks ?? []).map((l) => l.controlId)),
-    [regulation.controlLinks],
+    () => new Set((regulation?.controlLinks ?? []).map((l) => l.controlId)),
+    [regulation?.controlLinks],
+  );
+  const linkedPolicyIds = useMemo(
+    () => new Set((regulation?.policyLinks ?? []).map((l) => l.policyId)),
+    [regulation?.policyLinks],
   );
 
-  // Controls not yet linked
   const unlinkedControls = useMemo(() => {
     const q = ctrlSearch.toLowerCase();
     return controls.filter(
@@ -73,16 +110,67 @@ export default function RegulationDetailPanel({ regulation, onClose }: Props) {
     );
   }, [controls, linkedControlIds, ctrlSearch]);
 
+  const unlinkedPolicies = useMemo(() => {
+    const q = policySearch.toLowerCase();
+    return policies.filter(
+      (p) =>
+        !linkedPolicyIds.has(p.id) &&
+        (!q || p.reference.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)),
+    );
+  }, [policies, linkedPolicyIds, policySearch]);
+
+  async function handleSave() {
+    if (!regulation) return;
+    setSaving(true);
+    try {
+      await api(`/api/compliance/regulations/${regulation.id}`, {
+        method: "PATCH",
+        body: {
+          description: editDescription || null,
+          provisions: editProvisions || null,
+          applicability: editApplicability,
+          applicabilityNotes: editApplicabilityNotes || null,
+          primarySMF: editPrimarySMF || null,
+          secondarySMF: editSecondarySMF || null,
+          smfNotes: editSMFNotes || null,
+          complianceStatus: editStatus,
+          assessmentNotes: editNotes || null,
+          nextReviewDate: editNextReview || null,
+        },
+      });
+      updateRegulationCompliance(regulation.id, {
+        description: editDescription || null,
+        provisions: editProvisions || null,
+        applicability: editApplicability,
+        applicabilityNotes: editApplicabilityNotes || null,
+        primarySMF: editPrimarySMF || null,
+        secondarySMF: editSecondarySMF || null,
+        smfNotes: editSMFNotes || null,
+        complianceStatus: editStatus,
+        assessmentNotes: editNotes || null,
+        nextReviewDate: editNextReview || null,
+      });
+      toast.success("Regulation updated");
+      setEditMode(false);
+      onRefresh?.();
+    } catch {
+      toast.error("Failed to save changes");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleLinkControl(controlId: string) {
-    if (!currentUser) return;
+    if (!regulation || !currentUser) return;
     setLinkingCtrl(controlId);
     try {
-      await api(`/api/regulations/${regulation.id}/control-links`, {
+      await api(`/api/compliance/regulations/${regulation.id}/control-links`, {
         method: "POST",
         body: { controlId },
       });
       linkRegulationToControl(regulation.id, controlId, currentUser.id);
       toast.success("Control linked");
+      onRefresh?.();
     } catch {
       toast.error("Failed to link control");
     } finally {
@@ -91,27 +179,63 @@ export default function RegulationDetailPanel({ regulation, onClose }: Props) {
   }
 
   async function handleUnlinkControl(controlId: string) {
+    if (!regulation) return;
     try {
-      await api(`/api/regulations/${regulation.id}/control-links`, {
+      await api(`/api/compliance/regulations/${regulation.id}/control-links`, {
         method: "DELETE",
         body: { controlId },
       });
       unlinkRegulationFromControl(regulation.id, controlId);
       toast.success("Control unlinked");
+      onRefresh?.();
     } catch {
       toast.error("Failed to unlink control");
     }
   }
 
-  const handleSave = () => {
-    setSaving(true);
-    updateRegulationCompliance(regulation.id, {
-      complianceStatus: editStatus,
-      assessmentNotes: editNotes || undefined,
-      nextReviewDate: editNextReview || undefined,
-    });
-    setTimeout(() => setSaving(false), 300);
-  };
+  async function handleLinkPolicy(policyId: string) {
+    if (!regulation || !currentUser) return;
+    setLinkingPolicy(policyId);
+    try {
+      await api(`/api/compliance/regulations/${regulation.id}/policy-links`, {
+        method: "POST",
+        body: { policyId },
+      });
+      linkRegulationToPolicy(regulation.id, policyId, currentUser.id);
+      toast.success("Policy linked");
+      onRefresh?.();
+    } catch {
+      toast.error("Failed to link policy");
+    } finally {
+      setLinkingPolicy(null);
+    }
+  }
+
+  async function handleUnlinkPolicy(policyId: string) {
+    if (!regulation) return;
+    try {
+      await api(`/api/compliance/regulations/${regulation.id}/policy-links`, {
+        method: "DELETE",
+        body: { policyId },
+      });
+      unlinkRegulationFromPolicy(regulation.id, policyId);
+      toast.success("Policy unlinked");
+      onRefresh?.();
+    } catch {
+      toast.error("Failed to unlink policy");
+    }
+  }
+
+  // Show loading skeleton while fetching detail
+  if (loading && !regulation) {
+    return (
+      <div className="w-[40%] min-w-[380px] max-w-[500px] border border-gray-200 rounded-lg bg-white shadow-lg flex items-center justify-center h-64 sticky top-4">
+        <Loader2 size={20} className="animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
+  if (!regulation) return null;
 
   return (
     <div className="w-[40%] min-w-[380px] max-w-[500px] border border-gray-200 rounded-lg bg-white shadow-lg overflow-y-auto max-h-[calc(100vh-200px)] sticky top-4">
@@ -130,27 +254,64 @@ export default function RegulationDetailPanel({ regulation, onClose }: Props) {
             {regulation.type && <span className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{regulation.type.replace(/_/g, " ")}</span>}
           </div>
         </div>
-        <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded shrink-0" aria-label="Close panel">
-          <X size={16} />
-        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          {canEdit && (
+            <button
+              onClick={() => setEditMode((v) => !v)}
+              className={cn(
+                "p-1.5 rounded transition-colors",
+                editMode
+                  ? "bg-updraft-bright-purple text-white"
+                  : "text-gray-400 hover:bg-gray-100 hover:text-updraft-deep"
+              )}
+              title={editMode ? "Exit edit mode" : "Edit regulation"}
+            >
+              <Pencil size={14} />
+            </button>
+          )}
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded text-gray-400" aria-label="Close panel">
+            <X size={16} />
+          </button>
+        </div>
       </div>
 
       <div className="p-4 space-y-5">
+
         {/* Description */}
-        {regulation.description && (
-          <section>
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Description</h4>
-            <p className="text-sm text-gray-700">{regulation.description}</p>
-          </section>
-        )}
+        <section>
+          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Description</h4>
+          {editMode ? (
+            <textarea
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              rows={6}
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple resize-y"
+              placeholder="Add a description..."
+            />
+          ) : (
+            regulation.description
+              ? <p className="text-sm text-gray-700 leading-relaxed">{regulation.description}</p>
+              : <p className="text-xs text-gray-400 italic">No description</p>
+          )}
+        </section>
 
         {/* Provisions */}
-        {regulation.provisions && (
-          <section>
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Provisions</h4>
-            <p className="text-sm text-gray-600 font-mono">{regulation.provisions}</p>
-          </section>
-        )}
+        <section>
+          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Provisions</h4>
+          {editMode ? (
+            <textarea
+              value={editProvisions}
+              onChange={(e) => setEditProvisions(e.target.value)}
+              rows={2}
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
+              placeholder="e.g. CONC 5.2.1R, CONC 5.2.2G"
+            />
+          ) : (
+            regulation.provisions
+              ? <p className="text-sm text-gray-600 font-mono">{regulation.provisions}</p>
+              : <p className="text-xs text-gray-400 italic">—</p>
+          )}
+        </section>
 
         {/* URL */}
         {regulation.url && (
@@ -159,38 +320,97 @@ export default function RegulationDetailPanel({ regulation, onClose }: Props) {
           </a>
         )}
 
+        {/* Applicability */}
+        {editMode && (
+          <section className="border-t border-gray-100 pt-4">
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Applicability</h4>
+            <div className="space-y-2">
+              <select
+                value={editApplicability}
+                onChange={(e) => setEditApplicability(e.target.value as Applicability)}
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
+              >
+                {(Object.entries(APPLICABILITY_LABELS) as [Applicability, string][]).map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
+                ))}
+              </select>
+              <textarea
+                value={editApplicabilityNotes}
+                onChange={(e) => setEditApplicabilityNotes(e.target.value)}
+                rows={2}
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
+                placeholder="Applicability notes..."
+              />
+            </div>
+          </section>
+        )}
+
         {/* SMF Accountability */}
-        <section>
-          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">SMF Accountability</h4>
-          <div className="space-y-2">
-            {regulation.primarySMF && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-gray-500 w-16">Primary</span>
-                <span className="text-sm font-semibold text-updraft-deep">{regulation.primarySMF}</span>
-                {primaryHolder?.currentHolder && (
-                  <span className="text-xs text-gray-500">({primaryHolder.currentHolder.name})</span>
-                )}
+        <section className={cn(editMode ? "" : "border-t border-gray-100 pt-4")}>
+          {!editMode && <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">SMF Accountability</h4>}
+          {editMode ? (
+            <div className="border-t border-gray-100 pt-4 space-y-2">
+              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">SMF Accountability</h4>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Primary SMF</label>
+                  <input
+                    value={editPrimarySMF}
+                    onChange={(e) => setEditPrimarySMF(e.target.value)}
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
+                    placeholder="e.g. SMF16"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Secondary SMF</label>
+                  <input
+                    value={editSecondarySMF}
+                    onChange={(e) => setEditSecondarySMF(e.target.value)}
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
+                    placeholder="e.g. SMF1"
+                  />
+                </div>
               </div>
-            )}
-            {regulation.secondarySMF && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-gray-500 w-16">Secondary</span>
-                <span className="text-sm font-medium text-gray-700">{regulation.secondarySMF}</span>
-                {secondaryHolder?.currentHolder && (
-                  <span className="text-xs text-gray-500">({secondaryHolder.currentHolder.name})</span>
-                )}
-              </div>
-            )}
-            {!regulation.primarySMF && !regulation.secondarySMF && (
-              <p className="text-xs text-gray-400 italic">No SMF assigned</p>
-            )}
-          </div>
+              <textarea
+                value={editSMFNotes}
+                onChange={(e) => setEditSMFNotes(e.target.value)}
+                rows={2}
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
+                placeholder="SMF notes..."
+              />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {regulation.primarySMF && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-gray-500 w-16">Primary</span>
+                  <span className="text-sm font-semibold text-updraft-deep">{regulation.primarySMF}</span>
+                  {primaryHolder?.currentHolder && (
+                    <span className="text-xs text-gray-500">({primaryHolder.currentHolder.name})</span>
+                  )}
+                </div>
+              )}
+              {regulation.secondarySMF && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-gray-500 w-16">Secondary</span>
+                  <span className="text-sm font-medium text-gray-700">{regulation.secondarySMF}</span>
+                  {secondaryHolder?.currentHolder && (
+                    <span className="text-xs text-gray-500">({secondaryHolder.currentHolder.name})</span>
+                  )}
+                </div>
+              )}
+              {regulation.smfNotes && <p className="text-xs text-gray-500 italic">{regulation.smfNotes}</p>}
+              {!regulation.primarySMF && !regulation.secondarySMF && (
+                <p className="text-xs text-gray-400 italic">No SMF assigned</p>
+              )}
+            </div>
+          )}
         </section>
 
-        {/* Compliance Assessment (editable for CCRO) */}
+        {/* Compliance Assessment */}
         <section className="border-t border-gray-100 pt-4">
           <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Compliance Assessment</h4>
-          {canEdit ? (
+          {editMode ? (
             <div className="space-y-3">
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Status</label>
@@ -223,13 +443,6 @@ export default function RegulationDetailPanel({ regulation, onClose }: Props) {
                   className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
                 />
               </div>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="px-4 py-2 text-sm font-medium text-white bg-updraft-bright-purple rounded-lg hover:bg-updraft-deep transition-colors disabled:opacity-50"
-              >
-                {saving ? "Saving..." : "Save Assessment"}
-              </button>
             </div>
           ) : (
             <div className="space-y-2">
@@ -244,12 +457,77 @@ export default function RegulationDetailPanel({ regulation, onClose }: Props) {
           )}
         </section>
 
+        {/* Save / Cancel (edit mode) */}
+        {editMode && (
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-updraft-bright-purple rounded-lg hover:bg-updraft-deep transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {saving && <Loader2 size={14} className="animate-spin" />}
+              {saving ? "Saving…" : "Save Changes"}
+            </button>
+            <button
+              onClick={() => setEditMode(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+
         {/* Linked Policies */}
         <section className="border-t border-gray-100 pt-4">
-          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-            <FileText size={12} className="inline mr-1" />
-            Linked Policies ({regulation.policyLinks?.length ?? 0})
-          </h4>
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <FileText size={12} className="inline mr-1" />
+              Linked Policies ({regulation.policyLinks?.length ?? 0})
+            </h4>
+            {canEdit && (
+              <button
+                onClick={() => { setShowPolicyPicker((v) => !v); setPolicySearch(""); }}
+                className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-[10px] font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                <Link2 size={10} /> Link Policy
+              </button>
+            )}
+          </div>
+
+          {/* Policy picker */}
+          {showPolicyPicker && (
+            <div className="mb-3 rounded-lg border border-gray-200 bg-gray-50 p-2.5 space-y-2">
+              <div className="relative">
+                <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={policySearch}
+                  onChange={(e) => setPolicySearch(e.target.value)}
+                  placeholder="Search policies..."
+                  className="w-full rounded-lg border border-gray-200 pl-7 pr-2 py-1.5 text-xs focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
+                  autoFocus
+                />
+              </div>
+              <div className="max-h-40 overflow-y-auto space-y-0.5">
+                {unlinkedPolicies.length === 0 && (
+                  <p className="text-[11px] text-gray-400 py-2 text-center">No unlinked policies found</p>
+                )}
+                {unlinkedPolicies.slice(0, 50).map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => handleLinkPolicy(p.id)}
+                    disabled={linkingPolicy === p.id}
+                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-white transition-colors disabled:opacity-50"
+                  >
+                    <span className="font-mono font-bold text-updraft-deep shrink-0">{p.reference}</span>
+                    <span className="truncate text-gray-700">{p.name}</span>
+                    <Plus size={10} className="ml-auto shrink-0 text-gray-400" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {regulation.policyLinks && regulation.policyLinks.length > 0 ? (
             <div className="space-y-1.5">
               {regulation.policyLinks.map((link) => {
@@ -262,6 +540,15 @@ export default function RegulationDetailPanel({ regulation, onClose }: Props) {
                       reference={policy?.reference}
                       label={policy?.name ?? "Unknown policy"}
                     />
+                    {canEdit && (
+                      <button
+                        onClick={() => handleUnlinkPolicy(link.policyId)}
+                        className="ml-auto rounded p-0.5 text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        title="Unlink policy"
+                      >
+                        <X size={11} />
+                      </button>
+                    )}
                   </div>
                 );
               })}

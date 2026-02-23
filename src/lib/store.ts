@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry, RiskAcceptance, Policy, Regulation, DashboardNotification, Role, RiskControlLink, SMFRole, PrescribedResponsibility, CertificationFunction, CertifiedPerson, ConductRule, ConductRuleBreach, SMCRDocument, ComplianceStatus, AccessRequest, DashboardLayoutConfig } from "./types";
+import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry, RiskAcceptance, Policy, Regulation, DashboardNotification, Role, RiskControlLink, SMFRole, PrescribedResponsibility, CertificationFunction, CertifiedPerson, ConductRule, ConductRuleBreach, SMCRDocument, ComplianceStatus, Applicability, AccessRequest, DashboardLayoutConfig } from "./types";
 import { api, friendlyApiError } from "./api-client";
 
 interface AppState {
@@ -192,10 +192,12 @@ interface AppState {
   updateSmcrDocument: (id: string, data: Partial<SMCRDocument>) => void;
 
   // Compliance actions
-  updateRegulationCompliance: (id: string, data: { complianceStatus?: ComplianceStatus; assessmentNotes?: string; nextReviewDate?: string }) => void;
+  updateRegulationCompliance: (id: string, data: { complianceStatus?: ComplianceStatus; assessmentNotes?: string | null; nextReviewDate?: string | null; description?: string | null; provisions?: string | null; applicability?: Applicability; applicabilityNotes?: string | null; primarySMF?: string | null; secondarySMF?: string | null; smfNotes?: string | null }) => void;
   toggleRegulationApplicability: (id: string, isApplicable: boolean) => void;
   linkRegulationToControl: (regulationId: string, controlId: string, linkedBy: string, notes?: string) => void;
   unlinkRegulationFromControl: (regulationId: string, controlId: string) => void;
+  linkRegulationToPolicy: (regulationId: string, policyId: string, linkedBy: string) => void;
+  unlinkRegulationFromPolicy: (regulationId: string, policyId: string) => void;
 
   // Access Requests
   accessRequests: AccessRequest[];
@@ -888,6 +890,26 @@ export const useAppStore = create<AppState>((set, get) => ({
       ),
     }));
     sync(() => api(`/api/compliance/regulations/${regulationId}/control-links`, { method: "DELETE", body: { controlId } }));
+  },
+  linkRegulationToPolicy: (regulationId, policyId, linkedBy) => {
+    set((state) => ({
+      regulations: state.regulations.map((r) =>
+        r.id === regulationId
+          ? { ...r, policyLinks: [...(r.policyLinks ?? []), { id: `temp-${Date.now()}`, policyId, regulationId, policySections: null, notes: null, linkedAt: new Date().toISOString(), linkedBy }] }
+          : r
+      ),
+    }));
+    sync(() => api(`/api/compliance/regulations/${regulationId}/policy-links`, { method: "POST", body: { policyId } }));
+  },
+  unlinkRegulationFromPolicy: (regulationId, policyId) => {
+    set((state) => ({
+      regulations: state.regulations.map((r) =>
+        r.id === regulationId
+          ? { ...r, policyLinks: (r.policyLinks ?? []).filter((l) => l.policyId !== policyId) }
+          : r
+      ),
+    }));
+    sync(() => api(`/api/compliance/regulations/${regulationId}/policy-links`, { method: "DELETE", body: { policyId } }));
   },
 
   // ── Access Requests ──────────────────────────────────────────

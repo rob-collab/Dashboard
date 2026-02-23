@@ -45,6 +45,8 @@ const updateSchema = z.object({
   primarySMF: z.string().nullable().optional(),
   secondarySMF: z.string().nullable().optional(),
   smfNotes: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  provisions: z.string().nullable().optional(),
 });
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
