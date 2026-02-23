@@ -12,6 +12,8 @@ import {
   XCircle,
   Pencil,
   Trash2,
+  Send,
+  Loader2,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import RoleGuard from "@/components/common/RoleGuard";
@@ -23,6 +25,8 @@ import type { Role, User } from "@/lib/types";
 import { logAuditEvent } from "@/lib/audit";
 import { usePageTitle } from "@/lib/usePageTitle";
 import { useHasPermission } from "@/lib/usePermission";
+import { api } from "@/lib/api-client";
+import { toast } from "sonner";
 
 function useOwnedRiskCounts() {
   const risks = useAppStore((s) => s.risks);
@@ -75,6 +79,7 @@ export default function UsersPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | undefined>(undefined);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [sendingInviteId, setSendingInviteId] = useState<string | null>(null);
 
   const filteredUsers = useMemo(() => {
     let filtered = users;
@@ -131,6 +136,22 @@ export default function UsersPage() {
     },
     [editingUser, setUsers, users]
   );
+
+  const handleSendInvite = useCallback(async (user: User) => {
+    setSendingInviteId(user.id);
+    try {
+      await api(`/api/users/${user.id}/invite`, { method: "POST" });
+      toast.success("Invitation sent", {
+        description: `An invitation email has been sent to ${user.email}.`,
+      });
+    } catch {
+      toast.error("Failed to send invitation", {
+        description: "Please check your email configuration and try again.",
+      });
+    } finally {
+      setSendingInviteId(null);
+    }
+  }, []);
 
   const handleToggleActive = useCallback(
     (user: User) => {
@@ -332,6 +353,16 @@ export default function UsersPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => handleSendInvite(user)}
+                          disabled={sendingInviteId === user.id}
+                          className="rounded-lg p-1.5 text-gray-400 hover:bg-updraft-pale-purple/60 hover:text-updraft-bright-purple transition-colors disabled:opacity-50"
+                          title="Send invitation email"
+                        >
+                          {sendingInviteId === user.id
+                            ? <Loader2 size={14} className="animate-spin" />
+                            : <Send size={14} />}
+                        </button>
                         <button
                           onClick={() => handleOpenEdit(user)}
                           className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"

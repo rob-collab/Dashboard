@@ -89,6 +89,67 @@ export async function sendActionAssigned(
   }
 }
 
+interface InviteEmailData {
+  recipientName: string;
+  recipientEmail: string;
+  senderName: string;
+  appUrl: string;
+}
+
+export async function sendUserInvite(
+  data: InviteEmailData
+): Promise<{ success: boolean; error?: string }> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping email");
+    return { success: false, error: "RESEND_API_KEY not configured" };
+  }
+
+  const firstName = data.recipientName.split(" ")[0];
+
+  try {
+    await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: data.recipientEmail,
+      subject: "You've been added to the Updraft CCRO Management Tool",
+      html: `
+        <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+          <div style="background: linear-gradient(135deg, #1a1060, #4f46e5); padding: 24px; border-radius: 12px 12px 0 0;">
+            <h1 style="color: white; font-size: 20px; margin: 0; font-weight: 600;">Updraft CCRO Management Tool</h1>
+            <p style="color: rgba(255,255,255,0.75); font-size: 13px; margin: 6px 0 0 0;">Compliance &amp; Risk Management Platform</p>
+          </div>
+          <div style="border: 1px solid #e5e7eb; border-top: none; padding: 32px 24px; border-radius: 0 0 12px 12px; background: #ffffff;">
+            <p style="color: #374151; font-size: 15px; margin: 0 0 16px 0;">Hi ${firstName},</p>
+            <p style="color: #374151; font-size: 14px; line-height: 1.6; margin: 0 0 16px 0;">
+              You have been added to the <strong>Updraft CCRO Management Tool</strong> — our centralised platform for compliance monitoring, risk management, regulatory tracking, and Consumer Duty oversight.
+            </p>
+            <p style="color: #374151; font-size: 14px; line-height: 1.6; margin: 0 0 24px 0;">
+              You can sign in using your Google account associated with this email address. Please use the button below to access the platform.
+            </p>
+            <div style="text-align: center; margin: 28px 0;">
+              <a href="${data.appUrl}" style="display: inline-block; background: linear-gradient(135deg, #1a1060, #4f46e5); color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; letter-spacing: 0.01em;">
+                Access the CCRO Tool
+              </a>
+            </div>
+            <div style="border-top: 1px solid #f3f4f6; padding-top: 20px; margin-top: 24px;">
+              <p style="color: #6b7280; font-size: 13px; line-height: 1.6; margin: 0 0 4px 0;">
+                If you have any questions, please reach out to ${data.senderName}.
+              </p>
+              <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+                This invitation was sent by ${data.senderName} from the Updraft CCRO Team.
+              </p>
+            </div>
+          </div>
+        </div>
+      `,
+    });
+    return { success: true };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[email] Failed to send invite email:", msg);
+    return { success: false, error: msg };
+  }
+}
+
 export async function sendActionReminder(
   data: ActionEmailData,
   assignee: Assignee
