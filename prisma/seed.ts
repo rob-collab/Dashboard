@@ -1,6 +1,9 @@
 import "dotenv/config";
 import { PrismaClient } from "../src/generated/prisma";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { PRIN_CONC_DESCRIPTIONS } from "../scripts/enrich-descriptions-prin-conc";
+import { SYSC_LEG_DESCRIPTIONS } from "../scripts/enrich-descriptions-sysc-leg";
+import { REMAINING_DESCRIPTIONS } from "../scripts/enrich-descriptions-remaining";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
@@ -1687,6 +1690,29 @@ async function main() {
     });
   }
   console.log(`  ✓ Assessment notes seeded for ${ASSESSMENT_NOTES.length} key regulations`);
+
+  // ── Enriched Regulation Descriptions ─────────────────────────────────────
+  // These expert-level descriptions were originally applied via the
+  // enrich-compliance-universe.ts script (commit 2b58e93) but are embedded
+  // here so they survive future reseeds. Covers 253 of the 328 regulations
+  // (data protection CU-0145 to CU-0218 retain their CSV descriptions).
+  const ALL_ENRICHED: Record<string, string> = {
+    ...PRIN_CONC_DESCRIPTIONS,
+    ...SYSC_LEG_DESCRIPTIONS,
+    ...REMAINING_DESCRIPTIONS,
+  };
+
+  let descUpdated = 0;
+  for (const [cuIdUpper, description] of Object.entries(ALL_ENRICHED)) {
+    // Script keys are "CU-0001" format; DB ids are "cu-0001"
+    const id = cuIdUpper.toLowerCase();
+    const result = await prisma.regulation.updateMany({
+      where: { id },
+      data: { description },
+    });
+    if (result.count > 0) descUpdated++;
+  }
+  console.log(`  ✓ Enriched descriptions applied to ${descUpdated} regulations`);
 
   console.log("Seed complete!");
 }
