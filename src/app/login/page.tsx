@@ -15,9 +15,9 @@ function LoginForm() {
       <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-2xl">
         <div className="mb-8 flex flex-col items-center">
           <img
-            src="/logo-mark.png"
+            src="/loading-logo.jpeg"
             alt="Updraft"
-            className="mb-4 h-16 w-16"
+            className="mb-4 h-16 w-16 rounded-xl"
           />
           <h1 className="font-poppins text-xl font-bold text-updraft-deep">
             CCRO Dashboard

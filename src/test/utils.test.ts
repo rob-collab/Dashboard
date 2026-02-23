@@ -11,7 +11,9 @@ import {
   ragBgColor,
   statusColor,
   statusLabel,
+  formatDate,
   formatDateShort,
+  generateId,
 } from "@/lib/utils";
 
 // ── cn ───────────────────────────────────────────────────────────────────────
@@ -228,5 +230,52 @@ describe("formatDateShort", () => {
   it("accepts a Date object", () => {
     const result = formatDateShort(new Date("2025-01-01"));
     expect(result).toContain("2025");
+  });
+});
+
+// ── formatDate ───────────────────────────────────────────────────────────────
+
+describe("formatDate", () => {
+  it("returns a string containing the year", () => {
+    const result = formatDate("2025-06-15T12:00:00.000Z");
+    expect(result).toContain("2025");
+  });
+
+  it("accepts a Date object", () => {
+    const result = formatDate(new Date("2024-03-20T09:30:00.000Z"));
+    expect(result).toContain("2024");
+  });
+
+  it("returns a non-empty string", () => {
+    expect(formatDate("2025-01-01T00:00:00.000Z").length).toBeGreaterThan(0);
+  });
+
+  it("includes time components (hours and minutes)", () => {
+    // en-GB locale with hour/minute options always produces a colon separator
+    const result = formatDate("2025-06-15T14:30:00.000Z");
+    expect(result).toMatch(/:/);
+  });
+});
+
+// ── generateId ───────────────────────────────────────────────────────────────
+
+describe("generateId", () => {
+  it("returns a non-empty string", () => {
+    const id = generateId();
+    expect(typeof id).toBe("string");
+    expect(id.length).toBeGreaterThan(0);
+  });
+
+  it("returns unique values on successive calls", () => {
+    const ids = new Set(Array.from({ length: 10 }, () => generateId()));
+    expect(ids.size).toBe(10);
+  });
+
+  it("returns a UUID-shaped string (crypto.randomUUID is available in jsdom)", () => {
+    const id = generateId();
+    // Standard UUID format: 8-4-4-4-12 hex characters
+    expect(id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    );
   });
 });

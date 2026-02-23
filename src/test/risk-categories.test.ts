@@ -5,6 +5,15 @@ import {
   getCellRiskLevel,
   calculateBreach,
   getAppetiteMaxScore,
+  LIKELIHOOD_SCALE,
+  IMPACT_SCALE,
+  L1_CATEGORIES,
+  getL2Categories,
+  L1_CATEGORY_COLOURS,
+  DIRECTION_DISPLAY,
+  EFFECTIVENESS_DISPLAY,
+  APPETITE_DISPLAY,
+  RISK_CATEGORIES,
 } from "@/lib/risk-categories";
 
 // ── getRiskScore ──────────────────────────────────────────────────────────────
@@ -127,5 +136,203 @@ describe("calculateBreach", () => {
     expect(calculateBreach(8, "LOW_TO_MODERATE").breached).toBe(false); // 8 == 8
     expect(calculateBreach(9, "MODERATE").breached).toBe(false);  // 9 == 9
     expect(calculateBreach(10, "MODERATE").breached).toBe(true);  // 10 > 9
+  });
+});
+
+// ── LIKELIHOOD_SCALE ─────────────────────────────────────────────────────────
+
+describe("LIKELIHOOD_SCALE", () => {
+  it("has 5 entries", () => {
+    expect(LIKELIHOOD_SCALE).toHaveLength(5);
+  });
+
+  it("scores run from 1 to 5", () => {
+    const scores = LIKELIHOOD_SCALE.map((e) => e.score);
+    expect(scores).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("entry 1 is Rare", () => {
+    expect(LIKELIHOOD_SCALE[0].label).toBe("Rare");
+  });
+
+  it("entry 5 is Almost Certain", () => {
+    expect(LIKELIHOOD_SCALE[4].label).toBe("Almost Certain");
+  });
+
+  it("every entry has a non-empty description", () => {
+    for (const entry of LIKELIHOOD_SCALE) {
+      expect(entry.description.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+// ── IMPACT_SCALE ─────────────────────────────────────────────────────────────
+
+describe("IMPACT_SCALE", () => {
+  it("has 5 entries", () => {
+    expect(IMPACT_SCALE).toHaveLength(5);
+  });
+
+  it("scores run from 1 to 5", () => {
+    const scores = IMPACT_SCALE.map((e) => e.score);
+    expect(scores).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("entry 1 is Negligible", () => {
+    expect(IMPACT_SCALE[0].label).toBe("Negligible");
+  });
+
+  it("entry 5 is Significant", () => {
+    expect(IMPACT_SCALE[4].label).toBe("Significant");
+  });
+
+  it("every entry has an operational field", () => {
+    for (const entry of IMPACT_SCALE) {
+      expect(typeof entry.operational).toBe("string");
+    }
+  });
+});
+
+// ── L1_CATEGORIES ─────────────────────────────────────────────────────────────
+
+describe("L1_CATEGORIES", () => {
+  it("has 5 entries", () => {
+    expect(L1_CATEGORIES).toHaveLength(5);
+  });
+
+  it("includes Conduct & Compliance Risk", () => {
+    expect(L1_CATEGORIES).toContain("Conduct & Compliance Risk");
+  });
+
+  it("includes Operational Risk", () => {
+    expect(L1_CATEGORIES).toContain("Operational Risk");
+  });
+
+  it("includes Strategic Risk", () => {
+    expect(L1_CATEGORIES).toContain("Strategic Risk");
+  });
+
+  it("matches the names of RISK_CATEGORIES", () => {
+    expect(L1_CATEGORIES).toEqual(RISK_CATEGORIES.map((c) => c.name));
+  });
+});
+
+// ── getL2Categories ───────────────────────────────────────────────────────────
+
+describe("getL2Categories", () => {
+  it("returns subcategories for a valid L1 name", () => {
+    const subs = getL2Categories("Conduct & Compliance Risk");
+    expect(subs.length).toBeGreaterThan(0);
+  });
+
+  it("returns the correct subcategories for Conduct & Compliance Risk", () => {
+    const names = getL2Categories("Conduct & Compliance Risk").map((s) => s.name);
+    expect(names).toContain("Culture");
+    expect(names).toContain("Products");
+    expect(names).toContain("Regulations");
+  });
+
+  it("returns 7 subcategories for Operational Risk", () => {
+    expect(getL2Categories("Operational Risk")).toHaveLength(7);
+  });
+
+  it("returns an empty array for an unknown L1 name", () => {
+    expect(getL2Categories("Unknown Category")).toEqual([]);
+  });
+
+  it("returns subcategories with non-empty definitions", () => {
+    for (const sub of getL2Categories("Strategic Risk")) {
+      expect(sub.definition.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+// ── L1_CATEGORY_COLOURS ───────────────────────────────────────────────────────
+
+describe("L1_CATEGORY_COLOURS", () => {
+  it("has an entry for every L1 category", () => {
+    for (const name of L1_CATEGORIES) {
+      expect(L1_CATEGORY_COLOURS[name]).toBeDefined();
+    }
+  });
+
+  it("each entry has fill, stroke, and label properties", () => {
+    for (const entry of Object.values(L1_CATEGORY_COLOURS)) {
+      expect(typeof entry.fill).toBe("string");
+      expect(typeof entry.stroke).toBe("string");
+      expect(typeof entry.label).toBe("string");
+    }
+  });
+
+  it("Conduct & Compliance Risk has label 'Conduct'", () => {
+    expect(L1_CATEGORY_COLOURS["Conduct & Compliance Risk"].label).toBe("Conduct");
+  });
+});
+
+// ── DIRECTION_DISPLAY ─────────────────────────────────────────────────────────
+
+describe("DIRECTION_DISPLAY", () => {
+  it("has IMPROVING, STABLE, and DETERIORATING keys", () => {
+    expect(DIRECTION_DISPLAY).toHaveProperty("IMPROVING");
+    expect(DIRECTION_DISPLAY).toHaveProperty("STABLE");
+    expect(DIRECTION_DISPLAY).toHaveProperty("DETERIORATING");
+  });
+
+  it("IMPROVING has an upward arrow icon", () => {
+    expect(DIRECTION_DISPLAY.IMPROVING.icon).toBe("↑");
+  });
+
+  it("DETERIORATING has a downward arrow icon", () => {
+    expect(DIRECTION_DISPLAY.DETERIORATING.icon).toBe("↓");
+  });
+
+  it("each entry has label, icon, and colour", () => {
+    for (const entry of Object.values(DIRECTION_DISPLAY)) {
+      expect(typeof entry.label).toBe("string");
+      expect(typeof entry.icon).toBe("string");
+      expect(typeof entry.colour).toBe("string");
+    }
+  });
+});
+
+// ── EFFECTIVENESS_DISPLAY ─────────────────────────────────────────────────────
+
+describe("EFFECTIVENESS_DISPLAY", () => {
+  it("has EFFECTIVE, PARTIALLY_EFFECTIVE, and INEFFECTIVE keys", () => {
+    expect(EFFECTIVENESS_DISPLAY).toHaveProperty("EFFECTIVE");
+    expect(EFFECTIVENESS_DISPLAY).toHaveProperty("PARTIALLY_EFFECTIVE");
+    expect(EFFECTIVENESS_DISPLAY).toHaveProperty("INEFFECTIVE");
+  });
+
+  it("EFFECTIVE label is 'Effective'", () => {
+    expect(EFFECTIVENESS_DISPLAY.EFFECTIVE.label).toBe("Effective");
+  });
+
+  it("each entry has label, colour, and bg", () => {
+    for (const entry of Object.values(EFFECTIVENESS_DISPLAY)) {
+      expect(typeof entry.label).toBe("string");
+      expect(typeof entry.colour).toBe("string");
+      expect(typeof entry.bg).toBe("string");
+    }
+  });
+});
+
+// ── APPETITE_DISPLAY ──────────────────────────────────────────────────────────
+
+describe("APPETITE_DISPLAY", () => {
+  it("maps VERY_LOW to 'Very Low'", () => {
+    expect(APPETITE_DISPLAY.VERY_LOW).toBe("Very Low");
+  });
+
+  it("maps LOW to 'Low'", () => {
+    expect(APPETITE_DISPLAY.LOW).toBe("Low");
+  });
+
+  it("maps LOW_TO_MODERATE to 'Low to Moderate'", () => {
+    expect(APPETITE_DISPLAY.LOW_TO_MODERATE).toBe("Low to Moderate");
+  });
+
+  it("maps MODERATE to 'Moderate'", () => {
+    expect(APPETITE_DISPLAY.MODERATE).toBe("Moderate");
   });
 });
