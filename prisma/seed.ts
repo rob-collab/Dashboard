@@ -1559,6 +1559,135 @@ async function main() {
   }
   console.log(`  ✓ Fixed ${measuresFixed} measure positions (${allMeasures.length} total measures checked)`);
 
+  // ── Compliance Status & Assessment Notes ─────────────────────────────────
+  // Set COMPLIANT as the default for all CORE and HIGH regulations.
+  // All 328 regulations were seeded as NOT_ASSESSED in the CSV import — this restores
+  // the realistic compliance posture.
+  await prisma.regulation.updateMany({
+    where: { applicability: { in: ["CORE", "HIGH"] } },
+    data: { complianceStatus: "COMPLIANT" },
+  });
+
+  // Override known problem areas to PARTIALLY_COMPLIANT
+  const partiallyCompliantIds = [
+    // Consumer Duty — framework embedded but outcome monitoring still maturing
+    "cu-0013", "cu-0014", "cu-0016", "cu-0017", "cu-0018", "cu-0019",
+    "cu-0020", "cu-0021", "cu-0022", "cu-0023",
+    // CONC 3 Financial Promotions — FinProm digital channels review ongoing
+    "cu-0036",
+    // CONC 5 Responsible Lending — creditworthiness model validation in progress
+    "cu-0049", "cu-0050", "cu-0051",
+    // CONC 7 Arrears — vulnerable customer identification improvements ongoing
+    "cu-0061", "cu-0062",
+    // SYSC 15A Operational Resilience — third-party vendor assessments outstanding
+    "cu-0087",
+    // AML/MLR — transaction monitoring platform upgrade in progress
+    "cu-0220", "cu-0221", "cu-0222",
+    // Data Protection — improvement programme underway (known weakness area)
+    "cu-0145",
+    // DISP 1 Complaints — Consumer Duty MI alignment in progress
+    "cu-0111",
+  ];
+  await prisma.regulation.updateMany({
+    where: { id: { in: partiallyCompliantIds } },
+    data: { complianceStatus: "PARTIALLY_COMPLIANT" },
+  });
+
+  // DORA-UK — applicability review in progress, gap analysis commissioned
+  await prisma.regulation.updateMany({
+    where: { id: { in: ["cu-0317"] } },
+    data: { complianceStatus: "GAP_IDENTIFIED" },
+  });
+  console.log("  ✓ Compliance statuses set");
+
+  // ── Assessment Notes (only if null — preserves any user-entered data) ─────
+  const ASSESSMENT_NOTES = [
+    {
+      id: "cu-0013",
+      notes: "Consumer Duty compliance framework has been embedded across all business lines. Board-approved Consumer Duty programme delivered on schedule. Four-outcome framework mapped to Updraft's full product and service offering; Board Champion appointed. Key partial gap: outcome monitoring MI is not yet fully mature — dashboard metrics are being refined and back-tested against live customer experience data. Annual board report on track for July 2026.",
+      lastAssessedAt: new Date("2026-01-15"),
+      nextReviewDate: new Date("2026-07-15"),
+    },
+    {
+      id: "cu-0014",
+      notes: "PRIN 2A detailed requirements reviewed against all four outcomes. Cross-cutting rules (act in good faith, avoid foreseeable harm, support customers' financial objectives) have been operationalised through product governance, communications standards, and the customer vulnerability policy. Outcome testing programme is established but frequency and depth of testing is being scaled up. Next focus: enhance Consumer Duty MI pack for ExCo and Board quarterly review.",
+      lastAssessedAt: new Date("2026-01-15"),
+      nextReviewDate: new Date("2026-07-15"),
+    },
+    {
+      id: "cu-0018",
+      notes: "Price and Value outcome: first annual fair value assessment completed for all products. Assessment demonstrates that total cost of credit is proportionate and competitive for the target market. Key finding: arrangement fees on certain loan products require further review — a value assessment report was submitted to the Product Committee in November 2025. Remediation in progress to simplify fee structure. Next annual assessment due Q3 2026.",
+      lastAssessedAt: new Date("2025-11-30"),
+      nextReviewDate: new Date("2026-09-30"),
+    },
+    {
+      id: "cu-0020",
+      notes: "Consumer Support outcome: 92% of complaints resolved within FCA timelines. Vulnerability identification process embedded in onboarding and servicing workflows. Key gap: the dedicated support pathway for customers in financial difficulty relies on frontline agent discretion rather than systematic identification triggers. Improvement project initiated Q1 2026 to introduce structured vulnerability screening at 30-day arrears.",
+      lastAssessedAt: new Date("2026-01-31"),
+      nextReviewDate: new Date("2026-06-30"),
+    },
+    {
+      id: "cu-0049",
+      notes: "Core creditworthiness assessment framework is in place and subject to monthly model performance review. CONC 5.2 credit file checks and income verification completed for all applications. Key gap identified Q4 2025: longitudinal stress analysis of customer repayment capacity under adverse income scenarios has not been formally integrated into the model validation framework. Credit Risk working group established — expected completion Q2 2026.",
+      lastAssessedAt: new Date("2025-12-31"),
+      nextReviewDate: new Date("2026-06-30"),
+    },
+    {
+      id: "cu-0061",
+      notes: "Arrears and collections process meets CONC 7 core requirements. Forbearance options (payment deferral, reduced payments, payment plans) are documented and actively offered. Key partial gap: vulnerability identification in early arrears relies on agent discretion rather than systematic flagging. Collections process review completed January 2026 recommends a structured vulnerability screening protocol at 30-day DPD. Implementation expected Q2 2026.",
+      lastAssessedAt: new Date("2026-01-31"),
+      nextReviewDate: new Date("2026-07-31"),
+    },
+    {
+      id: "cu-0036",
+      notes: "All customer-facing promotions are reviewed and approved by Compliance prior to publication. Representative APR is correctly displayed on all advertising. Partial gap: digital and affiliate channel promotions monitoring requires enhanced controls following the FinProm digital communications regime changes. Digital promotions audit December 2025 identified 3 of 12 affiliate partners requiring remediation. Updated approval framework for digital channels under development — target Q1 2026.",
+      lastAssessedAt: new Date("2025-12-15"),
+      nextReviewDate: new Date("2026-03-31"),
+    },
+    {
+      id: "cu-0087",
+      notes: "Important business services (IBS) identified and mapped. Impact tolerances defined for 4 IBS: loan origination, customer account servicing, payment processing, and customer communications. Scenario testing for loss of primary data centre completed — 4-hour tolerance met. Key gap: operational resilience assessments for 3 critical third-party technology vendors not yet complete. Target operating model for resilience testing submitted to Board January 2026. Full compliance with the March 2025 regulatory deadline is being actively managed.",
+      lastAssessedAt: new Date("2026-01-20"),
+      nextReviewDate: new Date("2026-03-31"),
+    },
+    {
+      id: "cu-0220",
+      notes: "MLRO function in place (SMF17). Business-wide risk assessment completed and reviewed annually. CDD procedures documented and followed. Key gap: transaction monitoring rules are based on static thresholds rather than dynamic risk-based models. Transaction monitoring platform upgrade in progress — vendor selected, implementation Q2 2026. SAR reporting is current. AML and conduct rules staff training completed annually — last cohort November 2025.",
+      lastAssessedAt: new Date("2025-11-30"),
+      nextReviewDate: new Date("2026-05-31"),
+    },
+    {
+      id: "cu-0145",
+      notes: "Data protection is a known compliance weakness area. Lawful basis documentation is complete for core processing activities and privacy notices are published. Key gaps: (1) Records of Processing Activities (ROPA) not updated since December 2024 — does not reflect recent product changes; (2) DPIAs inconsistently applied for new processing activities; (3) Data retention schedules documented but deletion and suppression processes are not automated. A 12-month data protection improvement programme was approved by ExCo in November 2025.",
+      lastAssessedAt: new Date("2025-11-01"),
+      nextReviewDate: new Date("2026-05-01"),
+    },
+    {
+      id: "cu-0317",
+      notes: "DORA applicability review in progress. Initial assessment indicates DORA applies to Updraft as a financial entity. Items under review: ICT risk management framework requirements, incident classification and mandatory FCA reporting timelines, digital operational resilience testing programme, and third-party ICT provider oversight obligations. DORA implementation gap analysis commissioned from external counsel — report expected February 2026. Board briefing scheduled March 2026.",
+      lastAssessedAt: new Date("2026-01-10"),
+      nextReviewDate: new Date("2026-04-30"),
+    },
+    {
+      id: "cu-0111",
+      notes: "Complaints handling is largely compliant with DISP 1 rules. FOS referral rate is within industry norms at 3.2%. All complaints acknowledged within 3 business days; 95% resolved within 8 weeks. Root cause analysis process for systemic complaints established Q3 2025. Key gap: complaint MI for Board-level review does not yet include outcome-based analysis aligned to Consumer Duty reporting requirements. Enhancement in progress — target Q2 2026.",
+      lastAssessedAt: new Date("2025-12-31"),
+      nextReviewDate: new Date("2026-06-30"),
+    },
+  ];
+
+  for (const n of ASSESSMENT_NOTES) {
+    await prisma.regulation.updateMany({
+      where: { id: n.id, assessmentNotes: null },
+      data: {
+        assessmentNotes: n.notes,
+        lastAssessedAt: n.lastAssessedAt,
+        nextReviewDate: n.nextReviewDate,
+      },
+    });
+  }
+  console.log(`  ✓ Assessment notes seeded for ${ASSESSMENT_NOTES.length} key regulations`);
+
   console.log("Seed complete!");
 }
 
