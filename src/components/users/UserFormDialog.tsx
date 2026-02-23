@@ -100,13 +100,15 @@ export default function UserFormDialog({
     try {
       let serverUser: User;
 
+      const normalisedEmail = email.trim().toLowerCase();
+
       if (isEdit && user) {
         // Update existing user — PATCH persists to DB immediately
         serverUser = await api<User>(`/api/users/${user.id}`, {
           method: "PATCH",
           body: {
             name: name.trim(),
-            email: email.trim(),
+            email: normalisedEmail,
             role,
             assignedMeasures,
           },
@@ -117,7 +119,7 @@ export default function UserFormDialog({
           method: "POST",
           body: {
             name: name.trim(),
-            email: email.trim(),
+            email: normalisedEmail,
             role,
             assignedMeasures,
             isActive: true,
@@ -216,9 +218,11 @@ export default function UserFormDialog({
             id="user-email"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value.toLowerCase())}
             onBlur={() => validateField("email")}
             placeholder="e.g. jane@updraft.com"
+            autoCapitalize="none"
+            autoCorrect="off"
             className={inputClasses}
             aria-required="true"
             aria-invalid={!!errors.email}
