@@ -266,7 +266,7 @@ export default function RiskRegisterPage() {
       setPanelOpen(false);
       setSelectedRisk(null);
     },
-    [isNewRisk, selectedRisk, risks.length, currentUser, addRisk, updateRisk]
+    [isNewRisk, selectedRisk, risks.length, currentUser, addRisk, updateRisk, canBypassApproval]
   );
 
   const handleRequestReview = useCallback(
@@ -515,7 +515,7 @@ export default function RiskRegisterPage() {
     a.download = `risk-register-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [risks]);
+  }, [risks, users]);
 
   const handleImportComplete = useCallback(async () => {
     try {

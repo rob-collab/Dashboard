@@ -48,7 +48,7 @@ export default function PolicyOverviewTab({ policy, onEdit, onSwitchToControls }
   const isOverdue = policy.status === "OVERDUE" || (policy.nextReviewDate && new Date(policy.nextReviewDate) < new Date());
 
   // Control health from linked controls
-  const controlLinks = policy.controlLinks ?? [];
+  const controlLinks = useMemo(() => policy.controlLinks ?? [], [policy.controlLinks]);
   const controlHealth = useMemo(() => {
     const h = { pass: 0, fail: 0, partial: 0, notTested: 0, total: controlLinks.length };
     for (const link of controlLinks) {

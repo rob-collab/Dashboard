@@ -118,7 +118,7 @@ export default function AttestationTab() {
 
   /* Year range for dropdown */
   const yearOptions = useMemo(() => {
-    const current = now.getFullYear();
+    const current = new Date().getFullYear();
     return [current - 2, current - 1, current, current + 1];
   }, []);
 

@@ -47,7 +47,7 @@ export default function PolicyRegulationsTab({ policy, onUpdate }: Props) {
   const [linking, setLinking] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
-  const linked = policy.regulatoryLinks ?? [];
+  const linked = useMemo(() => policy.regulatoryLinks ?? [], [policy.regulatoryLinks]);
   const linkedIds = new Set(linked.map((l) => l.regulationId));
   const unlinked = regulations.filter((r) => !linkedIds.has(r.id));
   const filteredUnlinked = pickerSearch

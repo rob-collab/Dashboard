@@ -76,6 +76,7 @@ export default function RiskAcceptanceFormDialog({ open, onClose, onSave, prefil
         }
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, prefillSource, prefillRiskId, prefillControlId]);
 
   // Filtered risks for searchable selector

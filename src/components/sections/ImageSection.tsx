@@ -85,6 +85,7 @@ export default function ImageSection({ section, editable, onUpdate }: ImageSecti
   if (src && !editable) {
     return (
       <figure className={cn("flex flex-col", alignClass)} style={{ maxWidth: width ? `${width}px` : "100%" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={src}
           alt={alt}
@@ -137,6 +138,7 @@ export default function ImageSection({ section, editable, onUpdate }: ImageSecti
         <div className="space-y-3">
           {/* Image preview */}
           <figure className={cn("relative flex flex-col", alignClass)} style={{ maxWidth: width ? `${width}px` : "100%" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={src}
               alt={alt}

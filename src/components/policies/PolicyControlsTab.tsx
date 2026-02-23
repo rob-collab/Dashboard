@@ -73,7 +73,7 @@ export default function PolicyControlsTab({ policy, onUpdate }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [linking, setLinking] = useState<string | null>(null);
 
-  const linked = policy.controlLinks ?? [];
+  const linked = useMemo(() => policy.controlLinks ?? [], [policy.controlLinks]);
   const linkedIds = new Set(linked.map((l) => l.controlId));
   const unlinked = controls.filter((c) => c.isActive && !linkedIds.has(c.id));
   const filteredUnlinked = pickerSearch

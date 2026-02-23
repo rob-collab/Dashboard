@@ -114,6 +114,7 @@ export default function CSVUploadDialog({
       reader.onload = (ev) => handleTextLoaded((ev.target?.result as string) ?? "");
       reader.readAsText(file);
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [outcomes]
   );
 
@@ -125,6 +126,7 @@ export default function CSVUploadDialog({
       reader.onload = (ev) => handleTextLoaded((ev.target?.result as string) ?? "");
       reader.readAsText(file);
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [outcomes]
   );
 

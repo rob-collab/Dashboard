@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import type { Risk } from "@/lib/types";
 import { useAppStore } from "@/lib/store";
 import { L1_CATEGORY_COLOURS, L1_CATEGORIES as FALLBACK_L1, getRiskScore, getAppetiteMaxScore } from "@/lib/risk-categories";
@@ -44,7 +44,10 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
   const toggleRiskInFocus = useAppStore((s) => s.toggleRiskInFocus);
   const canToggleFocus = useHasPermission("can:toggle-risk-focus");
   const L1_CATEGORIES = storeCategories.length > 0 ? storeCategories.map((c) => c.name) : FALLBACK_L1;
-  const getOwnerName = (risk: Risk) => risk.riskOwner?.name ?? storeUsers.find(u => u.id === risk.ownerId)?.name ?? "Unknown";
+  const getOwnerName = useCallback(
+    (risk: Risk) => risk.riskOwner?.name ?? storeUsers.find((u) => u.id === risk.ownerId)?.name ?? "Unknown",
+    [storeUsers]
+  );
   const [sortField, setSortField] = useState<SortField>("residual");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [search, setSearch] = useState("");
@@ -59,7 +62,7 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
       ownerMap.set(r.ownerId, name);
     });
     return Array.from(ownerMap.entries()).sort((a, b) => a[1].localeCompare(b[1]));
-  }, [risks]);
+  }, [risks, getOwnerName]);
 
   const filtered = useMemo(() => {
     let result = risks;
@@ -72,7 +75,7 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
     if (filterL1) result = result.filter((r) => r.categoryL1 === filterL1);
     if (filterOwner) result = result.filter((r) => r.ownerId === filterOwner);
     return result;
-  }, [risks, search, filterL1, filterOwner]);
+  }, [risks, search, filterL1, filterOwner, getOwnerName]);
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -91,7 +94,7 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
       }
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [filtered, sortField, sortDir]);
+  }, [filtered, sortField, sortDir, getOwnerName]);
 
   function toggleSort(field: SortField) {
     if (sortField === field) {

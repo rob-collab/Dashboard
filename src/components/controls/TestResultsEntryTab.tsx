@@ -117,8 +117,9 @@ export default function TestResultsEntryTab() {
   /* ── Derived data ────────────────────────────────────────────────────── */
 
   const isPastPeriod = useMemo(() => {
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
+    const n = new Date();
+    const currentMonth = n.getMonth() + 1;
+    const currentYear = n.getFullYear();
     return (
       selectedYear < currentYear ||
       (selectedYear === currentYear && selectedMonth < currentMonth)
@@ -386,7 +387,7 @@ export default function TestResultsEntryTab() {
   /* ── Year range for dropdown ────────────────────────────────────────── */
 
   const yearOptions = useMemo(() => {
-    const current = now.getFullYear();
+    const current = new Date().getFullYear();
     return [current - 2, current - 1, current, current + 1];
   }, []);
 

@@ -267,6 +267,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
     >
       {/* Branding Header */}
       <Link href="/" className="relative flex items-center justify-center overflow-hidden transition-all duration-300 ease-in-out p-3" style={{ borderBottom: `1px solid ${t.border}` }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/logo.png"
           alt="Updraft CCRO Dashboard"
@@ -276,6 +277,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
             collapsed ? "h-0 opacity-0 absolute" : "opacity-90"
           )}
         />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/logo-mark.png"
           alt="Updraft"

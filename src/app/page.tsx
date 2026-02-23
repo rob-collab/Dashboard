@@ -964,6 +964,7 @@ export default function DashboardHome() {
           </div>
           {branding.dashboardIconSrc && (
             <div className="flex-shrink-0 hidden sm:block">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={branding.dashboardIconSrc}
                 alt={branding.dashboardIconAlt}

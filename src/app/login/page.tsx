@@ -14,6 +14,7 @@ function LoginForm() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-updraft-deep via-updraft-bar to-updraft-bright-purple">
       <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-2xl">
         <div className="mb-8 flex flex-col items-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/loading-logo.jpeg"
             alt="Updraft"

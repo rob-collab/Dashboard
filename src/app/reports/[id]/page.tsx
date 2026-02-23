@@ -188,6 +188,7 @@ export default function ReportViewPage() {
       {/* Branding logo in header */}
       {branding.logoSrc && branding.showInHeader && (
         <div className="flex justify-center mb-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={branding.logoSrc}
             alt={branding.logoAlt}
@@ -384,6 +385,7 @@ export default function ReportViewPage() {
                 );
                 return (
                   <figure className={cn("flex flex-col", alignCls)} style={{ maxWidth: imgWidth ? `${imgWidth}px` : "100%" }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={imgSrc} alt={imgAlt} className="rounded-lg" style={{ width: "100%", objectFit: imgFit as React.CSSProperties["objectFit"] }} />
                     {imgCaption && <figcaption className="mt-2 text-center text-xs text-gray-500 italic">{imgCaption}</figcaption>}
                   </figure>
@@ -596,6 +598,7 @@ export default function ReportViewPage() {
       {/* Branding logo in footer */}
       {branding.logoSrc && branding.showInFooter && (
         <div className="flex flex-col items-center gap-1 pt-4 border-t border-gray-200">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={branding.logoSrc}
             alt={branding.logoAlt}

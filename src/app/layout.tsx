@@ -120,6 +120,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="flex flex-col items-center gap-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/loading-logo.jpeg" alt="Updraft" className="h-14 w-14 rounded-xl object-cover" />
           {hydrateError ? (
             <>

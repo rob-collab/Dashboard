@@ -183,6 +183,7 @@ export default function BrandingSettings() {
         ) : (
           <div className="flex items-start gap-4">
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={branding.logoSrc}
                 alt={branding.logoAlt}
@@ -256,6 +257,7 @@ export default function BrandingSettings() {
               <div className="text-[10px] text-white/60 mt-0.5">Updraft CCRO Dashboard</div>
             </div>
             {/* Draggable icon on the right side */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={branding.dashboardIconSrc}
               alt={branding.dashboardIconAlt}
@@ -466,6 +468,7 @@ export default function BrandingSettings() {
             className="flex items-center gap-3 rounded-xl px-4 py-3 transition-all"
             style={{ background: previewGradient, borderRight: `1px solid ${previewDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)"}` }}
           >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo.png"
               alt="Logo preview"
@@ -495,6 +498,7 @@ export default function BrandingSettings() {
 
         {branding.dashboardIconSrc ? (
           <div className="relative inline-block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={branding.dashboardIconSrc}
               alt={branding.dashboardIconAlt}
