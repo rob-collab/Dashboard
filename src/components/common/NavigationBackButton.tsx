@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import { ArrowLeft } from "lucide-react";
 
@@ -16,14 +16,15 @@ interface Props {
  */
 export default function NavigationBackButton({ sidebarOpen }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
   const stackLength = useAppStore((s) => s.navigationStack.length);
   const popNavigationStack = useAppStore((s) => s.popNavigationStack);
   const [canGoBack, setCanGoBack] = useState(false);
 
   useEffect(() => {
-    // window.history.length > 1 means there's at least one page to go back to
+    // Re-check on every navigation — history grows as the user moves around
     setCanGoBack(window.history.length > 1);
-  }, []);
+  }, [pathname]);
 
   const visible = stackLength > 0 || canGoBack;
   if (!visible) return null;

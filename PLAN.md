@@ -3,6 +3,31 @@ Last updated: 2026-02-23
 
 ---
 
+## CURRENT SPRINT: Bug Fix — Compliance nav + Back button ✅ COMPLETE
+
+### Compliance sidebar navigation (tabs don't switch when already on /compliance)
+- `activeTab` was `useState` initialized once on mount; URL changes from sidebar
+  `<Link>` clicks updated `searchParams` but never re-synced local state.
+- Fix: added `useEffect([searchParams])` in `compliance/page.tsx` that calls
+  `setActiveTab` whenever the URL query string changes.
+- File: `src/app/compliance/page.tsx`
+
+### Back button disappeared
+- `useEffect(() => setCanGoBack(window.history.length > 1), [])` ran once at app
+  mount and never again. History grows after each navigation but `canGoBack` stayed
+  `false`, so the button was always hidden.
+- Fix: changed dependency to `[pathname]` so `canGoBack` is re-evaluated after
+  every page navigation.
+- File: `src/components/common/NavigationBackButton.tsx`
+
+### Checklist
+- [x] Clicking "Policies" in sidebar while on /compliance opens the Policies tab
+- [x] Clicking "SM&CR" in sidebar while on /compliance opens the SM&CR tab
+- [x] Back button appears after first navigation and persists
+- [x] Build passes
+
+---
+
 ## CURRENT SPRINT: Bug Fix — Testing Schedule Edit Error ✅ COMPLETE
 
 ### Background

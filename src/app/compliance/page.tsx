@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import RoleGuard from "@/components/common/RoleGuard";
 import ComplianceOverview from "@/components/compliance/ComplianceOverview";
@@ -41,6 +41,16 @@ export default function CompliancePage() {
   const [activeTab, setActiveTab] = useState<TabId>(
     TABS.some((t) => t.id === derivedTab) ? derivedTab : "overview"
   );
+
+  // Sync activeTab when URL changes (e.g. sidebar links navigate to /compliance?tab=X)
+  useEffect(() => {
+    const policyId = searchParams.get("policy");
+    const regulationId = searchParams.get("regulation");
+    const tab = (policyId ? "policies" : regulationId ? "regulatory-universe" : searchParams.get("tab") || "overview") as TabId;
+    if (TABS.some((t) => t.id === tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   const handleTabChange = useCallback((tab: TabId) => {
     setActiveTab(tab);
