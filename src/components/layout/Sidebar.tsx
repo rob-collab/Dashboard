@@ -91,7 +91,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "Reports", href: "/reports", icon: FileText, permission: "page:reports" },
       { label: "Export Centre", href: "/exports", icon: Download, permission: "page:dashboard" },
       { label: "Audit Trail", href: "/audit", icon: ClipboardList, permission: "page:audit" },
-      { label: "Settings", href: "/settings", icon: Settings, permission: "page:settings" },
+      { label: "Settings", href: "/settings", icon: Settings, permission: "page:settings", badgeKey: "settings" },
       { label: "Users", href: "/users", icon: Users, permission: "page:users" },
     ],
   },
@@ -116,6 +116,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
   const scenarios = useAppStore((s) => s.scenarios);
   const ibs = useAppStore((s) => s.ibs);
   const selfAssessments = useAppStore((s) => s.selfAssessments);
+  const accessRequests = useAppStore((s) => s.accessRequests);
   const siteSettings = useAppStore((s) => s.siteSettings);
   const permissionSet = usePermissionSet();
   const searchParams = useSearchParams();
@@ -220,13 +221,18 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
       operationalResilience = overdueScenarios + ibsGaps + selfAssessmentMissing;
     }
 
+    // Settings badge: pending access requests (CCRO only)
+    const settings = canViewPending
+      ? accessRequests.filter((r) => r.status === "PENDING").length
+      : 0;
+
     if (canViewPending) {
       const total = overdueActions + pendingControlChanges + riskAcceptance + pendingRiskChanges + pendingActionChanges;
-      return { dashboard: total, compliance: complianceGaps, changeRequests, operationalResilience } as Record<string, number>;
+      return { dashboard: total, compliance: complianceGaps, changeRequests, operationalResilience, settings } as Record<string, number>;
     }
 
     return { actions: overdueActions, riskAcceptance, operationalResilience } as Record<string, number>;
-  }, [actions, controls, risks, riskAcceptances, regulations, scenarios, ibs, selfAssessments, currentUser, permissionSet]);
+  }, [actions, controls, risks, riskAcceptances, regulations, scenarios, ibs, selfAssessments, accessRequests, currentUser, permissionSet]);
 
   const [refreshing, setRefreshing] = useState(false);
 

@@ -1,9 +1,37 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-24 (OR self-assessment clickable metrics; Regulatory Calendar moved to Compliance)
+Last updated: 2026-02-24 (Access Requests surfaced on Change Requests page + Settings badge)
 
 ---
 
-## CURRENT SPRINT: OR Self-Assessment UX + Regulatory Calendar relocation
+## CURRENT SPRINT: Access Request Visibility Fix
+
+### What
+Access requests submitted by OWNER/REVIEWER users via "Request Edit Access" button were landing in the
+`access_requests` table and were ONLY visible in Settings → Access Requests. The `/change-requests` page
+had no awareness of them, and the Settings nav item had no badge. CCRO had no discoverable alert.
+
+### Fix
+1. Add an "Access Requests" tab to the Change Requests page — shows pending (with Approve/Deny for CCRO)
+   and history; counts shown in tab badge.
+2. Add `badgeKey: "settings"` to the Settings sidebar item, computed as pending access request count
+   (CCRO only), so CCRO sees a red badge when requests are waiting.
+
+### Files
+- `src/app/change-requests/page.tsx`
+- `src/components/layout/Sidebar.tsx`
+
+### Checklist
+- [x] Change Requests page has two tabs: "Field Changes" and "Access Requests"
+- [x] "Access Requests" tab shows pending requests first with Approve/Deny buttons for CCRO
+- [x] "Access Requests" tab shows all requests read-only for non-CCRO users (own requests only)
+- [x] Tab badge shows pending count on "Access Requests" tab
+- [x] Settings sidebar item gains `badgeKey: "settings"`
+- [x] Badge count = pending access requests (CCRO only, so 0 for other roles)
+- [x] Build passes
+
+---
+
+## PREVIOUSLY COMPLETED: OR Self-Assessment UX + Regulatory Calendar relocation
 
 ### What
 1. Self-Assessment tab — vulnerabilities and open remediations cards become click-through links.
