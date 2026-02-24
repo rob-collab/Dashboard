@@ -21,17 +21,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async signIn({ user }) {
       if (!user.email) return false;
-      const dbUser = await prisma.user.findUnique({
-        where: { email: user.email },
-        select: { id: true, isActive: true },
-      });
-      if (!dbUser || !dbUser.isActive) return "/unauthorised";
-      // Update last login
-      await prisma.user.update({
-        where: { id: dbUser.id },
-        data: { lastLoginAt: new Date() },
-      });
-      return true;
+      try {
+        const dbUser = await prisma.user.findUnique({
+          where: { email: user.email },
+          select: { id: true, isActive: true },
+        });
+        if (!dbUser || !dbUser.isActive) return "/unauthorised";
+        // Update last login (best-effort — don't fail sign-in if this throws)
+        try {
+          await prisma.user.update({
+            where: { id: dbUser.id },
+            data: { lastLoginAt: new Date() },
+          });
+        } catch (updateErr) {
+          console.error("[auth][signIn] lastLoginAt update failed:", updateErr);
+        }
+        return true;
+      } catch (err) {
+        console.error("[auth][signIn] Database error — email:", user.email, "error:", err);
+        // Return false so NextAuth shows AccessDenied rather than Configuration
+        return false;
+      }
     },
     async jwt({ token, trigger }) {
       // Stamp absolute sign-in time on initial login
@@ -43,21 +53,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token.signedAt) {
         const elapsed = Math.floor(Date.now() / 1000) - token.signedAt;
         if (elapsed > 8 * 60 * 60) {
-          return {} as Record<string, unknown>;
+          // Return null to force re-authentication in NextAuth v5
+          return null;
         }
       }
 
       // On initial sign-in or token refresh, look up DB user
       if (trigger === "signIn" || (token.email && !token.id)) {
-        const dbUser = await prisma.user.findUnique({
-          where: { email: token.email! },
-          select: { id: true, role: true, name: true },
-        });
-        if (dbUser) {
-          token.sub = dbUser.id;
-          token.id = dbUser.id;
-          token.role = dbUser.role;
-          token.name = dbUser.name;
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { email: token.email! },
+            select: { id: true, role: true, name: true },
+          });
+          if (dbUser) {
+            token.sub = dbUser.id;
+            token.id = dbUser.id;
+            token.role = dbUser.role;
+            token.name = dbUser.name;
+          }
+        } catch (err) {
+          console.error("[auth][jwt] Database error — email:", token.email, "error:", err);
+          // Return token as-is so the session isn't destroyed by a transient DB error
         }
       }
       return token;
