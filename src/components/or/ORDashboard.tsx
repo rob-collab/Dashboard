@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { api } from "@/lib/api-client";
 import { ShieldCheck, AlertTriangle, Clock, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -43,6 +44,13 @@ const READINESS_COLOURS = {
   RED:   { dot: "bg-red-500",   badge: "bg-red-100 text-red-700",   label: "Gaps" },
 };
 
+type ReadinessKey = "GREEN" | "AMBER" | "RED";
+const READINESS_ROWS: [ReadinessKey, string][] = [
+  ["GREEN", "Ready"],
+  ["AMBER", "Partial gaps"],
+  ["RED",   "Significant gaps"],
+];
+
 export default function ORDashboard({ onSelectIbs }: { onSelectIbs?: (id: string) => void }) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,14 +69,36 @@ export default function ORDashboard({ onSelectIbs }: { onSelectIbs?: (id: string
   const amberCount = data.ibs.filter((i) => i.readiness === "AMBER").length;
   const redCount   = data.ibs.filter((i) => i.readiness === "RED").length;
 
+  const countMap: Record<ReadinessKey, number> = { GREEN: greenCount, AMBER: amberCount, RED: redCount };
+
   return (
     <div className="space-y-6">
-      {/* Summary stats */}
+      {/* Summary stats — all clickable */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={<ShieldCheck size={18} className="text-green-600" />} label="IBS Ready" value={`${greenCount}/${data.ibs.length}`} colour="green" />
-        <StatCard icon={<AlertTriangle size={18} className="text-red-600" />} label="Open Remediations" value={data.openRemediationsTotal} colour={data.openRemediationsTotal > 0 ? "red" : "green"} />
-        <StatCard icon={<Clock size={18} className="text-amber-600" />} label="Tests Due" value={data.upcomingTests.length} colour="amber" />
         <StatCard
+          href="/operational-resilience?tab=ibs"
+          icon={<ShieldCheck size={18} className="text-green-600" />}
+          label="IBS Ready"
+          value={`${greenCount}/${data.ibs.length}`}
+          colour="green"
+        />
+        <StatCard
+          href="/actions"
+          icon={<AlertTriangle size={18} className="text-red-600" />}
+          label="Open Remediations"
+          value={data.openRemediationsTotal}
+          colour={data.openRemediationsTotal > 0 ? "red" : "green"}
+        />
+        <StatCard
+          href="/operational-resilience?tab=ibs"
+          icon={<Clock size={18} className="text-amber-600" />}
+          label="Tests Due"
+          value={data.upcomingTests.length}
+          colour="amber"
+          hint="View in IBS Registry"
+        />
+        <StatCard
+          href="/operational-resilience?tab=self-assessment"
           icon={<TrendingUp size={18} className="text-updraft-bright-purple" />}
           label={`${data.currentYear} Assessment`}
           value={data.currentAssessment ? `${data.assessmentReadiness ?? 0}%` : "Not started"}
@@ -86,7 +116,7 @@ export default function ORDashboard({ onSelectIbs }: { onSelectIbs?: (id: string
               <button
                 key={ibs.id}
                 onClick={() => onSelectIbs?.(ibs.id)}
-                className="bento-card text-left hover:shadow-md transition-shadow"
+                className="bento-card text-left hover:shadow-md transition-all hover:border-updraft-bright-purple/30 border border-transparent hover:-translate-y-0.5"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>
@@ -115,6 +145,7 @@ export default function ORDashboard({ onSelectIbs }: { onSelectIbs?: (id: string
                 {ibs.openRemediations > 0 && (
                   <p className="text-xs text-red-600 mt-1 font-medium">{ibs.openRemediations} open remediation{ibs.openRemediations !== 1 ? "s" : ""}</p>
                 )}
+                <p className="text-[10px] text-updraft-bright-purple/60 mt-1.5">Click to view detail →</p>
               </button>
             );
           })}
@@ -152,15 +183,15 @@ export default function ORDashboard({ onSelectIbs }: { onSelectIbs?: (id: string
         <div className="bento-card">
           <h3 className="font-poppins font-semibold text-gray-900 text-sm mb-3">IBS Readiness Summary</h3>
           <div className="space-y-2">
-            {([["GREEN","Ready",greenCount],["AMBER","Partial gaps",amberCount],["RED","Significant gaps",redCount]] as const).map(([key, label, count]) => (
+            {READINESS_ROWS.map(([key, label]) => (
               <div key={key} className="flex items-center gap-2">
                 <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", READINESS_COLOURS[key].dot)} />
                 <span className="text-sm text-gray-600 flex-1">{label}</span>
-                <span className="text-sm font-semibold text-gray-900">{count}</span>
+                <span className="text-sm font-semibold text-gray-900">{countMap[key]}</span>
                 <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <div
                     className={cn("h-full rounded-full", READINESS_COLOURS[key].dot)}
-                    style={{ width: data.ibs.length > 0 ? `${(count / data.ibs.length) * 100}%` : "0%" }}
+                    style={{ width: data.ibs.length > 0 ? `${(countMap[key] / data.ibs.length) * 100}%` : "0%" }}
                   />
                 </div>
               </div>
@@ -173,21 +204,29 @@ export default function ORDashboard({ onSelectIbs }: { onSelectIbs?: (id: string
   );
 }
 
-function StatCard({ icon, label, value, colour }: { icon: React.ReactNode; label: string; value: string | number; colour: "green" | "red" | "amber" | "purple" }) {
+function StatCard({ icon, label, value, colour, href, hint }: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  colour: "green" | "red" | "amber" | "purple";
+  href: string;
+  hint?: string;
+}) {
   const colours = {
-    green:  "bg-green-50  border-green-100",
-    red:    "bg-red-50    border-red-100",
-    amber:  "bg-amber-50  border-amber-100",
-    purple: "bg-purple-50 border-purple-100",
+    green:  "bg-green-50  border-green-100  hover:border-green-300",
+    red:    "bg-red-50    border-red-100    hover:border-red-300",
+    amber:  "bg-amber-50  border-amber-100  hover:border-amber-300",
+    purple: "bg-purple-50 border-purple-100 hover:border-purple-300",
   };
   return (
-    <div className={cn("bento-card flex items-center gap-3", colours[colour])}>
+    <Link href={href} className={cn("bento-card flex items-center gap-3 transition-all hover:shadow-md hover:-translate-y-0.5", colours[colour])}>
       <div className="p-2 bg-white rounded-lg shadow-sm">{icon}</div>
-      <div>
+      <div className="flex-1 min-w-0">
         <p className="text-xs text-gray-500">{label}</p>
         <p className="text-lg font-poppins font-bold text-gray-900">{value}</p>
+        {hint && <p className="text-[10px] text-gray-400 mt-0.5 truncate">{hint}</p>}
       </div>
-    </div>
+    </Link>
   );
 }
 

@@ -36,10 +36,10 @@ import {
 import { toast } from "sonner";
 import { useAppStore } from "@/lib/store";
 import { api, friendlyApiError } from "@/lib/api-client";
-import { formatDate, ragBgColor, naturalCompare, cn } from "@/lib/utils";
+import { formatDate, naturalCompare, cn } from "@/lib/utils";
 import { getActionLabel } from "@/lib/audit";
 import { getRiskScore } from "@/lib/risk-categories";
-import type { ActionPriority, ActionChange, ControlChange, RiskChange } from "@/lib/types";
+import type { ActionPriority, ActionChange, ControlChange, RiskChange, ConsumerDutyOutcome } from "@/lib/types";
 import { useHasPermission, usePermissionSet } from "@/lib/usePermission";
 import type { ComplianceStatus, DashboardLayoutConfig } from "@/lib/types";
 import ScoreBadge from "@/components/risk-register/ScoreBadge";
@@ -1761,59 +1761,7 @@ export default function DashboardHome() {
       </div>
     ) : null,
 
-    "consumer-duty": hasConsumerDutyPage ? (
-      <div className="bento-card">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-updraft-deep">Consumer Duty Overview</h2>
-          <Link href="/consumer-duty" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
-            View Dashboard <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-        <div className="space-y-3">
-          {outcomes.map((outcome) => (
-            <Link key={outcome.id} href={`/consumer-duty?outcome=${outcome.id}`} className="block rounded-xl bg-surface-muted p-3 hover:bg-surface-warm hover:-translate-y-0.5 transition-all cursor-pointer border border-transparent hover:border-[#E8E6E1]">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`h-3 w-3 rounded-full ${ragBgColor(outcome.ragStatus)}`} />
-                  <div>
-                    <p className="text-sm font-medium">{outcome.name}</p>
-                    <p className="text-xs text-fca-gray">{outcome.shortDesc}</p>
-                  </div>
-                </div>
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                  outcome.ragStatus === "GOOD" ? "bg-green-100 text-risk-green" :
-                  outcome.ragStatus === "WARNING" ? "bg-amber-100 text-risk-amber" :
-                  "bg-red-100 text-risk-red"
-                }`}>
-                  {outcome.ragStatus === "GOOD" ? "Green" : outcome.ragStatus === "WARNING" ? "Amber" : "Red"}
-                </span>
-              </div>
-              {(outcome.measures ?? []).length > 0 && (
-                <div className="mt-2 ml-6 space-y-1">
-                  {(outcome.measures ?? []).map((m) => (
-                    <Link
-                      key={m.id}
-                      href={`/consumer-duty?measure=${m.id}`}
-                      className="flex items-center gap-2 text-xs py-1 px-2 rounded hover:bg-white/60 transition-colors"
-                    >
-                      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${ragBgColor(m.ragStatus)}`} />
-                      <span className="text-gray-600 truncate flex-1 min-w-0">{m.measureId} — {m.name}</span>
-                      <span className={`font-semibold shrink-0 ${
-                        m.ragStatus === "GOOD" ? "text-risk-green" :
-                        m.ragStatus === "WARNING" ? "text-risk-amber" :
-                        "text-risk-red"
-                      }`}>
-                        {m.ragStatus === "GOOD" ? "Green" : m.ragStatus === "WARNING" ? "Amber" : "Red"}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </Link>
-          ))}
-        </div>
-      </div>
-    ) : null,
+    "consumer-duty": hasConsumerDutyPage ? <ConsumerDutySummaryWidget outcomes={outcomes} /> : null,
 
     "risk-summary": hasRiskRegisterPage ? (
       <div className="card-entrance card-entrance-5">
@@ -2101,6 +2049,107 @@ export default function DashboardHome() {
             })}
         </>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Consumer Duty summary widget — compact, animated card for the main dashboard
+// ---------------------------------------------------------------------------
+function ConsumerDutySummaryWidget({ outcomes }: { outcomes: ConsumerDutyOutcome[] }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  const good    = outcomes.filter((o) => o.ragStatus === "GOOD").length;
+  const warning = outcomes.filter((o) => o.ragStatus === "WARNING").length;
+  const harm    = outcomes.filter((o) => o.ragStatus === "HARM").length;
+  const total   = outcomes.length || 1;
+
+  return (
+    <div className="bento-card">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-poppins font-semibold text-gray-900">Consumer Duty</h2>
+        <Link
+          href="/consumer-duty"
+          className="text-xs text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1 transition-colors"
+        >
+          Full dashboard <ArrowRight className="h-3 w-3" />
+        </Link>
+      </div>
+
+      {/* Animated RAG distribution bar */}
+      <div className="flex h-2.5 rounded-full overflow-hidden bg-gray-100 mb-1.5">
+        <div
+          className="h-full bg-green-500 transition-all duration-700 ease-out"
+          style={{ width: mounted ? `${(good / total) * 100}%` : "0%", transitionDelay: "0ms" }}
+        />
+        <div
+          className="h-full bg-amber-400 transition-all duration-700 ease-out"
+          style={{ width: mounted ? `${(warning / total) * 100}%` : "0%", transitionDelay: "120ms" }}
+        />
+        <div
+          className="h-full bg-red-500 transition-all duration-700 ease-out"
+          style={{ width: mounted ? `${(harm / total) * 100}%` : "0%", transitionDelay: "240ms" }}
+        />
+      </div>
+
+      {/* RAG legend */}
+      <p className="text-[11px] text-gray-400 mb-4">
+        <span className="text-green-600 font-semibold">{good} Green</span>
+        <span className="mx-1.5 text-gray-300">·</span>
+        <span className="text-amber-600 font-semibold">{warning} Amber</span>
+        <span className="mx-1.5 text-gray-300">·</span>
+        <span className="text-red-600 font-semibold">{harm} Red</span>
+        <span className="mx-1.5 text-gray-300">·</span>
+        <span>{outcomes.length} outcomes</span>
+      </p>
+
+      {/* Compact outcome grid — staggered fade-in */}
+      <div className="grid grid-cols-2 gap-2">
+        {outcomes.map((outcome, i) => {
+          const isGood = outcome.ragStatus === "GOOD";
+          const isWarn = outcome.ragStatus === "WARNING";
+          return (
+            <Link
+              key={outcome.id}
+              href={`/consumer-duty?outcome=${outcome.id}`}
+              className={cn(
+                "rounded-lg pl-3 pr-2 py-2 hover:shadow-md",
+                isGood ? "border-l-[3px] border-green-500 bg-green-50 hover:bg-green-100/60" :
+                isWarn ? "border-l-[3px] border-amber-400 bg-amber-50 hover:bg-amber-100/60" :
+                         "border-l-[3px] border-red-500 bg-red-50 hover:bg-red-100/60"
+              )}
+              style={{
+                opacity: mounted ? 1 : 0,
+                transform: mounted ? "translateY(0)" : "translateY(6px)",
+                transitionProperty: "opacity, transform, box-shadow",
+                transitionDuration: "350ms",
+                transitionTimingFunction: "ease",
+                transitionDelay: `${i * 55}ms`,
+              }}
+            >
+              <p className="text-xs font-medium text-gray-900 leading-tight truncate">{outcome.name}</p>
+              <div className="flex items-center gap-1 mt-0.5">
+                <span className={cn(
+                  "text-[10px] font-semibold",
+                  isGood ? "text-green-700" : isWarn ? "text-amber-700" : "text-red-700"
+                )}>
+                  {isGood ? "Green" : isWarn ? "Amber" : "Red"}
+                </span>
+                {(outcome.measures ?? []).length > 0 && (
+                  <span className="text-[10px] text-gray-400 font-normal">
+                    · {(outcome.measures ?? []).length} measures
+                  </span>
+                )}
+              </div>
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }

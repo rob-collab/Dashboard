@@ -22,6 +22,7 @@ const createSchema = z.object({
   source: z.string().min(1),
   url: z.string().optional().nullable(),
   alertDays: z.number().int().min(1).max(365).optional(),
+  owner: z.string().optional().nullable(),
 });
 
 export async function POST(request: Request) {
@@ -42,6 +43,7 @@ export async function POST(request: Request) {
         source: validated.data.source,
         url: validated.data.url ?? null,
         alertDays: validated.data.alertDays ?? 30,
+        owner: validated.data.owner ?? null,
       },
     });
     return jsonResponse(serialiseDates(event), 201);

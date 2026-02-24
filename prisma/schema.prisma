@@ -1740,6 +1740,7 @@ model RegulatoryEvent {
   source      String
   url         String?
   alertDays   Int             @default(30)
+  owner       String?
   createdAt   DateTime        @default(now())
 
   @@map("regulatory_events")

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
 import type { ImportantBusinessService } from "@/lib/types";
@@ -9,11 +9,19 @@ import { cn } from "@/lib/utils";
 import { Plus } from "lucide-react";
 import IBSDetailPanel from "./IBSDetailPanel";
 
-export default function IBSRegistryTab({ isCCRO }: { isCCRO: boolean }) {
+export default function IBSRegistryTab({ isCCRO, initialIbsId }: { isCCRO: boolean; initialIbsId?: string | null }) {
   const ibs = useAppStore((s) => s.ibs);
   const updateIbs = useAppStore((s) => s.updateIbs);
   const addIbs = useAppStore((s) => s.addIbs);
   const [selected, setSelected] = useState<ImportantBusinessService | null>(null);
+
+  // Auto-select IBS when navigated from dashboard
+  useEffect(() => {
+    if (initialIbsId) {
+      const found = ibs.find((i) => i.id === initialIbsId);
+      if (found) setSelected(found);
+    }
+  }, [initialIbsId, ibs]);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");

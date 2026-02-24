@@ -1591,6 +1591,7 @@ export interface RegulatoryEvent {
   source: string;
   url: string | null;
   alertDays: number;
+  owner: string | null;
   createdAt: string;
 }
 

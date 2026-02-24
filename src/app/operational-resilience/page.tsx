@@ -35,6 +35,8 @@ function ORPageInner() {
   const [activeTab, setActiveTab] = useState<Tab>(
     tabParam && ["dashboard", "ibs", "self-assessment"].includes(tabParam) ? tabParam : "dashboard"
   );
+  // ID of IBS to auto-open when navigating from dashboard
+  const [initialIbsId, setInitialIbsId] = useState<string | null>(null);
 
   function handleTabChange(tab: Tab) {
     setActiveTab(tab);
@@ -42,9 +44,8 @@ function ORPageInner() {
   }
 
   function handleDashboardIbsClick(id: string) {
+    setInitialIbsId(id);
     handleTabChange("ibs");
-    // The registry tab will show the IBS list — user clicks into it
-    void id; // just switch to IBS tab
   }
 
   return (
@@ -93,7 +94,7 @@ function ORPageInner() {
         )}
         {activeTab === "ibs" && (
           <div className="h-full flex overflow-hidden">
-            <IBSRegistryTab isCCRO={isCCRO} />
+            <IBSRegistryTab isCCRO={isCCRO} initialIbsId={initialIbsId} />
           </div>
         )}
         {activeTab === "self-assessment" && (

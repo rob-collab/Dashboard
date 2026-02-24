@@ -31,6 +31,7 @@ import {
   Layers,
   Building2,
   Download,
+  CalendarDays,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import type { User } from "@/lib/types";
@@ -73,6 +74,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "Compliance", href: "/compliance", icon: Scale, permission: "page:compliance", badgeKey: "compliance" },
       { label: "Policies", href: "/compliance?tab=policies", icon: BookOpen, permission: "page:compliance" },
       { label: "SM&CR", href: "/compliance?tab=smcr", icon: BadgeCheck, permission: "page:compliance" },
+      { label: "Reg Calendar", href: "/compliance?tab=regulatory-calendar", icon: CalendarDays, permission: "page:compliance" },
       { label: "Controls", href: "/controls", icon: FlaskConical, permission: "page:controls", badgeKey: "controls" },
       { label: "Process Library", href: "/processes", icon: Layers, permission: "page:compliance" },
       { label: "Operational Resilience", href: "/operational-resilience", icon: Building2, permission: "page:operational-resilience", badgeKey: "operationalResilience" },

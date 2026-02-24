@@ -10,6 +10,7 @@ const patchSchema = z.object({
   source: z.string().optional(),
   url: z.string().optional().nullable(),
   alertDays: z.number().int().min(1).max(365).optional(),
+  owner: z.string().optional().nullable(),
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {

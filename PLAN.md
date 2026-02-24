@@ -1,5 +1,42 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-24 (Access Requests surfaced on Change Requests page + Settings badge)
+Last updated: 2026-02-24 (OR Dashboard + Regulatory Calendar + Consumer Duty UX Sprint)
+
+---
+
+## CURRENT SPRINT: OR, Regulatory Calendar & Consumer Duty UX
+
+### What
+1. OR Dashboard stat cards clickable (Tests Due → IBS tab, Open Remediations → /actions, etc.)
+2. IBS card click-through → opens specific IBS detail panel directly
+3. Regulatory Calendar: sidebar entry, owner field, full visual redesign with vertical timeline,
+   expandable purple accordion cards, inline editing, Create Action button
+4. Consumer Duty dashboard section: compact visual redesign — RAG summary bar, outcome grid cards,
+   animated entrance, less verbose/more engaging
+
+### Files
+- `prisma/schema.prisma` (add owner to RegulatoryEvent)
+- `src/lib/types.ts` (add owner)
+- `src/app/api/or/regulatory-calendar/route.ts` (add owner)
+- `src/app/api/or/regulatory-calendar/[id]/route.ts` (add owner to PATCH)
+- `src/components/layout/Sidebar.tsx` (add Reg Calendar entry)
+- `src/components/or/ORDashboard.tsx` (clickable stat cards)
+- `src/app/operational-resilience/page.tsx` (IBS click-through)
+- `src/components/or/IBSRegistryTab.tsx` (initialIbsId prop)
+- `src/components/or/RegulatoryCalendarWidget.tsx` (full redesign)
+- `src/app/page.tsx` (Consumer Duty section redesign)
+
+### Checklist
+- [x] OR stat cards (IBS Ready, Tests Due, Open Remediations, Assessment) all clickable links
+- [x] Clicking an IBS card on OR Dashboard navigates to IBS tab and opens that specific IBS
+- [x] Regulatory Calendar appears in sidebar under Compliance & Controls
+- [x] RegulatoryEvent schema has `owner` field; `npx prisma db push` succeeds
+- [x] Regulatory Calendar widget: vertical timeline view, events grouped by month
+- [x] Events expandable with purple accordion, showing description/owner/URL/alert days
+- [x] CCRO can edit all event fields inline within expanded card
+- [x] CCRO can add new events; can delete events
+- [x] Consumer Duty dashboard: RAG summary bar + compact outcome grid cards
+- [x] Consumer Duty cards animated (staggered entrance)
+- [x] Build passes ✅ COMPLETE
 
 ---
 
