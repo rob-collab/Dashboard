@@ -6,12 +6,14 @@ import { api } from "@/lib/api-client";
 import type { SelfAssessment, AssessmentStatus } from "@/lib/types";
 import { ASSESSMENT_STATUS_LABELS, ASSESSMENT_STATUS_COLOURS } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Plus, FileText } from "lucide-react";
+import { Plus, FileText, ExternalLink, CheckCircle2, Circle } from "lucide-react";
 
 export default function SelfAssessmentTab({ isCCRO }: { isCCRO: boolean }) {
   const selfAssessments = useAppStore((s) => s.selfAssessments);
   const addSelfAssessment = useAppStore((s) => s.addSelfAssessment);
   const updateSelfAssessment = useAppStore((s) => s.updateSelfAssessment);
+  const ibs = useAppStore((s) => s.ibs);
+  const scenarios = useAppStore((s) => s.scenarios);
 
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -19,6 +21,16 @@ export default function SelfAssessmentTab({ isCCRO }: { isCCRO: boolean }) {
   const [editing, setEditing] = useState<SelfAssessment | null>(null);
   const [editForm, setEditForm] = useState<Partial<SelfAssessment>>({});
   const [saving, setSaving] = useState(false);
+
+  // Readiness checklist data
+  const totalIBS = ibs.filter((i) => i.status === "ACTIVE" || i.status === "UNDER_REVIEW").length;
+  const ibsWithFullMaps = ibs.filter((i) => (i.categoriesFilled ?? 0) >= 4).length;
+  const ibsMapsComplete = totalIBS > 0 && ibsWithFullMaps === totalIBS;
+
+  const overdueScenarios = scenarios.filter(
+    (s) => s.nextTestDate && new Date(s.nextTestDate) < new Date() && s.status !== "COMPLETE"
+  ).length;
+  const scenariosUpToDate = overdueScenarios === 0 && scenarios.length > 0;
 
   async function handleCreate() {
     setCreating(true);
@@ -94,6 +106,25 @@ export default function SelfAssessmentTab({ isCCRO }: { isCCRO: boolean }) {
         )}
       </div>
 
+      {/* Readiness Checklist */}
+      <div className="bento-card bg-gray-50/60 border border-gray-100">
+        <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-3">Assessment Readiness</p>
+        <div className="space-y-2">
+          <ReadinessItem
+            label={`IBS resource maps complete (${ibsWithFullMaps}/${totalIBS} IBS with ≥4 categories)`}
+            done={ibsMapsComplete}
+          />
+          <ReadinessItem
+            label={`Scenario tests up to date (${overdueScenarios === 0 ? "none" : overdueScenarios} overdue)`}
+            done={scenariosUpToDate}
+          />
+          <ReadinessItem
+            label={`Open remediations resolved`}
+            done={(sorted[0]?.openRemediations ?? 1) === 0}
+          />
+        </div>
+      </div>
+
       {showCreate && (
         <div className="border border-gray-200 rounded-xl p-4 bg-gray-50 space-y-3">
           <p className="text-sm font-medium text-gray-900">Start {newYear} Self-Assessment</p>
@@ -154,7 +185,7 @@ export default function SelfAssessmentTab({ isCCRO }: { isCCRO: boolean }) {
                   <div className="space-y-3 border-t border-gray-100 pt-4">
                     <div>
                       <label className="text-xs font-medium text-gray-600 block mb-1">Executive Summary</label>
-                      <textarea rows={4} value={(editForm.executiveSummary as string) ?? ""} onChange={(e) => setEditForm({ ...editForm, executiveSummary: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none" />
+                      <textarea rows={6} value={(editForm.executiveSummary as string) ?? ""} onChange={(e) => setEditForm({ ...editForm, executiveSummary: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none" placeholder="Provide a narrative summary of the firm's operational resilience posture for the year…" />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -170,6 +201,17 @@ export default function SelfAssessmentTab({ isCCRO }: { isCCRO: boolean }) {
                       <label className="text-xs font-medium text-gray-600 block mb-1">Document URL</label>
                       <input value={(editForm.documentUrl as string) ?? ""} onChange={(e) => setEditForm({ ...editForm, documentUrl: e.target.value })} placeholder="https://…" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
                     </div>
+                    {sa.status === "SUBMITTED" && (
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 block mb-1">Board Approval Date</label>
+                        <input
+                          type="date"
+                          value={editForm.boardApprovalDate ? (editForm.boardApprovalDate as string).split("T")[0] : ""}
+                          onChange={(e) => setEditForm({ ...editForm, boardApprovalDate: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                        />
+                      </div>
+                    )}
                     <div className="flex gap-2">
                       <button onClick={handleSave} disabled={saving} className="px-3 py-1.5 text-xs bg-updraft-deep text-white rounded-lg hover:bg-updraft-bar disabled:opacity-50">{saving ? "Saving…" : "Save"}</button>
                       <button onClick={() => setEditing(null)} className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
@@ -185,7 +227,7 @@ export default function SelfAssessmentTab({ isCCRO }: { isCCRO: boolean }) {
                     )}
                     {sa.documentUrl && (
                       <a href={sa.documentUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-updraft-deep hover:underline mt-2">
-                        <FileText size={12} /> View document
+                        <FileText size={12} /> View document <ExternalLink size={10} />
                       </a>
                     )}
                     {isCCRO && sa.status === "DRAFT" && (
@@ -209,6 +251,19 @@ export default function SelfAssessmentTab({ isCCRO }: { isCCRO: boolean }) {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+function ReadinessItem({ label, done }: { label: string; done: boolean }) {
+  return (
+    <div className="flex items-center gap-2">
+      {done ? (
+        <CheckCircle2 size={14} className="text-green-500 shrink-0" />
+      ) : (
+        <Circle size={14} className="text-gray-300 shrink-0" />
+      )}
+      <span className={cn("text-xs", done ? "text-gray-700" : "text-gray-400")}>{label}</span>
     </div>
   );
 }

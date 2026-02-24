@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry, RiskAcceptance, Policy, Regulation, DashboardNotification, Role, RiskControlLink, SMFRole, PrescribedResponsibility, CertificationFunction, CertifiedPerson, ConductRule, ConductRuleBreach, SMCRDocument, ComplianceStatus, Applicability, AccessRequest, DashboardLayoutConfig, ImportantBusinessService, Process, ResilienceScenario, SelfAssessment } from "./types";
+import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry, RiskAcceptance, Policy, Regulation, DashboardNotification, Role, RiskControlLink, SMFRole, PrescribedResponsibility, CertificationFunction, CertifiedPerson, ConductRule, ConductRuleBreach, SMCRDocument, ComplianceStatus, Applicability, AccessRequest, DashboardLayoutConfig, ImportantBusinessService, Process, ResilienceScenario, SelfAssessment, RegulatoryEvent } from "./types";
 import { api, friendlyApiError } from "./api-client";
 
 interface AppState {
@@ -145,6 +145,13 @@ interface AppState {
   addSelfAssessment: (item: SelfAssessment) => void;
   updateSelfAssessment: (id: string, data: Partial<SelfAssessment>) => void;
 
+  // Regulatory Calendar
+  regulatoryEvents: RegulatoryEvent[];
+  setRegulatoryEvents: (items: RegulatoryEvent[]) => void;
+  addRegulatoryEvent: (item: RegulatoryEvent) => void;
+  updateRegulatoryEvent: (id: string, data: Partial<RegulatoryEvent>) => void;
+  deleteRegulatoryEvent: (id: string) => void;
+
   // Dashboard Notifications
   notifications: DashboardNotification[];
   setNotifications: (items: DashboardNotification[]) => void;
@@ -288,7 +295,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   _hydratedAt: null,
   hydrate: async () => {
     try {
-      const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, permissionsData, smfRoles, prescribedResponsibilities, certificationFunctions, conductRules, conductRuleBreaches, smcrDocuments, accessRequests, dashboardLayout, ibs, processes, scenarios, selfAssessments] = await Promise.all([
+      const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, permissionsData, smfRoles, prescribedResponsibilities, certificationFunctions, conductRules, conductRuleBreaches, smcrDocuments, accessRequests, dashboardLayout, ibs, processes, scenarios, selfAssessments, regulatoryEvents] = await Promise.all([
         api<User[]>("/api/users"),
         api<Report[]>("/api/reports"),
         api<ConsumerDutyOutcome[]>("/api/consumer-duty"),
@@ -320,12 +327,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         api<Process[]>("/api/processes").catch(() => []),
         api<ResilienceScenario[]>("/api/ibs/scenarios").catch(() => []),
         api<SelfAssessment[]>("/api/self-assessments").catch(() => []),
+        api<RegulatoryEvent[]>("/api/or/regulatory-calendar").catch(() => []),
       ]);
       // Extract certified persons from nested certification functions response
       const allCertifiedPersons = certificationFunctions.flatMap((cf: CertificationFunction & { certifiedPersons?: CertifiedPerson[] }) => cf.certifiedPersons ?? []);
       // Fire-and-forget: expire any access grants that have lapsed
       api("/api/access-requests/expiry-check", { method: "POST" }).catch(() => {});
-      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, rolePermissions: permissionsData.rolePermissions, userPermissions: permissionsData.userPermissions, smfRoles, prescribedResponsibilities, certificationFunctions, certifiedPersons: allCertifiedPersons, conductRules, conductRuleBreaches, smcrDocuments, accessRequests, dashboardLayout, ibs, processes, scenarios, selfAssessments, _hydrated: true, _hydrateError: null, _hydratedAt: new Date() });
+      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, rolePermissions: permissionsData.rolePermissions, userPermissions: permissionsData.userPermissions, smfRoles, prescribedResponsibilities, certificationFunctions, certifiedPersons: allCertifiedPersons, conductRules, conductRuleBreaches, smcrDocuments, accessRequests, dashboardLayout, ibs, processes, scenarios, selfAssessments, regulatoryEvents, _hydrated: true, _hydrateError: null, _hydratedAt: new Date() });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to connect to server";
       console.error("[hydrate] API unreachable:", message);
@@ -971,6 +979,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   addSelfAssessment: (item) => set((s) => ({ selfAssessments: [item, ...s.selfAssessments] })),
   updateSelfAssessment: (id, data) =>
     set((s) => ({ selfAssessments: s.selfAssessments.map((sa) => (sa.id === id ? { ...sa, ...data } : sa)) })),
+
+  // ── Regulatory Calendar ─────────────────────────────────────
+  regulatoryEvents: [],
+  setRegulatoryEvents: (items) => set({ regulatoryEvents: items }),
+  addRegulatoryEvent: (item) => set((s) => ({ regulatoryEvents: [...s.regulatoryEvents, item].sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()) })),
+  updateRegulatoryEvent: (id, data) =>
+    set((s) => ({ regulatoryEvents: s.regulatoryEvents.map((e) => (e.id === id ? { ...e, ...data } : e)) })),
+  deleteRegulatoryEvent: (id) =>
+    set((s) => ({ regulatoryEvents: s.regulatoryEvents.filter((e) => e.id !== id) })),
 
   // ── Dashboard Layout ───────────────────────────────────────
   dashboardLayout: null,

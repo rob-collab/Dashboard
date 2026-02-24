@@ -1231,6 +1231,7 @@ export interface ImportantBusinessService {
   processLinks?: ProcessIBSLink[];
   resourceMaps?: IBSResourceMap[];
   scenarios?: ResilienceScenario[];
+  categoriesFilled?: number;
 }
 
 export interface ProcessStep {
@@ -1570,4 +1571,41 @@ export const ASSESSMENT_STATUS_COLOURS: Record<AssessmentStatus, { bg: string; t
   DRAFT: { bg: "bg-gray-100", text: "text-gray-600" },
   SUBMITTED: { bg: "bg-blue-100", text: "text-blue-700" },
   APPROVED: { bg: "bg-green-100", text: "text-green-700" },
+};
+
+// ── Regulatory Calendar ────────────────────────────────────────────────────────
+
+export type RegCalEventType =
+  | "DEADLINE"
+  | "REVIEW"
+  | "SUBMISSION"
+  | "CONSULTATION"
+  | "INTERNAL_DEADLINE";
+
+export interface RegulatoryEvent {
+  id: string;
+  title: string;
+  description: string | null;
+  eventDate: string;
+  type: RegCalEventType;
+  source: string;
+  url: string | null;
+  alertDays: number;
+  createdAt: string;
+}
+
+export const REG_CAL_TYPE_LABELS: Record<RegCalEventType, string> = {
+  DEADLINE: "Deadline",
+  REVIEW: "Review",
+  SUBMISSION: "Submission",
+  CONSULTATION: "Consultation",
+  INTERNAL_DEADLINE: "Internal Deadline",
+};
+
+export const REG_CAL_TYPE_COLOURS: Record<RegCalEventType, { bg: string; text: string }> = {
+  DEADLINE: { bg: "bg-red-100", text: "text-red-700" },
+  REVIEW: { bg: "bg-blue-100", text: "text-blue-700" },
+  SUBMISSION: { bg: "bg-purple-100", text: "text-purple-700" },
+  CONSULTATION: { bg: "bg-sky-100", text: "text-sky-700" },
+  INTERNAL_DEADLINE: { bg: "bg-amber-100", text: "text-amber-700" },
 };

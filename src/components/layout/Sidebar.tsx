@@ -30,6 +30,7 @@ import {
   ArrowLeftRight,
   Layers,
   Building2,
+  Download,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import type { User } from "@/lib/types";
@@ -74,7 +75,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "SM&CR", href: "/compliance?tab=smcr", icon: BadgeCheck, permission: "page:compliance" },
       { label: "Controls", href: "/controls", icon: FlaskConical, permission: "page:controls", badgeKey: "controls" },
       { label: "Process Library", href: "/processes", icon: Layers, permission: "page:compliance" },
-      { label: "Operational Resilience", href: "/operational-resilience", icon: Building2, permission: "page:operational-resilience" },
+      { label: "Operational Resilience", href: "/operational-resilience", icon: Building2, permission: "page:operational-resilience", badgeKey: "operationalResilience" },
     ],
   },
   {
@@ -88,6 +89,7 @@ const NAV_GROUPS: NavGroup[] = [
     groupLabel: "Administration",
     items: [
       { label: "Reports", href: "/reports", icon: FileText, permission: "page:reports" },
+      { label: "Export Centre", href: "/exports", icon: Download, permission: "page:dashboard" },
       { label: "Audit Trail", href: "/audit", icon: ClipboardList, permission: "page:audit" },
       { label: "Settings", href: "/settings", icon: Settings, permission: "page:settings" },
       { label: "Users", href: "/users", icon: Users, permission: "page:users" },
@@ -111,6 +113,9 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
   const risks = useAppStore((s) => s.risks);
   const riskAcceptances = useAppStore((s) => s.riskAcceptances);
   const regulations = useAppStore((s) => s.regulations);
+  const scenarios = useAppStore((s) => s.scenarios);
+  const ibs = useAppStore((s) => s.ibs);
+  const selfAssessments = useAppStore((s) => s.selfAssessments);
   const siteSettings = useAppStore((s) => s.siteSettings);
   const permissionSet = usePermissionSet();
   const searchParams = useSearchParams();
@@ -200,13 +205,28 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
       ? regulations.filter((r) => r.isApplicable && (r.complianceStatus === "NON_COMPLIANT" || r.complianceStatus === "GAP_IDENTIFIED")).length
       : 0;
 
+    // OR badge (CCRO only): overdue scenarios + IBS gaps + self-assessment not submitted
+    let operationalResilience = 0;
     if (canViewPending) {
-      const total = overdueActions + pendingControlChanges + riskAcceptance + pendingRiskChanges + pendingActionChanges;
-      return { dashboard: total, compliance: complianceGaps, changeRequests } as Record<string, number>;
+      const overdueScenarios = scenarios.filter(
+        (s) => s.nextTestDate && new Date(s.nextTestDate) < new Date() && s.status !== "COMPLETE"
+      ).length;
+      const ibsGaps = ibs.filter((i) => (i.categoriesFilled ?? 0) < 3).length;
+      const currentYear = new Date().getFullYear();
+      const june = new Date(currentYear, 5, 1);
+      const selfAssessmentMissing = new Date() >= june &&
+        !selfAssessments.some((sa) => sa.year === currentYear && (sa.status === "SUBMITTED" || sa.status === "APPROVED"))
+        ? 1 : 0;
+      operationalResilience = overdueScenarios + ibsGaps + selfAssessmentMissing;
     }
 
-    return { actions: overdueActions, riskAcceptance } as Record<string, number>;
-  }, [actions, controls, risks, riskAcceptances, regulations, currentUser, permissionSet]);
+    if (canViewPending) {
+      const total = overdueActions + pendingControlChanges + riskAcceptance + pendingRiskChanges + pendingActionChanges;
+      return { dashboard: total, compliance: complianceGaps, changeRequests, operationalResilience } as Record<string, number>;
+    }
+
+    return { actions: overdueActions, riskAcceptance, operationalResilience } as Record<string, number>;
+  }, [actions, controls, risks, riskAcceptances, regulations, scenarios, ibs, selfAssessments, currentUser, permissionSet]);
 
   const [refreshing, setRefreshing] = useState(false);
 

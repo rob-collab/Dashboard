@@ -9,6 +9,7 @@ const IBS_INCLUDE = {
       process: { select: { id: true, reference: true, name: true, maturityScore: true, criticality: true } },
     },
   },
+  resourceMaps: true,
 };
 
 export async function GET() {
@@ -17,7 +18,15 @@ export async function GET() {
       include: IBS_INCLUDE,
       orderBy: { reference: "asc" },
     });
-    return jsonResponse(serialiseDates(items));
+    // Compute categoriesFilled for notification/badge use
+    const itemsWithCoverage = items.map((ibs) => {
+      const categoriesFilled = ibs.resourceMaps.filter((m) => {
+        const content = m.content as Record<string, unknown>;
+        return Object.keys(content).length > 0;
+      }).length;
+      return { ...ibs, categoriesFilled };
+    });
+    return jsonResponse(serialiseDates(itemsWithCoverage));
   } catch (e) {
     console.error(e);
     return errorResponse("Failed to fetch IBS records", 500);

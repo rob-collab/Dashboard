@@ -1,5 +1,110 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-23 (Process Library retrospectively completed; OR sprint active)
+Last updated: 2026-02-23 (5 new sprints: OR Seed Data, Regulatory Calendar, Notification Enhancements, OR Depth, HTML Export Builder)
+
+---
+
+## CURRENT SPRINT: 5-Sprint Bundle ✅ COMPLETE
+
+### Sprint 1: OR Seed Data
+#### What
+Seed meaningful OR data so the dashboard shows mixed traffic lights immediately.
+#### Files
+- `prisma/seed.ts`
+#### Checklist
+- [x] IBSResourceMap records seeded (mix ensures GREEN/AMBER/RED dashboard)
+- [x] 18 ResilienceScenario records across all IBS with varied outcomes
+- [x] 1 SelfAssessment for 2025 (DRAFT)
+- [x] `npx prisma db seed` runs cleanly
+- [x] OR Dashboard shows mixed traffic lights after seed
+
+---
+
+### Sprint 2: Regulatory Calendar
+#### What
+New Prisma model + API routes + RegulatoryCalendarWidget + store + types.
+#### New Files
+- `src/app/api/or/regulatory-calendar/route.ts`
+- `src/app/api/or/regulatory-calendar/[id]/route.ts`
+- `src/components/or/RegulatoryCalendarWidget.tsx`
+#### Modified Files
+- `prisma/schema.prisma` — add RegulatoryEvent model + RegCalEventType enum
+- `prisma/seed.ts` — seed 5 events
+- `src/lib/types.ts` — RegulatoryEvent interface + RegCalEventType type
+- `src/lib/store.ts` — regulatoryEvents[] state + CRUD + hydration
+- `src/components/or/ORDashboard.tsx` — add RegulatoryCalendarWidget at bottom
+#### Checklist
+- [x] Schema + migration applied (npx prisma db push)
+- [x] GET /api/or/regulatory-calendar returns events sorted by date
+- [x] POST/PATCH/DELETE work (CCRO only)
+- [x] 5 events seeded
+- [x] RegulatoryCalendarWidget renders on OR dashboard with RAG colouring
+- [x] Store hydrates regulatoryEvents on login
+- [x] Build passes
+
+---
+
+### Sprint 3: Notification Enhancements
+#### What
+6 new OR + process notification categories + OR sidebar badge.
+#### Modified Files
+- `src/components/common/NotificationDrawer.tsx`
+- `src/components/layout/Sidebar.tsx`
+- `src/app/api/ibs/route.ts` — add categoriesFilled
+- `src/lib/types.ts` — add categoriesFilled to IBS
+#### Checklist
+- [x] 6 new categories in useNotifications()
+- [x] OR sidebar badge shows combined count
+- [x] categoriesFilled available on IBS in store
+- [x] Process review alert visible to non-CCRO users
+- [x] Regulatory deadline alert triggers at alertDays before event
+- [x] Bell count increases correctly for each new category
+- [x] Build passes
+
+---
+
+### Sprint 4: OR Module Depth
+#### What
+Inline scenario editing + SelfAssessment readiness checklist.
+#### Modified Files
+- `src/components/or/IBSScenarioTestingTab.tsx`
+- `src/components/or/SelfAssessmentTab.tsx`
+#### Checklist
+- [x] CCRO can edit all fields of existing scenarios inline
+- [x] Scenario findings expand on row click (read-only mode)
+- [x] Executive summary editable + saved
+- [x] vulnerabilitiesCount, openRemediations, documentUrl editable
+- [x] Status workflow DRAFT → SUBMITTED → APPROVED works
+- [x] Readiness checklist shows live state
+- [x] Build passes
+
+---
+
+### Sprint 5: Interactive HTML Export Builder
+#### What
+Export Centre page + POST API + self-contained interactive HTML with SVG charts.
+#### New Files
+- `src/app/exports/page.tsx`
+- `src/app/api/export/html/route.ts`
+- `src/lib/export-html-builder.ts`
+#### Modified Files
+- `src/components/layout/Sidebar.tsx` — add Export Centre nav item
+#### Checklist
+- [x] /exports page loads with all 9 sections togglable + counts
+- [x] Per-section filter options appear when section is checked
+- [x] Options panel (firm name, watermark, title, interactive toggle) works
+- [x] POST /api/export/html validates body and returns HTML file download
+- [x] All 9 section renderers produce correct, populated HTML
+- [x] Expandable rows toggle correctly
+- [x] Live search filters rows in each section
+- [x] Section fold/unfold works
+- [x] Sticky TOC sidebar present
+- [x] SVG charts render: risk heat map, compliance donut, IBS readiness bar, maturity bar
+- [x] Watermark applied when selected
+- [x] Interactive JS disabled when toggle is off
+- [x] Print stylesheet works
+- [x] File is self-contained HTML (no external refs)
+- [x] Filename: CCRO_Pack_YYYY-MM.html
+- [x] Build passes, zero TypeScript errors
 
 ---
 

@@ -1830,6 +1830,176 @@ async function main() {
   }
   console.log(`  ✓ ${procLinks} process links seeded`);
 
+  // ── Operational Resilience Seed Data ──────────────────────────────────────
+
+  // Additional ProcessIBSLink records (so avgMaturity is populated for more IBS)
+  const EXTRA_PROC_IBS_LINKS = [
+    { processId: "proc-015", ibsId: "ibs-retail-payments" },
+    { processId: "proc-016", ibsId: "ibs-customer-onboarding" },
+    { processId: "proc-017", ibsId: "ibs-lending-decisioning" },
+  ];
+  for (const link of EXTRA_PROC_IBS_LINKS) {
+    const procExists = await prisma.process.findUnique({ where: { id: link.processId } });
+    const ibsExists = await prisma.importantBusinessService.findUnique({ where: { id: link.ibsId } });
+    if (procExists && ibsExists) {
+      await prisma.processIBSLink.upsert({
+        where: { processId_ibsId: { processId: link.processId, ibsId: link.ibsId } },
+        update: {},
+        create: { processId: link.processId, ibsId: link.ibsId, linkedBy: "user-rob" },
+      });
+    }
+  }
+  console.log("  ✓ extra process-IBS links seeded");
+
+  // IBSResourceMap seed data — content format: { text: "..." }
+  const IBS_RESOURCE_MAPS: {
+    ibsId: string;
+    category: "PEOPLE" | "PROCESSES" | "TECHNOLOGY" | "FACILITIES" | "INFORMATION";
+    text: string;
+  }[] = [
+    // IBS-001 Retail Payments — all 5 categories filled → GREEN
+    { ibsId: "ibs-retail-payments", category: "PEOPLE", text: "Head of Payments (accountable), Payments Operations team (4 FTE), Fraud Analysts (2 FTE), Finance Reconciliation (1 FTE). Deputies: Senior Payments Analyst covers Head of Payments for up to 72h." },
+    { ibsId: "ibs-retail-payments", category: "PROCESSES", text: "PROC-015 Payment Processing & Reconciliation (maturity 4). Scheme submission, settlement, daily reconciliation. Process steps documented in Process Library." },
+    { ibsId: "ibs-retail-payments", category: "TECHNOLOGY", text: "Core Banking Platform (Temenos T24), Vocalink Faster Payments gateway, BACS bureau (Bottomline), SWIFT messaging, reconciliation tool (AutoRec Pro). Fallback: manual BACS submission via online portal." },
+    { ibsId: "ibs-retail-payments", category: "FACILITIES", text: "Primary: London HQ (Level 3, Payments Operations desk). Fallback: Manchester office (remote-ready with VPN + token). BCP invocation within 2h. Minimum 2 FTE required to operate." },
+    { ibsId: "ibs-retail-payments", category: "INFORMATION", text: "Payment instruction data (SOC2 compliant), scheme settlement files, daily reconciliation reports. Retention: 7 years. RPO: 1h. Classification: Restricted — Financial." },
+    // IBS-002 Customer Onboarding — PEOPLE + TECHNOLOGY → AMBER
+    { ibsId: "ibs-customer-onboarding", category: "PEOPLE", text: "Head of Customer Operations (accountable), KYC Analysts (3 FTE), MLRO (escalation). Deputy: Senior KYC Analyst. Mass absence scenario managed via agency supplementation within 24h." },
+    { ibsId: "ibs-customer-onboarding", category: "TECHNOLOGY", text: "Onfido eIDV platform, Dow Jones PEP/Sanctions screening, Core Banking (Temenos), Application API (in-house). Fallback: manual document review process documented in PROC-016 step 2." },
+    // IBS-003 Lending Decisioning — PEOPLE + TECHNOLOGY + FACILITIES → AMBER
+    { ibsId: "ibs-lending-decisioning", category: "PEOPLE", text: "Head of Credit (accountable), Credit Ops (3 FTE), Senior Underwriter (manual referrals), Credit Models team (2 FTE). Deputy: Senior Analyst. Model team lead covered by Head of Credit for tier-1 queries." },
+    { ibsId: "ibs-lending-decisioning", category: "TECHNOLOGY", text: "Decision Engine (Experian PowerCurve), Equifax credit bureau API, Affordability Calculator (in-house), Core Banking. Fallback: manual scorecard documented in PROC-017. Bureau fallback: TransUnion API pre-tested." },
+    { ibsId: "ibs-lending-decisioning", category: "FACILITIES", text: "Primary: London HQ. Remote working fully enabled for all Credit team. All systems cloud-hosted. Fallback: home working with full platform access confirmed in BCP test (Oct 2025)." },
+    // IBS-004 Regulatory Reporting — all 5 categories filled → GREEN
+    { ibsId: "ibs-regulatory-reporting", category: "PEOPLE", text: "SMF16 Compliance Oversight (accountable), Compliance Manager (1 FTE), Finance Controller (data supplier), CFO (sign-off). Deputy: Compliance Analyst. SMF16 backed up by deputy SMF." },
+    { ibsId: "ibs-regulatory-reporting", category: "PROCESSES", text: "PROC-018 Regulatory Reporting Submission (maturity 4), PROC-020 Consumer Duty Annual Board Attestation (maturity 5). FCA GABRIEL, MLAR, CMAR submissions documented. Annual cycle in compliance calendar." },
+    { ibsId: "ibs-regulatory-reporting", category: "TECHNOLOGY", text: "FCA RegData / GABRIEL portal, MLAR template (Excel+macro), internal MI platform (Tableau), Core Banking data extracts. Fallback: manual calculation from source ledgers. Secondary GABRIEL login maintained." },
+    { ibsId: "ibs-regulatory-reporting", category: "FACILITIES", text: "Remote-first — all systems accessible via VPN. FCA portal accessible from any internet-connected device. No single-site dependency. SMF16 can authorise and submit from any location." },
+    { ibsId: "ibs-regulatory-reporting", category: "INFORMATION", text: "Regulatory return data (SEC classification), internal MI packs, prior submission records. Retention: 6 years minimum (FCA requirement). Backup in SharePoint + encrypted local backup. RPO: 4h." },
+    // IBS-005 Fraud Detection — PEOPLE + PROCESSES + TECHNOLOGY + INFORMATION → GREEN
+    { ibsId: "ibs-fraud-detection", category: "PEOPLE", text: "Head of Fraud (accountable), Fraud Analysts (3 FTE, 24/7 rota), ML Engineering (2 FTE). Deputies: Senior Analyst covers nights/weekends. Third-party fraud bureau on retainer for surge capacity." },
+    { ibsId: "ibs-fraud-detection", category: "PROCESSES", text: "PROC-019 Real-Time Fraud Detection (maturity 5). Automated interdiction, manual review queues, customer notification. Sub-1-second detection SLA documented and independently verified." },
+    { ibsId: "ibs-fraud-detection", category: "TECHNOLOGY", text: "In-house ML model (AWS SageMaker), Featurespace ARIC platform (secondary), Vocalink real-time data feeds, case management (NICE Actimize). Fallback: rule-based engine with reduced detection rate, manual review escalation." },
+    { ibsId: "ibs-fraud-detection", category: "INFORMATION", text: "Transaction monitoring data, fraud case records, ML model training datasets. Classification: Confidential. Retention: 7 years. Real-time streaming via Kafka. RPO: 0h (zero data loss for live transactions)." },
+    // IBS-006 Customer Servicing — PEOPLE only → RED
+    { ibsId: "ibs-customer-servicing", category: "PEOPLE", text: "Head of Customer Operations, Customer Service Agents (8 FTE), Complaints Handlers (2 FTE). Deputy: Senior Agent covers escalations. Note: technology, facilities and information resource maps pending Q1 2026 BCP update." },
+  ];
+
+  let resourceMapsSeeded = 0;
+  for (const rm of IBS_RESOURCE_MAPS) {
+    const ibsExists = await prisma.importantBusinessService.findUnique({ where: { id: rm.ibsId } });
+    if (!ibsExists) continue;
+    await prisma.iBSResourceMap.upsert({
+      where: { ibsId_category: { ibsId: rm.ibsId, category: rm.category } },
+      update: { content: { text: rm.text }, lastUpdatedAt: new Date(), lastUpdatedBy: "user-rob" },
+      create: { ibsId: rm.ibsId, category: rm.category, content: { text: rm.text }, lastUpdatedAt: new Date(), lastUpdatedBy: "user-rob" },
+    });
+    resourceMapsSeeded++;
+  }
+  console.log(`  ✓ ${resourceMapsSeeded} IBS resource maps seeded`);
+
+  // ResilienceScenario seed data — 3 per IBS (18 total)
+  const _today = new Date();
+  const daysOffset = (offsetDays: number) => new Date(_today.getTime() + offsetDays * 86400000);
+
+  const RESILIENCE_SCENARIOS: {
+    id: string; reference: string; ibsId: string; name: string; description: string;
+    scenarioType: "CYBER_ATTACK" | "SYSTEM_OUTAGE" | "THIRD_PARTY_FAILURE" | "PANDEMIC" | "BUILDING_LOSS" | "DATA_CORRUPTION" | "KEY_PERSON_LOSS" | "REGULATORY_CHANGE";
+    testedAt: Date | null; nextTestDate: Date | null; conductedBy: string | null;
+    status: "PLANNED" | "IN_PROGRESS" | "COMPLETE";
+    outcome: "WITHIN_TOLERANCE" | "BREACH" | "NOT_TESTED";
+    findings: string | null; remediationRequired: boolean;
+  }[] = [
+    // IBS-001 Retail Payments
+    { id: "sc-001", reference: "SC-001", ibsId: "ibs-retail-payments", name: "Payment Platform Ransomware Attack", description: "Simulates a ransomware attack targeting the payments platform, rendering payment processing unavailable for an extended period.", scenarioType: "CYBER_ATTACK", testedAt: daysOffset(-90), nextTestDate: daysOffset(275), conductedBy: "CISO & Payments Operations", status: "COMPLETE", outcome: "WITHIN_TOLERANCE", findings: "Systems recovered within 3.5h — within 4h MTD. Playbook executed effectively. Minor gap: secondary BACS portal credentials not updated; remediated post-test.", remediationRequired: false },
+    { id: "sc-002", reference: "SC-002", ibsId: "ibs-retail-payments", name: "Vocalink Gateway Outage", description: "Third-party Faster Payments scheme operator experiences extended outage, blocking all outbound faster payments.", scenarioType: "THIRD_PARTY_FAILURE", testedAt: daysOffset(-180), nextTestDate: daysOffset(185), conductedBy: "Payments Operations", status: "COMPLETE", outcome: "BREACH", findings: "Tolerance breach of 47 minutes beyond 4h MTD. Root cause: fallback BACS batch run required manual CFO authorisation which took 94 minutes out of hours. Remediation: pre-authorised emergency batch payment process implemented.", remediationRequired: true },
+    { id: "sc-003", reference: "SC-003", ibsId: "ibs-retail-payments", name: "Key Personnel Simultaneous Absence", description: "Head of Payments and all senior analysts absent simultaneously (pandemic scenario).", scenarioType: "KEY_PERSON_LOSS", testedAt: null, nextTestDate: daysOffset(14), conductedBy: null, status: "PLANNED", outcome: "NOT_TESTED", findings: null, remediationRequired: false },
+    // IBS-002 Customer Onboarding
+    { id: "sc-004", reference: "SC-004", ibsId: "ibs-customer-onboarding", name: "eIDV Provider System Failure", description: "Onfido identity verification platform becomes unavailable for 24+ hours, blocking all new account openings.", scenarioType: "THIRD_PARTY_FAILURE", testedAt: daysOffset(-45), nextTestDate: daysOffset(320), conductedBy: "Customer Operations", status: "COMPLETE", outcome: "WITHIN_TOLERANCE", findings: "Manual ID verification process activated within 2h. Throughput reduced to 60% but within tolerance. Staff training refresh recommended for manual process steps.", remediationRequired: false },
+    { id: "sc-005", reference: "SC-005", ibsId: "ibs-customer-onboarding", name: "KYC Data Platform Corruption", description: "Corruption of customer application data requiring rollback and re-processing of in-flight applications.", scenarioType: "DATA_CORRUPTION", testedAt: null, nextTestDate: daysOffset(21), conductedBy: null, status: "IN_PROGRESS", outcome: "NOT_TESTED", findings: "Test in progress — data corruption simulation running with sandbox environment. Initial findings being documented.", remediationRequired: false },
+    { id: "sc-006", reference: "SC-006", ibsId: "ibs-customer-onboarding", name: "London Office Building Loss", description: "Primary London office becomes inaccessible, requiring full remote mobilisation of onboarding team.", scenarioType: "BUILDING_LOSS", testedAt: daysOffset(-270), nextTestDate: daysOffset(95), conductedBy: "BCP Team", status: "COMPLETE", outcome: "WITHIN_TOLERANCE", findings: "Full remote capability confirmed. All KYC tools accessible via VPN within 45 minutes. No customer-impacting downtime recorded.", remediationRequired: false },
+    // IBS-003 Lending Decisioning
+    { id: "sc-007", reference: "SC-007", ibsId: "ibs-lending-decisioning", name: "Decision Engine Cyber Incident", description: "Cyber attack targets the credit decisioning platform, forcing shutdown and failover to manual scorecard process.", scenarioType: "CYBER_ATTACK", testedAt: daysOffset(-120), nextTestDate: daysOffset(245), conductedBy: "Credit & IT Security", status: "COMPLETE", outcome: "WITHIN_TOLERANCE", findings: "Manual scorecard process activated in 1h 45m. Within 8h MTD tolerance. Throughput fell to 40% — acceptable. Model team response time excellent.", remediationRequired: false },
+    { id: "sc-008", reference: "SC-008", ibsId: "ibs-lending-decisioning", name: "Credit Bureau API Failure", description: "Primary credit bureau (Equifax) API unavailable, preventing automated credit scoring for new applications.", scenarioType: "THIRD_PARTY_FAILURE", testedAt: daysOffset(-60), nextTestDate: daysOffset(305), conductedBy: "Credit Operations", status: "COMPLETE", outcome: "BREACH", findings: "Tolerance breach: TransUnion fallback took 3h 20m to activate (exceeded 2h target). Root cause: API credentials not maintained in rotation. Remediation required: automated fallback with pre-tested credentials.", remediationRequired: true },
+    { id: "sc-009", reference: "SC-009", ibsId: "ibs-lending-decisioning", name: "Pandemic Mass Absence — Credit Team", description: "40% of credit operations team absent, testing reduced staffing models and triage processes.", scenarioType: "PANDEMIC", testedAt: null, nextTestDate: daysOffset(-5), conductedBy: null, status: "PLANNED", outcome: "NOT_TESTED", findings: null, remediationRequired: false },
+    // IBS-004 Regulatory Reporting
+    { id: "sc-010", reference: "SC-010", ibsId: "ibs-regulatory-reporting", name: "FCA Portal Outage at Submission Deadline", description: "FCA RegData portal unavailable on the MLAR submission deadline, requiring escalation to FCA and evidence of attempted submission.", scenarioType: "SYSTEM_OUTAGE", testedAt: daysOffset(-30), nextTestDate: daysOffset(335), conductedBy: "Compliance", status: "COMPLETE", outcome: "WITHIN_TOLERANCE", findings: "FCA temporary relief process exercised in tabletop scenario. Evidence package prepared and submitted via FCA email within 2h. Process now documented in the compliance calendar.", remediationRequired: false },
+    { id: "sc-011", reference: "SC-011", ibsId: "ibs-regulatory-reporting", name: "SMF16 Extended Absence at Reporting Period", description: "Compliance Oversight SMF holder incapacitated with no deputy briefed — testing succession and reporting continuity.", scenarioType: "KEY_PERSON_LOSS", testedAt: daysOffset(-200), nextTestDate: daysOffset(165), conductedBy: "Compliance & HR", status: "COMPLETE", outcome: "WITHIN_TOLERANCE", findings: "Deputy SMF appointment process initiated within 4h. Temporary SMF16 coverage obtained from CFO (dual-registered) within 24h. No submission delays.", remediationRequired: false },
+    { id: "sc-012", reference: "SC-012", ibsId: "ibs-regulatory-reporting", name: "Data Integrity Failure in Returns", description: "Source system corruption results in incorrect data feeding into regulatory returns, detected post-preparation.", scenarioType: "DATA_CORRUPTION", testedAt: null, nextTestDate: daysOffset(30), conductedBy: null, status: "PLANNED", outcome: "NOT_TESTED", findings: null, remediationRequired: false },
+    // IBS-005 Fraud Detection
+    { id: "sc-013", reference: "SC-013", ibsId: "ibs-fraud-detection", name: "ML Fraud Model Targeted Attack", description: "Adversarial attack on the ML fraud detection model through systematic probing, degrading detection accuracy below threshold.", scenarioType: "CYBER_ATTACK", testedAt: daysOffset(-75), nextTestDate: daysOffset(290), conductedBy: "CISO, ML Engineering, Fraud", status: "COMPLETE", outcome: "WITHIN_TOLERANCE", findings: "Rule-based fallback engine activated within 18 minutes. Detection rate maintained at 73% (above 70% minimum threshold). ML model retrained and re-deployed within 6h.", remediationRequired: false },
+    { id: "sc-014", reference: "SC-014", ibsId: "ibs-fraud-detection", name: "Featurespace ARIC Platform Outage", description: "Secondary fraud platform unavailable, testing reliance on primary ML engine and manual review capacity.", scenarioType: "THIRD_PARTY_FAILURE", testedAt: daysOffset(-150), nextTestDate: daysOffset(215), conductedBy: "Fraud Operations", status: "COMPLETE", outcome: "WITHIN_TOLERANCE", findings: "Primary ML engine handled full volume without degradation. Manual review queue increased by 22% — within capacity. SLA maintained at 99.2% detection within 1 second.", remediationRequired: false },
+    { id: "sc-015", reference: "SC-015", ibsId: "ibs-fraud-detection", name: "Real-Time Data Feed Interruption", description: "Kafka streaming data feed disruption causing processing lag in transaction monitoring.", scenarioType: "SYSTEM_OUTAGE", testedAt: null, nextTestDate: daysOffset(7), conductedBy: null, status: "PLANNED", outcome: "NOT_TESTED", findings: null, remediationRequired: false },
+    // IBS-006 Customer Servicing
+    { id: "sc-016", reference: "SC-016", ibsId: "ibs-customer-servicing", name: "CRM Platform Outage", description: "Customer relationship management system unavailable, preventing agents from accessing customer records and logging interactions.", scenarioType: "SYSTEM_OUTAGE", testedAt: daysOffset(-240), nextTestDate: daysOffset(125), conductedBy: "Customer Operations IT", status: "COMPLETE", outcome: "BREACH", findings: "Tolerance breach: paper-based fallback activated but 1,400 interactions were not logged within the 12h window. Root cause: paper forms lacked required FCA data fields. Remediation: updated paper forms and digital offline capture tool developed.", remediationRequired: true },
+    { id: "sc-017", reference: "SC-017", ibsId: "ibs-customer-servicing", name: "Large-Scale Complaints Surge", description: "Regulatory change triggers 300% increase in customer complaints, overwhelming the servicing team.", scenarioType: "REGULATORY_CHANGE", testedAt: null, nextTestDate: daysOffset(45), conductedBy: null, status: "IN_PROGRESS", outcome: "NOT_TESTED", findings: "Tabletop exercise in progress. Interim findings suggest agency staff onboarding SLA may not meet FCA 8-week complaint resolution requirement.", remediationRequired: false },
+    { id: "sc-018", reference: "SC-018", ibsId: "ibs-customer-servicing", name: "Servicing Centre Building Loss", description: "Primary customer servicing centre inaccessible, testing home-working mobilisation of 10 FTE within 4 hours.", scenarioType: "BUILDING_LOSS", testedAt: null, nextTestDate: daysOffset(-15), conductedBy: null, status: "PLANNED", outcome: "NOT_TESTED", findings: null, remediationRequired: false },
+  ];
+
+  let scenariosSeeded = 0;
+  for (const sc of RESILIENCE_SCENARIOS) {
+    const ibsExists = await prisma.importantBusinessService.findUnique({ where: { id: sc.ibsId } });
+    if (!ibsExists) continue;
+    await prisma.resilienceScenario.upsert({
+      where: { reference: sc.reference },
+      update: {
+        ibsId: sc.ibsId, name: sc.name, description: sc.description, scenarioType: sc.scenarioType,
+        testedAt: sc.testedAt, nextTestDate: sc.nextTestDate, conductedBy: sc.conductedBy,
+        status: sc.status, outcome: sc.outcome, findings: sc.findings, remediationRequired: sc.remediationRequired,
+      },
+      create: {
+        id: sc.id, reference: sc.reference, ibsId: sc.ibsId, name: sc.name, description: sc.description,
+        scenarioType: sc.scenarioType, testedAt: sc.testedAt, nextTestDate: sc.nextTestDate,
+        conductedBy: sc.conductedBy, status: sc.status, outcome: sc.outcome,
+        findings: sc.findings, remediationRequired: sc.remediationRequired,
+      },
+    });
+    scenariosSeeded++;
+  }
+  console.log(`  ✓ ${scenariosSeeded} resilience scenarios seeded`);
+
+  // SelfAssessment — 2025 DRAFT
+  const existingSA = await prisma.selfAssessment.findUnique({ where: { year: 2025 } });
+  if (!existingSA) {
+    await prisma.selfAssessment.create({
+      data: {
+        year: 2025,
+        status: "DRAFT",
+        executiveSummary: "Updraft's 2025 Operational Resilience Self-Assessment confirms that all six Important Business Services have been mapped, scenario-tested, and assessed against their respective impact tolerances as required by FCA PS21/3 and CMORG v3. The firm has made substantial progress in embedding resilience into its operations since the 2024 assessment. Two scenarios resulted in tolerance breaches — both relating to third-party dependency activation times — for which remediation actions have been implemented and independently verified. Three vulnerabilities remain open, primarily in the customer servicing IBS, where the technology and facilities resource mapping is incomplete. The Board is invited to review and approve this assessment prior to regulatory submission by 31 March 2026.",
+        vulnerabilitiesCount: 3,
+        openRemediations: 2,
+        documentUrl: null,
+      },
+    });
+    console.log("  ✓ 2025 self-assessment seeded (DRAFT)");
+  } else {
+    console.log("  ⓘ 2025 self-assessment already exists — skipped");
+  }
+
+  // ── Regulatory Calendar Seed Data ──────────────────────────────────────────
+  const REG_EVENTS: {
+    id: string; title: string; description: string; eventDate: Date;
+    type: "DEADLINE" | "REVIEW" | "SUBMISSION" | "CONSULTATION" | "INTERNAL_DEADLINE";
+    source: string; url: string | null; alertDays: number;
+  }[] = [
+    { id: "regevent-001", title: "PS21/3 Annual Self-Assessment Submission", description: "Annual submission of the Operational Resilience self-assessment to the FCA/PRA, demonstrating compliance with PS21/3 requirements and confirming all IBS operate within impact tolerances.", eventDate: new Date("2026-03-31"), type: "DEADLINE", source: "FCA", url: "https://www.fca.org.uk/publications/policy-statements/ps21-3-building-operational-resilience", alertDays: 30 },
+    { id: "regevent-002", title: "DORA Operational Resilience Report", description: "Annual operational resilience report required under the EU Digital Operational Resilience Act (DORA) Article 19 for entities with EU operations.", eventDate: new Date("2026-01-17"), type: "SUBMISSION", source: "DORA", url: null, alertDays: 30 },
+    { id: "regevent-003", title: "FCA Consumer Duty Annual Board Report", description: "The annual Consumer Duty board report, attesting that the firm is delivering good outcomes under the Consumer Duty (PS22/9). Board must approve before submission deadline.", eventDate: new Date("2026-07-31"), type: "DEADLINE", source: "FCA", url: null, alertDays: 30 },
+    { id: "regevent-004", title: "Annual IBS Scenario Testing Review", description: "Internal review deadline: all six Important Business Services must have completed at least one scenario test within the current calendar year, with findings documented and reviewed by the CCRO.", eventDate: new Date("2026-03-01"), type: "INTERNAL_DEADLINE", source: "INTERNAL", url: null, alertDays: 30 },
+    { id: "regevent-005", title: "SM&CR Annual Certification Window", description: "Annual deadline for completing all SM&CR certification assessments for Certified Persons. All certificates must be renewed or revoked before 31 December.", eventDate: new Date("2026-12-31"), type: "REVIEW", source: "FCA", url: null, alertDays: 30 },
+  ];
+
+  let regEventsSeeded = 0;
+  for (const ev of REG_EVENTS) {
+    await prisma.regulatoryEvent.upsert({
+      where: { id: ev.id },
+      update: { title: ev.title, description: ev.description, eventDate: ev.eventDate, type: ev.type, source: ev.source, url: ev.url, alertDays: ev.alertDays },
+      create: { id: ev.id, title: ev.title, description: ev.description, eventDate: ev.eventDate, type: ev.type, source: ev.source, url: ev.url, alertDays: ev.alertDays },
+    });
+    regEventsSeeded++;
+  }
+  console.log(`  ✓ ${regEventsSeeded} regulatory calendar events seeded`);
+
   console.log("Seed complete!");
 }
 

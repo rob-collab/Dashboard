@@ -17,6 +17,9 @@ import {
   CheckCircle2,
   Clock,
   ExternalLink,
+  Building2,
+  FileCheck,
+  Calendar,
 } from "lucide-react";
 
 interface NotifItem {
@@ -53,6 +56,11 @@ function useNotifications() {
   const riskAcceptances = useAppStore((s) => s.riskAcceptances);
   const regulations = useAppStore((s) => s.regulations);
   const policies = useAppStore((s) => s.policies);
+  const scenarios = useAppStore((s) => s.scenarios);
+  const ibs = useAppStore((s) => s.ibs);
+  const selfAssessments = useAppStore((s) => s.selfAssessments);
+  const processes = useAppStore((s) => s.processes);
+  const regulatoryEvents = useAppStore((s) => s.regulatoryEvents);
   const permissionSet = usePermissionSet();
 
   const items = useMemo((): NotifItem[] => {
@@ -205,10 +213,122 @@ function useNotifications() {
       });
     }
 
+    const isCCRO = currentUser.role === "CCRO_TEAM";
+
+    // 8. Overdue Scenario Tests (CCRO only)
+    if (isCCRO) {
+      const overdueScenarios = scenarios.filter(
+        (s) => s.nextTestDate && new Date(s.nextTestDate) < new Date() && s.status !== "COMPLETE"
+      );
+      if (overdueScenarios.length > 0) {
+        out.push({
+          id: "overdue-scenarios",
+          icon: ShieldAlert,
+          iconColour: "text-red-600",
+          bgColour: "bg-red-50",
+          title: `${overdueScenarios.length} scenario test${overdueScenarios.length > 1 ? "s" : ""} overdue`,
+          description: `${overdueScenarios.slice(0, 2).map((s) => s.name).join(", ")}${overdueScenarios.length > 2 ? ` +${overdueScenarios.length - 2} more` : ""}`,
+          href: "/operational-resilience?tab=ibs",
+          priority: "critical",
+        });
+      }
+
+      // 9. Scenario Tests Due Soon (within 30 days)
+      const dueSoonScenarios = scenarios.filter((s) => {
+        if (s.status === "COMPLETE") return false;
+        const days = daysUntilDue(s.nextTestDate);
+        return days !== null && days >= 0 && days <= 30;
+      });
+      if (dueSoonScenarios.length > 0) {
+        out.push({
+          id: "due-soon-scenarios",
+          icon: Clock,
+          iconColour: "text-amber-600",
+          bgColour: "bg-amber-50",
+          title: `${dueSoonScenarios.length} scenario test${dueSoonScenarios.length > 1 ? "s" : ""} due within 30 days`,
+          description: `${dueSoonScenarios.slice(0, 2).map((s) => s.name).join(", ")}${dueSoonScenarios.length > 2 ? ` +${dueSoonScenarios.length - 2} more` : ""}`,
+          href: "/operational-resilience?tab=ibs",
+          priority: "high",
+        });
+      }
+
+      // 10. IBS Resource Coverage Gaps
+      const ibsGaps = ibs.filter((i) => (i.categoriesFilled ?? 0) < 3);
+      if (ibsGaps.length > 0) {
+        out.push({
+          id: "ibs-coverage-gaps",
+          icon: Building2,
+          iconColour: "text-amber-600",
+          bgColour: "bg-amber-50",
+          title: `${ibsGaps.length} IBS with incomplete resource mapping`,
+          description: `${ibsGaps.slice(0, 2).map((i) => i.reference).join(", ")}${ibsGaps.length > 2 ? ` +${ibsGaps.length - 2} more` : ""} — fewer than 3 categories filled`,
+          href: "/operational-resilience?tab=ibs",
+          priority: "high",
+        });
+      }
+
+      // 11. Annual Self-Assessment Not Submitted (only after 1 June)
+      const currentYear = new Date().getFullYear();
+      const juneFirst = new Date(currentYear, 5, 1); // June = month 5 (0-indexed)
+      if (new Date() >= juneFirst) {
+        const hasSubmitted = selfAssessments.some(
+          (sa) => sa.year === currentYear && (sa.status === "SUBMITTED" || sa.status === "APPROVED")
+        );
+        if (!hasSubmitted) {
+          const isOctober = new Date().getMonth() >= 9; // October+
+          out.push({
+            id: "self-assessment-not-submitted",
+            icon: FileCheck,
+            iconColour: isOctober ? "text-red-600" : "text-amber-600",
+            bgColour: isOctober ? "bg-red-50" : "bg-amber-50",
+            title: `${currentYear} self-assessment not yet submitted`,
+            description: "Annual operational resilience self-assessment must be submitted to the board for approval",
+            href: "/operational-resilience?tab=self-assessment",
+            priority: isOctober ? "critical" : "high",
+          });
+        }
+      }
+
+      // 13. Upcoming Regulatory Deadlines
+      const urgentEvents = regulatoryEvents.filter((e) => {
+        const days = daysUntilDue(e.eventDate);
+        return days !== null && days >= 0 && days <= e.alertDays;
+      });
+      if (urgentEvents.length > 0) {
+        out.push({
+          id: "regulatory-deadlines",
+          icon: Calendar,
+          iconColour: "text-amber-600",
+          bgColour: "bg-amber-50",
+          title: `${urgentEvents.length} regulatory deadline${urgentEvents.length > 1 ? "s" : ""} approaching`,
+          description: `${urgentEvents.slice(0, 2).map((e) => e.title).join(", ")}${urgentEvents.length > 2 ? ` +${urgentEvents.length - 2} more` : ""}`,
+          href: "/operational-resilience",
+          priority: "high",
+        });
+      }
+    }
+
+    // 12. Processes Overdue for Review (all roles)
+    const overdueProcesses = processes.filter(
+      (p) => p.nextReviewDate && new Date(p.nextReviewDate) < new Date() && p.status === "ACTIVE"
+    );
+    if (overdueProcesses.length > 0) {
+      out.push({
+        id: "overdue-process-reviews",
+        icon: BookOpen,
+        iconColour: "text-gray-500",
+        bgColour: "bg-gray-50",
+        title: `${overdueProcesses.length} process${overdueProcesses.length > 1 ? "es" : ""} overdue for review`,
+        description: `${overdueProcesses.slice(0, 2).map((p) => p.name).join(", ")}${overdueProcesses.length > 2 ? ` +${overdueProcesses.length - 2} more` : ""}`,
+        href: "/processes",
+        priority: "medium",
+      });
+    }
+
     // Sort: critical first, then high, then medium
     const PRIORITY_ORDER = { critical: 0, high: 1, medium: 2 };
     return out.sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
-  }, [currentUser, actions, controls, risks, riskAcceptances, regulations, policies, permissionSet]);
+  }, [currentUser, actions, controls, risks, riskAcceptances, regulations, policies, scenarios, ibs, selfAssessments, processes, regulatoryEvents, permissionSet]);
 
   return { items };
 }

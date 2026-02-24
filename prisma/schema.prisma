@@ -1718,3 +1718,29 @@ model SelfAssessment {
 
   @@map("self_assessments")
 }
+
+// ── Regulatory Calendar ───────────────────────────────────────────────────────
+
+enum RegCalEventType {
+  DEADLINE
+  REVIEW
+  SUBMISSION
+  CONSULTATION
+  INTERNAL_DEADLINE
+
+  @@map("reg_cal_event_type")
+}
+
+model RegulatoryEvent {
+  id          String          @id @default(cuid())
+  title       String
+  description String?         @db.Text
+  eventDate   DateTime
+  type        RegCalEventType
+  source      String
+  url         String?
+  alertDays   Int             @default(30)
+  createdAt   DateTime        @default(now())
+
+  @@map("regulatory_events")
+}
