@@ -64,6 +64,8 @@ const PRIORITY_CONFIG: Record<ActionPriority, { label: string; color: string; bg
   P3: { label: "P3", color: "text-slate-600", bgColor: "bg-slate-100 text-slate-600" },
 };
 
+const GROUP_ORDER: ActionStatus[] = ["OVERDUE", "IN_PROGRESS", "OPEN", "PROPOSED_CLOSED", "COMPLETED"];
+
 function daysUntilDue(dueDate: string | null): number | null {
   if (!dueDate) return null;
   const now = new Date();
@@ -160,6 +162,8 @@ function ActionsPageContent() {
   const [showCSVImport, setShowCSVImport] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showUpdateForm, setShowUpdateForm] = useState<string | null>(null);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set(["COMPLETED"]));
+  const [progressMounted, setProgressMounted] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkReassignTo, setBulkReassignTo] = useState("");
   const [showBulkReassign, setShowBulkReassign] = useState(false);
@@ -254,6 +258,25 @@ function ActionsPageContent() {
       return true;
     });
   }, [actions, statusFilter, priorityFilter, ownerFilter, reportFilter, sourceFilter, search, users]);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setProgressMounted(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  const grouped = useMemo(() => {
+    const map = new Map<ActionStatus, Action[]>(GROUP_ORDER.map((s) => [s, []]));
+    for (const action of filteredActions) {
+      const effectiveStatus: ActionStatus =
+        (action.status === "OPEN" || action.status === "IN_PROGRESS") &&
+        daysUntilDue(action.dueDate) !== null &&
+        daysUntilDue(action.dueDate)! <= 0
+          ? "OVERDUE"
+          : action.status;
+      map.get(effectiveStatus)?.push(action);
+    }
+    return map;
+  }, [filteredActions]);
 
   const handleCreateAction = useCallback((action: Action) => {
     addAction(action);
@@ -731,6 +754,25 @@ function ActionsPageContent() {
         </div>
       )}
 
+      {/* Completion Progress Bar */}
+      {filteredActions.length > 0 && (() => {
+        const completedCount = (grouped.get("COMPLETED") ?? []).length;
+        const pct = Math.round((completedCount / filteredActions.length) * 100);
+        return (
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+              <div
+                className="h-full bg-green-500 rounded-full transition-all duration-700 ease-out"
+                style={{ width: progressMounted ? `${pct}%` : "0%" }}
+              />
+            </div>
+            <span className="text-xs text-gray-500 shrink-0 w-40 text-right">
+              {completedCount} of {filteredActions.length} complete ({pct}%)
+            </span>
+          </div>
+        );
+      })()}
+
       {/* Actions Table */}
       <div className="bento-card p-0 overflow-hidden">
         {/* Select-all header row */}
@@ -763,8 +805,36 @@ function ActionsPageContent() {
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
-            {filteredActions.map((action) => {
+          <div>
+            {GROUP_ORDER.filter((gStatus) => (grouped.get(gStatus) ?? []).length > 0).map((gStatus) => {
+              const groupActions = grouped.get(gStatus) ?? [];
+              const isGroupCollapsed = collapsedGroups.has(gStatus);
+              const GroupCfg = STATUS_CONFIG[gStatus];
+              const GroupIcon = GroupCfg.icon;
+              return (
+                <div key={gStatus} className="border-b border-gray-100 last:border-b-0">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCollapsedGroups((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(gStatus)) next.delete(gStatus);
+                        else next.add(gStatus);
+                        return next;
+                      })
+                    }
+                    className="flex w-full items-center gap-3 px-4 py-2.5 bg-gray-50/80 hover:bg-gray-100/80 transition-colors text-left border-b border-gray-100"
+                  >
+                    <ChevronRight size={14} className={cn("text-gray-400 transition-transform shrink-0", !isGroupCollapsed && "rotate-90")} />
+                    <GroupIcon size={14} className={cn("shrink-0", GroupCfg.color)} />
+                    <span className={cn("text-xs font-semibold", GroupCfg.color)}>{GroupCfg.label}</span>
+                    <span className="ml-1 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-600">
+                      {groupActions.length}
+                    </span>
+                  </button>
+                  {!isGroupCollapsed && (
+                    <div className="divide-y divide-gray-100">
+                      {groupActions.map((action) => {
               const owner = users.find((u) => u.id === action.assignedTo);
               const isExpanded = expandedIds.has(action.id);
               const StatusIcon = STATUS_CONFIG[action.status].icon;
@@ -839,7 +909,16 @@ function ActionsPageContent() {
 
                     {/* Owner */}
                     <div className="hidden sm:flex items-center gap-1.5 shrink-0 w-32">
-                      <User size={13} className="text-gray-400" />
+                      {owner ? (
+                        <span
+                          className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-updraft-bar text-white text-[9px] font-bold shrink-0"
+                          title={owner.name}
+                        >
+                          {owner.name.split(" ").map((n: string) => n[0]).slice(0, 2).join("")}
+                        </span>
+                      ) : (
+                        <User size={13} className="text-gray-400" />
+                      )}
                       <span className="text-xs text-gray-600 truncate">{owner?.name || "Unassigned"}</span>
                     </div>
 
@@ -1286,6 +1365,11 @@ function ActionsPageContent() {
                       </div>
                     );
                   })()}
+                </div>
+              );
+              })}
+                    </div>
+                  )}
                 </div>
               );
             })}

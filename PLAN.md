@@ -1,9 +1,33 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-24 (OR Dashboard + Regulatory Calendar + Consumer Duty UX Sprint)
+Last updated: 2026-02-24 (Actions Page UX Upgrade)
 
 ---
 
-## CURRENT SPRINT: OR, Regulatory Calendar & Consumer Duty UX
+## CURRENT SPRINT: Actions Page UX Upgrade ✅ COMPLETE
+
+### What
+Replace the flat unsorted action list with:
+1. Grouped collapsible sections by status (Overdue → In Progress → Open → Proposed Closed → Completed)
+2. Completion progress bar (animated, showing x/total complete + %)
+3. Owner initials badge (coloured circle) replacing the plain User icon
+4. COMPLETED group collapsed by default
+
+All existing functionality (bulk ops, expand detail, proposals, search, filters, stat cards) preserved.
+
+### Files
+- `src/app/actions/page.tsx`
+
+### Checklist
+- [x] Grouped sections with collapsible headers (click to expand/collapse)
+- [x] COMPLETED group collapsed by default
+- [x] Progress bar shows animated completion %
+- [x] Owner shown as coloured initials badge
+- [x] All existing features (expand, bulk ops, search, filters) preserved
+- [x] Build passes
+
+---
+
+## PREVIOUSLY COMPLETED: OR, Regulatory Calendar & Consumer Duty UX
 
 ### What
 1. OR Dashboard stat cards clickable (Tests Due → IBS tab, Open Remediations → /actions, etc.)
