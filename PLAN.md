@@ -1,5 +1,29 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-23 (5 new sprints: OR Seed Data, Regulatory Calendar, Notification Enhancements, OR Depth, HTML Export Builder)
+Last updated: 2026-02-24 (OR self-assessment clickable metrics; Regulatory Calendar moved to Compliance)
+
+---
+
+## CURRENT SPRINT: OR Self-Assessment UX + Regulatory Calendar relocation
+
+### What
+1. Self-Assessment tab — vulnerabilities and open remediations cards become click-through links.
+   Open remediations ARE actions; vulnerabilities are risks. Readiness checklist items also clickable.
+2. Regulatory Calendar widget removed from OR Dashboard and added as a dedicated tab on Compliance.
+
+### Files
+- `src/components/or/SelfAssessmentTab.tsx`
+- `src/components/or/ORDashboard.tsx`
+- `src/app/compliance/page.tsx`
+
+### Checklist
+- [x] Vulnerabilities card click → navigates to `/risk-register`
+- [x] Open Remediations card click → navigates to `/actions`; subtitle clarifies "Tracked in Actions"
+- [x] Readiness checklist: IBS maps row clickable → `/operational-resilience?tab=ibs`
+- [x] Readiness checklist: Scenario tests row clickable → `/operational-resilience?tab=ibs`
+- [x] Readiness checklist: Open remediations row clickable → `/actions`
+- [x] RegulatoryCalendarWidget removed from ORDashboard
+- [x] Compliance page gains "Regulatory Calendar" tab (9th tab)
+- [x] Build passes
 
 ---
 

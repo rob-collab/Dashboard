@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { api } from "@/lib/api-client";
 import { ShieldCheck, AlertTriangle, Clock, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import RegulatoryCalendarWidget from "./RegulatoryCalendarWidget";
 
 interface IBSStat {
   id: string;
@@ -170,8 +169,6 @@ export default function ORDashboard({ onSelectIbs }: { onSelectIbs?: (id: string
         </div>
       </div>
 
-      {/* Regulatory Calendar */}
-      <RegulatoryCalendarWidget />
     </div>
   );
 }

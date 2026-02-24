@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
 import type { SelfAssessment, AssessmentStatus } from "@/lib/types";
 import { ASSESSMENT_STATUS_LABELS, ASSESSMENT_STATUS_COLOURS } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Plus, FileText, ExternalLink, CheckCircle2, Circle } from "lucide-react";
+import { Plus, FileText, ExternalLink, CheckCircle2, Circle, ArrowUpRight } from "lucide-react";
 
 export default function SelfAssessmentTab({ isCCRO }: { isCCRO: boolean }) {
+  const router = useRouter();
   const selfAssessments = useAppStore((s) => s.selfAssessments);
   const addSelfAssessment = useAppStore((s) => s.addSelfAssessment);
   const updateSelfAssessment = useAppStore((s) => s.updateSelfAssessment);
@@ -113,14 +115,18 @@ export default function SelfAssessmentTab({ isCCRO }: { isCCRO: boolean }) {
           <ReadinessItem
             label={`IBS resource maps complete (${ibsWithFullMaps}/${totalIBS} IBS with ≥4 categories)`}
             done={ibsMapsComplete}
+            href="/operational-resilience?tab=ibs"
+            onNavigate={() => router.push("/operational-resilience?tab=ibs")}
           />
           <ReadinessItem
             label={`Scenario tests up to date (${overdueScenarios === 0 ? "none" : overdueScenarios} overdue)`}
             done={scenariosUpToDate}
+            onNavigate={() => router.push("/operational-resilience?tab=ibs")}
           />
           <ReadinessItem
-            label={`Open remediations resolved`}
+            label={`Open remediations resolved (tracked in Actions)`}
             done={(sorted[0]?.openRemediations ?? 1) === 0}
+            onNavigate={() => router.push("/actions")}
           />
         </div>
       </div>
@@ -171,14 +177,30 @@ export default function SelfAssessmentTab({ isCCRO }: { isCCRO: boolean }) {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="text-center bento-card bg-gray-50">
-                    <p className="text-xs text-gray-400 mb-1">Vulnerabilities</p>
+                  <button
+                    type="button"
+                    onClick={() => router.push("/risk-register")}
+                    className="text-center bento-card bg-gray-50 hover:bg-amber-50 hover:border-amber-200 border border-transparent transition-colors group"
+                  >
+                    <p className="text-xs text-gray-400 mb-1 flex items-center justify-center gap-1">
+                      Vulnerabilities
+                      <ArrowUpRight size={10} className="opacity-0 group-hover:opacity-60 transition-opacity" />
+                    </p>
                     <p className={cn("text-2xl font-bold font-poppins", sa.vulnerabilitiesCount > 0 ? "text-amber-600" : "text-gray-900")}>{sa.vulnerabilitiesCount}</p>
-                  </div>
-                  <div className="text-center bento-card bg-gray-50">
-                    <p className="text-xs text-gray-400 mb-1">Open Remediations</p>
+                    <p className="text-xs text-gray-400 mt-1">View in Risk Register</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => router.push("/actions")}
+                    className="text-center bento-card bg-gray-50 hover:bg-red-50 hover:border-red-200 border border-transparent transition-colors group"
+                  >
+                    <p className="text-xs text-gray-400 mb-1 flex items-center justify-center gap-1">
+                      Open Remediations
+                      <ArrowUpRight size={10} className="opacity-0 group-hover:opacity-60 transition-opacity" />
+                    </p>
                     <p className={cn("text-2xl font-bold font-poppins", sa.openRemediations > 0 ? "text-red-600" : "text-gray-900")}>{sa.openRemediations}</p>
-                  </div>
+                    <p className="text-xs text-gray-400 mt-1">View in Actions</p>
+                  </button>
                 </div>
 
                 {isEditing ? (
@@ -255,15 +277,20 @@ export default function SelfAssessmentTab({ isCCRO }: { isCCRO: boolean }) {
   );
 }
 
-function ReadinessItem({ label, done }: { label: string; done: boolean }) {
+function ReadinessItem({ label, done, onNavigate }: { label: string; done: boolean; href?: string; onNavigate?: () => void }) {
   return (
-    <div className="flex items-center gap-2">
+    <button
+      type="button"
+      onClick={onNavigate}
+      className="w-full flex items-center gap-2 text-left group hover:bg-white/60 rounded-lg px-1 py-0.5 -mx-1 transition-colors"
+    >
       {done ? (
         <CheckCircle2 size={14} className="text-green-500 shrink-0" />
       ) : (
         <Circle size={14} className="text-gray-300 shrink-0" />
       )}
-      <span className={cn("text-xs", done ? "text-gray-700" : "text-gray-400")}>{label}</span>
-    </div>
+      <span className={cn("text-xs flex-1", done ? "text-gray-700" : "text-gray-400")}>{label}</span>
+      <ArrowUpRight size={10} className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+    </button>
   );
 }
