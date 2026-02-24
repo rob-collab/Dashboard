@@ -12,6 +12,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           prompt: "select_account",
         },
       },
+      // Disable PKCE — use state-only verification instead.
+      // PKCE cookie encryption intermittently fails on Vercel (nextauth v5 beta.30
+      // defaults checks to ["pkce"] but the JWE decode fails across edge/lambda boundaries).
+      // State-based verification (anti-CSRF) is sufficient for a confidential server-side client.
+      checks: ["state"],
     }),
   ],
   session: { strategy: "jwt", maxAge: 8 * 60 * 60 /* 8 hours — re-authenticate each working day */ },
