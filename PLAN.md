@@ -1,5 +1,5 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-25 (Sprint 1 quick wins — T8, UX3, T3, UX8, UX10)
+Last updated: 2026-02-25 (Sprint 3 — D2, D4)
 
 ---
 
@@ -45,7 +45,52 @@ Sprint 1 quick wins from the post-audit plan.
 - [x] Build passes — zero type errors
 - [x] No existing features removed
 
-### Pending: Sprint 2 (T2 — unsaved changes guard) and Sprint 3 (D2, D4) not yet implemented.
+---
+
+## PREVIOUSLY COMPLETED: Remaining Audit Items — Sprint 2 (T2 — Unsaved Changes Guard) ✅ COMPLETE
+
+### What
+Unsaved changes guard on three edit panels: IBSOverviewTab, RiskDetailPanel, RegulationDetailPanel.
+
+### Files
+- `src/components/or/IBSOverviewTab.tsx` — ConfirmDialog + isDirty + handleCancelEdit
+- `src/components/risk-register/RiskDetailPanel.tsx` — ConfirmDialog + isDirty + handleCancel (Cancel btn + backdrop)
+- `src/components/compliance/RegulationDetailPanel.tsx` — ConfirmDialog + isDirty + handleCancelEdit
+
+### Checklist
+- [x] IBSOverviewTab: Cancel button shows ConfirmDialog if form is dirty
+- [x] IBSOverviewTab: form resets when ibs.id changes
+- [x] RiskDetailPanel: Cancel button shows ConfirmDialog if form is dirty
+- [x] RiskDetailPanel: Backdrop click shows ConfirmDialog if form is dirty
+- [x] RegulationDetailPanel: Cancel button shows ConfirmDialog if form is dirty
+- [x] Dialog wording: "Unsaved changes" / "Discard changes" / variant warning
+- [x] Build passes — zero type errors
+
+---
+
+## CURRENT SPRINT: Remaining Audit Items — Sprint 3 (D2, D4)
+
+### What
+D2: Maturity card tab CTAs in ProcessOverviewTab — each criterion gets a ghost button that jumps to the relevant tab.
+D4: Single-process HTML export — "Export" button in ProcessDetailPanel header, downloads self-contained HTML.
+
+### Files
+- `src/components/processes/ProcessOverviewTab.tsx` — D2: enrich criteria with tab/action, add onNavigateTab prop
+- `src/components/processes/ProcessDetailPanel.tsx` — D2: pass onNavigateTab; D4: Export button
+- `src/lib/export-process-html.ts` — D4: new file, generateProcessHTML()
+
+### Checklist
+- [ ] D2: ProcessOverviewTab accepts onNavigateTab prop
+- [ ] D2: Level 1 criteria shows "Edit details" button → calls onEdit()
+- [ ] D2: Level 2 criteria shows "→ Policies" and "→ Regulations" buttons
+- [ ] D2: Level 3 criteria shows "→ Controls", "→ Risks", "→ Steps" buttons
+- [ ] D2: Level 4 criteria shows "→ IBS" button
+- [ ] D2: ProcessDetailPanel passes onNavigateTab={setActiveTab} to ProcessOverviewTab
+- [ ] D4: src/lib/export-process-html.ts created with generateProcessHTML()
+- [ ] D4: Export button in ProcessDetailPanel header (visible to all roles)
+- [ ] D4: Clicking Export downloads Process_[REF]_[date].html
+- [ ] Build passes — zero type errors
+- [ ] No existing features removed
 
 ---
 

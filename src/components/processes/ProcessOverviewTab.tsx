@@ -33,14 +33,29 @@ import {
 interface Props {
   process: Process;
   onEdit: () => void;
+  onNavigateTab: (tab: string) => void;
   isCCRO: boolean;
 }
 
-const MATURITY_CRITERIA: Record<number, string[]> = {
-  1: ["Assign an owner, add description and purpose"],
-  2: ["Link to a policy or regulation and set a review date"],
-  3: ["Link controls, risks, and define process steps"],
-  4: ["Link to an Important Business Service, set SLA, assign SMF"],
+interface CriterionDef {
+  label: string;
+  buttonLabel: string;
+  kind: "edit" | "tab";
+  tab?: string;
+}
+
+const MATURITY_CRITERIA: Record<number, CriterionDef[]> = {
+  1: [{ label: "Assign an owner, add description and purpose", kind: "edit", buttonLabel: "Edit details" }],
+  2: [
+    { label: "Link to a policy", kind: "tab", tab: "policies", buttonLabel: "→ Policies" },
+    { label: "Link to a regulation", kind: "tab", tab: "regulations", buttonLabel: "→ Regulations" },
+  ],
+  3: [
+    { label: "Link controls", kind: "tab", tab: "controls", buttonLabel: "→ Controls" },
+    { label: "Link risks", kind: "tab", tab: "risks", buttonLabel: "→ Risks" },
+    { label: "Add process steps", kind: "tab", tab: "steps", buttonLabel: "→ Steps" },
+  ],
+  4: [{ label: "Link to an Important Business Service, set SLA, assign SMF", kind: "tab", tab: "ibs", buttonLabel: "→ IBS" }],
   5: [],
 };
 
@@ -66,7 +81,7 @@ function Field({
   );
 }
 
-export default function ProcessOverviewTab({ process, onEdit, isCCRO }: Props) {
+export default function ProcessOverviewTab({ process, onEdit, onNavigateTab, isCCRO }: Props) {
   const score = Math.min(5, Math.max(1, process.maturityScore));
   const colours = MATURITY_COLOURS[score];
   const nextCriteria = MATURITY_CRITERIA[score] ?? [];
@@ -269,11 +284,19 @@ export default function ProcessOverviewTab({ process, onEdit, isCCRO }: Props) {
               <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
                 To reach L{score + 1}
               </p>
-              <ul className="space-y-1">
+              <ul className="space-y-1.5">
                 {nextCriteria.map((c) => (
-                  <li key={c} className="flex items-start gap-2 text-xs text-gray-700">
-                    <Clock size={11} className="mt-0.5 shrink-0 text-gray-400" />
-                    {c}
+                  <li key={c.label} className="flex items-center justify-between gap-2">
+                    <div className="flex items-start gap-2 text-xs text-gray-700">
+                      <Clock size={11} className="mt-0.5 shrink-0 text-gray-400" />
+                      {c.label}
+                    </div>
+                    <button
+                      onClick={() => c.kind === "edit" ? onEdit() : onNavigateTab(c.tab!)}
+                      className="shrink-0 text-[10px] font-medium text-updraft-deep border border-updraft-pale-purple/50 bg-updraft-pale-purple/10 hover:bg-updraft-pale-purple/20 rounded px-2 py-0.5 transition-colors whitespace-nowrap"
+                    >
+                      {c.buttonLabel}
+                    </button>
                   </li>
                 ))}
               </ul>

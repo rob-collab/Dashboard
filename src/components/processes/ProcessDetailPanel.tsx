@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { Download, X } from "lucide-react";
+import { generateProcessHTML } from "@/lib/export-process-html";
 import { useAppStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import type { Process } from "@/lib/types";
@@ -75,6 +76,20 @@ export default function ProcessDetailPanel({ process, onUpdate, onClose }: Props
     }
   }
 
+  function handleExport() {
+    const html = generateProcessHTML(process);
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const now = new Date();
+    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    const filename = `Process_${process.reference}_${date}.html`;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <>
       {/* Panel */}
@@ -106,13 +121,23 @@ export default function ProcessDetailPanel({ process, onUpdate, onClose }: Props
                 {process.name}
               </h2>
             </div>
-            <button
-              onClick={onClose}
-              className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-              aria-label="Close panel"
-            >
-              <X size={16} />
-            </button>
+            <div className="flex items-center gap-0.5 shrink-0">
+              <button
+                onClick={handleExport}
+                className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                aria-label="Export process to HTML"
+                title="Export to HTML"
+              >
+                <Download size={15} />
+              </button>
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                aria-label="Close panel"
+              >
+                <X size={16} />
+              </button>
+            </div>
           </div>
 
           {/* Tab bar */}
@@ -155,6 +180,7 @@ export default function ProcessDetailPanel({ process, onUpdate, onClose }: Props
             <ProcessOverviewTab
               process={process}
               onEdit={() => setShowEditForm(true)}
+              onNavigateTab={(tab) => setActiveTab(tab as TabId)}
               isCCRO={isCCRO}
             />
           )}
