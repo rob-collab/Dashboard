@@ -539,66 +539,69 @@ The following table summarises all issues by priority for implementation plannin
 
 ### Must Fix (blocking core workflows or regulatory credibility)
 
-| # | Issue | Type | Effort |
+| # | Issue | Type | Status |
 |---|-------|------|--------|
-| R2 | CEO cannot see OR module | Regression | Small |
-| R1 | VIEWER/CEO cannot access ExCo Dashboard | Regression | Small |
-| R4 | No notification when a change request is resolved | Regression | Medium |
-| T1 | No save confirmation on critical operations | Technical | Medium |
-| UX1 | Back button behaviour is unpredictable | UX | Medium |
+| ~~R2~~ | ~~CEO cannot see OR module~~ | Regression | ✅ DONE |
+| ~~R1~~ | ~~VIEWER/CEO cannot access ExCo Dashboard~~ | Regression | ✅ DONE |
+| ~~R4~~ | ~~No notification when a change request is resolved~~ | Regression | ✅ DONE |
+| ~~T1~~ | ~~No save confirmation on critical operations~~ | Technical | ✅ DONE |
+| ~~UX1~~ | ~~Back button behaviour is unpredictable~~ | UX | ✅ DONE |
 
 ### Should Fix (significant friction, regular occurrence)
 
-| # | Issue | Type | Effort |
+| # | Issue | Type | Status |
 |---|-------|------|--------|
-| R3 | Change Requests badge missing for non-CCRO | Regression | Small |
-| R7 | Action email reminders have no UI trigger | Regression | Small |
-| T4 | Sidebar has too many items, Compliance group especially | Technical | Medium |
-| T7 | Regulatory Calendar naming/location is inconsistent | Technical | Small |
-| UX2 | Bell and Dashboard badge count the same things differently | UX | Small |
-| UX4 | Global Search misses processes, IBS, risk acceptances | UX | Small |
-| ~~UX7~~ | ~~Form validation errors are not shown inline~~ — **DONE (should fix sprint)** | UX | Medium |
-| ~~A1~~ | ~~CCRO: Dashboard is not a morning briefing~~ — **DONE (should fix sprint)** | Persona | Medium |
-| ~~A3~~ | ~~CCRO: Bulk approve on Change Requests~~ — **DONE (should fix sprint)** | Persona | Medium |
-| C1 | Risk Owner: No "My Risks" filter as default | Persona | Small |
-| C2 | Risk Owner: No feedback on proposed changes | Persona | Medium |
-| D1 | Process Owner: No "My Processes" filter | Persona | Small |
-| D3 | Process Owner: Review notifications go to wrong person | Persona | Small |
-| ~~E1~~ | ~~Control Owner: Attestation has no context~~ — **DONE (should fix sprint)** | Persona | Medium |
-| E3 | Control Owner: No notification when test is overdue | Persona | Small |
+| ~~R3~~ | ~~Change Requests badge missing for non-CCRO~~ | Regression | ✅ DONE |
+| ~~R7~~ | ~~Action email reminders have no UI trigger~~ | Regression | ✅ DONE |
+| ~~T4~~ | ~~Sidebar has too many items, Compliance group especially~~ | Technical | ✅ DONE — Policies removed |
+| ~~T7~~ | ~~Regulatory Calendar naming/location is inconsistent~~ | Technical | ✅ DONE |
+| ~~UX2~~ | ~~Bell and Dashboard badge count the same things differently~~ | UX | ✅ DONE |
+| ~~UX4~~ | ~~Global Search misses processes, IBS, risk acceptances~~ | UX | ✅ DONE |
+| ~~UX7~~ | ~~Form validation errors are not shown inline~~ | UX | ✅ DONE |
+| ~~A1~~ | ~~CCRO: Dashboard is not a morning briefing~~ | Persona | ✅ DONE |
+| ~~A3~~ | ~~CCRO: Bulk approve on Change Requests~~ | Persona | ✅ DONE |
+| ~~C1~~ | ~~Risk Owner: No "My Risks" filter as default~~ | Persona | ✅ DONE |
+| ~~C2~~ | ~~Risk Owner: No feedback on proposed changes~~ | Persona | ✅ DONE |
+| ~~D1~~ | ~~Process Owner: No "My Processes" filter~~ | Persona | ✅ DONE |
+| ~~D3~~ | ~~Process Owner: Review notifications go to wrong person~~ | Persona | ✅ DONE |
+| ~~E1~~ | ~~Control Owner: Attestation has no context~~ | Persona | ✅ DONE |
+| ~~E3~~ | ~~Control Owner: No notification when test is overdue~~ | Persona | ✅ DONE |
 
 ### Nice to Have (polish and completeness)
 
-| # | Issue | Type | Effort |
+| # | Issue | Type | Status |
 |---|-------|------|--------|
-| R5 | `/templates` and `/components-lib` routes are orphaned | Regression | Small |
-| R6 | `riskRegister` badge key is dead code | Technical | Small |
-| ~~T2~~ | ~~No unsaved changes guard~~ — **DONE (sprints 2)** | Technical | Medium |
-| ~~T3~~ | ~~Loading states inconsistent~~ — **DONE (sprint 1)** | Technical | Medium |
-| T5 | Dashboard too dense | Technical | Large |
-| T6 | Dashboard badge on sidebar nav is ambiguous | Technical | Small |
-| ~~T8~~ | ~~Not all API writes go through audit logging~~ — **DONE (sprint 1)** | Technical | Medium |
-| T9 | OWNER-created PENDING risks visible before CCRO approval | Technical | Small |
-| ~~UX3~~ | ~~Empty states inconsistent in quality~~ — **DONE (sprint 1)** | UX | Small |
-| UX5 | Compliance sidebar tab links have edge-case bug | UX | Small |
-| ~~UX6~~ | ~~Actions group expand/collapse state not persisted~~ — **DONE (prior sprint)** | UX | Small |
-| ~~UX8~~ | ~~Reports page discovery is poor~~ — **DONE (sprint 1)** | UX | Small |
-| ~~UX9~~ | ~~Export Centre has no audit trail~~ — **DONE (prior sprint)** | UX | Small |
-| ~~UX10~~ | ~~Process step roles are free text with no standardisation~~ — **DONE (sprint 1)** | UX | Small |
-| ~~B1~~ | ~~CEO: No single Board View dashboard mode~~ — **REJECTED: existing dashboard is sufficient; no second dashboard wanted** | Persona | Large |
-| ~~B3~~ | ~~CEO: Risk Register default view wrong for executives~~ — **REJECTED: table view is the preferred default for all roles** | Persona | Small |
-| ~~C3~~ | ~~Risk Owner: Change proposal has no workflow explanation~~ — **DONE (prior sprint)** | Persona | Small |
-| ~~D2~~ | ~~Process Owner: Maturity requirements not actionable~~ — **DONE (sprint 3)** | Persona | Medium |
-| ~~D4~~ | ~~Process Owner: No process export~~ — **DONE (sprint 3)** | Persona | Medium |
+| ~~R5~~ | ~~`/templates` and `/components-lib` routes are orphaned~~ | Regression | ✅ DONE |
+| ~~R6~~ | ~~`riskRegister` badge key is dead code~~ | Technical | ✅ DONE |
+| ~~T2~~ | ~~No unsaved changes guard~~ | Technical | ✅ DONE |
+| ~~T3~~ | ~~Loading states inconsistent~~ | Technical | ✅ DONE |
+| ~~T5~~ | ~~Dashboard too dense~~ | Technical | ⏭ DEFERRED — user requested skip |
+| ~~T6~~ | ~~Dashboard badge on sidebar nav is ambiguous~~ | Technical | ✅ DONE |
+| ~~T8~~ | ~~Not all API writes go through audit logging~~ | Technical | ✅ DONE |
+| ~~T9~~ | ~~OWNER-created PENDING risks visible before CCRO approval~~ | Technical | ✅ DONE |
+| ~~UX3~~ | ~~Empty states inconsistent in quality~~ | UX | ✅ DONE |
+| ~~UX5~~ | ~~Compliance sidebar tab links have edge-case bug~~ | UX | ✅ DONE — resolved as side-effect of T4 |
+| ~~UX6~~ | ~~Actions group expand/collapse state not persisted~~ | UX | ✅ DONE |
+| ~~UX8~~ | ~~Reports page discovery is poor~~ | UX | ✅ DONE |
+| ~~UX9~~ | ~~Export Centre has no audit trail~~ | UX | ✅ DONE |
+| ~~UX10~~ | ~~Process step roles are free text with no standardisation~~ | UX | ✅ DONE |
+| ~~B1~~ | ~~CEO: No single Board View dashboard mode~~ | Persona | ❌ REJECTED — existing dashboard sufficient |
+| ~~B3~~ | ~~CEO: Risk Register default view wrong for executives~~ | Persona | ❌ REJECTED — table view preferred for all roles |
+| ~~C3~~ | ~~Risk Owner: Change proposal has no workflow explanation~~ | Persona | ✅ DONE |
+| ~~D2~~ | ~~Process Owner: Maturity requirements not actionable~~ | Persona | ✅ DONE |
+| ~~D4~~ | ~~Process Owner: No process export~~ | Persona | ✅ DONE |
+
+### Additional items (identified post-audit, all complete)
+
+| # | Issue | Type | Status |
+|---|-------|------|--------|
+| ~~CD1~~ | ~~Consumer Duty page sections need collapse toggles~~ | UX | ✅ DONE |
+| ~~PV1~~ | ~~Process CSV import/export~~ | Feature | ✅ DONE |
 
 ---
 
-## WHAT TO DO NEXT
+## AUDIT STATUS: COMPLETE
 
-The audit above should be reviewed with you before any implementation begins. Once we agree which items to address, each group would become a sprint entry in PLAN.md.
+All 39 actionable items have been resolved. T5 (dashboard density) was explicitly deferred at user request. B1 and B3 were rejected. Everything else is implemented and live.
 
-Recommended first sprint: the five "Must Fix" items (R1, R2, R4, R1+R2 permissions, back button). These are all low-to-medium effort and address either regulatory credibility gaps (CEO can't see OR) or broken workflow loops (no feedback on change requests).
-
----
-
-*Audit completed 25 February 2026. No code was modified during this assessment.*
+*Audit completed 25 February 2026. All items resolved by 25 February 2026.*
