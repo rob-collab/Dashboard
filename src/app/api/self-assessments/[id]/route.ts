@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
+import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody, auditLog } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 export async function GET(
@@ -51,6 +51,7 @@ export async function PATCH(
 
   try {
     const item = await prisma.selfAssessment.update({ where: { id }, data });
+    auditLog({ userId: auth.userId, userRole: "CCRO_TEAM", action: "update_self_assessment", entityType: "self_assessment", entityId: id, changes: validated.data as Record<string, unknown> });
     return jsonResponse(serialiseDates(item));
   } catch (e) {
     console.error(e);
@@ -68,6 +69,7 @@ export async function DELETE(
   const { id } = await params;
   try {
     await prisma.selfAssessment.delete({ where: { id } });
+    auditLog({ userId: auth.userId, userRole: "CCRO_TEAM", action: "delete_self_assessment", entityType: "self_assessment", entityId: id });
     return jsonResponse({ ok: true });
   } catch (e) {
     console.error(e);

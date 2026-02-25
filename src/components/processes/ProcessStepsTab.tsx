@@ -6,6 +6,7 @@ import { api } from "@/lib/api-client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { Process, ProcessStep } from "@/lib/types";
+import { useAppStore } from "@/lib/store";
 
 interface Props {
   process: Process;
@@ -30,6 +31,8 @@ const EMPTY_FORM: StepFormState = {
 };
 
 export default function ProcessStepsTab({ process, onUpdate, isCCRO }: Props) {
+  const users = useAppStore((s) => s.users);
+  const activeUsers = users.filter((u) => u.isActive);
   const steps = [...(process.steps ?? [])].sort((a, b) => a.stepOrder - b.stepOrder);
 
   const [showAddForm, setShowAddForm] = useState(false);
@@ -157,6 +160,7 @@ export default function ProcessStepsTab({ process, onUpdate, isCCRO }: Props) {
           <StepFormFields
             form={addForm}
             onChange={(k, v) => setAddForm((f) => ({ ...f, [k]: v }))}
+            users={activeUsers}
           />
           <div className="flex justify-end gap-2 pt-1">
             <button
@@ -204,6 +208,7 @@ export default function ProcessStepsTab({ process, onUpdate, isCCRO }: Props) {
                     <StepFormFields
                       form={editForm}
                       onChange={(k, v) => setEditForm((f) => ({ ...f, [k]: v }))}
+                      users={activeUsers}
                     />
                     <div className="flex justify-end gap-2 pt-1">
                       <button
@@ -293,13 +298,19 @@ export default function ProcessStepsTab({ process, onUpdate, isCCRO }: Props) {
 function StepFormFields({
   form,
   onChange,
+  users,
 }: {
   form: StepFormState;
   onChange: (key: keyof StepFormState, value: string) => void;
+  users: { id: string; name: string }[];
 }) {
   const input =
     "w-full rounded-lg border border-gray-200 px-3 py-1.5 text-xs focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple";
   const label = "block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-0.5";
+
+  // Check if current value matches a user name; if not it's a legacy free-text value
+  const isKnownResponsible = users.some((u) => u.name === form.responsibleRole);
+  const isKnownAccountable = users.some((u) => u.name === form.accountableRole);
 
   return (
     <div className="space-y-2">
@@ -328,23 +339,35 @@ function StepFormFields({
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label className={label}>Responsible Role</label>
-          <input
-            type="text"
-            value={form.responsibleRole}
+          <select
+            value={isKnownResponsible ? form.responsibleRole : ""}
             onChange={(e) => onChange("responsibleRole", e.target.value)}
-            placeholder="e.g. Analyst"
             className={input}
-          />
+          >
+            <option value="">— Not assigned —</option>
+            {!isKnownResponsible && form.responsibleRole && (
+              <option value={form.responsibleRole}>{form.responsibleRole} (legacy)</option>
+            )}
+            {users.map((u) => (
+              <option key={u.id} value={u.name}>{u.name}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label className={label}>Accountable Role</label>
-          <input
-            type="text"
-            value={form.accountableRole}
+          <select
+            value={isKnownAccountable ? form.accountableRole : ""}
             onChange={(e) => onChange("accountableRole", e.target.value)}
-            placeholder="e.g. Manager"
             className={input}
-          />
+          >
+            <option value="">— Not assigned —</option>
+            {!isKnownAccountable && form.accountableRole && (
+              <option value={form.accountableRole}>{form.accountableRole} (legacy)</option>
+            )}
+            {users.map((u) => (
+              <option key={u.id} value={u.name}>{u.name}</option>
+            ))}
+          </select>
         </div>
       </div>
       <div className="w-1/2">

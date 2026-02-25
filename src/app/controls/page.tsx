@@ -25,6 +25,7 @@ import TrendAnalysisTab from "@/components/controls/TrendAnalysisTab";
 import ExcoConfigTab from "@/components/controls/ExcoConfigTab";
 import ExcoDashboardTab from "@/components/controls/ExcoDashboardTab";
 import HistoryTab from "@/components/common/HistoryTab";
+import { PageLoadingState } from "@/components/common/LoadingState";
 import { usePageTitle } from "@/lib/usePageTitle";
 
 type Tab =
@@ -63,6 +64,7 @@ export default function ControlsPage() {
 function ControlsPageInner() {
   usePageTitle("Controls Testing");
   const searchParams = useSearchParams();
+  const hydrated = useAppStore((s) => s._hydrated);
   const currentUser = useAppStore((s) => s.currentUser);
 
   const tabParam = searchParams.get("tab") as Tab | null;
@@ -73,6 +75,7 @@ function ControlsPageInner() {
       : "dashboard"
   );
 
+  if (!hydrated) return <PageLoadingState />;
   if (!currentUser) return null;
 
   const visibleTabs = TABS.filter((t) => t.roles.includes(currentUser.role));

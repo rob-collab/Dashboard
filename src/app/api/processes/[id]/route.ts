@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
+import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody, auditLog } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 import { PROCESS_INCLUDE, computeMaturity } from "../route";
 
@@ -73,6 +73,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       include: PROCESS_INCLUDE,
     });
 
+    auditLog({ userId: auth.userId, userRole: "CCRO_TEAM", action: "update_process", entityType: "process", entityId: id, changes: validated.data as Record<string, unknown> });
     return jsonResponse(serialiseDates(result));
   } catch (e) {
     console.error(e);
@@ -87,6 +88,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 
   try {
     await prisma.process.update({ where: { id }, data: { status: "RETIRED" } });
+    auditLog({ userId: auth.userId, userRole: "CCRO_TEAM", action: "retire_process", entityType: "process", entityId: id });
     return jsonResponse({ success: true });
   } catch (e) {
     console.error(e);

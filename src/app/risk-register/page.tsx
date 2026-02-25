@@ -18,6 +18,7 @@ import RiskCSVUploadDialog from "@/components/risk-register/RiskCSVUploadDialog"
 import { usePageTitle } from "@/lib/usePageTitle";
 import { useHasPermission } from "@/lib/usePermission";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { PageLoadingState } from "@/components/common/LoadingState";
 
 type ViewTab = "heatmap" | "table";
 type ScoreMode = "inherent" | "residual" | "overlay";
@@ -30,6 +31,7 @@ function getScore(risk: Risk, mode: ScoreMode): number {
 
 export default function RiskRegisterPage() {
   usePageTitle("Risk Register");
+  const hydrated = useAppStore((s) => s._hydrated);
   const { risks, setRisks, addRisk, updateRisk, deleteRisk, currentUser, users } = useAppStore();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -558,6 +560,8 @@ export default function RiskRegisterPage() {
     { key: "IMPROVING", value: improvingCount, label: "Improving", colour: "text-green-600" },
     { key: "IN_FOCUS", value: inFocusCount, label: "In Focus", colour: "text-amber-500" },
   ];
+
+  if (!hydrated) return <PageLoadingState />;
 
   return (
     <div className="space-y-6">

@@ -160,7 +160,8 @@ export default function HistoryTab({ entityTypes, title, description, months = 1
       ) : totalEvents === 0 ? (
         <div className="py-16 text-center">
           <History size={40} className="mx-auto mb-3 text-gray-300" />
-          <p className="text-sm text-gray-500">No events found for this period.</p>
+          <p className="text-sm font-medium text-gray-500">No events found for this period.</p>
+          <p className="mt-1 max-w-sm mx-auto text-xs text-gray-400">Events are recorded when entities are created, updated, or deleted.</p>
         </div>
       ) : (
         <div className="space-y-2">

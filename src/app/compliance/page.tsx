@@ -3,6 +3,8 @@
 import { useState, useCallback, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import RoleGuard from "@/components/common/RoleGuard";
+import { useAppStore } from "@/lib/store";
+import { PageLoadingState } from "@/components/common/LoadingState";
 import ComplianceOverview from "@/components/compliance/ComplianceOverview";
 import RegulatoryUniverseTab from "@/components/compliance/RegulatoryUniverseTab";
 import SMCRTab from "@/components/compliance/SMCRTab";
@@ -29,6 +31,7 @@ type TabId = (typeof TABS)[number]["id"];
 
 export default function CompliancePage() {
   usePageTitle("Compliance");
+  const hydrated = useAppStore((s) => s._hydrated);
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialPolicyId = searchParams.get("policy");
@@ -62,6 +65,8 @@ export default function CompliancePage() {
     const qs = params.toString();
     router.replace(qs ? `/compliance?${qs}` : "/compliance", { scroll: false });
   }, [router, searchParams]);
+
+  if (!hydrated) return <PageLoadingState />;
 
   return (
     <RoleGuard permission="page:compliance">

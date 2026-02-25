@@ -11,6 +11,7 @@ import ProcessDetailPanel from "@/components/processes/ProcessDetailPanel";
 import ProcessFormDialog from "@/components/processes/ProcessFormDialog";
 import ProcessInsightsPanel from "@/components/processes/ProcessInsightsPanel";
 import { EmptyState } from "@/components/common/EmptyState";
+import { PageLoadingState } from "@/components/common/LoadingState";
 import HistoryTab from "@/components/common/HistoryTab";
 import IBSRegistryTab from "@/components/or/IBSRegistryTab";
 import ORDashboard from "@/components/or/ORDashboard";
@@ -27,6 +28,7 @@ function getTabFromParam(param: string | null): Tab {
 }
 
 export default function ProcessesPage() {
+  const hydrated = useAppStore((s) => s._hydrated);
   const processes = useAppStore((s) => s.processes);
   const addProcess = useAppStore((s) => s.addProcess);
   const updateProcess = useAppStore((s) => s.updateProcess);
@@ -131,6 +133,8 @@ export default function ProcessesPage() {
     const p = processes.find((proc) => proc.id === id);
     if (p) setSelectedProcess(p);
   }
+
+  if (!hydrated) return <PageLoadingState />;
 
   return (
     <div className="flex flex-col h-full min-h-0">

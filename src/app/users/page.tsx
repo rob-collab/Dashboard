@@ -22,6 +22,7 @@ import UserDeleteDialog from "@/components/users/UserDeleteDialog";
 import PermissionsPanel from "@/components/users/PermissionsPanel";
 import { cn, formatDate } from "@/lib/utils";
 import type { Role, User } from "@/lib/types";
+import { EmptyState } from "@/components/common/EmptyState";
 import { logAuditEvent } from "@/lib/audit";
 import { usePageTitle } from "@/lib/usePageTitle";
 import { useHasPermission } from "@/lib/usePermission";
@@ -393,11 +394,25 @@ export default function UsersPage() {
         </div>
 
         {filteredUsers.length === 0 && (
-          <div className="text-center py-12">
-            <Users size={48} className="mx-auto mb-3 text-gray-300" />
-            <p className="text-sm font-medium text-gray-500">No users found</p>
-            <p className="text-xs text-gray-400 mt-1">Try adjusting your search criteria</p>
-          </div>
+          <EmptyState
+            icon={<Users className="h-7 w-7" />}
+            heading={users.length === 0 ? "No team members yet" : "No users match these filters"}
+            description={
+              users.length === 0
+                ? "Add your first team member to grant access to the dashboard."
+                : "Try broadening your search or clearing the role or status filter."
+            }
+            action={
+              users.length === 0 && canManageUsers ? (
+                <button
+                  onClick={handleOpenAdd}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-deep text-white px-4 py-2 text-sm font-medium hover:bg-updraft-bar transition-colors"
+                >
+                  <Plus size={14} /> Add Team Member
+                </button>
+              ) : undefined
+            }
+          />
         )}
       </div>
 

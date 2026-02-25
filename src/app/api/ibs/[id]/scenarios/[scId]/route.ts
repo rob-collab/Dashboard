@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
+import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody, auditLog } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const patchSchema = z.object({
@@ -40,6 +40,7 @@ export async function PATCH(
       where: { id: scId },
       data,
     });
+    auditLog({ userId: auth.userId, userRole: "CCRO_TEAM", action: "update_scenario", entityType: "scenario", entityId: scId, changes: validated.data as Record<string, unknown> });
     return jsonResponse(serialiseDates(scenario));
   } catch (e) {
     console.error(e);
@@ -57,6 +58,7 @@ export async function DELETE(
   const { scId } = await params;
   try {
     await prisma.resilienceScenario.delete({ where: { id: scId } });
+    auditLog({ userId: auth.userId, userRole: "CCRO_TEAM", action: "delete_scenario", entityType: "scenario", entityId: scId });
     return jsonResponse({ ok: true });
   } catch (e) {
     console.error(e);

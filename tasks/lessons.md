@@ -30,4 +30,9 @@ Rules derived from real mistakes. Review this file at the start of each session.
 **Rule:** Do NOT implement B3 (CEO heatmap default). The table view is the intended default for all roles. Do not change the risk register default view mode based on role.
 **Trigger:** Any work touching risk-register default view, scoreMode, viewTab initial state, or role-based view defaults.
 
+## L005 — Audit recommendation B1 is rejected by the user
+**What happened:** AUDIT.md recommended adding a "Board View" dashboard mode (fixed, non-customisable one-page summary for CEO/executive roles).
+**Rule:** Do NOT implement B1 (CEO Board View). The existing dashboard is the intended surface for all roles. Do not add a second or alternative dashboard.
+**Trigger:** Any work touching a "Board View", alternate dashboard mode, CEO-specific layout, or fixed executive summary screen.
+
 <!-- Add new lessons below this line in format L00N -->

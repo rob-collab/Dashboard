@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
+import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody, auditLog } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const updateSchema = z.object({
@@ -37,6 +37,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       },
     });
 
+    auditLog({ userId: auth.userId, userRole: "CCRO_TEAM", action: "update_testing_schedule", entityType: "testing_schedule", entityId: id, changes: result.data as Record<string, unknown> });
     return jsonResponse(serialiseDates(entry));
   } catch (err) {
     console.error("[PATCH /api/controls/testing-schedule/:id]", err);

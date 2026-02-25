@@ -29,6 +29,7 @@ import {
 } from "@/lib/types";
 import ControlDetailModal from "./ControlDetailModal";
 import ControlCSVUploadDialog from "./ControlCSVUploadDialog";
+import { EmptyState } from "@/components/common/EmptyState";
 import { api } from "@/lib/api-client";
 import { deriveTestingStatus } from "@/lib/controls-utils";
 import { useHasPermission } from "@/lib/usePermission";
@@ -538,13 +539,24 @@ export default function ControlsLibraryTab({ initialControlId }: { initialContro
             <tbody className="divide-y divide-gray-50">
               {filtered.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={isCCRO ? 13 : 12}
-                    className="px-4 py-12 text-center text-gray-400"
-                  >
-                    {showArchived
-                      ? "No archived controls found."
-                      : "No controls match the current filters."}
+                  <td colSpan={isCCRO ? 13 : 12}>
+                    <EmptyState
+                      icon={<ShieldCheck className="h-7 w-7" />}
+                      heading={
+                        showArchived
+                          ? "No archived controls"
+                          : controls.length === 0
+                          ? "No controls yet"
+                          : "No controls match these filters"
+                      }
+                      description={
+                        showArchived
+                          ? "Controls removed from the active library will appear here."
+                          : controls.length === 0
+                          ? "The controls library is empty. Add your first control to begin tracking your 2LOD testing programme."
+                          : "Try clearing a filter or broadening your search term."
+                      }
+                    />
                   </td>
                 </tr>
               ) : (

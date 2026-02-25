@@ -1,9 +1,55 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-25 (Could Fix quick wins — R5, UX6, C3, UX9)
+Last updated: 2026-02-25 (Sprint 1 quick wins — T8, UX3, T3, UX8, UX10)
 
 ---
 
-## CURRENT SPRINT: Could Fix — Quick Wins (R5, UX6, C3, UX9) ✅ COMPLETE
+## CURRENT SPRINT: Remaining Audit Items — Sprint 1 (T8, UX3, T3, UX8, UX10) ✅ COMPLETE
+
+### What
+Sprint 1 quick wins from the post-audit plan.
+
+### Files
+- `src/app/api/ibs/[id]/resource-map/route.ts` — T8: audit log on PATCH
+- `src/app/api/ibs/[id]/scenarios/[scId]/route.ts` — T8: audit log on PATCH + DELETE
+- `src/app/api/self-assessments/[id]/route.ts` — T8: audit log on PATCH + DELETE
+- `src/app/api/processes/[id]/route.ts` — T8: audit log on PATCH + DELETE (soft)
+- `src/app/api/controls/testing-schedule/[id]/route.ts` — T8: audit log on PATCH
+- `src/components/controls/ControlsLibraryTab.tsx` — UX3: EmptyState component
+- `src/app/users/page.tsx` — UX3: EmptyState component with CTA
+- `src/components/common/HistoryTab.tsx` — UX3: context sentence on empty state
+- `src/app/risk-register/page.tsx` — T3: hydration guard
+- `src/app/processes/page.tsx` — T3: hydration guard
+- `src/app/compliance/page.tsx` — T3: hydration guard
+- `src/app/controls/page.tsx` — T3: hydration guard
+- `src/app/reports/page.tsx` — UX8: current period highlight card + sort by createdAt desc
+- `src/components/processes/ProcessStepsTab.tsx` — UX10: user picker dropdowns for roles
+
+### Checklist
+- [x] T8: IBS resource-map PATCH writes audit log
+- [x] T8: Scenario PATCH + DELETE write audit logs
+- [x] T8: Self-assessment PATCH + DELETE write audit logs
+- [x] T8: Process PATCH + soft-DELETE write audit logs
+- [x] T8: Testing schedule PATCH writes audit log
+- [x] UX3: ControlsLibraryTab uses EmptyState with context (no controls / filters / archived)
+- [x] UX3: Users page uses EmptyState with CTA when no users or no matches
+- [x] UX3: HistoryTab empty state includes "Events are recorded when entities are created, updated, or deleted."
+- [x] T3: Risk Register shows PageLoadingState before hydration
+- [x] T3: Processes page shows PageLoadingState before hydration
+- [x] T3: Compliance page shows PageLoadingState before hydration
+- [x] T3: Controls page shows PageLoadingState before hydration
+- [x] UX8: Reports page computes current quarter label and surfaces matching report as highlight card
+- [x] UX8: If no current period report, shows "Start Q1 2026 report" CTA (CCRO only)
+- [x] UX8: Reports grid sorted by createdAt descending
+- [x] UX10: Process step responsible/accountable role fields are dropdowns populated from active users
+- [x] UX10: Legacy free-text values shown as "(legacy)" option if not matching a user
+- [x] Build passes — zero type errors
+- [x] No existing features removed
+
+### Pending: Sprint 2 (T2 — unsaved changes guard) and Sprint 3 (D2, D4) not yet implemented.
+
+---
+
+## PREVIOUSLY COMPLETED: Could Fix — Quick Wins (R5, UX6, C3, UX9) ✅ COMPLETE
 
 ### What
 Four low-risk audit items that improve UX and auditability without touching core workflows.

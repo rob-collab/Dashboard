@@ -13,6 +13,7 @@ import { api, friendlyApiError } from "@/lib/api-client";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import Button from "@/components/common/Button";
+import { Calendar, ArrowRight } from "lucide-react";
 
 function ReportsPageContent() {
   const router = useRouter();
@@ -48,18 +49,33 @@ function ReportsPageContent() {
 
   const isCCROTeam = currentUser?.role === "CCRO_TEAM";
 
-  const filteredReports = reports.filter((r) => {
-    // Non-CCRO users can only see published or archived reports
-    if (!isCCROTeam && r.status === "DRAFT") {
-      return false;
-    }
+  // Current period computation (UX8)
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentQuarter = Math.ceil((now.getMonth() + 1) / 3);
+  const currentPeriodLabel = `Q${currentQuarter} ${currentYear}`;
 
-    const matchesSearch =
-      r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.period.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "ALL" || r.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  // Find reports for the current year, sorted by createdAt desc
+  const currentYearReports = reports
+    .filter((r) => r.period.includes(String(currentYear)) && (isCCROTeam || r.status !== "DRAFT"))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const currentPeriodReport = currentYearReports[0] ?? null;
+
+  const filteredReports = reports
+    .filter((r) => {
+      // Non-CCRO users can only see published or archived reports
+      if (!isCCROTeam && r.status === "DRAFT") {
+        return false;
+      }
+
+      const matchesSearch =
+        r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.period.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === "ALL" || r.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    })
+    // Sort most recent first (UX8)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const handleView = (report: Report) => {
     router.push(`/reports/${report.id}`);
@@ -233,6 +249,51 @@ function ReportsPageContent() {
         confirmLabel="Delete Report"
         variant="danger"
       />
+
+      {/* Current Period highlight (UX8) */}
+      {currentPeriodReport ? (
+        <div
+          className="bento-card border-l-4 border-l-updraft-bright-purple flex items-start gap-4 cursor-pointer hover:bg-gray-50 transition-colors"
+          onClick={() => handleView(currentPeriodReport)}
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-updraft-pale-purple/40">
+            <Calendar className="h-5 w-5 text-updraft-bright-purple" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center rounded-full bg-updraft-bright-purple px-2.5 py-0.5 text-xs font-semibold text-white">
+                Current Period
+              </span>
+              <span className="text-xs text-gray-400">{currentPeriodLabel}</span>
+            </div>
+            <p className="mt-1 text-sm font-semibold text-gray-900 truncate">{currentPeriodReport.title}</p>
+            <p className="text-xs text-gray-500">
+              {currentPeriodReport.period} ·{" "}
+              <span className={currentPeriodReport.status === "PUBLISHED" ? "text-green-600" : currentPeriodReport.status === "DRAFT" ? "text-amber-600" : "text-gray-400"}>
+                {currentPeriodReport.status.charAt(0) + currentPeriodReport.status.slice(1).toLowerCase()}
+              </span>
+            </p>
+          </div>
+          <ArrowRight className="h-4 w-4 text-gray-400 shrink-0 mt-3" />
+        </div>
+      ) : isCCROTeam ? (
+        <div className="bento-card border-l-4 border-l-gray-200 flex items-center gap-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100">
+            <Calendar className="h-5 w-5 text-gray-400" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-gray-700">No report for {currentPeriodLabel} yet</p>
+            <p className="text-xs text-gray-400 mt-0.5">Start the current period report to capture this quarter&apos;s activity.</p>
+          </div>
+          <Link
+            href="/reports/new"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-bright-purple px-3 py-1.5 text-xs font-medium text-white hover:bg-updraft-deep transition-colors whitespace-nowrap"
+            onClick={(e) => e.stopPropagation()}
+          >
+            Start {currentPeriodLabel} report <ArrowRight size={12} />
+          </Link>
+        </div>
+      ) : null}
 
       {/* Reports Grid */}
       {filteredReports.length > 0 ? (

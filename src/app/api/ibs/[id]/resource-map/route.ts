@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Prisma } from "@/generated/prisma";
-import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
+import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody, auditLog } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const CATEGORIES = ["PEOPLE", "PROCESSES", "TECHNOLOGY", "FACILITIES", "INFORMATION"] as const;
@@ -61,6 +61,7 @@ export async function PATCH(
         lastUpdatedBy: validated.data.lastUpdatedBy ?? null,
       },
     });
+    auditLog({ userId: auth.userId, userRole: "CCRO_TEAM", action: "update_resource_map", entityType: "ibs_resource_map", entityId: id, changes: { category: validated.data.category } });
     return jsonResponse(serialiseDates(map));
   } catch (e) {
     console.error(e);
