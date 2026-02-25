@@ -808,7 +808,7 @@ function ChangeCard({ change, isCCROTeam, reviewState, submitting, selected, onT
               className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
             >
               {submitting ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
-              Approve
+              {submitting ? "Approving…" : "Approve"}
             </button>
             <button
               type="button"
@@ -817,7 +817,7 @@ function ChangeCard({ change, isCCROTeam, reviewState, submitting, selected, onT
               className="inline-flex items-center gap-1 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
             >
               {submitting ? <Loader2 size={12} className="animate-spin" /> : <XCircle size={12} />}
-              Reject
+              {submitting ? "Rejecting…" : "Reject"}
             </button>
           </div>
         )}
@@ -854,7 +854,8 @@ function ChangeCard({ change, isCCROTeam, reviewState, submitting, selected, onT
                 onClick={onApprove}
                 className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
               >
-                <CheckCircle2 size={12} /> Approve
+                {submitting ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
+                {submitting ? "Approving…" : "Approve"}
               </button>
               <button
                 type="button"
@@ -862,7 +863,8 @@ function ChangeCard({ change, isCCROTeam, reviewState, submitting, selected, onT
                 onClick={onReject}
                 className="inline-flex items-center gap-1 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
               >
-                <XCircle size={12} /> Reject
+                {submitting ? <Loader2 size={12} className="animate-spin" /> : <XCircle size={12} />}
+                {submitting ? "Rejecting…" : "Reject"}
               </button>
             </div>
           </div>

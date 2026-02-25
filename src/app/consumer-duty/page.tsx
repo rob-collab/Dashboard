@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, Suspense, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ShieldCheck, Search, Filter, ClipboardEdit, Plus, Upload, Pencil, Trash2, Shield } from "lucide-react";
+import { ShieldCheck, Search, Filter, ClipboardEdit, Plus, Upload, Pencil, Trash2, Shield, ChevronDown } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { logAuditEvent } from "@/lib/audit";
 import OutcomeCard from "@/components/consumer-duty/OutcomeCard";
@@ -85,6 +85,20 @@ function ConsumerDutyContent() {
   const [miImportDialogOpen, setMiImportDialogOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [riskDetailOutcome, setRiskDetailOutcome] = useState<ConsumerDutyOutcome | null>(null);
+
+  // CD1: Collapsible section state — persisted to localStorage per user
+  const collapsedKey = `cd-sections-${currentUser?.id ?? "anon"}`;
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem(collapsedKey) ?? "{}"); }
+    catch { return {}; }
+  });
+  function toggleSection(key: string) {
+    setCollapsed((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      try { localStorage.setItem(collapsedKey, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }
 
   const selectedOutcome = outcomes.find((o) => o.id === selectedOutcomeId);
 
@@ -569,8 +583,15 @@ function ConsumerDutyContent() {
               <span className="rounded-full bg-updraft-pale-purple/40 px-2 py-0.5 text-xs font-medium text-updraft-bar">
                 {myMeasures.length}
               </span>
+              <button
+                onClick={() => toggleSection("myMeasures")}
+                className="ml-auto p-1 rounded text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                aria-label={collapsed.myMeasures ? "Expand" : "Collapse"}
+              >
+                <ChevronDown size={14} className={cn("transition-transform duration-200", collapsed.myMeasures && "-rotate-180")} />
+              </button>
             </div>
-            {myMeasures.length === 0 ? (() => {
+            {!collapsed.myMeasures && (myMeasures.length === 0 ? (() => {
               const ccroTeam = users.filter((u) => u.role === "CCRO_TEAM" && u.isActive !== false);
               return (
                 <div className="text-center py-12">
@@ -652,7 +673,7 @@ function ConsumerDutyContent() {
                   </button>
                 ))}
               </div>
-            )}
+            ))}
           </div>
         </div>
       ) : (
@@ -700,7 +721,17 @@ function ConsumerDutyContent() {
           </div>
 
           {/* Outcomes grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Outcomes</h3>
+            <button
+              onClick={() => toggleSection("outcomes")}
+              className="p-1 rounded text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              aria-label={collapsed.outcomes ? "Expand" : "Collapse"}
+            >
+              <ChevronDown size={14} className={cn("transition-transform duration-200", collapsed.outcomes && "-rotate-180")} />
+            </button>
+          </div>
+          {!collapsed.outcomes && (<><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredOutcomes.map((outcome) => (
               <div key={outcome.id} className="relative group/outcome">
                 <OutcomeCard
@@ -744,7 +775,7 @@ function ConsumerDutyContent() {
               <p className="text-sm font-medium text-gray-500">No outcomes match your filters</p>
               <p className="text-xs text-gray-400 mt-1">Try adjusting your search or filter criteria</p>
             </div>
-          )}
+          )}</>)}
 
           {/* Measures panel */}
           {selectedOutcome && selectedOutcome.measures && (
@@ -760,8 +791,17 @@ function ConsumerDutyContent() {
 
           {/* All measures table */}
           <div className="bento-card">
-            <h2 className="text-lg font-bold text-updraft-deep font-poppins mb-4">All Measures Summary</h2>
-            <div className="overflow-x-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-updraft-deep font-poppins">All Measures Summary</h2>
+              <button
+                onClick={() => toggleSection("measures")}
+                className="p-1 rounded text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                aria-label={collapsed.measures ? "Expand" : "Collapse"}
+              >
+                <ChevronDown size={14} className={cn("transition-transform duration-200", collapsed.measures && "-rotate-180")} />
+              </button>
+            </div>
+            {!collapsed.measures && <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="bg-gray-50">
@@ -832,7 +872,7 @@ function ConsumerDutyContent() {
                     ))}
                 </tbody>
               </table>
-            </div>
+            </div>}
           </div>
         </>
       )}

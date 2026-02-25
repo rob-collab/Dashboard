@@ -164,6 +164,13 @@ export default function RiskRegisterPage() {
       result = result.filter((r) => r.ownerId === ownerRiskFilter);
     }
 
+    // T9: PENDING_APPROVAL risks only visible to the risk owner and CCRO
+    if (!isCCROTeam) {
+      result = result.filter(
+        (r) => r.approvalStatus !== "PENDING_APPROVAL" || r.ownerId === currentUser?.id
+      );
+    }
+
     // Card filter
     switch (cardFilter) {
       case "VERY_HIGH":
@@ -202,7 +209,7 @@ export default function RiskRegisterPage() {
     }
 
     return result;
-  }, [risks, cardFilter, activeCategoryL1, effectiveMode, searchQuery, ownerRiskFilter]);
+  }, [risks, cardFilter, activeCategoryL1, effectiveMode, searchQuery, ownerRiskFilter, isCCROTeam, currentUser?.id]);
 
   const handleCardClick = useCallback((filter: CardFilter) => {
     setCardFilter((prev) => {

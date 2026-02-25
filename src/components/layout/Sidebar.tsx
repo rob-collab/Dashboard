@@ -24,7 +24,6 @@ import {
   LogOut,
   Eye,
   ArrowLeft,
-  BookOpen,
   Search,
   ArrowLeftRight,
   Layers,
@@ -70,7 +69,6 @@ const NAV_GROUPS: NavGroup[] = [
     groupLabel: "Compliance & Controls",
     items: [
       { label: "Compliance", href: "/compliance", icon: Scale, permission: "page:compliance", badgeKey: "compliance" },
-      { label: "Policies", href: "/compliance?tab=policies", icon: BookOpen, permission: "page:compliance" },
       { label: "Controls", href: "/controls", icon: FlaskConical, permission: "page:controls", badgeKey: "controls" },
       { label: "Processes & IBS", href: "/processes", icon: Layers, permission: "page:compliance", badgeKey: "operationalResilience" },
       { label: "Reg Calendar", href: "/regulatory-calendar", icon: Calendar, permission: "page:compliance" },

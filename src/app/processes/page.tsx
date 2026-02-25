@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Layers, BarChart2, ShieldCheck, Library, FileText } from "lucide-react";
+import { Layers, BarChart2, ShieldCheck, Library, FileText, Download, Upload, X, Loader2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
+import { parseCsv } from "@/lib/parse-csv";
+import { toast } from "sonner";
 import type { Process } from "@/lib/types";
 import ProcessListTable from "@/components/processes/ProcessListTable";
 import ProcessDetailPanel from "@/components/processes/ProcessDetailPanel";
@@ -81,6 +83,13 @@ export default function ProcessesPage() {
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
+
+  // PV1: CSV export/import state
+  const [showImport, setShowImport] = useState(false);
+  const [importRows, setImportRows] = useState<Record<string, string>[]>([]);
+  const [importFileName, setImportFileName] = useState("");
+  const [importLoading, setImportLoading] = useState(false);
+  const [importResult, setImportResult] = useState<{ created: number; updated: number; errors: string[] } | null>(null);
   const [insightsData, setInsightsData] = useState<Parameters<typeof ProcessInsightsPanel>[0]["data"] | null>(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
 
@@ -134,6 +143,47 @@ export default function ProcessesPage() {
     if (p) setSelectedProcess(p);
   }
 
+  function handleExport() {
+    const url = "/api/processes/export";
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `processes-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+  }
+
+  function handleImportFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportFileName(file.name);
+    setImportResult(null);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      const rows = parseCsv(text);
+      setImportRows(rows);
+    };
+    reader.readAsText(file);
+  }
+
+  async function handleImportSubmit() {
+    if (importRows.length === 0) return;
+    setImportLoading(true);
+    try {
+      const result = await api<{ created: number; updated: number; errors: string[] }>("/api/processes/import", {
+        method: "POST",
+        body: { rows: importRows },
+      });
+      setImportResult(result);
+      if (result.created > 0 || result.updated > 0) {
+        toast.success(`Import complete: ${result.created} created, ${result.updated} updated`);
+      }
+    } catch {
+      toast.error("Import failed — check the file format and try again");
+    } finally {
+      setImportLoading(false);
+    }
+  }
+
   if (!hydrated) return <PageLoadingState />;
 
   return (
@@ -161,6 +211,22 @@ export default function ProcessesPage() {
               <BarChart2 size={12} />
               {showInsights ? "Hide Insights" : insightsLoading ? "Loading…" : "Insights"}
             </button>
+            <button
+              onClick={handleExport}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <Download size={12} />
+              Export CSV
+            </button>
+            {isCCRO && (
+              <button
+                onClick={() => { setShowImport(true); setImportRows([]); setImportFileName(""); setImportResult(null); }}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <Upload size={12} />
+                Import CSV
+              </button>
+            )}
             {isCCRO && (
               <button
                 onClick={() => setShowCreateForm(true)}
@@ -328,6 +394,56 @@ export default function ProcessesPage() {
         onClose={() => setShowCreateForm(false)}
         onSave={handleProcessCreate}
       />
+
+      {/* Import modal */}
+      {showImport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h2 className="font-semibold text-gray-900">Import Processes (CSV)</h2>
+              <button onClick={() => setShowImport(false)} className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-gray-500">
+                Upload a CSV file matching the export format. Rows with a matching Reference will be updated; new References will be created.
+              </p>
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleImportFileChange}
+                className="w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-updraft-pale-purple/30 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-updraft-deep hover:file:bg-updraft-pale-purple/50 file:cursor-pointer"
+              />
+              {importRows.length > 0 && !importResult && (
+                <p className="text-xs text-gray-500">
+                  {importRows.length} row{importRows.length !== 1 ? "s" : ""} parsed from <span className="font-medium">{importFileName}</span>
+                </p>
+              )}
+              {importResult && (
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-1 text-xs">
+                  <p className="font-medium text-gray-800">{importResult.created} created, {importResult.updated} updated</p>
+                  {importResult.errors.length > 0 && (
+                    <ul className="text-risk-red space-y-0.5 max-h-32 overflow-y-auto">
+                      {importResult.errors.map((e, i) => <li key={i}>{e}</li>)}
+                    </ul>
+                  )}
+                </div>
+              )}
+              {!importResult && (
+                <button
+                  onClick={handleImportSubmit}
+                  disabled={importRows.length === 0 || importLoading}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-deep text-white px-4 py-2 text-sm font-medium hover:bg-updraft-bar disabled:opacity-50 transition-colors"
+                >
+                  {importLoading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                  {importLoading ? "Importing…" : "Import"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
