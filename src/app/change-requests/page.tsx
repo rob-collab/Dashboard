@@ -21,6 +21,7 @@ import {
   FileText,
   Clock,
   ArrowLeftRight,
+  CheckSquare,
 } from "lucide-react";
 import EntityLink from "@/components/common/EntityLink";
 import { toast } from "sonner";
@@ -93,6 +94,12 @@ export default function ChangeRequestsPage() {
   const [reviewing, setReviewing] = useState<Record<string, { open: boolean; note: string }>>({});
   const [submitting, setSubmitting] = useState<string | null>(null);
 
+  // ── Bulk approve state ───────────────────────────────────────────────────
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkNoteOpen, setBulkNoteOpen] = useState(false);
+  const [bulkNote, setBulkNote] = useState("");
+  const [bulkSubmitting, setBulkSubmitting] = useState(false);
+
   // ── Access requests state (from store) ───────────────────────────────────
   const accessRequests = useAppStore((s) => s.accessRequests);
   const updateAccessRequest = useAppStore((s) => s.updateAccessRequest);
@@ -111,7 +118,7 @@ export default function ChangeRequestsPage() {
       .finally(() => setLoading(false));
   }
 
-  useEffect(() => { loadChanges(); }, [statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { loadChanges(); setSelectedIds(new Set()); }, [statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = useMemo(() => {
     let list = changes;
@@ -173,6 +180,38 @@ export default function ChangeRequestsPage() {
       ...prev,
       [id]: { open: !prev[id]?.open, note: prev[id]?.note ?? "" },
     }));
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleBulkApprove() {
+    const toApprove = filtered.filter((c) => selectedIds.has(c.id) && c.status === "PENDING");
+    if (toApprove.length === 0) return;
+    setBulkSubmitting(true);
+    let succeeded = 0;
+    for (const change of toApprove) {
+      try {
+        await api(getApiPath(change), {
+          method: "PATCH",
+          body: { status: "APPROVED", reviewNote: bulkNote.trim() || null },
+        });
+        setChanges((prev) => prev.filter((c) => c.id !== change.id));
+        succeeded++;
+      } catch {
+        // continue with remaining
+      }
+    }
+    setBulkSubmitting(false);
+    setBulkNoteOpen(false);
+    setBulkNote("");
+    setSelectedIds(new Set());
+    if (succeeded > 0) toast.success(`${succeeded} change${succeeded !== 1 ? "s" : ""} approved`);
   }
 
   return (
@@ -247,7 +286,56 @@ export default function ChangeRequestsPage() {
               </button>
             ))}
             <span className="text-xs text-gray-400 ml-auto">{filtered.length} change{filtered.length !== 1 ? "s" : ""}</span>
+            {isCCROTeam && statusFilter === "PENDING" && selectedIds.size > 0 && (
+              <button
+                type="button"
+                onClick={() => setBulkNoteOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700 transition-colors"
+              >
+                <CheckSquare size={12} />
+                Approve {selectedIds.size} selected
+              </button>
+            )}
           </div>
+
+          {/* Bulk approve note dialog */}
+          {bulkNoteOpen && (
+            <div className="rounded-xl border border-green-200 bg-green-50 p-4 space-y-3">
+              <p className="text-sm font-medium text-green-800">
+                Bulk approve {selectedIds.size} change{selectedIds.size !== 1 ? "s" : ""}
+              </p>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Review note <span className="text-gray-400 font-normal">(optional — shared with all)</span>
+                </label>
+                <input
+                  type="text"
+                  value={bulkNote}
+                  onChange={(e) => setBulkNote(e.target.value)}
+                  placeholder="e.g. Approved in Q1 review cycle…"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={bulkSubmitting}
+                  onClick={handleBulkApprove}
+                  className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+                >
+                  {bulkSubmitting ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
+                  {bulkSubmitting ? "Approving…" : "Confirm Approval"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setBulkNoteOpen(false); setBulkNote(""); }}
+                  className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Entity filter + search */}
           <div className="flex flex-wrap items-center gap-3">
@@ -315,6 +403,8 @@ export default function ChangeRequestsPage() {
                   isCCROTeam={isCCROTeam}
                   reviewState={reviewing[change.id]}
                   submitting={submitting === change.id}
+                  selected={selectedIds.has(change.id)}
+                  onToggleSelect={() => toggleSelect(change.id)}
                   onToggleReview={() => toggleReviewPanel(change.id)}
                   onNoteChange={(note) => setReviewing((prev) => ({ ...prev, [change.id]: { ...prev[change.id], open: true, note } }))}
                   onApprove={() => handleReview(change, "APPROVED")}
@@ -597,13 +687,15 @@ interface ChangeCardProps {
   isCCROTeam: boolean;
   reviewState?: { open: boolean; note: string };
   submitting: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
   onToggleReview: () => void;
   onNoteChange: (note: string) => void;
   onApprove: () => void;
   onReject: () => void;
 }
 
-function ChangeCard({ change, isCCROTeam, reviewState, submitting, onToggleReview, onNoteChange, onApprove, onReject }: ChangeCardProps) {
+function ChangeCard({ change, isCCROTeam, reviewState, submitting, selected, onToggleSelect, onToggleReview, onNoteChange, onApprove, onReject }: ChangeCardProps) {
   const dateStr = new Date(change.proposedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   const fieldLabel = FIELD_LABELS[change.fieldChanged] ?? change.fieldChanged;
   const reviewOpen = reviewState?.open ?? false;
@@ -616,6 +708,17 @@ function ChangeCard({ change, isCCROTeam, reviewState, submitting, onToggleRevie
       "border-red-200/60"
     )}>
       <div className="flex items-start gap-4">
+        {/* Checkbox (CCRO pending only) */}
+        {isCCROTeam && change.status === "PENDING" && (
+          <div className="shrink-0 mt-0.5 pt-0.5">
+            <input
+              type="checkbox"
+              checked={selected ?? false}
+              onChange={onToggleSelect}
+              className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500/30 cursor-pointer"
+            />
+          </div>
+        )}
         {/* Entity badge */}
         <div className="shrink-0 mt-0.5">
           <span className={cn("inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold", ENTITY_TYPE_COLORS[change.entityType])}>

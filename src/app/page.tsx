@@ -45,7 +45,7 @@ import type { ComplianceStatus, DashboardLayoutConfig } from "@/lib/types";
 import ScoreBadge from "@/components/risk-register/ScoreBadge";
 import DirectionArrow from "@/components/risk-register/DirectionArrow";
 import { usePageTitle } from "@/lib/usePageTitle";
-import { DASHBOARD_SECTIONS, DEFAULT_SECTION_ORDER, ROLE_DEFAULT_HIDDEN } from "@/lib/dashboard-sections";
+import { DASHBOARD_SECTIONS, DEFAULT_SECTION_ORDER, CCRO_DEFAULT_SECTION_ORDER, ROLE_DEFAULT_HIDDEN } from "@/lib/dashboard-sections";
 import {
   DndContext,
   closestCenter,
@@ -430,7 +430,9 @@ export default function DashboardHome() {
 
   // Effective order for rendering (from DB layout or role-based defaults)
   const effectiveOrder = useMemo(() => {
-    const savedOrder = dashboardLayout?.sectionOrder ?? DEFAULT_SECTION_ORDER;
+    // Determine the role-appropriate default order
+    const roleDefaultOrder = role === "CCRO_TEAM" ? CCRO_DEFAULT_SECTION_ORDER : DEFAULT_SECTION_ORDER;
+    const savedOrder = dashboardLayout?.sectionOrder ?? roleDefaultOrder;
     let savedHidden: Set<string>;
     if (dashboardLayout?.hiddenSections != null) {
       // User has an explicit saved layout — honour it exactly

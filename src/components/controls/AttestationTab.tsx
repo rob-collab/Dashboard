@@ -28,7 +28,9 @@ import {
   ThumbsDown,
   Filter,
   Save,
+  ExternalLink,
 } from "lucide-react";
+import Link from "next/link";
 
 /* ── Constants ──────────────────────────────────────────────────────────────── */
 
@@ -830,33 +832,51 @@ export default function AttestationTab() {
                       {control.controlDescription}
                     </p>
 
-                    {/* 2LOD Testing info */}
-                    {scheduleEntry && (
-                      <div className="rounded-md bg-updraft-pale-purple/30 border border-updraft-pale-purple px-3 py-2.5 text-sm space-y-1">
-                        <div className="flex items-center gap-2 text-updraft-deep font-medium">
-                          <ShieldCheck className="w-4 h-4" />
-                          2LOD Testing: This control is on the CCRO testing
-                          schedule
-                        </div>
-                        {latestTest && (
-                          <div className="flex items-center gap-2 text-xs text-gray-600 ml-6">
-                            Last 2LOD result:{" "}
-                            <span
-                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${TEST_RESULT_COLOURS[latestTest.result].bg} ${TEST_RESULT_COLOURS[latestTest.result].text}`}
-                            >
-                              <span
-                                className={`w-1.5 h-1.5 rounded-full ${TEST_RESULT_COLOURS[latestTest.result].dot}`}
-                              />
-                              {TEST_RESULT_LABELS[latestTest.result]}
-                            </span>
-                            <span className="text-gray-400">
-                              ({MONTH_NAMES[latestTest.month - 1]}{" "}
-                              {latestTest.year})
-                            </span>
+                    {/* 2LOD Testing info + control detail link */}
+                    <div className="flex items-start justify-between gap-2">
+                      {scheduleEntry ? (
+                        <div className="flex-1 rounded-md bg-updraft-pale-purple/30 border border-updraft-pale-purple px-3 py-2.5 text-sm space-y-1">
+                          <div className="flex items-center gap-2 text-updraft-deep font-medium">
+                            <ShieldCheck className="w-4 h-4" />
+                            2LOD Testing: This control is on the CCRO testing
+                            schedule
                           </div>
-                        )}
-                      </div>
-                    )}
+                          {latestTest ? (
+                            <div className="flex items-center gap-2 text-xs text-gray-600 ml-6">
+                              Last 2LOD result:{" "}
+                              <span
+                                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${TEST_RESULT_COLOURS[latestTest.result].bg} ${TEST_RESULT_COLOURS[latestTest.result].text}`}
+                              >
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${TEST_RESULT_COLOURS[latestTest.result].dot}`}
+                                />
+                                {TEST_RESULT_LABELS[latestTest.result]}
+                              </span>
+                              <span className="text-gray-400">
+                                ({MONTH_NAMES[latestTest.month - 1]}{" "}
+                                {latestTest.year})
+                              </span>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-gray-500 ml-6">No test results recorded yet</p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex-1 rounded-md bg-gray-50 border border-gray-200 px-3 py-2.5 text-xs text-gray-500 flex items-center gap-2">
+                          <ShieldCheck className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+                          Not on the CCRO 2LOD testing schedule
+                        </div>
+                      )}
+                      <Link
+                        href={`/controls?control=${control.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-gray-600 hover:border-updraft-bright-purple/40 hover:text-updraft-deep transition-colors"
+                      >
+                        <ExternalLink size={11} />
+                        View details
+                      </Link>
+                    </div>
 
                     {/* Attestation controls */}
                     <div className="space-y-3 border-t border-gray-100 pt-4">

@@ -35,6 +35,25 @@ export const DASHBOARD_SECTIONS: DashboardSectionDef[] = [
 export const DEFAULT_SECTION_ORDER = DASHBOARD_SECTIONS.map((s) => s.key);
 
 /**
+ * Default section order for CCRO_TEAM users with no saved layout.
+ * Puts the highest-priority CCRO sections above the fold:
+ * Action Required → Proposed Changes → Compliance Health → Risks in Focus
+ */
+export const CCRO_DEFAULT_SECTION_ORDER: string[] = (() => {
+  const priority = [
+    "welcome",
+    "notifications",
+    "action-required",
+    "proposed-changes",
+    "compliance-health",
+    "risks-in-focus",
+    "pending-approvals",
+  ];
+  const rest = DEFAULT_SECTION_ORDER.filter((k) => !priority.includes(k));
+  return [...priority, ...rest];
+})();
+
+/**
  * Sections hidden by default for each role when the user has no saved layout.
  * CCRO_TEAM sees everything. OWNERs and REVIEWERs have CCRO-only sections hidden.
  */

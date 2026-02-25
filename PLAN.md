@@ -1,33 +1,35 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-25 (Navigation Restructure — Processes & IBS + Sidebar Cleanup)
+Last updated: 2026-02-25 (Should Fix sprint — UX7, A1, A3, E1)
 
 ---
 
-## CURRENT SPRINT: Should Fix — Remaining 4 Items (UX7, A1, A3, E1)
+## CURRENT SPRINT: Should Fix — Remaining 4 Items (UX7, A1, A3, E1) ✅ COMPLETE
 
 ### What
 Four remaining "Should Fix" items from the 25 Feb 2026 audit.
 
-### Files (estimated)
-- **UX7**: `src/components/actions/ActionFormDialog.tsx`, `src/components/risk-register/RiskFormDialog.tsx` (or wherever the Risk create form lives) — add client-side react-hook-form + Zod inline errors
-- **A1**: `src/app/page.tsx` — reorder dashboard sections for CCRO role (Action Required → Proposed Changes → Compliance Health → Risk in Focus first)
-- **A3**: `src/app/change-requests/page.tsx` — add select-all + bulk approve with shared note for CCRO
-- **E1**: `src/components/controls/AttestationTab.tsx` (or similar) — expand each control row to show last test result, test date, and link to control detail
+### Files changed
+- **UX7**: `src/components/actions/ActionFormDialog.tsx` — red border + clear-on-change on title/dueDate/priority
+- **UX7**: `src/components/risk-register/RiskDetailPanel.tsx` — added `formErrors` state, `validateRisk()`, red border + error messages on name/categoryL1/categoryL2/ownerId
+- **A1**: `src/lib/dashboard-sections.ts` — added `CCRO_DEFAULT_SECTION_ORDER` (action-required → proposed-changes → compliance-health → risks-in-focus first)
+- **A1**: `src/app/page.tsx` — `effectiveOrder` useMemo uses `CCRO_DEFAULT_SECTION_ORDER` when role is CCRO_TEAM and no saved layout
+- **A3**: `src/app/change-requests/page.tsx` — added checkboxes (CCRO + PENDING only), `selectedIds` state, bulk approve button + inline note dialog, `handleBulkApprove()`
+- **E1**: `src/components/controls/AttestationTab.tsx` — 2LOD context shown for all controls (scheduled: badge+date; unscheduled: grey note); "View details" link on every control row
 
 ### Checklist
-- [ ] UX7: ActionFormDialog shows inline field errors (red border + message) on submit without API round-trip
-- [ ] UX7: Risk create/edit form shows inline field errors
-- [ ] UX7: No other form regressions — existing forms that already show inline errors unaffected
-- [ ] A1: CCRO dashboard default order: Action Required → Proposed Changes → Compliance Health → Risk in Focus (above the fold)
-- [ ] A1: Non-CCRO dashboard layout unchanged
-- [ ] A3: Change Requests page has row checkboxes for CCRO
-- [ ] A3: "Bulk Approve" button appears when ≥1 row selected; opens shared-note dialog
-- [ ] A3: Bulk approve calls per-entity PATCH endpoints for all selected changes
-- [ ] A3: After bulk approve, all selected rows disappear from pending list
-- [ ] E1: Attestation tab control rows show: last test result badge, last test date, link to control detail
-- [ ] E1: Attestation still works — submit/confirm flow unaffected
-- [ ] Build passes — zero type errors
-- [ ] No existing features removed
+- [x] UX7: ActionFormDialog shows inline field errors (red border + message) on submit without API round-trip
+- [x] UX7: Risk create/edit form shows inline field errors
+- [x] UX7: No other form regressions — existing forms that already show inline errors unaffected
+- [x] A1: CCRO dashboard default order: Action Required → Proposed Changes → Compliance Health → Risk in Focus (above the fold)
+- [x] A1: Non-CCRO dashboard layout unchanged
+- [x] A3: Change Requests page has row checkboxes for CCRO
+- [x] A3: "Bulk Approve" button appears when ≥1 row selected; opens shared-note dialog
+- [x] A3: Bulk approve calls per-entity PATCH endpoints for all selected changes
+- [x] A3: After bulk approve, all selected rows disappear from pending list
+- [x] E1: Attestation tab control rows show: last test result badge, last test date, link to control detail
+- [x] E1: Attestation still works — submit/confirm flow unaffected
+- [x] Build passes — zero type errors
+- [x] No existing features removed
 
 ---
 

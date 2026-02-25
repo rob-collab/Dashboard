@@ -207,9 +207,9 @@ export default function ActionFormDialog({
             id="action-title"
             type="text"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => { setTitle(e.target.value); if (errors.title) setErrors((p) => ({ ...p, title: "" })); }}
             placeholder="e.g. Review Q3 complaint trends"
-            className={inputClasses}
+            className={cn(inputClasses, errors.title && "border-red-300 focus:border-red-400 focus:ring-red-300")}
           />
           {errors.title && <p className={errorClasses}>{errors.title}</p>}
         </div>
@@ -301,8 +301,8 @@ export default function ActionFormDialog({
               type="date"
               value={dueDate}
               min={new Date().toISOString().split("T")[0]}
-              onChange={(e) => setDueDate(e.target.value)}
-              className={inputClasses}
+              onChange={(e) => { setDueDate(e.target.value); if (errors.dueDate) setErrors((p) => ({ ...p, dueDate: "" })); }}
+              className={cn(inputClasses, errors.dueDate && "border-red-300 focus:border-red-400 focus:ring-red-300")}
             />
             {errors.dueDate && <p className={errorClasses}>{errors.dueDate}</p>}
           </div>
@@ -315,8 +315,8 @@ export default function ActionFormDialog({
             <select
               id="action-priority"
               value={priority}
-              onChange={(e) => setPriority(e.target.value as ActionPriority | "")}
-              className={inputClasses}
+              onChange={(e) => { setPriority(e.target.value as ActionPriority | ""); if (errors.priority) setErrors((p) => ({ ...p, priority: "" })); }}
+              className={cn(inputClasses, errors.priority && "border-red-300 focus:border-red-400 focus:ring-red-300")}
             >
               <option value="">Select priority...</option>
               {PRIORITY_OPTIONS.map((opt) => (

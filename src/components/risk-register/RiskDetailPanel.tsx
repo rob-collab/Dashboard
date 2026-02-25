@@ -18,6 +18,7 @@ import ScoreBadge from "./ScoreBadge";
 import { X, Plus, Trash2, AlertTriangle, ChevronRight, ChevronDown, History, Link2, ShieldQuestion, Star, Clock, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api-client";
+import { cn } from "@/lib/utils";
 import { useHasPermission } from "@/lib/usePermission";
 import EntityLink from "@/components/common/EntityLink";
 import RequestEditAccessButton from "@/components/common/RequestEditAccessButton";
@@ -138,9 +139,21 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
   const residualWarning = residualLikelihood > inherentLikelihood || residualImpact > inherentImpact;
 
   const [riskSaveState, setRiskSaveState] = useState<"idle" | "saving" | "saved">("idle");
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  function validateRisk(): boolean {
+    const errs: Record<string, string> = {};
+    if (!name.trim()) errs.name = "Risk name is required";
+    if (!categoryL1) errs.categoryL1 = "L1 category is required";
+    if (!categoryL2) errs.categoryL2 = "L2 sub-category is required";
+    if (!ownerId) errs.ownerId = "Risk owner is required";
+    setFormErrors(errs);
+    return Object.keys(errs).length === 0;
+  }
 
   async function handleSave() {
     if (riskSaveState !== "idle") return;
+    if (!validateRisk()) return;
     const data: Record<string, unknown> = {
       name, description, categoryL1, categoryL2, ownerId,
       inherentLikelihood, inherentImpact, residualLikelihood, residualImpact,
@@ -338,10 +351,11 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
               <label className="block text-xs font-medium text-gray-500 mb-1">Risk Name *</label>
               <input
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => { setName(e.target.value); if (formErrors.name) setFormErrors((p) => ({ ...p, name: "" })); }}
                 placeholder="Short risk title"
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
+                className={cn("w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2", formErrors.name ? "border-red-300 focus:ring-red-300/30" : "border-gray-200 focus:ring-updraft-bright-purple/30")}
               />
+              {formErrors.name && <p className="text-xs text-red-500 mt-1">{formErrors.name}</p>}
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Description *</label>
@@ -358,28 +372,30 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                 <label className="block text-xs font-medium text-gray-500 mb-1">L1 Category *</label>
                 <select
                   value={categoryL1}
-                  onChange={(e) => { setCategoryL1(e.target.value); setCategoryL2(""); }}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white"
+                  onChange={(e) => { setCategoryL1(e.target.value); setCategoryL2(""); if (formErrors.categoryL1) setFormErrors((p) => ({ ...p, categoryL1: "" })); }}
+                  className={cn("w-full px-3 py-2 text-sm border rounded-lg bg-white", formErrors.categoryL1 ? "border-red-300" : "border-gray-200")}
                 >
                   <option value="">Select category...</option>
                   {categorySource.map((c) => (
                     <option key={c.name} value={c.name}>{c.name}</option>
                   ))}
                 </select>
+                {formErrors.categoryL1 && <p className="text-xs text-red-500 mt-1">{formErrors.categoryL1}</p>}
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">L2 Sub-Category *</label>
                 <select
                   value={categoryL2}
-                  onChange={(e) => setCategoryL2(e.target.value)}
+                  onChange={(e) => { setCategoryL2(e.target.value); if (formErrors.categoryL2) setFormErrors((p) => ({ ...p, categoryL2: "" })); }}
                   disabled={!categoryL1}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white disabled:bg-gray-50 disabled:text-gray-400"
+                  className={cn("w-full px-3 py-2 text-sm border rounded-lg bg-white disabled:bg-gray-50 disabled:text-gray-400", formErrors.categoryL2 ? "border-red-300" : "border-gray-200")}
                 >
                   <option value="">Select sub-category...</option>
                   {l2Options.map((c) => (
                     <option key={c.name} value={c.name}>{c.name}</option>
                   ))}
                 </select>
+                {formErrors.categoryL2 && <p className="text-xs text-red-500 mt-1">{formErrors.categoryL2}</p>}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -387,14 +403,15 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                 <label className="block text-xs font-medium text-gray-500 mb-1">Risk Owner *</label>
                 <select
                   value={ownerId}
-                  onChange={(e) => setOwnerId(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
+                  onChange={(e) => { setOwnerId(e.target.value); if (formErrors.ownerId) setFormErrors((p) => ({ ...p, ownerId: "" })); }}
+                  className={cn("w-full px-3 py-2 text-sm border rounded-lg bg-white focus:outline-none focus:ring-2", formErrors.ownerId ? "border-red-300 focus:ring-red-300/30" : "border-gray-200 focus:ring-updraft-bright-purple/30")}
                 >
                   <option value="">Select owner...</option>
                   {users.filter((u) => u.isActive).map((u) => (
                     <option key={u.id} value={u.id}>{u.name}</option>
                   ))}
                 </select>
+                {formErrors.ownerId && <p className="text-xs text-red-500 mt-1">{formErrors.ownerId}</p>}
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">Last Reviewed</label>
