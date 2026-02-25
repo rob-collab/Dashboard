@@ -359,6 +359,7 @@ export interface RiskChange {
   proposedAt: string;
   reviewedBy: string | null;
   reviewer?: User;
+  reviewedAt: string | null;
   reviewNote: string | null;
 }
 

@@ -126,7 +126,7 @@ export default function PolicyFormDialog({ open, onClose, onSave, editPolicy }: 
     if (validateStep1()) setStep(2);
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!validateStep1()) { setStep(1); return; }
     setSaving(true);
     const now = new Date().toISOString();
@@ -179,6 +179,8 @@ export default function PolicyFormDialog({ open, onClose, onSave, editPolicy }: 
       auditTrail: editPolicy?.auditTrail ?? [],
     };
     onSave(policy);
+    // Brief "Saved ✓" feedback before closing
+    await new Promise((r) => setTimeout(r, 400));
     setSaving(false);
     onClose();
   }

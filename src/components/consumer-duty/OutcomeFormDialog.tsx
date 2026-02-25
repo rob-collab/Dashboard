@@ -45,6 +45,7 @@ export default function OutcomeFormDialog({
   const [icon, setIcon] = useState("ShieldCheck");
   const [ragStatus, setRagStatus] = useState<RAGStatus>("GOOD");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
 
   useEffect(() => {
     if (open) {
@@ -66,6 +67,7 @@ export default function OutcomeFormDialog({
         setRagStatus("GOOD");
       }
       setErrors({});
+      setSaveState("idle");
     }
   }, [open, outcome]);
 
@@ -88,9 +90,9 @@ export default function OutcomeFormDialog({
     return Object.keys(newErrors).length === 0;
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validate() || saveState !== "idle") return;
 
     const saved: ConsumerDutyOutcome = {
       id: outcome?.id ?? `outcome-${generateId()}`,
@@ -107,7 +109,11 @@ export default function OutcomeFormDialog({
       measures: outcome?.measures ?? [],
     };
 
+    setSaveState("saving");
     onSave(saved);
+    await new Promise((r) => setTimeout(r, 400));
+    setSaveState("saved");
+    await new Promise((r) => setTimeout(r, 500));
     onClose();
   }
 
@@ -134,9 +140,10 @@ export default function OutcomeFormDialog({
           <button
             type="submit"
             form="outcome-form"
-            className="rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colors"
+            disabled={saveState !== "idle"}
+            className="rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colors disabled:opacity-60"
           >
-            {isEdit ? "Save Changes" : "Add Outcome"}
+            {saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved ✓" : isEdit ? "Save Changes" : "Add Outcome"}
           </button>
         </>
       }

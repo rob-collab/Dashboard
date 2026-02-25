@@ -9,6 +9,11 @@ interface AppState {
   _hydratedAt: Date | null;
   hydrate: () => Promise<void>;
 
+  // Save status — tracks in-flight sync() calls for the global save indicator
+  _savingCount: number;
+  _lastSavedAt: Date | null;
+  _saveError: string | null;
+
   // Auth
   authUser: User | null;
   setAuthUser: (user: User | null) => void;
@@ -252,17 +257,27 @@ interface AppState {
   clearNavigationStack: () => void;
 }
 
+/** Module-level reference to save state setters — assigned after store is created */
+let _storeSaveState: {
+  inc: () => void;
+  dec: () => void;
+  err: (msg: string) => void;
+} | null = null;
+
 /**
- * Fire-and-forget API call with retry logic
- * Logs errors and attempts retry with exponential backoff
+ * Fire-and-forget API call with retry logic.
+ * Increments _savingCount before the call and decrements on completion or final failure.
  */
 function sync(fn: () => Promise<unknown>, options?: { maxRetries?: number }): void {
   const maxRetries = options?.maxRetries ?? 2;
   let attempt = 0;
 
+  _storeSaveState?.inc();
+
   const execute = async (): Promise<void> => {
     try {
       await fn();
+      _storeSaveState?.dec();
     } catch (err) {
       attempt++;
       if (attempt <= maxRetries) {
@@ -271,6 +286,8 @@ function sync(fn: () => Promise<unknown>, options?: { maxRetries?: number }): vo
         setTimeout(() => execute(), delay);
       } else {
         console.error("[store sync] Max retries exceeded:", err);
+        _storeSaveState?.dec();
+        _storeSaveState?.err(err instanceof Error ? err.message : "Save failed");
         // Dynamic import to avoid circular dependency
         if (typeof window !== "undefined") {
           import("sonner").then(({ toast }) => {
@@ -293,6 +310,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   _hydrated: false,
   _hydrateError: null,
   _hydratedAt: null,
+
+  // ── Save status ────────────────────────────────────────────
+  _savingCount: 0,
+  _lastSavedAt: null,
+  _saveError: null,
   hydrate: async () => {
     try {
       const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, permissionsData, smfRoles, prescribedResponsibilities, certificationFunctions, conductRules, conductRuleBreaches, smcrDocuments, accessRequests, dashboardLayout, ibs, processes, scenarios, selfAssessments, regulatoryEvents] = await Promise.all([
@@ -1014,3 +1036,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   clearNavigationStack: () => set({ navigationStack: [] }),
 }));
+
+// Wire up save state setters now that useAppStore is defined
+_storeSaveState = {
+  inc: () => useAppStore.setState((s) => ({ _savingCount: s._savingCount + 1, _saveError: null })),
+  dec: () => useAppStore.setState((s) => ({ _savingCount: Math.max(0, s._savingCount - 1), _lastSavedAt: new Date() })),
+  err: (msg: string) => useAppStore.setState({ _saveError: msg }),
+};

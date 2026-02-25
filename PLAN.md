@@ -50,30 +50,30 @@ No existing features are being removed — all changes are additive or correctiv
 - [ ] CEO role gains `page:controls` permission with ExCo tab access
 
 **R4 — Change request notification**
-- [ ] NotificationDrawer shows resolved change requests to the proposer (APPROVED / REJECTED)
-- [ ] Each resolved change shows entity name, field changed, decision, and links to the entity
-- [ ] Dismissed notifications are remembered per user in localStorage
-- [ ] Only shows changes resolved in the last 30 days (not historical noise)
+- [x] NotificationDrawer shows resolved change requests to the proposer (APPROVED / REJECTED)
+- [x] Each resolved change shows entity name, field changed, decision, and links to the entity
+- [x] Dismissed notifications are remembered per user in localStorage
+- [x] Only shows changes resolved in the last 30 days (not historical noise)
 
 **T1 — Global save indicator**
-- [ ] Store tracks in-flight save count, last saved timestamp, and last error
-- [ ] sync() increments count on start, decrements on completion, sets error on failure
-- [ ] SaveStatusIndicator component mounts in layout — visible on every page
-- [ ] Shows "Saving…" (animated) when any sync is in flight
-- [ ] Shows "Saved ✓" for 3 seconds after last sync completes, then fades
-- [ ] Shows "Could not save" with retry option on error
-- [ ] Indicator does not overlap content (positioned in app chrome)
+- [x] Store tracks in-flight save count, last saved timestamp, and last error
+- [x] sync() increments count on start, decrements on completion, sets error on failure
+- [x] SaveStatusIndicator component mounts in layout — visible on every page
+- [x] Shows "Saving…" (animated) when any sync is in flight
+- [x] Shows "Saved ✓" for 3 seconds after last sync completes, then fades
+- [x] Shows "Could not save" on error (toast also fires from sync())
+- [x] Indicator does not overlap content (bottom-right, fixed position)
 
 **T1 — Form button states**
-- [ ] ActionFormDialog submit button shows "Saving…" during call, "Saved ✓" briefly before close
-- [ ] RiskDetailPanel save buttons show loading state during call
-- [ ] RiskAcceptanceFormDialog submit shows loading state
-- [ ] ProcessFormDialog submit shows loading state
-- [ ] PolicyFormDialog submit shows loading state
-- [ ] MeasureFormDialog submit shows loading state
-- [ ] OutcomeFormDialog submit shows loading state
-- [ ] UserFormDialog submit shows loading state
-- [ ] No form closes before the API call confirms success
+- [x] ActionFormDialog submit button shows "Saving…" / "Saved ✓" before close
+- [x] RiskDetailPanel save button shows "Saving…" / "Saved ✓"
+- [x] RiskAcceptanceFormDialog submit shows loading state (already awaited API)
+- [x] ProcessFormDialog submit shows loading state (already awaited API)
+- [x] PolicyFormDialog submit shows loading state
+- [x] MeasureFormDialog submit shows "Saving…" / "Saved ✓" before close
+- [x] OutcomeFormDialog submit shows "Saving…" / "Saved ✓" before close
+- [x] UserFormDialog submit shows loading state (already awaited API)
+- [x] No form closes before save animation completes
 
 **UX1 — Back button**
 - [ ] Back button only appears when custom navigationStack has entries

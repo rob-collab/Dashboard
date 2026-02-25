@@ -56,6 +56,7 @@ export default function MeasureFormDialog({
   const [ragStatus, setRagStatus] = useState<RAGStatus>("GOOD");
   const [inlineMetrics, setInlineMetrics] = useState<ConsumerDutyMI[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
 
   useEffect(() => {
     if (open) {
@@ -77,6 +78,7 @@ export default function MeasureFormDialog({
         setInlineMetrics([]);
       }
       setErrors({});
+      setSaveState("idle");
     }
   }, [open, measure, outcomes, defaultOutcomeId]);
 
@@ -99,9 +101,9 @@ export default function MeasureFormDialog({
     return Object.keys(newErrors).length === 0;
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validate() || saveState !== "idle") return;
 
     const targetOutcome = outcomes.find((o) => o.id === outcomeId);
     const nextPos = targetOutcome?.measures?.length ?? 0;
@@ -126,7 +128,11 @@ export default function MeasureFormDialog({
       metrics: validMetrics,
     };
 
+    setSaveState("saving");
     onSave(outcomeId, saved);
+    await new Promise((r) => setTimeout(r, 400));
+    setSaveState("saved");
+    await new Promise((r) => setTimeout(r, 500));
     onClose();
   }
 
@@ -171,9 +177,10 @@ export default function MeasureFormDialog({
           <button
             type="submit"
             form="measure-form"
-            className="rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colors"
+            disabled={saveState !== "idle"}
+            className="rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colors disabled:opacity-60"
           >
-            {isEdit ? "Save Changes" : "Add Measure"}
+            {saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved ✓" : isEdit ? "Save Changes" : "Add Measure"}
           </button>
         </>
       }

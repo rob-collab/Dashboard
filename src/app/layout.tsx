@@ -9,6 +9,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { ScrollToTop } from "@/components/common/ScrollToTop";
 import NavigationBackButton from "@/components/common/NavigationBackButton";
+import SaveStatusIndicator from "@/components/common/SaveStatusIndicator";
 import Breadcrumb from "@/components/common/Breadcrumb";
 import { useAppStore } from "@/lib/store";
 import type { User } from "@/lib/types";
@@ -217,6 +218,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         </main>
         <ScrollToTop />
         <NavigationBackButton sidebarOpen={sidebarOpen} />
+        <SaveStatusIndicator />
       </div>
       {/* Desktop notification bell — fixed top-right */}
       {!isMobile && (

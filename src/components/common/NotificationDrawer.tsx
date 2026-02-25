@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useEffect } from "react";
+import { useMemo, useRef, useEffect, useState } from "react";
 import { useAppStore } from "@/lib/store";
 import { usePermissionSet } from "@/lib/usePermission";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,7 @@ import {
   ShieldQuestion,
   ClipboardList,
   CheckCircle2,
+  XCircle,
   Clock,
   ExternalLink,
   Building2,
@@ -24,6 +25,8 @@ import {
 
 interface NotifItem {
   id: string;
+  /** When set, the item is dismissible and this value is stored in localStorage on dismiss */
+  dismissId?: string;
   icon: typeof Bell;
   iconColour: string;
   bgColour: string;
@@ -325,6 +328,74 @@ function useNotifications() {
       });
     }
 
+    // R4 — Resolved change request feedback (proposer view)
+    // Show each APPROVED/REJECTED change proposed by the current user in the last 30 days.
+    // These are dismissible — the user clicks × to clear them, stored in localStorage.
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+
+    for (const action of actions) {
+      for (const ch of action.changes ?? []) {
+        if (ch.proposedBy !== currentUser.id) continue;
+        if (ch.status !== "APPROVED" && ch.status !== "REJECTED") continue;
+        const resolvedAt = ch.reviewedAt ? new Date(ch.reviewedAt).getTime() : new Date(ch.proposedAt).getTime();
+        if (resolvedAt < thirtyDaysAgo) continue;
+        const approved = ch.status === "APPROVED";
+        out.push({
+          id: `resolved-action-${ch.id}`,
+          dismissId: `action-${ch.id}`,
+          icon: approved ? CheckCircle2 : XCircle,
+          iconColour: approved ? "text-green-600" : "text-red-600",
+          bgColour: approved ? "bg-green-50" : "bg-red-50",
+          title: `Change ${approved ? "approved" : "rejected"}: ${ch.fieldChanged}`,
+          description: `Action: ${action.title}${ch.reviewNote ? ` · ${ch.reviewNote}` : ""}`,
+          href: "/actions",
+          priority: "medium",
+        });
+      }
+    }
+
+    for (const control of controls) {
+      for (const ch of control.changes ?? []) {
+        if (ch.proposedBy !== currentUser.id) continue;
+        if (ch.status !== "APPROVED" && ch.status !== "REJECTED") continue;
+        const resolvedAt = ch.reviewedAt ? new Date(ch.reviewedAt).getTime() : new Date(ch.proposedAt).getTime();
+        if (resolvedAt < thirtyDaysAgo) continue;
+        const approved = ch.status === "APPROVED";
+        out.push({
+          id: `resolved-control-${ch.id}`,
+          dismissId: `control-${ch.id}`,
+          icon: approved ? CheckCircle2 : XCircle,
+          iconColour: approved ? "text-green-600" : "text-red-600",
+          bgColour: approved ? "bg-green-50" : "bg-red-50",
+          title: `Change ${approved ? "approved" : "rejected"}: ${ch.fieldChanged}`,
+          description: `Control: ${control.controlRef} – ${control.controlName}${ch.reviewNote ? ` · ${ch.reviewNote}` : ""}`,
+          href: "/controls",
+          priority: "medium",
+        });
+      }
+    }
+
+    for (const risk of risks) {
+      for (const ch of risk.changes ?? []) {
+        if (ch.proposedBy !== currentUser.id) continue;
+        if (ch.status !== "APPROVED" && ch.status !== "REJECTED") continue;
+        const resolvedAt = ch.reviewedAt ? new Date(ch.reviewedAt).getTime() : new Date(ch.proposedAt).getTime();
+        if (resolvedAt < thirtyDaysAgo) continue;
+        const approved = ch.status === "APPROVED";
+        out.push({
+          id: `resolved-risk-${ch.id}`,
+          dismissId: `risk-${ch.id}`,
+          icon: approved ? CheckCircle2 : XCircle,
+          iconColour: approved ? "text-green-600" : "text-red-600",
+          bgColour: approved ? "bg-green-50" : "bg-red-50",
+          title: `Change ${approved ? "approved" : "rejected"}: ${ch.fieldChanged}`,
+          description: `Risk: ${risk.reference} – ${risk.name}${ch.reviewNote ? ` · ${ch.reviewNote}` : ""}`,
+          href: "/risk-register",
+          priority: "medium",
+        });
+      }
+    }
+
     // Sort: critical first, then high, then medium
     const PRIORITY_ORDER = { critical: 0, high: 1, medium: 2 };
     return out.sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
@@ -335,7 +406,39 @@ function useNotifications() {
 
 export default function NotificationDrawer({ open, onClose }: NotificationDrawerProps) {
   const { items } = useNotifications();
+  const currentUser = useAppStore((s) => s.currentUser);
   const drawerRef = useRef<HTMLDivElement>(null);
+
+  // Dismissed change notification IDs, persisted in localStorage per user
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    try {
+      const stored = localStorage.getItem(`cr-dismissed-${currentUser.id}`);
+      if (stored) setDismissedIds(new Set(JSON.parse(stored) as string[]));
+    } catch {
+      // ignore corrupt storage
+    }
+  }, [currentUser?.id]);
+
+  function dismiss(e: React.MouseEvent, dismissId: string) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!currentUser?.id) return;
+    setDismissedIds((prev) => {
+      const next = new Set(prev);
+      next.add(dismissId);
+      try {
+        localStorage.setItem(`cr-dismissed-${currentUser.id}`, JSON.stringify(Array.from(next)));
+      } catch { /* quota exceeded — ignore */ }
+      return next;
+    });
+  }
+
+  const visibleItems = items.filter(
+    (item) => !item.dismissId || !dismissedIds.has(item.dismissId)
+  );
 
   // Close on click outside
   useEffect(() => {
@@ -370,9 +473,9 @@ export default function NotificationDrawer({ open, onClose }: NotificationDrawer
       <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-3.5">
         <Bell size={16} className="text-updraft-bright-purple" />
         <h2 className="flex-1 text-sm font-semibold text-gray-900">Notifications</h2>
-        {items.length > 0 && (
+        {visibleItems.length > 0 && (
           <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
-            {items.length}
+            {visibleItems.length}
           </span>
         )}
         <button
@@ -387,7 +490,7 @@ export default function NotificationDrawer({ open, onClose }: NotificationDrawer
 
       {/* Body */}
       <div className="max-h-[70vh] overflow-y-auto">
-        {items.length === 0 ? (
+        {visibleItems.length === 0 ? (
           <div className="py-10 flex flex-col items-center gap-3">
             <CheckCircle2 size={36} className="text-green-400" />
             <p className="text-sm font-medium text-gray-600">You&apos;re all caught up!</p>
@@ -397,7 +500,7 @@ export default function NotificationDrawer({ open, onClose }: NotificationDrawer
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {items.map((item) => {
+            {visibleItems.map((item) => {
               const Icon = item.icon;
               const priorityDot = item.priority === "critical"
                 ? "bg-red-500"
@@ -421,7 +524,18 @@ export default function NotificationDrawer({ open, onClose }: NotificationDrawer
                     </div>
                     <p className="text-xs text-gray-400 mt-0.5 truncate">{item.description}</p>
                   </div>
-                  <ExternalLink size={13} className="mt-1 shrink-0 text-gray-300" />
+                  {item.dismissId ? (
+                    <button
+                      type="button"
+                      onClick={(e) => dismiss(e, item.dismissId!)}
+                      className="mt-0.5 shrink-0 rounded p-0.5 text-gray-300 hover:bg-gray-200 hover:text-gray-500 transition-colors"
+                      aria-label="Dismiss notification"
+                    >
+                      <X size={13} />
+                    </button>
+                  ) : (
+                    <ExternalLink size={13} className="mt-1 shrink-0 text-gray-300" />
+                  )}
                 </Link>
               );
             })}
@@ -430,9 +544,9 @@ export default function NotificationDrawer({ open, onClose }: NotificationDrawer
       </div>
 
       {/* Footer */}
-      {items.length > 0 && (
+      {visibleItems.length > 0 && (
         <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-2.5 flex items-center justify-between">
-          <p className="text-[11px] text-gray-400">{items.length} item{items.length !== 1 ? "s" : ""} requiring attention</p>
+          <p className="text-[11px] text-gray-400">{visibleItems.length} item{visibleItems.length !== 1 ? "s" : ""} requiring attention</p>
           <Link
             href="/"
             onClick={onClose}

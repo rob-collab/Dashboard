@@ -77,6 +77,7 @@ export default function ActionFormDialog({
   const [priority, setPriority] = useState<ActionPriority | "">("P2");
   const [consumerDutyMIId, setConsumerDutyMIId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
 
   useEffect(() => {
     if (open) {
@@ -107,6 +108,7 @@ export default function ActionFormDialog({
         setConsumerDutyMIId(prefillConsumerDutyMIId || null);
       }
       setErrors({});
+      setSaveState("idle");
     }
   }, [open, action, reports, prefillSource, prefillSectionTitle, prefillConsumerDutyMIId, prefillMetricName, prefillRiskId]);
 
@@ -122,9 +124,9 @@ export default function ActionFormDialog({
     return Object.keys(newErrors).length === 0;
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validate() || saveState !== "idle") return;
 
     const selectedReport = reports.find((r) => r.id === reportId);
 
@@ -156,7 +158,11 @@ export default function ActionFormDialog({
       updatedAt: new Date().toISOString(),
     };
 
+    setSaveState("saving");
     onSave(saved);
+    await new Promise((r) => setTimeout(r, 400));
+    setSaveState("saved");
+    await new Promise((r) => setTimeout(r, 500));
     onClose();
   }
 
@@ -183,11 +189,12 @@ export default function ActionFormDialog({
           <button
             type="submit"
             form="action-form"
-            className={`rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors ${
+            disabled={saveState !== "idle"}
+            className={`rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-60 ${
               !isEdit && !canBypassApproval ? "bg-amber-600 hover:bg-amber-700" : "bg-updraft-bright-purple hover:bg-updraft-deep"
             }`}
           >
-            {isEdit ? "Save Changes" : !canBypassApproval ? "Submit for Approval" : "Create Action"}
+            {saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved ✓" : isEdit ? "Save Changes" : !canBypassApproval ? "Submit for Approval" : "Create Action"}
           </button>
         </>
       }

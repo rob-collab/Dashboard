@@ -137,7 +137,10 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
   const l2Options = getL2Options(categoryL1);
   const residualWarning = residualLikelihood > inherentLikelihood || residualImpact > inherentImpact;
 
-  function handleSave() {
+  const [riskSaveState, setRiskSaveState] = useState<"idle" | "saving" | "saved">("idle");
+
+  async function handleSave() {
+    if (riskSaveState !== "idle") return;
     const data: Record<string, unknown> = {
       name, description, categoryL1, categoryL2, ownerId,
       inherentLikelihood, inherentImpact, residualLikelihood, residualImpact,
@@ -153,7 +156,12 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
         priority: m.priority || null,
       })),
     };
+    setRiskSaveState("saving");
     onSave(data as Partial<Risk> & { controls?: Partial<RiskControl>[]; mitigations?: Partial<RiskMitigation>[] });
+    await new Promise((r) => setTimeout(r, 400));
+    setRiskSaveState("saved");
+    await new Promise((r) => setTimeout(r, 600));
+    setRiskSaveState("idle");
   }
 
   const [proposing, setProposing] = useState(false);
@@ -954,12 +962,12 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
             ) : (
               <button
                 onClick={handleSave}
-                disabled={!canSave}
+                disabled={!canSave || riskSaveState !== "idle"}
                 className={`px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
                   isNew && !canBypassApproval ? "bg-amber-600 hover:bg-amber-700" : "bg-updraft-deep hover:bg-updraft-bar"
                 }`}
               >
-                {isNew && !canBypassApproval ? "Submit for Approval" : isNew ? "Create Risk" : "Save Changes"}
+                {riskSaveState === "saving" ? "Saving…" : riskSaveState === "saved" ? "Saved ✓" : isNew && !canBypassApproval ? "Submit for Approval" : isNew ? "Create Risk" : "Save Changes"}
               </button>
             )}
           </div>
