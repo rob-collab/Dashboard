@@ -20,6 +20,12 @@ export default function ProcessesPage() {
   const updateProcess = useAppStore((s) => s.updateProcess);
   const currentUser = useAppStore((s) => s.currentUser);
   const isCCRO = currentUser?.role === "CCRO_TEAM";
+  const isOwner = currentUser?.role === "OWNER";
+
+  // D1: OWNER role defaults to seeing only their own processes
+  const displayProcesses = isOwner && currentUser?.id
+    ? processes.filter((p) => p.ownerId === currentUser.id)
+    : processes;
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -177,7 +183,7 @@ export default function ProcessesPage() {
       {activeTab === "processes" && <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Table */}
         <div className={`flex-1 overflow-y-auto p-6 transition-all ${selectedProcess ? "hidden lg:block lg:pr-4" : ""}`}>
-          {processes.length === 0 ? (
+          {displayProcesses.length === 0 ? (
             <EmptyState
               icon={<Layers className="h-8 w-8" />}
               heading="No processes yet"
@@ -185,7 +191,7 @@ export default function ProcessesPage() {
             />
           ) : (
             <ProcessListTable
-              processes={processes}
+              processes={displayProcesses}
               onProcessClick={handleProcessClick}
             />
           )}

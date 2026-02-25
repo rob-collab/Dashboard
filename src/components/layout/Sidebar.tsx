@@ -31,7 +31,6 @@ import {
   Layers,
   Building2,
   Download,
-  CalendarDays,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import type { User } from "@/lib/types";
@@ -57,13 +56,13 @@ const NAV_GROUPS: NavGroup[] = [
   {
     groupLabel: null,
     items: [
-      { label: "Dashboard", href: "/", icon: LayoutDashboard, permission: "page:dashboard", badgeKey: "dashboard" },
+      { label: "Dashboard", href: "/", icon: LayoutDashboard, permission: "page:dashboard" },
     ],
   },
   {
     groupLabel: "Risk Management",
     items: [
-      { label: "Risk Register", href: "/risk-register", icon: ShieldAlert, permission: "page:risk-register", badgeKey: "riskRegister" },
+      { label: "Risk Register", href: "/risk-register", icon: ShieldAlert, permission: "page:risk-register" },
       { label: "Risk Acceptances", href: "/risk-acceptances", icon: ShieldQuestion, permission: "page:risk-acceptances", badgeKey: "riskAcceptance" },
       { label: "Consumer Duty", href: "/consumer-duty", icon: ShieldCheck, permission: "page:consumer-duty" },
     ],
@@ -74,7 +73,6 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "Compliance", href: "/compliance", icon: Scale, permission: "page:compliance", badgeKey: "compliance" },
       { label: "Policies", href: "/compliance?tab=policies", icon: BookOpen, permission: "page:compliance" },
       { label: "SM&CR", href: "/compliance?tab=smcr", icon: BadgeCheck, permission: "page:compliance" },
-      { label: "Reg Calendar", href: "/compliance?tab=regulatory-calendar", icon: CalendarDays, permission: "page:compliance" },
       { label: "Controls", href: "/controls", icon: FlaskConical, permission: "page:controls", badgeKey: "controls" },
       { label: "Process Library", href: "/processes", icon: Layers, permission: "page:compliance" },
       { label: "Operational Resilience", href: "/operational-resilience", icon: Building2, permission: "page:operational-resilience", badgeKey: "operationalResilience" },
@@ -202,7 +200,12 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
       ? actions.reduce((n, a) => n + (a.changes ?? []).filter((ch) => ch.status === "PENDING").length, 0)
       : 0;
 
-    const changeRequests = canViewPending ? pendingControlChanges + pendingRiskChanges + pendingActionChanges : 0;
+    // CCRO sees all pending changes; non-CCRO proposers see their own pending changes
+    const changeRequests = canViewPending
+      ? pendingControlChanges + pendingRiskChanges + pendingActionChanges
+      : controls.reduce((n, c) => n + (c.changes ?? []).filter((ch) => ch.proposedBy === currentUser.id && ch.status === "PENDING").length, 0) +
+        risks.reduce((n, r) => n + (r.changes ?? []).filter((ch) => ch.proposedBy === currentUser.id && ch.status === "PENDING").length, 0) +
+        actions.reduce((n, a) => n + (a.changes ?? []).filter((ch) => ch.proposedBy === currentUser.id && ch.status === "PENDING").length, 0);
 
     const complianceGaps = canViewPending
       ? regulations.filter((r) => r.isApplicable && (r.complianceStatus === "NON_COMPLIANT" || r.complianceStatus === "GAP_IDENTIFIED")).length
@@ -233,7 +236,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
       return { dashboard: total, compliance: complianceGaps, changeRequests, operationalResilience, settings } as Record<string, number>;
     }
 
-    return { actions: overdueActions, riskAcceptance, operationalResilience } as Record<string, number>;
+    return { actions: overdueActions, riskAcceptance, operationalResilience, changeRequests } as Record<string, number>;
   }, [actions, controls, risks, riskAcceptances, regulations, scenarios, ibs, selfAssessments, accessRequests, currentUser, permissionSet]);
 
   const [refreshing, setRefreshing] = useState(false);

@@ -21,6 +21,7 @@ import {
   Building2,
   FileCheck,
   Calendar,
+  FlaskConical,
 } from "lucide-react";
 
 interface NotifItem {
@@ -311,10 +312,12 @@ function useNotifications() {
       }
     }
 
-    // 12. Processes Overdue for Review (all roles)
-    const overdueProcesses = processes.filter(
-      (p) => p.nextReviewDate && new Date(p.nextReviewDate) < new Date() && p.status === "ACTIVE"
-    );
+    // 12. Processes Overdue for Review — scoped to own processes for OWNER role (D3)
+    const overdueProcesses = processes.filter((p) => {
+      if (!p.nextReviewDate || new Date(p.nextReviewDate) >= new Date() || p.status !== "ACTIVE") return false;
+      if (isOwner && p.ownerId !== currentUser.id) return false;
+      return true;
+    });
     if (overdueProcesses.length > 0) {
       out.push({
         id: "overdue-process-reviews",
@@ -325,6 +328,50 @@ function useNotifications() {
         description: `${overdueProcesses.slice(0, 2).map((p) => p.name).join(", ")}${overdueProcesses.length > 2 ? ` +${overdueProcesses.length - 2} more` : ""}`,
         href: "/processes",
         priority: "medium",
+      });
+    }
+
+    // E3. Overdue Control Tests — for the assigned tester
+    const now = new Date();
+    const nowYear = now.getFullYear();
+    const nowMonth = now.getMonth() + 1; // 1-12
+    const nowQuarter = Math.ceil(nowMonth / 3);
+
+    function isTestEntryOverdue(ts: import("@/lib/types").TestingScheduleEntry): boolean {
+      const results = ts.testResults ?? [];
+      switch (ts.testingFrequency) {
+        case "MONTHLY":
+          return !results.some((r) => r.periodYear === nowYear && r.periodMonth === nowMonth);
+        case "QUARTERLY": {
+          const qStartMonth = (nowQuarter - 1) * 3 + 1; // 1, 4, 7, 10
+          return !results.some((r) => r.periodYear === nowYear && r.periodMonth === qStartMonth);
+        }
+        case "BI_ANNUAL": {
+          const halfStart = nowMonth <= 6 ? 1 : 7;
+          return !results.some((r) => r.periodYear === nowYear && r.periodMonth === halfStart);
+        }
+        case "ANNUAL":
+          return !results.some((r) => r.periodYear === nowYear);
+        default:
+          return false;
+      }
+    }
+
+    const overdueTestEntries = controls
+      .map((c) => c.testingSchedule)
+      .filter((ts): ts is import("@/lib/types").TestingScheduleEntry =>
+        !!ts && ts.isActive && ts.assignedTesterId === currentUser.id && isTestEntryOverdue(ts)
+      );
+    if (overdueTestEntries.length > 0) {
+      out.push({
+        id: "overdue-control-tests",
+        icon: FlaskConical,
+        iconColour: "text-purple-600",
+        bgColour: "bg-purple-50",
+        title: `${overdueTestEntries.length} control test${overdueTestEntries.length > 1 ? "s" : ""} pending`,
+        description: `Tests not yet submitted for the current period — you are the assigned tester`,
+        href: "/controls",
+        priority: "high",
       });
     }
 

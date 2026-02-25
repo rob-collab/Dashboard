@@ -124,6 +124,9 @@ export default function RiskRegisterPage() {
   const isOwner = currentUser?.role === "OWNER";
   const isReadOnly = currentUser?.role === "VIEWER";
 
+  // OWNER role defaults to seeing only their own risks (C1)
+  const ownerRiskFilter = isOwner ? currentUser?.id : null;
+
   // Score helper for current mode (inherent/residual — overlay uses residual for cards)
   const effectiveMode = scoreMode === "overlay" ? "residual" : scoreMode;
 
@@ -150,9 +153,14 @@ export default function RiskRegisterPage() {
     [risks]
   );
 
-  // Filter pipeline: risks → cardFilter → categoryFilter → displayRisks
+  // Filter pipeline: risks → ownerFilter → cardFilter → categoryFilter → displayRisks
   const displayRisks = useMemo(() => {
     let result = risks;
+
+    // Owner filter: OWNER role always sees only their own risks (C1)
+    if (ownerRiskFilter) {
+      result = result.filter((r) => r.ownerId === ownerRiskFilter);
+    }
 
     // Card filter
     switch (cardFilter) {
@@ -192,7 +200,7 @@ export default function RiskRegisterPage() {
     }
 
     return result;
-  }, [risks, cardFilter, activeCategoryL1, effectiveMode, searchQuery]);
+  }, [risks, cardFilter, activeCategoryL1, effectiveMode, searchQuery, ownerRiskFilter]);
 
   const handleCardClick = useCallback((filter: CardFilter) => {
     setCardFilter((prev) => {

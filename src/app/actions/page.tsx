@@ -10,6 +10,7 @@ import {
   Upload,
   Search,
   Filter,
+  Bell,
   ChevronDown,
   ChevronRight,
   Calendar,
@@ -168,6 +169,13 @@ function ActionsPageContent() {
   const [bulkReassignTo, setBulkReassignTo] = useState("");
   const [showBulkReassign, setShowBulkReassign] = useState(false);
   const [showDateProposal, setShowDateProposal] = useState<string | null>(null);
+  const [reminderSending, setReminderSending] = useState(false);
+  const [lastRemindedAt, setLastRemindedAt] = useState<Date | null>(() => {
+    try {
+      const s = localStorage.getItem("actions-last-reminded");
+      return s ? new Date(s) : null;
+    } catch { return null; }
+  });
   const [showReassignProposal, setShowReassignProposal] = useState<string | null>(null);
   const [proposedDate, setProposedDate] = useState("");
   const [proposedOwner, setProposedOwner] = useState("");
@@ -470,6 +478,22 @@ function ActionsPageContent() {
     return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
   }
 
+  async function handleSendReminders() {
+    if (reminderSending) return;
+    setReminderSending(true);
+    try {
+      const result = await api<{ sent: number }>("/api/actions/remind", { method: "POST" });
+      const now = new Date();
+      setLastRemindedAt(now);
+      try { localStorage.setItem("actions-last-reminded", now.toISOString()); } catch { /* ignore */ }
+      toast.success(`Sent ${result.sent} reminder email${result.sent !== 1 ? "s" : ""}`);
+    } catch {
+      toast.error("Failed to send reminders");
+    } finally {
+      setReminderSending(false);
+    }
+  }
+
   // expandedIds — multi-row expansion (replaces single expandedId)
 
   const statCards = [
@@ -499,6 +523,14 @@ function ActionsPageContent() {
         </div>
         {isCCRO ? (
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleSendReminders}
+              disabled={reminderSending}
+              title={lastRemindedAt ? `Last sent: ${lastRemindedAt.toLocaleString("en-GB")}` : "Send email reminders to assignees with overdue or upcoming actions"}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-60"
+            >
+              <Bell size={14} /> {reminderSending ? "Sending…" : "Send Reminders"}
+            </button>
             <button
               onClick={() => setShowCSVImport(true)}
               className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"

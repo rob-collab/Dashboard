@@ -1,9 +1,40 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-25 (Must Fix Sprint — Audit findings)
+Last updated: 2026-02-25 (Should Fix — Quick Wins sprint)
 
 ---
 
-## CURRENT SPRINT: Must Fix — Audit Findings (R1, R2, R4, T1, UX1)
+## CURRENT SPRINT: Should Fix — Quick Wins (R3, R6, R7, T7, UX2, UX4, C1, D1, D3, E3)
+
+### What
+Ten "should fix" audit items, all achievable in a single focused pass. No existing features removed.
+
+### Files
+- `src/components/layout/Sidebar.tsx` — R3 (proposer badge), R6 (dead badgeKey), T7 (Reg Calendar), UX2 (dashboard badge)
+- `src/components/common/GlobalSearch.tsx` — UX4 (add processes, IBS, risk acceptances)
+- `src/components/common/NotificationDrawer.tsx` — D3 (scope process notification), E3 (control test notification)
+- `src/app/risk-register/page.tsx` — C1 (default My Risks for OWNER)
+- `src/app/processes/page.tsx` — D1 (default My Processes for OWNER)
+- `src/app/actions/page.tsx` — R7 (Send Reminders button)
+- `src/app/api/actions/remind/route.ts` — R7 (NEW — send reminder emails API)
+
+### Checklist
+- [x] R3: Sidebar Change Requests badge shows own pending changes for non-CCRO proposers
+- [x] R6: Dead `badgeKey: "riskRegister"` removed from Risk Register nav item
+- [x] T7: "Reg Calendar" nav item removed from sidebar
+- [x] UX2: `badgeKey: "dashboard"` removed from Dashboard nav item
+- [x] UX4: GlobalSearch includes processes (reference, name), IBS (reference, name), risk acceptances (reference, title)
+- [x] C1: Risk Register defaults to showing only the current user's risks when role is OWNER
+- [x] D1: Process Library defaults to showing only the current user's processes when role is OWNER
+- [x] D3: "Processes overdue for review" notification scoped to own processes for OWNER role
+- [x] E3: Notification for overdue control tests when current user is the assigned tester
+- [x] R7: "Send Reminders" button in Actions header (CCRO only) with localStorage throttle
+- [x] R7: POST /api/actions/remind route already existed and is complete — button wired up
+- [x] Build passes (npx next build) — zero type errors
+- [x] No existing tabs, features, or routes removed
+
+---
+
+## PREVIOUSLY COMPLETED: Must Fix — Audit Findings (R1, R2, R4, T1, UX1) ✅ COMPLETE
 
 ### What
 Five issues identified in the 25 Feb 2026 audit as blocking core workflows or regulatory credibility.
@@ -45,9 +76,9 @@ No existing features are being removed — all changes are additive or correctiv
 ### Checklist
 
 **R1 + R2 — Permissions**
-- [ ] CEO role gains `page:operational-resilience` permission
-- [ ] VIEWER role gains `page:controls` permission (tab-level gating already limits what they see)
-- [ ] CEO role gains `page:controls` permission with ExCo tab access
+- [x] CEO role gains `page:operational-resilience` permission
+- [x] VIEWER role gains `page:controls` permission (tab-level gating already limits what they see)
+- [x] CEO role gains `page:controls` permission with ExCo tab access
 
 **R4 — Change request notification**
 - [x] NotificationDrawer shows resolved change requests to the proposer (APPROVED / REJECTED)
@@ -81,8 +112,8 @@ No existing features are being removed — all changes are additive or correctiv
 - [x] Back button does not appear on first load or fresh navigation without EntityLink context
 
 **General**
-- [ ] Build passes (npx next build) — zero type errors
-- [ ] No existing tabs, features, or routes removed
+- [x] Build passes (npx next build) — zero type errors
+- [x] No existing tabs, features, or routes removed
 
 ---
 

@@ -15,6 +15,9 @@ import {
   ArrowUp,
   ArrowDown,
   CornerDownLeft,
+  Layers,
+  Building2,
+  ShieldQuestion,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -24,7 +27,7 @@ interface SearchResult {
   label: string;
   sublabel?: string;
   href: string;
-  type: "risk" | "policy" | "control" | "action" | "regulation" | "user";
+  type: "risk" | "policy" | "control" | "action" | "regulation" | "user" | "process" | "ib" | "riskAcceptance";
 }
 
 const TYPE_CONFIG: Record<SearchResult["type"], { label: string; icon: typeof Search; color: string }> = {
@@ -34,9 +37,12 @@ const TYPE_CONFIG: Record<SearchResult["type"], { label: string; icon: typeof Se
   action: { label: "Actions", icon: ListChecks, color: "text-amber-600" },
   regulation: { label: "Regulations", icon: Scale, color: "text-green-600" },
   user: { label: "Users", icon: Users, color: "text-gray-600" },
+  process: { label: "Processes", icon: Layers, color: "text-indigo-600" },
+  ib: { label: "Important Business Services", icon: Building2, color: "text-teal-600" },
+  riskAcceptance: { label: "Risk Acceptances", icon: ShieldQuestion, color: "text-orange-600" },
 };
 
-const TYPE_ORDER: SearchResult["type"][] = ["risk", "policy", "control", "action", "regulation", "user"];
+const TYPE_ORDER: SearchResult["type"][] = ["risk", "policy", "control", "action", "regulation", "user", "process", "ib", "riskAcceptance"];
 
 interface GlobalSearchProps {
   open: boolean;
@@ -55,6 +61,9 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
   const actions = useAppStore((s) => s.actions);
   const regulations = useAppStore((s) => s.regulations);
   const users = useAppStore((s) => s.users);
+  const processes = useAppStore((s) => s.processes);
+  const ibs = useAppStore((s) => s.ibs);
+  const riskAcceptances = useAppStore((s) => s.riskAcceptances);
 
   // Reset on open
   useEffect(() => {
@@ -171,6 +180,54 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
       }
     });
 
+    // Processes
+    processes.forEach((p) => {
+      if (
+        p.reference.toLowerCase().includes(q) ||
+        p.name.toLowerCase().includes(q)
+      ) {
+        out.push({
+          id: p.id,
+          label: `${p.reference}: ${p.name}`,
+          sublabel: p.owner?.name,
+          href: `/processes?process=${p.id}`,
+          type: "process",
+        });
+      }
+    });
+
+    // Important Business Services
+    ibs.forEach((i) => {
+      if (
+        i.reference.toLowerCase().includes(q) ||
+        i.name.toLowerCase().includes(q)
+      ) {
+        out.push({
+          id: i.id,
+          label: `${i.reference}: ${i.name}`,
+          sublabel: i.owner?.name,
+          href: `/operational-resilience?tab=ibs`,
+          type: "ib",
+        });
+      }
+    });
+
+    // Risk Acceptances
+    riskAcceptances.forEach((ra) => {
+      if (
+        ra.reference.toLowerCase().includes(q) ||
+        ra.title.toLowerCase().includes(q)
+      ) {
+        out.push({
+          id: ra.id,
+          label: ra.title,
+          sublabel: ra.reference,
+          href: `/risk-acceptances?acceptance=${ra.id}`,
+          type: "riskAcceptance",
+        });
+      }
+    });
+
     // Sort: group by type order, cap at 5 per type
     const grouped: Record<string, SearchResult[]> = {};
     out.forEach((r) => {
@@ -179,7 +236,7 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
     });
 
     return TYPE_ORDER.flatMap((t) => grouped[t] ?? []);
-  }, [query, risks, policies, controls, actions, regulations, users]);
+  }, [query, risks, policies, controls, actions, regulations, users, processes, ibs, riskAcceptances]);
 
   // Reset focus when results change
   useEffect(() => { setFocusIdx(0); }, [results.length]);
@@ -235,7 +292,7 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search risks, policies, controls, actions..."
+            placeholder="Search risks, policies, controls, processes..."
             className="flex-1 text-base outline-none placeholder:text-gray-400"
           />
           {query && (
