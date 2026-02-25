@@ -25,4 +25,9 @@ Rules derived from real mistakes. Review this file at the start of each session.
 
 ---
 
+## L004 — Audit recommendation B3 is rejected by the user
+**What happened:** AUDIT.md recommended defaulting the Risk Register to heatmap view for the CEO role. User confirmed the table/list view is preferred because it shows all entries.
+**Rule:** Do NOT implement B3 (CEO heatmap default). The table view is the intended default for all roles. Do not change the risk register default view mode based on role.
+**Trigger:** Any work touching risk-register default view, scoreMode, viewTab initial state, or role-based view defaults.
+
 <!-- Add new lessons below this line in format L00N -->

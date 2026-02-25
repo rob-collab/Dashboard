@@ -586,7 +586,7 @@ The following table summarises all issues by priority for implementation plannin
 | UX9 | Export Centre has no audit trail | UX | Small |
 | UX10 | Process step roles are free text with no standardisation | UX | Small |
 | B1 | CEO: No single Board View dashboard mode | Persona | Large |
-| B3 | CEO: Risk Register default view wrong for executives | Persona | Small |
+| ~~B3~~ | ~~CEO: Risk Register default view wrong for executives~~ — **REJECTED: table view is the preferred default for all roles** | Persona | Small |
 | C3 | Risk Owner: Change proposal has no workflow explanation | Persona | Small |
 | D2 | Process Owner: Maturity requirements not actionable | Persona | Medium |
 | D4 | Process Owner: No process export | Persona | Medium |
