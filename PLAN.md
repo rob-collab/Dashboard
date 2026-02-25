@@ -3,7 +3,40 @@ Last updated: 2026-02-25 (Sprint 3 — D2, D4)
 
 ---
 
-## CURRENT SPRINT: Remaining Audit Items — Sprint 1 (T8, UX3, T3, UX8, UX10) ✅ COMPLETE
+## CURRENT SPRINT: Remaining Audit Items — T4/T9/CD1/PV1/T1 ✅ COMPLETE
+
+### What
+Sprint completing remaining open audit items: sidebar cleanup, PENDING risk visibility, Consumer Duty collapsible sections, Process CSV import/export, approve/reject loading states.
+
+### Files
+- `src/components/layout/Sidebar.tsx` — T4: remove Policies nav item
+- `src/app/risk-register/page.tsx` — T9: hide PENDING_APPROVAL risks from non-owner/non-CCRO
+- `src/app/consumer-duty/page.tsx` — CD1: collapsible sections (Outcomes, Measures table, My Measures)
+- `src/app/processes/page.tsx` — PV1: Export CSV + Import CSV buttons + modal
+- `src/app/api/processes/export/route.ts` — PV1: GET CSV export (all roles)
+- `src/app/api/processes/import/route.ts` — PV1: POST CSV import (CCRO only, upsert by reference)
+- `src/lib/parse-csv.ts` — PV1: client-side CSV parser
+- `src/app/change-requests/page.tsx` — T1: "Approving…"/"Rejecting…" on buttons while in-flight
+
+### Checklist
+- [x] T4: Policies item absent from sidebar; Compliance, Controls, Processes & IBS, Reg Calendar remain
+- [x] T9: PENDING_APPROVAL risks hidden for non-owner/non-CCRO; visible to creator and CCRO
+- [x] CD1: Outcomes grid collapses/expands with ChevronDown toggle
+- [x] CD1: All Measures Summary table collapses/expands
+- [x] CD1: My Measures grid collapses/expands
+- [x] CD1: Collapsed state persisted to localStorage keyed by user ID
+- [x] PV1: GET /api/processes/export returns valid CSV with 16 columns
+- [x] PV1: POST /api/processes/import upserts rows by reference, returns {created, updated, errors}
+- [x] PV1: Export CSV button visible to all roles on Processes tab
+- [x] PV1: Import CSV button visible to CCRO only, opens file-picker modal with preview + result
+- [x] T1: Approve button shows "Approving…" while PATCH in-flight
+- [x] T1: Reject button shows "Rejecting…" while PATCH in-flight
+- [x] Build passes — zero TypeScript errors
+- [x] No existing features removed
+
+---
+
+## PREVIOUSLY COMPLETED: Remaining Audit Items — Sprint 1 (T8, UX3, T3, UX8, UX10) ✅ COMPLETE
 
 ### What
 Sprint 1 quick wins from the post-audit plan.
