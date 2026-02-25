@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { api } from "@/lib/api-client";
 import type { ImportantBusinessService } from "@/lib/types";
 import { IBS_STATUS_LABELS } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const CATEGORIES = ["PEOPLE", "PROCESSES", "TECHNOLOGY", "FACILITIES", "INFORMATION"] as const;
 
@@ -26,6 +27,7 @@ export default function IBSOverviewTab({
 }) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [form, setForm] = useState({
     name: ibs.name,
     description: ibs.description ?? "",
@@ -36,6 +38,39 @@ export default function IBSOverviewTab({
     smfAccountable: ibs.smfAccountable ?? "",
     status: ibs.status,
   });
+
+  // Reset form when IBS changes (e.g. navigating between IBS records)
+  useEffect(() => {
+    setForm({
+      name: ibs.name,
+      description: ibs.description ?? "",
+      impactToleranceStatement: ibs.impactToleranceStatement ?? "",
+      maxTolerableDisruptionHours: ibs.maxTolerableDisruptionHours?.toString() ?? "",
+      rtoHours: ibs.rtoHours?.toString() ?? "",
+      rpoHours: ibs.rpoHours?.toString() ?? "",
+      smfAccountable: ibs.smfAccountable ?? "",
+      status: ibs.status,
+    });
+    setEditing(false);
+  }, [ibs.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const isDirty =
+    form.name !== ibs.name ||
+    form.description !== (ibs.description ?? "") ||
+    form.impactToleranceStatement !== (ibs.impactToleranceStatement ?? "") ||
+    form.maxTolerableDisruptionHours !== (ibs.maxTolerableDisruptionHours?.toString() ?? "") ||
+    form.rtoHours !== (ibs.rtoHours?.toString() ?? "") ||
+    form.rpoHours !== (ibs.rpoHours?.toString() ?? "") ||
+    form.smfAccountable !== (ibs.smfAccountable ?? "") ||
+    form.status !== ibs.status;
+
+  function handleCancelEdit() {
+    if (isDirty) {
+      setConfirmDiscard(true);
+    } else {
+      setEditing(false);
+    }
+  }
 
   const processCount = ibs.processLinks?.length ?? 0;
   const avgMaturity = processCount > 0
@@ -72,6 +107,15 @@ export default function IBSOverviewTab({
 
   return (
     <div className="p-5 space-y-5">
+      <ConfirmDialog
+        open={confirmDiscard}
+        onClose={() => setConfirmDiscard(false)}
+        onConfirm={() => { setConfirmDiscard(false); setEditing(false); }}
+        title="Unsaved changes"
+        message="You have unsaved changes. Discard them and close?"
+        confirmLabel="Discard changes"
+        variant="warning"
+      />
       {/* Header actions */}
       {isCCRO && !editing && (
         <div className="flex justify-end">
@@ -138,7 +182,7 @@ export default function IBSOverviewTab({
             <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm bg-updraft-deep text-white rounded-lg hover:bg-updraft-bar disabled:opacity-50">
               {saving ? "Saving…" : "Save"}
             </button>
-            <button onClick={() => setEditing(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+            <button onClick={handleCancelEdit} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
           </div>
         </div>
       ) : (
