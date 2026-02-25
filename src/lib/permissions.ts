@@ -94,6 +94,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<Role, Partial<Record<PermissionCod
     "page:compliance": true,
     "page:reports": true,
     "page:risk-acceptances": true,
+    "page:operational-resilience": true, // CEO needs board-level OR visibility (FCA PS21/3)
     "can:toggle-risk-focus": true,
   },
   OWNER: {
@@ -115,6 +116,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<Role, Partial<Record<PermissionCod
     "page:dashboard": true,
     "page:risk-register": true,
     "page:actions": true,
+    "page:controls": true,     // ExCo View tab — tab-level role filter limits what VIEWER sees inside
     "page:consumer-duty": true,
     "page:policies": true,
     "page:compliance": true,

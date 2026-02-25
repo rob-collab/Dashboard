@@ -1,5 +1,88 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-24 (Actions Page UX Upgrade)
+Last updated: 2026-02-25 (Must Fix Sprint — Audit findings)
+
+---
+
+## CURRENT SPRINT: Must Fix — Audit Findings (R1, R2, R4, T1, UX1)
+
+### What
+Five issues identified in the 25 Feb 2026 audit as blocking core workflows or regulatory credibility.
+No existing features are being removed — all changes are additive or corrective.
+
+### Why
+- R1/R2: CEO and VIEWER roles cannot access OR module or ExCo Dashboard — built for them but permissions never granted
+- R4: Change proposal workflow is a dead end for proposers — no feedback when approved/rejected
+- T1: Save feedback is absent or inconsistent across the app — users cannot tell if their changes persisted
+- UX1: Back button appears after any browser navigation and can exit the app entirely
+
+### Files
+
+**R1 + R2 — Permissions:**
+- `src/lib/permissions.ts`
+
+**R4 — Change request resolved notification:**
+- `src/components/common/NotificationDrawer.tsx`
+
+**T1 — Global save indicator:**
+- `src/lib/store.ts` — add `_savingCount`, `_lastSavedAt`, `_saveError` fields
+- `src/lib/api-helpers.ts` — wrap sync() to update save state
+- `src/components/common/SaveStatusIndicator.tsx` — NEW component
+- `src/app/layout.tsx` — mount the indicator
+
+**T1 — Button-level save states on form dialogs:**
+- `src/components/actions/ActionFormDialog.tsx`
+- `src/components/risk-register/RiskDetailPanel.tsx`
+- `src/components/risk-acceptances/RiskAcceptanceFormDialog.tsx`
+- `src/components/processes/ProcessFormDialog.tsx`
+- `src/components/policies/PolicyFormDialog.tsx`
+- `src/components/consumer-duty/MeasureFormDialog.tsx`
+- `src/components/consumer-duty/OutcomeFormDialog.tsx`
+- `src/components/users/UserFormDialog.tsx`
+
+**UX1 — Back button:**
+- `src/components/common/NavigationBackButton.tsx`
+
+### Checklist
+
+**R1 + R2 — Permissions**
+- [ ] CEO role gains `page:operational-resilience` permission
+- [ ] VIEWER role gains `page:controls` permission (tab-level gating already limits what they see)
+- [ ] CEO role gains `page:controls` permission with ExCo tab access
+
+**R4 — Change request notification**
+- [ ] NotificationDrawer shows resolved change requests to the proposer (APPROVED / REJECTED)
+- [ ] Each resolved change shows entity name, field changed, decision, and links to the entity
+- [ ] Dismissed notifications are remembered per user in localStorage
+- [ ] Only shows changes resolved in the last 30 days (not historical noise)
+
+**T1 — Global save indicator**
+- [ ] Store tracks in-flight save count, last saved timestamp, and last error
+- [ ] sync() increments count on start, decrements on completion, sets error on failure
+- [ ] SaveStatusIndicator component mounts in layout — visible on every page
+- [ ] Shows "Saving…" (animated) when any sync is in flight
+- [ ] Shows "Saved ✓" for 3 seconds after last sync completes, then fades
+- [ ] Shows "Could not save" with retry option on error
+- [ ] Indicator does not overlap content (positioned in app chrome)
+
+**T1 — Form button states**
+- [ ] ActionFormDialog submit button shows "Saving…" during call, "Saved ✓" briefly before close
+- [ ] RiskDetailPanel save buttons show loading state during call
+- [ ] RiskAcceptanceFormDialog submit shows loading state
+- [ ] ProcessFormDialog submit shows loading state
+- [ ] PolicyFormDialog submit shows loading state
+- [ ] MeasureFormDialog submit shows loading state
+- [ ] OutcomeFormDialog submit shows loading state
+- [ ] UserFormDialog submit shows loading state
+- [ ] No form closes before the API call confirms success
+
+**UX1 — Back button**
+- [ ] Back button only appears when custom navigationStack has entries
+- [ ] Browser history fallback removed entirely
+- [ ] Back button does not appear on first load or fresh navigation without EntityLink context
+
+**General**
+- [ ] Build passes (npx next build) — zero type errors
+- [ ] No existing tabs, features, or routes removed
 
 ---
 
