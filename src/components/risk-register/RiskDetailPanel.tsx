@@ -23,6 +23,7 @@ import { useHasPermission } from "@/lib/usePermission";
 import EntityLink from "@/components/common/EntityLink";
 import RequestEditAccessButton from "@/components/common/RequestEditAccessButton";
 import GlossaryTooltip from "@/components/common/GlossaryTooltip";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 interface RiskDetailPanelProps {
   risk: Risk | null;
@@ -140,6 +141,24 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
 
   const [riskSaveState, setRiskSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+
+  const isDirty = !isNew && risk != null && (
+    name !== risk.name ||
+    description !== risk.description ||
+    categoryL1 !== risk.categoryL1 ||
+    categoryL2 !== risk.categoryL2 ||
+    ownerId !== risk.ownerId ||
+    inherentLikelihood !== risk.inherentLikelihood ||
+    inherentImpact !== risk.inherentImpact ||
+    residualLikelihood !== risk.residualLikelihood ||
+    residualImpact !== risk.residualImpact ||
+    directionOfTravel !== risk.directionOfTravel
+  );
+
+  function handleCancel() {
+    if (isDirty) { setConfirmDiscard(true); } else { onClose(); }
+  }
 
   function validateRisk(): boolean {
     const errs: Record<string, string> = {};
@@ -228,7 +247,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/30" onClick={handleCancel} />
 
       {/* Panel */}
       <div className="relative w-full max-w-2xl bg-white shadow-2xl overflow-y-auto animate-slide-in-right">
@@ -963,7 +982,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
           </div>
           <div className="flex gap-3">
             <button
-              onClick={onClose}
+              onClick={handleCancel}
               className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Cancel
@@ -990,6 +1009,15 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
           </div>
         </div>
       </div>
+      <ConfirmDialog
+        open={confirmDiscard}
+        onClose={() => setConfirmDiscard(false)}
+        onConfirm={() => { setConfirmDiscard(false); onClose(); }}
+        title="Unsaved changes"
+        message="You have unsaved changes. Discard them and close?"
+        confirmLabel="Discard changes"
+        variant="warning"
+      />
     </div>
   );
 }

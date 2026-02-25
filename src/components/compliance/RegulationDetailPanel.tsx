@@ -18,6 +18,7 @@ import EntityLink from "@/components/common/EntityLink";
 import MaturityBadge from "@/components/processes/MaturityBadge";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import type { RegulationHistoryEvent } from "@/app/api/compliance/regulations/[id]/history/route";
 
 interface Props {
@@ -55,6 +56,24 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
   const [editNotes, setEditNotes] = useState("");
   const [editNextReview, setEditNextReview] = useState("");
   const [saving, setSaving] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+
+  const isDirty = editMode && regulation != null && (
+    editDescription !== (regulation.description ?? "") ||
+    editProvisions !== (regulation.provisions ?? "") ||
+    editApplicability !== ((regulation.applicability ?? "ASSESS") as Applicability) ||
+    editApplicabilityNotes !== (regulation.applicabilityNotes ?? "") ||
+    editPrimarySMF !== (regulation.primarySMF ?? "") ||
+    editSecondarySMF !== (regulation.secondarySMF ?? "") ||
+    editSMFNotes !== (regulation.smfNotes ?? "") ||
+    editStatus !== ((regulation.complianceStatus ?? "NOT_ASSESSED") as ComplianceStatus) ||
+    editNotes !== (regulation.assessmentNotes ?? "") ||
+    editNextReview !== (regulation.nextReviewDate?.slice(0, 10) ?? "")
+  );
+
+  function handleCancelEdit() {
+    if (isDirty) { setConfirmDiscard(true); } else { setEditMode(false); }
+  }
 
   // Control / Policy picker state
   const [showControlPicker, setShowControlPicker] = useState(false);
@@ -488,7 +507,7 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
               {saving ? "Saving…" : "Save Changes"}
             </button>
             <button
-              onClick={() => setEditMode(false)}
+              onClick={handleCancelEdit}
               className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Cancel
@@ -720,6 +739,15 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
           )}
         </section>
       </div>
+      <ConfirmDialog
+        open={confirmDiscard}
+        onClose={() => setConfirmDiscard(false)}
+        onConfirm={() => { setConfirmDiscard(false); setEditMode(false); }}
+        title="Unsaved changes"
+        message="You have unsaved changes. Discard them and close?"
+        confirmLabel="Discard changes"
+        variant="warning"
+      />
     </div>
   );
 }
