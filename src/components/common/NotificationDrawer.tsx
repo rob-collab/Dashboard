@@ -232,7 +232,7 @@ function useNotifications() {
           bgColour: "bg-red-50",
           title: `${overdueScenarios.length} scenario test${overdueScenarios.length > 1 ? "s" : ""} overdue`,
           description: `${overdueScenarios.slice(0, 2).map((s) => s.name).join(", ")}${overdueScenarios.length > 2 ? ` +${overdueScenarios.length - 2} more` : ""}`,
-          href: "/operational-resilience?tab=ibs",
+          href: "/processes?tab=ibs",
           priority: "critical",
         });
       }
@@ -251,7 +251,7 @@ function useNotifications() {
           bgColour: "bg-amber-50",
           title: `${dueSoonScenarios.length} scenario test${dueSoonScenarios.length > 1 ? "s" : ""} due within 30 days`,
           description: `${dueSoonScenarios.slice(0, 2).map((s) => s.name).join(", ")}${dueSoonScenarios.length > 2 ? ` +${dueSoonScenarios.length - 2} more` : ""}`,
-          href: "/operational-resilience?tab=ibs",
+          href: "/processes?tab=ibs",
           priority: "high",
         });
       }
@@ -266,7 +266,7 @@ function useNotifications() {
           bgColour: "bg-amber-50",
           title: `${ibsGaps.length} IBS with incomplete resource mapping`,
           description: `${ibsGaps.slice(0, 2).map((i) => i.reference).join(", ")}${ibsGaps.length > 2 ? ` +${ibsGaps.length - 2} more` : ""} — fewer than 3 categories filled`,
-          href: "/operational-resilience?tab=ibs",
+          href: "/processes?tab=ibs",
           priority: "high",
         });
       }
@@ -287,7 +287,7 @@ function useNotifications() {
             bgColour: isOctober ? "bg-red-50" : "bg-amber-50",
             title: `${currentYear} self-assessment not yet submitted`,
             description: "Annual operational resilience self-assessment must be submitted to the board for approval",
-            href: "/operational-resilience?tab=self-assessment",
+            href: "/processes?tab=self-assessment",
             priority: isOctober ? "critical" : "high",
           });
         }
@@ -306,7 +306,7 @@ function useNotifications() {
           bgColour: "bg-amber-50",
           title: `${urgentEvents.length} regulatory deadline${urgentEvents.length > 1 ? "s" : ""} approaching`,
           description: `${urgentEvents.slice(0, 2).map((e) => e.title).join(", ")}${urgentEvents.length > 2 ? ` +${urgentEvents.length - 2} more` : ""}`,
-          href: "/operational-resilience",
+          href: "/regulatory-calendar",
           priority: "high",
         });
       }

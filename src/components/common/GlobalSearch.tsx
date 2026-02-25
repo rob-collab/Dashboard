@@ -206,7 +206,7 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
           id: i.id,
           label: `${i.reference}: ${i.name}`,
           sublabel: i.owner?.name,
-          href: `/operational-resilience?tab=ibs`,
+          href: `/processes?tab=ibs`,
           type: "ib",
         });
       }

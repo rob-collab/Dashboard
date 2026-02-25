@@ -76,7 +76,7 @@ export default function ORDashboard({ onSelectIbs }: { onSelectIbs?: (id: string
       {/* Summary stats — all clickable */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          href="/operational-resilience?tab=ibs"
+          href="/processes?tab=ibs"
           icon={<ShieldCheck size={18} className="text-green-600" />}
           label="IBS Ready"
           value={`${greenCount}/${data.ibs.length}`}
@@ -90,7 +90,7 @@ export default function ORDashboard({ onSelectIbs }: { onSelectIbs?: (id: string
           colour={data.openRemediationsTotal > 0 ? "red" : "green"}
         />
         <StatCard
-          href="/operational-resilience?tab=ibs"
+          href="/processes?tab=ibs"
           icon={<Clock size={18} className="text-amber-600" />}
           label="Tests Due"
           value={data.upcomingTests.length}
@@ -98,7 +98,7 @@ export default function ORDashboard({ onSelectIbs }: { onSelectIbs?: (id: string
           hint="View in IBS Registry"
         />
         <StatCard
-          href="/operational-resilience?tab=self-assessment"
+          href="/processes?tab=self-assessment"
           icon={<TrendingUp size={18} className="text-updraft-bright-purple" />}
           label={`${data.currentYear} Assessment`}
           value={data.currentAssessment ? `${data.assessmentReadiness ?? 0}%` : "Not started"}

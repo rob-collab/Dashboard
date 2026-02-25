@@ -115,13 +115,13 @@ export default function SelfAssessmentTab({ isCCRO }: { isCCRO: boolean }) {
           <ReadinessItem
             label={`IBS resource maps complete (${ibsWithFullMaps}/${totalIBS} IBS with ≥4 categories)`}
             done={ibsMapsComplete}
-            href="/operational-resilience?tab=ibs"
-            onNavigate={() => router.push("/operational-resilience?tab=ibs")}
+            href="/processes?tab=ibs"
+            onNavigate={() => router.push("/processes?tab=ibs")}
           />
           <ReadinessItem
             label={`Scenario tests up to date (${overdueScenarios === 0 ? "none" : overdueScenarios} overdue)`}
             done={scenariosUpToDate}
-            onNavigate={() => router.push("/operational-resilience?tab=ibs")}
+            onNavigate={() => router.push("/processes?tab=ibs")}
           />
           <ReadinessItem
             label={`Open remediations resolved (tracked in Actions)`}

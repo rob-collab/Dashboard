@@ -1,7 +1,43 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-25 (Should Fix — Quick Wins sprint)
+Last updated: 2026-02-25 (Navigation Restructure — Processes & IBS + Sidebar Cleanup)
 
 ---
+
+## CURRENT SPRINT: Navigation Restructure — Processes & IBS + Sidebar Cleanup
+
+### What
+Consolidate Operational Resilience into the Process Library page (renamed "Processes & IBS"), clean up sidebar duplication (remove OR standalone, SM&CR standalone), and give the Regulatory Calendar its own dedicated route.
+
+### Files
+- `src/components/layout/Sidebar.tsx` — rename, remove OR+SM&CR, add Reg Cal, move badge
+- `src/app/processes/page.tsx` — add 3 OR tabs + state
+- `src/app/operational-resilience/page.tsx` — replace with smart redirect
+- `src/app/compliance/page.tsx` — remove Reg Calendar tab
+- `src/app/regulatory-calendar/page.tsx` — NEW standalone Reg Calendar page
+- `src/lib/permissions.ts` — verify CEO has page:compliance (already present)
+- `src/components/common/NotificationDrawer.tsx` — update OR hrefs
+
+### Checklist
+- [x] Sidebar: "Processes & IBS" shown with operationalResilience badge
+- [x] Sidebar: SM&CR item removed
+- [x] Sidebar: OR standalone item removed
+- [x] Sidebar: "Reg Calendar" item links to `/regulatory-calendar`
+- [x] Processes & IBS page: all 5 tabs render correctly (Processes, IBS Registry, Resilience Overview, Self-Assessment, History)
+- [x] OR Dashboard → IBS drill-through (onSelectIbs) works within the new page
+- [x] `/operational-resilience` redirects to `/processes` (tab params mapped)
+- [x] Compliance page: Regulatory Calendar tab removed, no broken references
+- [x] `/regulatory-calendar` page renders RegulatoryCalendarWidget
+- [x] CEO role has `page:compliance` permission (already present — verified)
+- [x] NotificationDrawer OR notification hrefs updated (scenarios, IBS gaps, self-assessment → /processes; reg deadlines → /regulatory-calendar)
+- [x] GlobalSearch IBS hrefs updated to /processes?tab=ibs
+- [x] ORDashboard stat card hrefs updated to /processes?tab=ibs and /processes?tab=self-assessment
+- [x] SelfAssessmentTab readiness checklist hrefs updated to /processes?tab=ibs
+- [x] Build passes — zero type errors ✅
+- [x] No existing features removed (all OR content still accessible via new tabs)
+
+---
+
+## PREVIOUSLY COMPLETED: Should Fix — Quick Wins (R3, R6, R7, T7, UX2, UX4, C1, D1, D3, E3) ✅ COMPLETE
 
 ## CURRENT SPRINT: Should Fix — Quick Wins (R3, R6, R7, T7, UX2, UX4, C1, D1, D3, E3)
 

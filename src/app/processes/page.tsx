@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Layers, BarChart2 } from "lucide-react";
+import { Layers, BarChart2, ShieldCheck, Library, FileText } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
 import type { Process } from "@/lib/types";
@@ -12,7 +12,19 @@ import ProcessFormDialog from "@/components/processes/ProcessFormDialog";
 import ProcessInsightsPanel from "@/components/processes/ProcessInsightsPanel";
 import { EmptyState } from "@/components/common/EmptyState";
 import HistoryTab from "@/components/common/HistoryTab";
+import IBSRegistryTab from "@/components/or/IBSRegistryTab";
+import ORDashboard from "@/components/or/ORDashboard";
+import SelfAssessmentTab from "@/components/or/SelfAssessmentTab";
 import { cn } from "@/lib/utils";
+
+type Tab = "processes" | "ibs" | "or-overview" | "self-assessment" | "history";
+
+const VALID_TABS: Tab[] = ["processes", "ibs", "or-overview", "self-assessment", "history"];
+
+function getTabFromParam(param: string | null): Tab {
+  if (param && VALID_TABS.includes(param as Tab)) return param as Tab;
+  return "processes";
+}
 
 export default function ProcessesPage() {
   const processes = useAppStore((s) => s.processes);
@@ -29,28 +41,39 @@ export default function ProcessesPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // Page-level tab: process library or history
-  const [activeTab, setActiveTab] = useState<"processes" | "history">(() =>
-    searchParams.get("tab") === "history" ? "history" : "processes"
+  const [activeTab, setActiveTab] = useState<Tab>(() =>
+    getTabFromParam(searchParams.get("tab"))
   );
+
+  // ID of IBS to auto-open when navigating from OR Dashboard
+  const [initialIbsId, setInitialIbsId] = useState<string | null>(null);
 
   // Sync activeTab from URL
   useEffect(() => {
-    setActiveTab(searchParams.get("tab") === "history" ? "history" : "processes");
+    setActiveTab(getTabFromParam(searchParams.get("tab")));
   }, [searchParams]);
 
-  function handleTabChange(tab: "processes" | "history") {
+  function handleTabChange(tab: Tab) {
     setActiveTab(tab);
     const params = new URLSearchParams(searchParams.toString());
-    if (tab === "history") {
+    if (tab === "processes") {
+      params.delete("tab");
+      params.delete("process");
+      setSelectedProcess(null);
+    } else if (tab === "history") {
       params.set("tab", "history");
       params.delete("process");
       setSelectedProcess(null);
     } else {
-      params.delete("tab");
+      params.set("tab", tab);
     }
     const qs = params.toString();
     router.replace(qs ? `/processes?${qs}` : "/processes", { scroll: false });
+  }
+
+  function handleDashboardIbsClick(id: string) {
+    setInitialIbsId(id);
+    handleTabChange("ibs");
   }
 
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
@@ -118,47 +141,112 @@ export default function ProcessesPage() {
             <Layers size={18} className="text-updraft-deep" />
           </div>
           <div>
-            <h1 className="font-poppins font-semibold text-gray-900 text-lg">Process Library</h1>
-            <p className="text-xs text-gray-500">{processes.filter((p) => p.status !== "RETIRED").length} active processes</p>
+            <h1 className="font-poppins font-semibold text-gray-900 text-lg">Processes &amp; IBS</h1>
+            <p className="text-xs text-gray-500">
+              {processes.filter((p) => p.status !== "RETIRED").length} active processes · FCA PS21/3 · CMORG v3
+            </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={showInsights ? () => setShowInsights(false) : loadInsights}
-            disabled={insightsLoading}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
-          >
-            <BarChart2 size={12} />
-            {showInsights ? "Hide Insights" : insightsLoading ? "Loading…" : "Insights"}
-          </button>
-          {isCCRO && (
+        {activeTab === "processes" && (
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowCreateForm(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-deep text-white px-3 py-1.5 text-xs font-medium hover:bg-updraft-bar transition-colors"
+              onClick={showInsights ? () => setShowInsights(false) : loadInsights}
+              disabled={insightsLoading}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
-              + New Process
+              <BarChart2 size={12} />
+              {showInsights ? "Hide Insights" : insightsLoading ? "Loading…" : "Insights"}
             </button>
-          )}
-        </div>
+            {isCCRO && (
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-deep text-white px-3 py-1.5 text-xs font-medium hover:bg-updraft-bar transition-colors"
+              >
+                + New Process
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Page tab bar */}
       <div className="flex gap-1 px-6 border-b border-gray-200 bg-white shrink-0">
-        {(["processes", "history"] as const).map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            onClick={() => handleTabChange(tab)}
-            className={cn(
-              "px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
-              activeTab === tab
-                ? "border-updraft-bright-purple text-updraft-deep"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            )}
-          >
-            {tab === "processes" ? "Process Library" : "History"}
-          </button>
-        ))}
+        <button
+          key="processes"
+          type="button"
+          onClick={() => handleTabChange("processes")}
+          className={cn(
+            "px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
+            activeTab === "processes"
+              ? "border-updraft-bright-purple text-updraft-deep"
+              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+          )}
+        >
+          Processes
+        </button>
+
+        {/* Divider between Process and OR tabs */}
+        <span className="flex items-center px-1 text-gray-300 text-sm select-none">|</span>
+
+        <button
+          key="ibs"
+          type="button"
+          onClick={() => handleTabChange("ibs")}
+          className={cn(
+            "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
+            activeTab === "ibs"
+              ? "border-updraft-bright-purple text-updraft-deep"
+              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+          )}
+        >
+          <Library size={14} />
+          IBS Registry
+        </button>
+        <button
+          key="or-overview"
+          type="button"
+          onClick={() => handleTabChange("or-overview")}
+          className={cn(
+            "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
+            activeTab === "or-overview"
+              ? "border-updraft-bright-purple text-updraft-deep"
+              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+          )}
+        >
+          <ShieldCheck size={14} />
+          Resilience Overview
+        </button>
+        <button
+          key="self-assessment"
+          type="button"
+          onClick={() => handleTabChange("self-assessment")}
+          className={cn(
+            "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
+            activeTab === "self-assessment"
+              ? "border-updraft-bright-purple text-updraft-deep"
+              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+          )}
+        >
+          <FileText size={14} />
+          Self-Assessment
+        </button>
+
+        {/* Divider before History */}
+        <span className="flex items-center px-1 text-gray-300 text-sm select-none">|</span>
+
+        <button
+          key="history"
+          type="button"
+          onClick={() => handleTabChange("history")}
+          className={cn(
+            "px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
+            activeTab === "history"
+              ? "border-updraft-bright-purple text-updraft-deep"
+              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+          )}
+        >
+          History
+        </button>
       </div>
 
       {/* History tab */}
@@ -172,6 +260,27 @@ export default function ProcessesPage() {
         </div>
       )}
 
+      {/* IBS Registry tab */}
+      {activeTab === "ibs" && (
+        <div className="h-full flex overflow-hidden">
+          <IBSRegistryTab isCCRO={isCCRO} initialIbsId={initialIbsId} />
+        </div>
+      )}
+
+      {/* Resilience Overview tab */}
+      {activeTab === "or-overview" && (
+        <div className="flex-1 overflow-y-auto p-6">
+          <ORDashboard onSelectIbs={handleDashboardIbsClick} />
+        </div>
+      )}
+
+      {/* Self-Assessment tab */}
+      {activeTab === "self-assessment" && (
+        <div className="flex-1 overflow-y-auto p-6">
+          <SelfAssessmentTab isCCRO={isCCRO} />
+        </div>
+      )}
+
       {/* Insights panel — only on processes tab */}
       {activeTab === "processes" && showInsights && insightsData && (
         <div className="px-6 pt-4 shrink-0">
@@ -179,7 +288,7 @@ export default function ProcessesPage() {
         </div>
       )}
 
-      {/* Main content */}
+      {/* Main content — Processes tab */}
       {activeTab === "processes" && <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Table */}
         <div className={`flex-1 overflow-y-auto p-6 transition-all ${selectedProcess ? "hidden lg:block lg:pr-4" : ""}`}>

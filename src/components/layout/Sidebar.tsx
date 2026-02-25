@@ -25,11 +25,10 @@ import {
   Eye,
   ArrowLeft,
   BookOpen,
-  BadgeCheck,
   Search,
   ArrowLeftRight,
   Layers,
-  Building2,
+  Calendar,
   Download,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
@@ -72,10 +71,9 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Compliance", href: "/compliance", icon: Scale, permission: "page:compliance", badgeKey: "compliance" },
       { label: "Policies", href: "/compliance?tab=policies", icon: BookOpen, permission: "page:compliance" },
-      { label: "SM&CR", href: "/compliance?tab=smcr", icon: BadgeCheck, permission: "page:compliance" },
       { label: "Controls", href: "/controls", icon: FlaskConical, permission: "page:controls", badgeKey: "controls" },
-      { label: "Process Library", href: "/processes", icon: Layers, permission: "page:compliance" },
-      { label: "Operational Resilience", href: "/operational-resilience", icon: Building2, permission: "page:operational-resilience", badgeKey: "operationalResilience" },
+      { label: "Processes & IBS", href: "/processes", icon: Layers, permission: "page:compliance", badgeKey: "operationalResilience" },
+      { label: "Reg Calendar", href: "/regulatory-calendar", icon: Calendar, permission: "page:compliance" },
     ],
   },
   {
@@ -284,7 +282,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
     }
     if (href === "/compliance") {
       const tab = searchParams.get("tab");
-      return pathname.startsWith("/compliance") && tab !== "policies" && tab !== "smcr";
+      return pathname.startsWith("/compliance") && tab !== "policies";
     }
     return pathname.startsWith(href);
   }

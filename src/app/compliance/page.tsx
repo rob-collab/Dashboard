@@ -11,7 +11,6 @@ import CoverageChainTab from "@/components/compliance/CoverageChainTab";
 import ComplianceRoadmapTab from "@/components/compliance/ComplianceRoadmapTab";
 import RegulatoryChangeLogTab from "@/components/compliance/RegulatoryChangeLogTab";
 import ComplianceHistoryTab from "@/components/compliance/ComplianceHistoryTab";
-import RegulatoryCalendarWidget from "@/components/or/RegulatoryCalendarWidget";
 import { cn } from "@/lib/utils";
 import { usePageTitle } from "@/lib/usePageTitle";
 
@@ -23,7 +22,6 @@ const TABS = [
   { id: "assessment-log", label: "Assessment Log" },
   { id: "smcr", label: "SM&CR" },
   { id: "policies", label: "Policies" },
-  { id: "regulatory-calendar", label: "Regulatory Calendar" },
   { id: "history", label: "History" },
 ] as const;
 
@@ -102,11 +100,6 @@ export default function CompliancePage() {
         {activeTab === "assessment-log" && <RegulatoryChangeLogTab />}
         {activeTab === "smcr" && <SMCRTab />}
         {activeTab === "policies" && <PoliciesTab initialPolicyId={initialPolicyId} />}
-        {activeTab === "regulatory-calendar" && (
-          <div className="mt-4">
-            <RegulatoryCalendarWidget />
-          </div>
-        )}
         {activeTab === "history" && <ComplianceHistoryTab />}
       </div>
     </RoleGuard>
