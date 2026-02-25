@@ -1,14 +1,12 @@
 "use client";
 
-import RoleGuard from "@/components/common/RoleGuard";
-import ComponentsPanel from "@/components/settings/ComponentsPanel";
-import { usePageTitle } from "@/lib/usePageTitle";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function ComponentsLibPage() {
-  usePageTitle("Component Library");
-  return (
-    <RoleGuard permission="page:settings">
-      <ComponentsPanel />
-    </RoleGuard>
-  );
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/settings?tab=components");
+  }, [router]);
+  return null;
 }

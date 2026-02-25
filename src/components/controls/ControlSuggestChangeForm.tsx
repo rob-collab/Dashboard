@@ -236,6 +236,12 @@ export default function ControlSuggestChangeForm({
       )}
 
       {selectedField && (
+        <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+          Your proposal will be reviewed by the CCRO team. You will be notified when it is approved or rejected.
+        </p>
+      )}
+
+      {selectedField && (
         <button
           type="submit"
           disabled={submitting || !rationale.trim()}

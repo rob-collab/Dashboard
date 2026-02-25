@@ -1,9 +1,38 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-25 (Should Fix sprint — UX7, A1, A3, E1)
+Last updated: 2026-02-25 (Could Fix quick wins — R5, UX6, C3, UX9)
 
 ---
 
-## CURRENT SPRINT: Should Fix — Remaining 4 Items (UX7, A1, A3, E1) ✅ COMPLETE
+## CURRENT SPRINT: Could Fix — Quick Wins (R5, UX6, C3, UX9) ✅ COMPLETE
+
+### What
+Four low-risk audit items that improve UX and auditability without touching core workflows.
+
+### Files
+- `src/app/templates/page.tsx` — R5: replace orphaned page with redirect to /settings?tab=templates
+- `src/app/components-lib/page.tsx` — R5: replace orphaned page with redirect to /settings?tab=components
+- `src/app/actions/page.tsx` — UX6: read/write collapsedGroups from localStorage
+- `src/components/controls/ControlSuggestChangeForm.tsx` — C3: add workflow note before submit button
+- `src/app/api/export/html/route.ts` — UX9: log audit event when HTML pack is generated
+
+### Skipped
+- T9 — leave as-is (no code change, by design)
+- T6 — already done (no dashboard badge exists)
+- UX5 — deferred (compliance tab switching — no clean fix available without risk of regression)
+
+### Checklist
+- [x] R5: /templates redirects to /settings?tab=templates
+- [x] R5: /components-lib redirects to /settings?tab=components
+- [x] UX6: Actions page reads initial collapsedGroups from localStorage (falls back to {"COMPLETED"})
+- [x] UX6: Toggling a group persists the new set to localStorage
+- [x] C3: ControlSuggestChangeForm shows workflow note when a field is selected
+- [x] UX9: POST /api/export/html writes an auditLog entry (fire-and-forget)
+- [x] Build passes — zero type errors
+- [x] No existing features removed
+
+---
+
+## PREVIOUSLY COMPLETED: Should Fix — Remaining 4 Items (UX7, A1, A3, E1) ✅ COMPLETE
 
 ### What
 Four remaining "Should Fix" items from the 25 Feb 2026 audit.

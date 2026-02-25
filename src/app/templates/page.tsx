@@ -1,14 +1,12 @@
 "use client";
 
-import RoleGuard from "@/components/common/RoleGuard";
-import TemplatesPanel from "@/components/settings/TemplatesPanel";
-import { usePageTitle } from "@/lib/usePageTitle";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function TemplatesPage() {
-  usePageTitle("Templates");
-  return (
-    <RoleGuard permission="page:settings">
-      <TemplatesPanel />
-    </RoleGuard>
-  );
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/settings?tab=templates");
+  }, [router]);
+  return null;
 }

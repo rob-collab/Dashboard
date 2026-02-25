@@ -329,6 +329,20 @@ export async function POST(request: NextRequest) {
     const now = new Date();
     const filename = `CCRO_Pack_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}.html`;
 
+    // Audit log — fire-and-forget; never block the download
+    prisma.user.findUnique({ where: { id: userId }, select: { role: true } }).then((u) =>
+      prisma.auditLog.create({
+        data: {
+          userId,
+          userRole: u?.role ?? "VIEWER",
+          action: "generate_export",
+          entityType: "export",
+          entityId: "html-pack",
+          changes: { sections: sections as string[], firmName: options.firmName ?? "Unknown" },
+        },
+      })
+    ).catch(() => {});
+
     return new Response(html, {
       status: 200,
       headers: {

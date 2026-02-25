@@ -163,7 +163,12 @@ function ActionsPageContent() {
   const [showCSVImport, setShowCSVImport] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showUpdateForm, setShowUpdateForm] = useState<string | null>(null);
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set(["COMPLETED"]));
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
+    try {
+      const s = localStorage.getItem("actions-collapsed-groups");
+      return s ? new Set(JSON.parse(s) as string[]) : new Set(["COMPLETED"]);
+    } catch { return new Set(["COMPLETED"]); }
+  });
   const [progressMounted, setProgressMounted] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkReassignTo, setBulkReassignTo] = useState("");
@@ -852,6 +857,7 @@ function ActionsPageContent() {
                         const next = new Set(prev);
                         if (next.has(gStatus)) next.delete(gStatus);
                         else next.add(gStatus);
+                        try { localStorage.setItem("actions-collapsed-groups", JSON.stringify(Array.from(next))); } catch {}
                         return next;
                       })
                     }
