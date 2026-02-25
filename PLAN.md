@@ -68,7 +68,7 @@ Unsaved changes guard on three edit panels: IBSOverviewTab, RiskDetailPanel, Reg
 
 ---
 
-## CURRENT SPRINT: Remaining Audit Items — Sprint 3 (D2, D4)
+## PREVIOUSLY COMPLETED: Remaining Audit Items — Sprint 3 (D2, D4) ✅ COMPLETE
 
 ### What
 D2: Maturity card tab CTAs in ProcessOverviewTab — each criterion gets a ghost button that jumps to the relevant tab.
@@ -80,17 +80,17 @@ D4: Single-process HTML export — "Export" button in ProcessDetailPanel header,
 - `src/lib/export-process-html.ts` — D4: new file, generateProcessHTML()
 
 ### Checklist
-- [ ] D2: ProcessOverviewTab accepts onNavigateTab prop
-- [ ] D2: Level 1 criteria shows "Edit details" button → calls onEdit()
-- [ ] D2: Level 2 criteria shows "→ Policies" and "→ Regulations" buttons
-- [ ] D2: Level 3 criteria shows "→ Controls", "→ Risks", "→ Steps" buttons
-- [ ] D2: Level 4 criteria shows "→ IBS" button
-- [ ] D2: ProcessDetailPanel passes onNavigateTab={setActiveTab} to ProcessOverviewTab
-- [ ] D4: src/lib/export-process-html.ts created with generateProcessHTML()
-- [ ] D4: Export button in ProcessDetailPanel header (visible to all roles)
-- [ ] D4: Clicking Export downloads Process_[REF]_[date].html
-- [ ] Build passes — zero type errors
-- [ ] No existing features removed
+- [x] D2: ProcessOverviewTab accepts onNavigateTab prop
+- [x] D2: Level 1 criteria shows "Edit details" button → calls onEdit()
+- [x] D2: Level 2 criteria shows "→ Policies" and "→ Regulations" buttons
+- [x] D2: Level 3 criteria shows "→ Controls", "→ Risks", "→ Steps" buttons
+- [x] D2: Level 4 criteria shows "→ IBS" button
+- [x] D2: ProcessDetailPanel passes onNavigateTab={setActiveTab} to ProcessOverviewTab
+- [x] D4: src/lib/export-process-html.ts created with generateProcessHTML()
+- [x] D4: Export button in ProcessDetailPanel header (visible to all roles)
+- [x] D4: Clicking Export downloads Process_[REF]_[date].html
+- [x] Build passes — zero type errors
+- [x] No existing features removed
 
 ---
 

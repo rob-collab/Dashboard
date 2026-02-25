@@ -557,14 +557,14 @@ The following table summarises all issues by priority for implementation plannin
 | T7 | Regulatory Calendar naming/location is inconsistent | Technical | Small |
 | UX2 | Bell and Dashboard badge count the same things differently | UX | Small |
 | UX4 | Global Search misses processes, IBS, risk acceptances | UX | Small |
-| UX7 | Form validation errors are not shown inline | UX | Medium |
-| A1 | CCRO: Dashboard is not a morning briefing | Persona | Medium |
-| A3 | CCRO: Bulk approve on Change Requests | Persona | Medium |
+| ~~UX7~~ | ~~Form validation errors are not shown inline~~ — **DONE (should fix sprint)** | UX | Medium |
+| ~~A1~~ | ~~CCRO: Dashboard is not a morning briefing~~ — **DONE (should fix sprint)** | Persona | Medium |
+| ~~A3~~ | ~~CCRO: Bulk approve on Change Requests~~ — **DONE (should fix sprint)** | Persona | Medium |
 | C1 | Risk Owner: No "My Risks" filter as default | Persona | Small |
 | C2 | Risk Owner: No feedback on proposed changes | Persona | Medium |
 | D1 | Process Owner: No "My Processes" filter | Persona | Small |
 | D3 | Process Owner: Review notifications go to wrong person | Persona | Small |
-| E1 | Control Owner: Attestation has no context | Persona | Medium |
+| ~~E1~~ | ~~Control Owner: Attestation has no context~~ — **DONE (should fix sprint)** | Persona | Medium |
 | E3 | Control Owner: No notification when test is overdue | Persona | Small |
 
 ### Nice to Have (polish and completeness)
@@ -573,23 +573,23 @@ The following table summarises all issues by priority for implementation plannin
 |---|-------|------|--------|
 | R5 | `/templates` and `/components-lib` routes are orphaned | Regression | Small |
 | R6 | `riskRegister` badge key is dead code | Technical | Small |
-| T2 | No unsaved changes guard | Technical | Medium |
-| T3 | Loading states inconsistent | Technical | Medium |
+| ~~T2~~ | ~~No unsaved changes guard~~ — **DONE (sprints 2)** | Technical | Medium |
+| ~~T3~~ | ~~Loading states inconsistent~~ — **DONE (sprint 1)** | Technical | Medium |
 | T5 | Dashboard too dense | Technical | Large |
 | T6 | Dashboard badge on sidebar nav is ambiguous | Technical | Small |
-| T8 | Not all API writes go through audit logging | Technical | Medium |
+| ~~T8~~ | ~~Not all API writes go through audit logging~~ — **DONE (sprint 1)** | Technical | Medium |
 | T9 | OWNER-created PENDING risks visible before CCRO approval | Technical | Small |
-| UX3 | Empty states inconsistent in quality | UX | Small |
+| ~~UX3~~ | ~~Empty states inconsistent in quality~~ — **DONE (sprint 1)** | UX | Small |
 | UX5 | Compliance sidebar tab links have edge-case bug | UX | Small |
-| UX6 | Actions group expand/collapse state not persisted | UX | Small |
-| UX8 | Reports page discovery is poor | UX | Small |
-| UX9 | Export Centre has no audit trail | UX | Small |
-| UX10 | Process step roles are free text with no standardisation | UX | Small |
+| ~~UX6~~ | ~~Actions group expand/collapse state not persisted~~ — **DONE (prior sprint)** | UX | Small |
+| ~~UX8~~ | ~~Reports page discovery is poor~~ — **DONE (sprint 1)** | UX | Small |
+| ~~UX9~~ | ~~Export Centre has no audit trail~~ — **DONE (prior sprint)** | UX | Small |
+| ~~UX10~~ | ~~Process step roles are free text with no standardisation~~ — **DONE (sprint 1)** | UX | Small |
 | ~~B1~~ | ~~CEO: No single Board View dashboard mode~~ — **REJECTED: existing dashboard is sufficient; no second dashboard wanted** | Persona | Large |
 | ~~B3~~ | ~~CEO: Risk Register default view wrong for executives~~ — **REJECTED: table view is the preferred default for all roles** | Persona | Small |
-| C3 | Risk Owner: Change proposal has no workflow explanation | Persona | Small |
-| D2 | Process Owner: Maturity requirements not actionable | Persona | Medium |
-| D4 | Process Owner: No process export | Persona | Medium |
+| ~~C3~~ | ~~Risk Owner: Change proposal has no workflow explanation~~ — **DONE (prior sprint)** | Persona | Small |
+| ~~D2~~ | ~~Process Owner: Maturity requirements not actionable~~ — **DONE (sprint 3)** | Persona | Medium |
+| ~~D4~~ | ~~Process Owner: No process export~~ — **DONE (sprint 3)** | Persona | Medium |
 
 ---
 
