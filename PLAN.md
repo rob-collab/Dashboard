@@ -76,9 +76,9 @@ No existing features are being removed — all changes are additive or correctiv
 - [x] No form closes before save animation completes
 
 **UX1 — Back button**
-- [ ] Back button only appears when custom navigationStack has entries
-- [ ] Browser history fallback removed entirely
-- [ ] Back button does not appear on first load or fresh navigation without EntityLink context
+- [x] Back button only appears when custom navigationStack has entries
+- [x] Browser history fallback removed entirely
+- [x] Back button does not appear on first load or fresh navigation without EntityLink context
 
 **General**
 - [ ] Build passes (npx next build) — zero type errors

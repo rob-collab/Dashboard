@@ -1,7 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import { ArrowLeft } from "lucide-react";
 
@@ -10,34 +8,22 @@ interface Props {
 }
 
 /**
- * Floating "Back" pill that appears whenever the browser has navigable history.
- * - If the custom navigation stack has items: uses popNavigationStack() for exact URL
- * - Otherwise: falls back to router.back() (standard browser back)
+ * Floating "Back" pill that appears only when the custom navigationStack has entries.
+ * The stack is populated exclusively by EntityLink click-throughs, so the button
+ * will never appear on a fresh page load or direct URL navigation — eliminating
+ * the risk of accidentally backing out of the app entirely.
  */
 export default function NavigationBackButton({ sidebarOpen }: Props) {
-  const router = useRouter();
-  const pathname = usePathname();
   const stackLength = useAppStore((s) => s.navigationStack.length);
   const popNavigationStack = useAppStore((s) => s.popNavigationStack);
-  const [canGoBack, setCanGoBack] = useState(false);
 
-  useEffect(() => {
-    // Re-check on every navigation — history grows as the user moves around
-    setCanGoBack(window.history.length > 1);
-  }, [pathname]);
-
-  const visible = stackLength > 0 || canGoBack;
-  if (!visible) return null;
+  if (stackLength === 0) return null;
 
   function handleBack() {
-    if (stackLength > 0) {
-      const prev = popNavigationStack();
-      if (prev) {
-        window.location.href = prev;
-        return;
-      }
+    const prev = popNavigationStack();
+    if (prev) {
+      window.location.href = prev;
     }
-    router.back();
   }
 
   return (
