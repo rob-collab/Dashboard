@@ -82,20 +82,104 @@ ticked.
 "also", "and", lists, or mixed request types.
 **Status:** [PROMOTED → CLAUDE.md "Step 0a: Decompose the Message First"]
 
-<!-- Add new L-series entries here: L007, L008, ... -->
+### L007 — Authentication ≠ Authorisation in API routes
+**What happened:** Horizon Scanning write endpoints used `getUserId()` which only checks
+"are you logged in?". Any authenticated user (VIEWER, OWNER) could call POST/PATCH/DELETE
+via direct API request, bypassing the UI-level role guards entirely.
+**Rule:** `getUserId()` is for read-only/audit purposes only. Every API write endpoint must
+use `requireCCRORole(req)` or `checkPermission(req, "permission:code")` — never just
+`getUserId()`. Read endpoints that return sensitive fields must also check caller role.
+**Trigger:** Any new or modified API route that writes to the DB, or any GET that returns
+fields marked as role-restricted in the UI (e.g. `notes`, internal reviewer comments).
+
+---
+
+### L008 — GET endpoints can leak sensitive fields even with UI guards
+**What happened:** The `notes` field on HorizonItem was correctly hidden from the UI for
+non-CCRO roles, but the GET API returned it to all authenticated callers. Anyone with
+network access and an auth token could read internal CCRO notes.
+**Rule:** If a field is role-restricted in the UI, it must also be stripped at the API
+layer. Pattern: fetch the full record, then map and null-out restricted fields based on
+caller role before returning. Do not rely on the UI to hide sensitive data.
+**Trigger:** Any field displayed with a "CCRO Team only" / "internal" label in the UI.
+
+---
+
+### L009 — `requireCCRORole` vs `checkPermission` — know which to use
+**What happened:** The actions endpoint needed `checkPermission("create:action")` not
+`requireCCRORole`, because OWNER role also has the `create:action` permission. Using
+`requireCCRORole` would have silently blocked a valid use case.
+**Rule:** Use `requireCCRORole` when the action is strictly CCRO-only (create/edit/delete
+horizon items, link risks, etc.). Use `checkPermission(req, "code")` when the permission
+is potentially granted to other roles (e.g. create:action, which OWNER can hold).
+**Trigger:** Any new write endpoint — ask: "Could a non-CCRO role legitimately do this?"
+If yes → `checkPermission`. If strictly CCRO → `requireCCRORole`.
+
+---
+
+### L010 — CEO is a distinct role; do not conflate with OWNER
+**What happened:** The UAT review noted "CEO fully read-only" and "canChangeFocus for CEO".
+Initial assumption was CEO = OWNER, but the DB schema has four roles: CCRO_TEAM, CEO,
+OWNER, VIEWER — each with different permission profiles.
+**Rule:** Always check the Role enum in `prisma/schema.prisma` before assuming which roles
+exist. Do not guess or collapse roles. CEO has distinct permissions (e.g. can change focus,
+cannot create horizon items).
+**Trigger:** Any role check or permission guard — verify the exact enum before coding.
+
+---
+
+### L011 — Prop naming should reflect actual semantics, not historical origin
+**What happened:** `HorizonInFocusSpotlight` received a `canManage` prop but only ever
+used it to show/hide the "Change focus" button. When the logic changed (CEO ≠ full manage
+rights), the prop name caused confusion about what the boolean actually meant.
+**Rule:** Name props for their specific purpose, not a generic parent concept. If a prop
+guards one specific action, name it for that action (`canChangeFocus`, `canCreateAction`)
+rather than a broad capability (`canManage`, `isAdmin`). This makes behaviour obvious at
+the call site and survives future permission splits cleanly.
+**Trigger:** Any boolean prop named `canManage`, `isAdmin`, `hasAccess` — ask: "What
+exactly does this gate?" and use that as the prop name.
+
+---
+
+<!-- Add new L-series entries here: L012, L013, ... -->
 
 ---
 
 ## Wins & Reusable Patterns (W-series)
 
-<!-- Add W-series entries here: W001, W002, ... -->
-<!-- Format:
-### W001 — [Short title]
-**What happened:** [What worked well and why]
-**Pattern:** [The reusable rule or approach]
-**Applies to:** [Where/when to use it again]
-**Status:** [Raw | PROMOTED → file]
--->
+### W001 — Dirty state from prop comparison, no shadow state needed
+**What happened:** Implemented unsaved-changes detection in HorizonDetailPanel by comparing
+current field state directly against the original `item` prop. No separate "original" copy
+needed — props are already the source of truth for what was last saved.
+**Pattern:**
+```ts
+const isDirty =
+  title !== item.title ||
+  summary !== item.summary ||
+  deadline !== (item.deadline ? item.deadline.slice(0, 10) : "") ||
+  notes !== (item.notes ?? "");
+```
+Keep field state as the mutable local copy; compare against the immutable prop to detect drift.
+**Applies to:** Any edit panel/drawer that auto-saves or needs an unsaved-changes guard.
+
+---
+
+### W002 — Role-scoped field filtering: fetch everything, strip before return
+**What happened:** For GET endpoints that must hide certain fields from some roles, the
+cleanest pattern was: fetch the full Prisma record, then map and null-out sensitive fields
+based on caller role — without writing two separate queries.
+**Pattern:**
+```ts
+const isCCRO = user?.role === "CCRO_TEAM";
+const safeItem = { ...item, notes: isCCRO ? item.notes : null };
+return jsonResponse(serialiseDates(safeItem));
+```
+Simple, auditable, and keeps Prisma queries clean.
+**Applies to:** Any GET endpoint returning records with role-restricted fields.
+
+---
+
+<!-- Add W-series entries here: W003, W004, ... -->
 
 ---
 
