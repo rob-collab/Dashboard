@@ -203,22 +203,22 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
       {/* Panel */}
       <div className="fixed right-0 top-0 bottom-0 w-full max-w-2xl bg-white shadow-2xl z-50 flex flex-col">
         {/* Header */}
-        <div className="flex items-start justify-between px-6 py-4 border-b bg-slate-50 shrink-0">
+        <div className="sticky top-0 z-10 bg-gradient-to-r from-updraft-deep to-updraft-bar px-6 py-4 flex items-start justify-between shrink-0">
           <div className="flex-1 min-w-0 pr-4">
+            <p className="text-[10px] uppercase tracking-wider text-white/50 font-medium mb-0.5">Horizon Scanning › {item.reference}</p>
             <div className="flex items-center gap-2 mb-1">
-              <span className="font-mono text-xs text-slate-400">{item.reference}</span>
               <span className={cn("text-xs font-semibold px-1.5 py-0.5 rounded", urgencyStyle.bg, urgencyStyle.text)}>
                 {urgency}
               </span>
               {isDirty && canManage && (
-                <span className="text-xs font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                <span className="text-xs font-medium text-amber-300 bg-white/10 px-1.5 py-0.5 rounded border border-amber-300/30">
                   Unsaved changes
                 </span>
               )}
             </div>
-            <h2 className="font-poppins font-semibold text-updraft-deep text-sm leading-snug line-clamp-2">{title}</h2>
+            <h2 className="font-poppins font-semibold text-white text-sm leading-snug line-clamp-2">{title}</h2>
           </div>
-          <button onClick={handleClose} className="shrink-0 p-1 text-slate-400 hover:text-slate-600 rounded transition-colors">
+          <button onClick={handleClose} className="shrink-0 p-1 text-white/70 hover:text-white hover:bg-white/10 rounded transition-colors" aria-label="Close">
             <X className="w-5 h-5" />
           </button>
         </div>

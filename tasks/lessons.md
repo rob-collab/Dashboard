@@ -141,7 +141,27 @@ exactly does this gate?" and use that as the prop name.
 
 ---
 
-<!-- Add new L-series entries here: L012, L013, ... -->
+### L012 — Never fabricate regulatory seed data — always use source documents verbatim
+**What happened:** Source documents for horizon scanning items (uploaded in a previous session)
+were lost from context due to compaction. The seed was written from general regulatory
+knowledge, producing plausible-sounding but incorrect content. Most critically, FCA CP26/7
+was titled "Consumer Duty: Fair Value and Sludge Practices" — but the real CP26/7 is about
+mandatory credit information sharing (multi-bureau reporting) from the Credit Information
+Market Study. All 8 HIGH-priority items (HZ-001 to HZ-008) were incorrect.
+**Rule:** If source documents were provided in a previous session and may have been lost
+through context compaction, DO NOT generate substitutes from general knowledge. Instead:
+1. Tell the user the documents were lost from context
+2. Ask the user to re-provide the documents before writing the seed
+3. Only write compliance/regulatory seed data from the actual source documents verbatim
+**Do NOT:** Generate plausible-sounding regulatory references for compliance applications.
+Invented regulatory content is actively harmful — it could mislead a compliance officer.
+**Trigger:** Any seed data containing regulatory references, FCA consultation paper numbers,
+FOS decisions, enforcement cases, or compliance deadlines — all must trace to a real source.
+**Status:** Active — review before any compliance data seed work.
+
+---
+
+<!-- Add new L-series entries here: L013, L014, ... -->
 
 ---
 

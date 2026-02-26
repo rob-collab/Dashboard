@@ -1,5 +1,5 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-26 (Sprint 1 complete — UAT + compliance review fixes applied)
+Last updated: 2026-02-26 (Horizon seed corrected; header fix; Sprint 2 complete)
 
 ---
 
@@ -96,6 +96,24 @@ the dashboard so items are tracked, actionable, and linked to the risk and actio
 - [x] HZ-026: ICO Article 22 Automated Decision-Making (HIGH — enforcement risk)
 - [x] HZ-027: FCA Collections & Debt Respite Scheme (HIGH — supervisory focus)
 - [x] HZ-028: CONC 5.2A Affordability Guidance Refresh (MEDIUM — FOS uphold rate trend)
+
+#### Seed data correction (2026-02-26)
+**Problem:** HZ-002–HZ-008 were generated from general knowledge after source documents were lost through context compaction. HZ-004 title "FCA CP26/7 — Consumer Duty: Fair Value and Sludge Practices" was completely wrong — CP26/7 is about mandatory credit information sharing (multi-bureau reporting).
+**Fix applied:**
+- [x] HZ-002 corrected: Consumer Duty — Annual Board Report (July 2026) [HIGH, ACTION_REQUIRED]
+- [x] HZ-003 corrected: Data (Use and Access) Act 2025 — In Force & Complaints Procedure Deadline [HIGH, ACTION_REQUIRED]
+- [x] HZ-004 corrected: FCA CP26/7 — Mandatory Credit Information Sharing (Multi-Bureau Reporting) [HIGH, ACTION_REQUIRED, inFocus]
+- [x] HZ-005 corrected: FCA Affordability & Creditworthiness — Active Supervisory Priority [HIGH, IN_PROGRESS]
+- [x] HZ-006 corrected: Compliance Warning: Monzo £21.1M FCA Fine — AML & CDD Failures [HIGH, ACTION_REQUIRED]
+- [x] HZ-007 corrected: Competitive Threat: Abound 'Render' AI Model — Open Banking Underwriting [HIGH, MONITORING]
+- [x] HZ-008 corrected: Employment Rights Act 2025 — Day One Rights from 6 April 2026 [HIGH, ACTION_REQUIRED]
+- [x] HZ-013 updated: Data Act now in force; reframed as Smart Data & LI implementation monitoring
+- [x] HZ-016 updated: Employment Rights Bill → Act; longer-term provisions (unfair dismissal reform)
+- [x] Seed re-run: `npx prisma db seed` — 28 items confirmed seeded
+- [x] L012 lesson written to tasks/lessons.md: never fabricate regulatory seed data
+
+#### Header colour fix (2026-02-26)
+- [x] HorizonDetailPanel header: changed from `bg-slate-50` (white) to `bg-gradient-to-r from-updraft-deep to-updraft-bar` with white text/icons — matches all other detail panels
 
 ---
 
