@@ -1,6 +1,40 @@
 # CCRO Dashboard — Claude Instructions
 
-## Step 0: Understand Intent Before Any Work
+## Step 0a: Decompose the Message First
+
+**Before anything else — before clarifying questions, before planning, before reading files —
+scan the full message for every distinct task it contains.**
+
+The user frequently sends messages with multiple requests in a single prompt. Every one of
+them is a real task. Missing any is a failure.
+
+**How to decompose:**
+1. Read the entire message
+2. List every discrete request, question, or instruction as a numbered inventory — even
+   small ones buried in context or mentioned in passing
+3. Surface the inventory back to the user immediately:
+   > "I see [N] tasks here:
+   > 1. ...
+   > 2. ...
+   > 3. ...
+   > Is that the full list, or have I missed anything?"
+4. Create a `TaskCreate` entry for each item — this is the working list for the session
+5. Do NOT start implementing until the inventory is confirmed
+
+**Triggers — always decompose when the message contains:**
+- More than one sentence that could be an instruction
+- Words like "also", "and", "as well", "plus", "another thing", "while you're at it"
+- A list (numbered, bulleted, or comma-separated tasks)
+- Background context followed by multiple questions
+- Mixed request types (e.g. a fix AND a feature AND a question)
+
+**After confirmation:** work through items in the order agreed, marking each `TaskUpdate`
+complete before starting the next. Never declare the message handled until every item on
+the confirmed inventory is done.
+
+---
+
+## Step 0b: Understand Intent Before Any Work
 
 **Before writing a single line of code or a plan, ask clarifying questions if ANY of the following are true:**
 

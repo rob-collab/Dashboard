@@ -70,7 +70,19 @@ layout, or fixed executive summary screen.
 
 ---
 
-<!-- Add new L-series entries here: L006, L007, ... -->
+### L006 — Multi-task messages get partially handled
+**What happened:** User sends a single message containing several distinct requests. Only
+the most prominent or first one gets addressed; others are forgotten or deprioritised
+without acknowledgement.
+**Rule:** Before doing anything, decompose the full message into a numbered task inventory
+and surface it back to the user for confirmation. Use TaskCreate for each item. Do not
+start any item until the inventory is confirmed. Do not declare done until every item is
+ticked.
+**Trigger:** Any message with 2+ sentences that could each be instructions, or containing
+"also", "and", lists, or mixed request types.
+**Status:** [PROMOTED → CLAUDE.md "Step 0a: Decompose the Message First"]
+
+<!-- Add new L-series entries here: L007, L008, ... -->
 
 ---
 
@@ -97,3 +109,4 @@ so there is a clear trail of what was absorbed into the permanent process.
 | L001 | CLAUDE.md | — | Never-delete rule |
 | L002 | CLAUDE.md | — | Confirm-intent-first rule |
 | L003 | CLAUDE.md | — | Replan-after-each-step rule |
+| L006 | CLAUDE.md | 2026-02-26 | Decompose multi-task messages before starting |
