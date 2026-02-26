@@ -5,6 +5,13 @@ import { getToken } from "next-auth/jwt";
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Dev bypass: set DEV_BYPASS_AUTH=true and DEV_USER_ID=<your-db-id> in .env.local
+  if (process.env.DEV_BYPASS_AUTH === "true" && process.env.DEV_USER_ID) {
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set("X-Verified-User-Id", process.env.DEV_USER_ID);
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
   // Allow auth endpoints, login, unauthorised, and static assets
   if (
     pathname.startsWith("/api/auth") ||

@@ -132,6 +132,28 @@ body > * {
   border-color: #D4C8E0;
 }
 
+/* Table scroll — thin visible scrollbar on both axes */
+.table-scroll::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+.table-scroll::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 0 0 4px 4px;
+}
+.table-scroll::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+.table-scroll::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+/* Firefox */
+.table-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db #f3f4f6;
+}
+
 /* Glassmorphism — warm variant */
 .glass-card {
   background: rgba(254, 253, 251, 0.55);
