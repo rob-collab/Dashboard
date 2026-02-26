@@ -62,6 +62,51 @@ For every change request (features, fixes, improvements):
 
 ---
 
+## Agent-Assisted Review Gates
+
+Specialist sub-agents are stored in `.claude/agents/`. They are invoked at specific checkpoints
+using the Task tool with `subagent_type: general-purpose` or `subagent_type: Explore`, given
+the relevant agent prompt as context. Run agents in parallel where possible.
+
+### When to invoke which agent
+
+| Agent | File | Invoke when |
+|---|---|---|
+| UAT Agent | `.claude/agents/uat-agent.md` | After every deliverable that changes visible UI |
+| Designer Agent | `.claude/agents/designer-agent.md` | After every new screen, component, or visual change |
+| Compliance Agent | `.claude/agents/compliance-agent.md` | After changes to risk/control/SMCR/obligations data model or logic |
+| Planning Agent | `.claude/agents/planning-agent.md` | At sprint boundaries, or if implementation feels off-track |
+
+### Tiered usage
+
+**Tier 1 — Every deliverable (always run in parallel with my own review):**
+- Build agent: `npx next build` via `Bash` subagent — confirms zero errors
+- UAT agent: `Explore` subagent with `uat-agent.md` prompt — simulates CRO user review
+
+**Tier 2 — New screens or significant UI changes (add to Tier 1):**
+- Designer agent: `Explore` subagent with `designer-agent.md` prompt
+
+**Tier 3 — Domain logic changes (risk, controls, SMCR, obligations, audit):**
+- Compliance agent: `general-purpose` subagent with `compliance-agent.md` prompt
+
+**Tier 4 — Sprint boundaries or detected drift:**
+- Planning agent: `general-purpose` subagent with `planning-agent.md` prompt — reads
+  PLAN.md + recent git log and reports on drift, gaps, and replanning needs
+
+### How to invoke (example)
+```
+Task tool → subagent_type: Explore
+Prompt: "[paste contents of .claude/agents/uat-agent.md]
+
+Now review the following changed files and evaluate them against the criteria above:
+[list the files changed in this deliverable]"
+```
+
+Agent findings are consolidated before proceeding. Any FAIL (UAT) or NON-COMPLIANT (Compliance)
+item blocks progress until resolved.
+
+---
+
 ## PLAN.md Conventions
 - Active sprint: `## CURRENT SPRINT: <name>` — mark `✅ COMPLETE` when done
 - Completed sprints: move to `## PREVIOUSLY COMPLETED` section
@@ -97,14 +142,58 @@ For every change request (features, fixes, improvements):
 
 ---
 
-## Self-Improvement Loop
+## Continuous Learning System
 
-When the user corrects a mistake or points out something that went wrong:
+### During a sprint — capture in real time
 
-1. Identify the root cause pattern (not just the specific instance)
-2. Write a rule to `tasks/lessons.md` that prevents the same class of mistake
-3. Confirm the lesson was written before moving on
-4. Review `tasks/lessons.md` at the start of future sessions for active reminders
+**When a mistake happens (user corrects, rework required, wrong scope):**
+1. Identify the root cause class — not the specific instance, the general pattern
+2. Add an `L00N` entry to `tasks/lessons.md` (append to the Mistakes section)
+3. Note the trigger condition and the rule to prevent recurrence
+4. Do NOT immediately promote — let the retrospective decide if it's general enough
+
+**When something works notably well:**
+1. Note it as a `W00N` entry in `tasks/lessons.md` (append to the Wins section)
+2. Describe what worked and why — be specific enough that it's reusable
+3. Again, let the retrospective decide whether to promote
+
+### At sprint end — retrospective and promotion
+
+Run the Retrospective Agent (`.claude/agents/retrospective-agent.md`) as a
+`general-purpose` subagent. It reads lessons, wins, agent outputs, commits, and PLAN.md
+from the sprint and recommends what to promote and where.
+
+**Promotion targets:**
+
+| Learning type | Promote to |
+|---|---|
+| Process rule that should always apply | `CLAUDE.md` — add to the relevant section |
+| An agent missed something it should catch | `.claude/agents/NAME.md` — add new criterion |
+| Architectural or domain knowledge | `MEMORY.md` — add to the relevant section |
+| Reusable implementation pattern | `tasks/patterns.md` — add a P00N entry |
+| Project-specific "never do this" | Stays in `tasks/lessons.md` as a standing rule |
+
+**After promoting:**
+- Mark the source entry in `tasks/lessons.md` as `[PROMOTED → file]`
+- Add a row to the `tasks/lessons.md` Promotion Log
+
+### The promotion principle
+
+A lesson earns promotion when:
+- It has recurred (or would have recurred) in more than one context
+- The promoted location is where it will actually be read before the relevant work starts
+- The wording in the target file is action-oriented and specific (not "be careful")
+
+Do NOT promote speculatively. A lesson that only applies to one rejected feature stays
+as an L-entry — it should not clutter CLAUDE.md with specifics.
+
+### Session start
+
+At the start of every session:
+1. Review `tasks/lessons.md` — active rules (non-promoted L-entries) and any W-entries
+2. Review `tasks/patterns.md` — if the current task resembles a known pattern, use it
+3. Both files are short by design — if they grow past ~200 lines, the retrospective
+   should distil and prune them
 
 ---
 
