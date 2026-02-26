@@ -36,9 +36,10 @@ export default function CompliancePage() {
   const router = useRouter();
   const initialPolicyId = searchParams.get("policy");
   const initialRegulationId = searchParams.get("regulation");
+  const initialDomainFilter = searchParams.get("domain");
   const derivedTab: TabId = initialPolicyId
     ? "policies"
-    : initialRegulationId
+    : initialRegulationId || initialDomainFilter
     ? "regulatory-universe"
     : (searchParams.get("tab") as TabId) || "overview";
   const [activeTab, setActiveTab] = useState<TabId>(
@@ -49,7 +50,8 @@ export default function CompliancePage() {
   useEffect(() => {
     const policyId = searchParams.get("policy");
     const regulationId = searchParams.get("regulation");
-    const tab = (policyId ? "policies" : regulationId ? "regulatory-universe" : searchParams.get("tab") || "overview") as TabId;
+    const domainId = searchParams.get("domain");
+    const tab = (policyId ? "policies" : (regulationId || domainId) ? "regulatory-universe" : searchParams.get("tab") || "overview") as TabId;
     if (TABS.some((t) => t.id === tab)) {
       setActiveTab(tab);
     }
@@ -62,6 +64,7 @@ export default function CompliancePage() {
     // Remove deep-link params when switching tabs manually
     params.delete("policy");
     params.delete("regulation");
+    params.delete("domain");
     const qs = params.toString();
     router.replace(qs ? `/compliance?${qs}` : "/compliance", { scroll: false });
   }, [router, searchParams]);
@@ -99,7 +102,7 @@ export default function CompliancePage() {
 
         {/* Tab content */}
         {activeTab === "overview" && <ComplianceOverview onNavigate={handleTabChange} />}
-        {activeTab === "regulatory-universe" && <RegulatoryUniverseTab initialRegulationId={initialRegulationId} />}
+        {activeTab === "regulatory-universe" && <RegulatoryUniverseTab initialRegulationId={initialRegulationId} initialDomainFilter={initialDomainFilter} />}
         {activeTab === "coverage" && <CoverageChainTab />}
         {activeTab === "roadmap" && <ComplianceRoadmapTab />}
         {activeTab === "assessment-log" && <RegulatoryChangeLogTab />}

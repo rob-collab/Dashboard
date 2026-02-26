@@ -69,6 +69,7 @@ export default function RegulatoryCalendarWidget() {
   const [addForm, setAddForm] = useState(EMPTY_FORM);
   const [adding, setAdding] = useState(false);
   const [showPast, setShowPast] = useState(false);
+  const [activeMonthKey, setActiveMonthKey] = useState<string | null>(null);
 
   const sorted = useMemo(
     () => [...regulatoryEvents].sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()),
@@ -157,11 +158,27 @@ export default function RegulatoryCalendarWidget() {
       {monthChips.length > 0 && (
         <div className="flex gap-2 flex-wrap">
           {monthChips.map(({ key, label, count, dot }) => (
-            <span key={key} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-gray-200 bg-white text-xs font-medium text-gray-700 shadow-sm">
+            <button
+              key={key}
+              type="button"
+              onClick={() => {
+                setActiveMonthKey((prev) => (prev === key ? null : key));
+                document.getElementById(`month-${key}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-medium shadow-sm transition-all",
+                activeMonthKey === key
+                  ? "border-updraft-bright-purple/50 bg-updraft-pale-purple/30 text-updraft-deep ring-2 ring-updraft-bright-purple/20"
+                  : "border-gray-200 bg-white text-gray-700 hover:border-updraft-light-purple hover:bg-updraft-pale-purple/10"
+              )}
+            >
               <span className={cn("w-2 h-2 rounded-full shrink-0", dot)} />
               {label}
-              <span className="bg-gray-100 text-gray-500 rounded-full px-1.5 py-px text-[10px] font-semibold">{count}</span>
-            </span>
+              <span className={cn(
+                "rounded-full px-1.5 py-px text-[10px] font-semibold",
+                activeMonthKey === key ? "bg-updraft-bright-purple/20 text-updraft-deep" : "bg-gray-100 text-gray-500"
+              )}>{count}</span>
+            </button>
           ))}
         </div>
       )}
@@ -190,7 +207,7 @@ export default function RegulatoryCalendarWidget() {
       ) : (
         <div className="space-y-6">
           {groupedUpcoming.map(([key, events]) => (
-            <div key={key}>
+            <div key={key} id={`month-${key}`}>
               {/* Month divider */}
               <div className="flex items-center gap-3 mb-3">
                 <div className="h-px flex-1 bg-gradient-to-r from-updraft-bright-purple/20 to-transparent" />

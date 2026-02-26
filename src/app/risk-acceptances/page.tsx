@@ -8,6 +8,7 @@ import { formatDate, cn } from "@/lib/utils";
 import { getRiskScore, calculateBreach } from "@/lib/risk-categories";
 import { ChevronRight, Download, Plus, Search, ShieldQuestion, AlertTriangle, Clock, Check, ShieldOff, MessageSquare, Info, X as XIcon } from "lucide-react";
 import { EmptyState } from "@/components/common/EmptyState";
+import EntityLink from "@/components/common/EntityLink";
 import ScoreBadge from "@/components/risk-register/ScoreBadge";
 import RiskAcceptanceFormDialog from "@/components/risk-acceptances/RiskAcceptanceFormDialog";
 import RiskAcceptanceDetailPanel from "@/components/risk-acceptances/RiskAcceptanceDetailPanel";
@@ -448,7 +449,14 @@ export default function RiskAcceptancesPage() {
                       <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{RISK_ACCEPTANCE_SOURCE_LABELS[ra.source]}</span>
                     </td>
                     <td className="py-3 px-3">
-                      {risk ? <ScoreBadge likelihood={risk.residualLikelihood} impact={risk.residualImpact} size="sm" /> : <span className="text-xs text-gray-400">—</span>}
+                      {risk && ra.riskId ? (
+                        <div className="flex flex-col gap-1">
+                          <EntityLink type="risk" id={ra.riskId} reference={risk.reference} label={risk.name} />
+                          <button type="button" onClick={(e) => { e.stopPropagation(); router.push(`/risk-register?risk=${ra.riskId}`); }} className="inline-flex hover:opacity-80 transition-opacity w-fit">
+                            <ScoreBadge likelihood={risk.residualLikelihood} impact={risk.residualImpact} size="sm" />
+                          </button>
+                        </div>
+                      ) : <span className="text-xs text-gray-400">—</span>}
                     </td>
                     <td className="py-3 px-3">
                       {breach ? (
@@ -464,8 +472,12 @@ export default function RiskAcceptancesPage() {
                         {RISK_ACCEPTANCE_STATUS_LABELS[ra.status]}
                       </span>
                     </td>
-                    <td className="py-3 px-3 text-xs text-gray-600">{ra.proposer?.name ?? users.find((u) => u.id === ra.proposerId)?.name ?? "—"}</td>
-                    <td className="py-3 px-3 text-xs text-gray-600">{ra.approver?.name ?? (ra.approverId ? users.find((u) => u.id === ra.approverId)?.name : "—") ?? "—"}</td>
+                    <td className="py-3 px-3 text-xs text-gray-600">
+                      {(() => { const name = ra.proposer?.name ?? users.find((u) => u.id === ra.proposerId)?.name; return name ? <button type="button" onClick={(e) => { e.stopPropagation(); router.push(`/risk-register?q=${encodeURIComponent(name)}`); }} className="hover:text-updraft-bright-purple transition-colors">{name}</button> : <span>—</span>; })()}
+                    </td>
+                    <td className="py-3 px-3 text-xs text-gray-600">
+                      {(() => { const name = ra.approver?.name ?? (ra.approverId ? users.find((u) => u.id === ra.approverId)?.name : undefined); return name ? <button type="button" onClick={(e) => { e.stopPropagation(); router.push(`/risk-register?q=${encodeURIComponent(name)}`); }} className="hover:text-updraft-bright-purple transition-colors">{name}</button> : <span>—</span>; })()}
+                    </td>
                     <td className="py-3 px-3">
                       {ra.reviewDate ? (
                         <span className={cn("text-xs font-medium",

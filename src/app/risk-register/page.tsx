@@ -22,7 +22,7 @@ import { PageLoadingState } from "@/components/common/LoadingState";
 
 type ViewTab = "heatmap" | "table";
 type ScoreMode = "inherent" | "residual" | "overlay";
-type CardFilter = "ALL" | "VERY_HIGH" | "HIGH" | "WORSENING" | "IMPROVING" | "IN_FOCUS";
+type CardFilter = "ALL" | "VERY_HIGH" | "HIGH" | "MEDIUM" | "LOW" | "WORSENING" | "IMPROVING" | "IN_FOCUS";
 
 function getScore(risk: Risk, mode: ScoreMode): number {
   if (mode === "inherent") return getRiskScore(risk.inherentLikelihood, risk.inherentImpact);
@@ -196,6 +196,12 @@ export default function RiskRegisterPage() {
         break;
       case "HIGH":
         result = result.filter((r) => getRiskLevel(getScore(r, effectiveMode)).level === "High");
+        break;
+      case "MEDIUM":
+        result = result.filter((r) => getRiskLevel(getScore(r, effectiveMode)).level === "Medium");
+        break;
+      case "LOW":
+        result = result.filter((r) => getRiskLevel(getScore(r, effectiveMode)).level === "Low");
         break;
       case "WORSENING":
         result = result.filter((r) => r.directionOfTravel === "DETERIORATING");

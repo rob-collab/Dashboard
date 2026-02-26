@@ -424,7 +424,7 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
                   <span className="text-xs font-medium text-gray-500 w-16">Primary</span>
                   <span className="text-sm font-semibold text-updraft-deep">{regulation.primarySMF}</span>
                   {primaryHolder?.currentHolder && (
-                    <span className="text-xs text-gray-500">({primaryHolder.currentHolder.name})</span>
+                    <a href="/compliance?tab=smcr" className="text-xs text-updraft-bright-purple hover:underline transition-colors">({primaryHolder.currentHolder.name})</a>
                   )}
                 </div>
               )}
@@ -433,7 +433,7 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
                   <span className="text-xs font-medium text-gray-500 w-16">Secondary</span>
                   <span className="text-sm font-medium text-gray-700">{regulation.secondarySMF}</span>
                   {secondaryHolder?.currentHolder && (
-                    <span className="text-xs text-gray-500">({secondaryHolder.currentHolder.name})</span>
+                    <a href="/compliance?tab=smcr" className="text-xs text-updraft-bright-purple hover:underline transition-colors">({secondaryHolder.currentHolder.name})</a>
                   )}
                 </div>
               )}

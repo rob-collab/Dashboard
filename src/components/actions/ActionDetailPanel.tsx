@@ -21,6 +21,7 @@ import {
   GitBranch,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/api-client";
 import { cn, formatDateShort } from "@/lib/utils";
 import type { Action, ActionStatus } from "@/lib/types";
@@ -96,6 +97,7 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
   const updateAction = useAppStore((s) => s.updateAction);
   const deleteAction = useAppStore((s) => s.deleteAction);
 
+  const router = useRouter();
   const isCCRO = currentUser?.role === "CCRO_TEAM";
 
   // ── local state ────────────────────────────────────────────────────────────
@@ -403,7 +405,17 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
                     {owner.name.split(" ").map((n: string) => n[0]).slice(0, 2).join("")}
                   </span>
                 ) : <User size={13} className="text-gray-400" />}
-                <p className="text-sm font-medium text-gray-800">{owner?.name || "Unassigned"}</p>
+                {owner ? (
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/actions?owner=${action.assignedTo}`)}
+                    className="text-sm font-medium text-updraft-bright-purple hover:underline transition-colors"
+                  >
+                    {owner.name}
+                  </button>
+                ) : (
+                  <p className="text-sm font-medium text-gray-800">Unassigned</p>
+                )}
               </div>
               {originalOwnerUser && originalOwnerUser.id !== action.assignedTo && (
                 <p className="text-[10px] text-gray-400 mt-0.5">Originally: {originalOwnerUser.name}</p>
@@ -426,7 +438,18 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
             <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
               <span className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Created</span>
               <p className="text-sm font-medium text-gray-800 mt-0.5">{formatDateShort(action.createdAt)}</p>
-              <p className="text-[10px] text-gray-400 mt-0.5">by {creator?.name || "Unknown"}</p>
+              <p className="text-[10px] text-gray-400 mt-0.5">
+                by{" "}
+                {creator ? (
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/actions?owner=${creator.id}`)}
+                    className="text-updraft-bright-purple hover:underline transition-colors"
+                  >
+                    {creator.name}
+                  </button>
+                ) : "Unknown"}
+              </p>
             </div>
 
             <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">

@@ -566,20 +566,26 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                         placeholder="Control description"
                         className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
                       />
-                      <select
-                        value={ctrl.controlOwner}
-                        onChange={(e) => {
-                          const next = [...controls];
-                          next[i] = { ...next[i], controlOwner: e.target.value };
-                          setControls(next);
-                        }}
-                        className="w-36 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
-                      >
-                        <option value="">Owner...</option>
-                        {activeUsers.map((u) => (
-                          <option key={u.id} value={u.id}>{u.name}</option>
-                        ))}
-                      </select>
+                      {canEditRisk ? (
+                        <select
+                          value={ctrl.controlOwner}
+                          onChange={(e) => {
+                            const next = [...controls];
+                            next[i] = { ...next[i], controlOwner: e.target.value };
+                            setControls(next);
+                          }}
+                          className="w-36 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
+                        >
+                          <option value="">Owner...</option>
+                          {activeUsers.map((u) => (
+                            <option key={u.id} value={u.id}>{u.name}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="w-36 px-3 py-2 text-sm text-gray-600 inline-block">
+                          {activeUsers.find((u) => u.id === ctrl.controlOwner)?.name || (ctrl.controlOwner ? ctrl.controlOwner : "—")}
+                        </span>
+                      )}
                       <button
                         onClick={() => setControls(controls.filter((_, j) => j !== i))}
                         className="p-2 text-gray-400 hover:text-red-500 transition-colors"

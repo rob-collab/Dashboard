@@ -27,7 +27,7 @@ import PolicyFormDialog from "@/components/policies/PolicyFormDialog";
 import PolicyDetailPanel from "@/components/policies/PolicyDetailPanel";
 import CSVImportPanel from "@/components/policies/CSVImportPanel";
 
-type StatusFilter = "all" | PolicyStatus;
+type StatusFilter = "all" | PolicyStatus | "DUE_SOON";
 type SortKey = "reference" | "name" | "version" | "status" | "owner" | "approvingBody" | "nextReviewDate" | "regulations";
 
 export default function PoliciesTab({ initialPolicyId }: { initialPolicyId?: string | null } = {}) {
@@ -80,7 +80,14 @@ export default function PoliciesTab({ initialPolicyId }: { initialPolicyId?: str
     let items = [...policies];
 
     // Status filter
-    if (statusFilter !== "all") {
+    if (statusFilter === "DUE_SOON") {
+      items = items.filter((p) => {
+        if (p.status === "OVERDUE") return false;
+        if (!p.nextReviewDate) return false;
+        const days = Math.ceil((new Date(p.nextReviewDate).getTime() - Date.now()) / 86400000);
+        return days >= 0 && days <= 30;
+      });
+    } else if (statusFilter !== "all") {
       items = items.filter((p) => p.status === statusFilter);
     }
 
@@ -335,16 +342,34 @@ export default function PoliciesTab({ initialPolicyId }: { initialPolicyId?: str
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
           {stats.overdue > 0 && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+            <button
+              type="button"
+              onClick={() => setStatusFilter((f) => f === "OVERDUE" ? "all" : "OVERDUE")}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all",
+                statusFilter === "OVERDUE"
+                  ? "bg-red-200 text-red-800 ring-2 ring-red-400/40"
+                  : "bg-red-100 text-red-700 hover:bg-red-200"
+              )}
+            >
               <AlertTriangle size={12} />
               {stats.overdue} overdue
-            </span>
+            </button>
           )}
           {stats.dueSoon > 0 && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
+            <button
+              type="button"
+              onClick={() => setStatusFilter((f) => f === "DUE_SOON" ? "all" : "DUE_SOON")}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all",
+                statusFilter === "DUE_SOON"
+                  ? "bg-amber-200 text-amber-800 ring-2 ring-amber-400/40"
+                  : "bg-amber-100 text-amber-700 hover:bg-amber-200"
+              )}
+            >
               <Clock size={12} />
               {stats.dueSoon} due within 30 days
-            </span>
+            </button>
           )}
         </div>
         <div className="flex items-center gap-2">

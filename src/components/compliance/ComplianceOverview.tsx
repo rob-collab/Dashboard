@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import {
   COMPLIANCE_STATUS_LABELS,
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export default function ComplianceOverview({ onNavigate }: Props) {
+  const router = useRouter();
   const regulations = useAppStore((s) => s.regulations);
   const policies = useAppStore((s) => s.policies);
   const smfRoles = useAppStore((s) => s.smfRoles);
@@ -113,7 +115,7 @@ export default function ComplianceOverview({ onNavigate }: Props) {
         <MetricTile label="Compliance Rate" value={`${compliantPct}%`} colour={compliantPct >= 80 ? "green" : compliantPct >= 50 ? "amber" : "red"} onClick={() => onNavigate("regulatory-universe")} />
         <MetricTile label="Open Gaps" value={gaps.nonCompliant} colour={gaps.nonCompliant > 0 ? "red" : "green"} onClick={() => onNavigate("regulatory-universe")} />
         <MetricTile label="Policies" value={policies.length} onClick={() => onNavigate("policies")} />
-        <MetricTile label="Active Controls" value={controls.filter((c) => c.isActive).length} />
+        <MetricTile label="Active Controls" value={controls.filter((c) => c.isActive).length} onClick={() => router.push("/controls?tab=library")} />
         <MetricTile label="SMF Roles Filled" value={`${smcrHealth.filledRoles}/${smfRoles.length}`} colour={smcrHealth.vacantRoles > 0 ? "amber" : "green"} onClick={() => onNavigate("smcr")} />
       </div>
 
@@ -179,7 +181,7 @@ export default function ComplianceOverview({ onNavigate }: Props) {
           {domains.map((d) => (
             <button
               key={d.id}
-              onClick={() => onNavigate("regulatory-universe")}
+              onClick={() => router.push(`/compliance?tab=regulatory-universe&domain=${encodeURIComponent(d.regulatoryBody ?? d.name)}`)}
               className="text-left p-3 rounded-lg border border-gray-200 hover:border-updraft-light-purple hover:shadow-sm transition-all"
             >
               <div className="flex items-center gap-2 mb-1">
@@ -205,12 +207,12 @@ export default function ComplianceOverview({ onNavigate }: Props) {
           </button>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <SmcrTile label="Filled Roles" value={smcrHealth.filledRoles} colour="green" />
-          <SmcrTile label="Vacant Roles" value={smcrHealth.vacantRoles} colour={smcrHealth.vacantRoles > 0 ? "red" : "green"} />
-          <SmcrTile label="Current Certs" value={smcrHealth.currentCerts} colour="green" />
-          <SmcrTile label="Due/Overdue Certs" value={smcrHealth.dueCerts} colour={smcrHealth.dueCerts > 0 ? "amber" : "green"} />
-          <SmcrTile label="Open Breaches" value={smcrHealth.openBreaches} colour={smcrHealth.openBreaches > 0 ? "red" : "green"} />
-          <SmcrTile label="Overdue Documents" value={smcrHealth.overdueDocuments} colour={smcrHealth.overdueDocuments > 0 ? "red" : "green"} />
+          <SmcrTile label="Filled Roles" value={smcrHealth.filledRoles} colour="green" onClick={() => onNavigate("smcr")} />
+          <SmcrTile label="Vacant Roles" value={smcrHealth.vacantRoles} colour={smcrHealth.vacantRoles > 0 ? "red" : "green"} onClick={() => onNavigate("smcr")} />
+          <SmcrTile label="Current Certs" value={smcrHealth.currentCerts} colour="green" onClick={() => onNavigate("smcr")} />
+          <SmcrTile label="Due/Overdue Certs" value={smcrHealth.dueCerts} colour={smcrHealth.dueCerts > 0 ? "amber" : "green"} onClick={() => onNavigate("smcr")} />
+          <SmcrTile label="Open Breaches" value={smcrHealth.openBreaches} colour={smcrHealth.openBreaches > 0 ? "red" : "green"} onClick={() => onNavigate("smcr")} />
+          <SmcrTile label="Overdue Documents" value={smcrHealth.overdueDocuments} colour={smcrHealth.overdueDocuments > 0 ? "red" : "green"} onClick={() => onNavigate("smcr")} />
         </div>
       </div>
 
@@ -230,27 +232,27 @@ export default function ComplianceOverview({ onNavigate }: Props) {
             </Link>
           </div>
           <div className="grid grid-cols-3 gap-4">
-            <div className="text-center p-4 rounded-xl bg-green-50 border border-green-100">
+            <Link href="/consumer-duty?rag=GOOD" className="text-center p-4 rounded-xl bg-green-50 border border-green-100 hover:border-green-300 hover:-translate-y-0.5 transition-all">
               <p className="text-3xl font-bold font-poppins text-green-700">{cdHealth.good}</p>
               <div className="flex items-center justify-center gap-1.5 mt-1">
                 <div className="w-2 h-2 rounded-full bg-green-500" />
                 <p className="text-xs text-green-700 font-medium">Green</p>
               </div>
-            </div>
-            <div className="text-center p-4 rounded-xl bg-amber-50 border border-amber-100">
+            </Link>
+            <Link href="/consumer-duty?rag=WARNING" className="text-center p-4 rounded-xl bg-amber-50 border border-amber-100 hover:border-amber-300 hover:-translate-y-0.5 transition-all">
               <p className="text-3xl font-bold font-poppins text-amber-700">{cdHealth.warning}</p>
               <div className="flex items-center justify-center gap-1.5 mt-1">
                 <div className="w-2 h-2 rounded-full bg-amber-500" />
                 <p className="text-xs text-amber-700 font-medium">Amber</p>
               </div>
-            </div>
-            <div className={cn("text-center p-4 rounded-xl border", cdHealth.harm > 0 ? "bg-red-50 border-red-100" : "bg-gray-50 border-gray-100")}>
+            </Link>
+            <Link href="/consumer-duty?rag=HARM" className={cn("text-center p-4 rounded-xl border hover:-translate-y-0.5 transition-all", cdHealth.harm > 0 ? "bg-red-50 border-red-100 hover:border-red-300" : "bg-gray-50 border-gray-100 hover:border-gray-300")}>
               <p className={cn("text-3xl font-bold font-poppins", cdHealth.harm > 0 ? "text-red-700" : "text-gray-400")}>{cdHealth.harm}</p>
               <div className="flex items-center justify-center gap-1.5 mt-1">
                 <div className={cn("w-2 h-2 rounded-full", cdHealth.harm > 0 ? "bg-red-500" : "bg-gray-300")} />
                 <p className={cn("text-xs font-medium", cdHealth.harm > 0 ? "text-red-700" : "text-gray-400")}>Red</p>
               </div>
-            </div>
+            </Link>
           </div>
           {cdHealth.harm > 0 && (
             <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
@@ -330,12 +332,16 @@ function GapRow({ icon: Icon, label, count, colour, onClick }: { icon: typeof Sh
   );
 }
 
-function SmcrTile({ label, value, colour }: { label: string; value: number; colour: "green" | "amber" | "red" }) {
+function SmcrTile({ label, value, colour, onClick }: { label: string; value: number; colour: "green" | "amber" | "red"; onClick?: () => void }) {
   const colourClass = colour === "green" ? "text-green-600" : colour === "amber" ? "text-amber-600" : "text-red-600";
+  const Wrapper = onClick ? "button" : "div";
   return (
-    <div className="text-center p-3 rounded-lg bg-gray-50">
+    <Wrapper
+      {...(onClick ? { onClick, type: "button" as const } : {})}
+      className={cn("text-center p-3 rounded-lg bg-gray-50 w-full", onClick && "hover:bg-gray-100 transition-colors cursor-pointer")}
+    >
       <p className={cn("text-xl font-bold font-poppins", colourClass)}>{value}</p>
       <p className="text-xs text-gray-500 mt-1">{label}</p>
-    </div>
+    </Wrapper>
   );
 }

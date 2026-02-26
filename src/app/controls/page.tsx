@@ -69,9 +69,13 @@ function ControlsPageInner() {
 
   const tabParam = searchParams.get("tab") as Tab | null;
   const initialControlId = searchParams.get("control");
+  const initialTypeFilter = searchParams.get("type");
+  const validTabs: Tab[] = ["library", "testing", "results", "dashboard", "attestation", "summaries", "trends", "exco-config", "exco-dashboard", "history"];
   const [activeTab, setActiveTab] = useState<Tab>(
-    tabParam && ["library", "testing", "results", "dashboard", "attestation", "summaries", "trends", "exco-config", "exco-dashboard", "history"].includes(tabParam)
+    tabParam && validTabs.includes(tabParam)
       ? tabParam
+      : initialTypeFilter
+      ? "library"
       : "dashboard"
   );
 
@@ -122,7 +126,7 @@ function ControlsPageInner() {
 
       {/* Tab Content */}
       {activeTab === "dashboard" && <ControlsDashboardTab onNavigateToLibrary={() => setActiveTab("library")} />}
-      {activeTab === "library" && <ControlsLibraryTab initialControlId={initialControlId} />}
+      {activeTab === "library" && <ControlsLibraryTab initialControlId={initialControlId} initialTypeFilter={initialTypeFilter} />}
       {activeTab === "attestation" && <AttestationTab />}
       {activeTab === "testing" && <TestingScheduleTab />}
       {activeTab === "results" && <TestResultsEntryTab />}

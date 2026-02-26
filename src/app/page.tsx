@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   FileText,
   Shield,
@@ -365,6 +366,7 @@ function PendingChangesPanel({
 
 export default function DashboardHome() {
   usePageTitle("Dashboard");
+  const router = useRouter();
   const hydrated = useAppStore((s) => s._hydrated);
   const currentUser = useAppStore((s) => s.currentUser);
   const branding = useAppStore((s) => s.branding);
@@ -831,7 +833,7 @@ export default function DashboardHome() {
     policiesWithGaps.sort((a, b) => (b.uncovered / b.total) - (a.uncovered / a.total));
 
     // Most-used controls (supporting most policies)
-    const controlPolicyCounts = new Map<string, { ref: string; name: string; policyCount: number }>();
+    const controlPolicyCounts = new Map<string, { id: string; ref: string; name: string; policyCount: number }>();
     for (const p of policies) {
       for (const link of p.controlLinks ?? []) {
         const ctrl = link.control;
@@ -840,7 +842,7 @@ export default function DashboardHome() {
         if (existing) {
           existing.policyCount++;
         } else {
-          controlPolicyCounts.set(ctrl.id, { ref: ctrl.controlRef, name: ctrl.controlName, policyCount: 1 });
+          controlPolicyCounts.set(ctrl.id, { id: ctrl.id, ref: ctrl.controlRef, name: ctrl.controlName, policyCount: 1 });
         }
       }
     }
@@ -866,6 +868,19 @@ export default function DashboardHome() {
         </div>
       </div>
     );
+  }
+
+  // Map audit log entity type + id to a navigation URL
+  function getEntityUrl(entityType: string | null, entityId: string | null): string {
+    if (!entityId || !entityType) return "/audit";
+    switch (entityType) {
+      case "risk": return `/risk-register?risk=${entityId}`;
+      case "action": return `/actions?edit=${entityId}`;
+      case "control": return `/controls?control=${entityId}`;
+      case "regulation": return `/compliance?tab=regulatory-universe&regulation=${entityId}`;
+      case "risk_acceptance": return `/risk-acceptances?acceptance=${entityId}`;
+      default: return "/audit";
+    }
   }
 
   // Build section map AFTER loading check
@@ -936,10 +951,10 @@ export default function DashboardHome() {
                   </Link>
                 )}
                 {canViewPending && allPendingChanges.length > 0 && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-1 text-xs font-semibold text-white">
+                  <Link href="/change-requests" className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 transition-colors">
                     <Bell className="h-3 w-3 text-blue-300" />
                     {allPendingChanges.length} pending approval{allPendingChanges.length > 1 ? "s" : ""}
-                  </span>
+                  </Link>
                 )}
               </div>
             )}
@@ -1187,7 +1202,7 @@ export default function DashboardHome() {
           {raStats.urgent.length > 0 && (
             <div className="space-y-1.5">
               {raStats.urgent.map((ra) => (
-                <div key={ra.id} className="flex items-center justify-between text-xs py-1">
+                <button key={ra.id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/risk-acceptances?acceptance=${ra.id}`); }} className="w-full flex items-center justify-between text-xs py-1 hover:opacity-80 transition-opacity text-left">
                   <span className="text-gray-700 truncate flex-1 min-w-0">
                     <span className="font-mono font-bold text-updraft-deep mr-1">{ra.reference}</span>
                     {ra.title}
@@ -1197,7 +1212,7 @@ export default function DashboardHome() {
                   }`}>
                     {ra.status === "EXPIRED" ? "Expired" : "Awaiting"}
                   </span>
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -1247,26 +1262,26 @@ export default function DashboardHome() {
           <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-updraft-bright-purple transition-colors" />
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          <div className="rounded-lg border border-green-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=regulatory-universe"); }} className="rounded-lg border border-green-100 p-3 text-center hover:opacity-80 transition-opacity" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
             <p className="text-xl font-bold font-poppins text-green-700">{complianceHealth.compliantPct}%</p>
             <p className="text-[10px] text-gray-500 mt-0.5">Compliant</p>
-          </div>
-          <div className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm">
+          </button>
+          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=regulatory-universe"); }} className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm hover:opacity-80 transition-opacity">
             <p className="text-xl font-bold font-poppins text-updraft-deep">{complianceHealth.total}</p>
             <p className="text-[10px] text-gray-500 mt-0.5">Applicable</p>
-          </div>
-          <div className={`rounded-lg border p-3 text-center ${complianceHealth.gaps > 0 ? "border-red-100" : "border-green-100"}`} style={{ background: complianceHealth.gaps > 0 ? "linear-gradient(135deg, #FEF2F2, #FFF5F5)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+          </button>
+          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=regulatory-universe"); }} className={`rounded-lg border p-3 text-center hover:opacity-80 transition-opacity ${complianceHealth.gaps > 0 ? "border-red-100" : "border-green-100"}`} style={{ background: complianceHealth.gaps > 0 ? "linear-gradient(135deg, #FEF2F2, #FFF5F5)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
             <p className={`text-xl font-bold font-poppins ${complianceHealth.gaps > 0 ? "text-red-700" : "text-green-700"}`}>{complianceHealth.gaps}</p>
             <p className="text-[10px] text-gray-500 mt-0.5">Open Gaps</p>
-          </div>
-          <div className={`rounded-lg border p-3 text-center ${complianceHealth.overdueAssessments > 0 ? "border-amber-100" : "border-green-100"}`} style={{ background: complianceHealth.overdueAssessments > 0 ? "linear-gradient(135deg, #FFFBEB, #FEFCE8)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+          </button>
+          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=assessment-log"); }} className={`rounded-lg border p-3 text-center hover:opacity-80 transition-opacity ${complianceHealth.overdueAssessments > 0 ? "border-amber-100" : "border-green-100"}`} style={{ background: complianceHealth.overdueAssessments > 0 ? "linear-gradient(135deg, #FFFBEB, #FEFCE8)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
             <p className={`text-xl font-bold font-poppins ${complianceHealth.overdueAssessments > 0 ? "text-amber-700" : "text-green-700"}`}>{complianceHealth.overdueAssessments}</p>
             <p className="text-[10px] text-gray-500 mt-0.5">Overdue Assessments</p>
-          </div>
-          <div className={`rounded-lg border p-3 text-center ${complianceHealth.pendingCerts > 0 ? "border-amber-100" : "border-green-100"}`} style={{ background: complianceHealth.pendingCerts > 0 ? "linear-gradient(135deg, #FFFBEB, #FEFCE8)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+          </button>
+          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=smcr"); }} className={`rounded-lg border p-3 text-center hover:opacity-80 transition-opacity ${complianceHealth.pendingCerts > 0 ? "border-amber-100" : "border-green-100"}`} style={{ background: complianceHealth.pendingCerts > 0 ? "linear-gradient(135deg, #FFFBEB, #FEFCE8)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
             <p className={`text-xl font-bold font-poppins ${complianceHealth.pendingCerts > 0 ? "text-amber-700" : "text-green-700"}`}>{complianceHealth.pendingCerts}</p>
             <p className="text-[10px] text-gray-500 mt-0.5">Pending Certs</p>
-          </div>
+          </button>
         </div>
       </Link>
     ) : null,
@@ -1285,22 +1300,22 @@ export default function DashboardHome() {
             <p className="text-xl font-bold font-poppins text-updraft-deep">{controlsStats.total}</p>
             <p className="text-[10px] text-gray-500 mt-0.5">Total Controls</p>
           </div>
-          <div className="rounded-lg border border-green-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=PREVENTATIVE"); }} className="rounded-lg border border-green-100 p-3 text-center hover:opacity-80 transition-opacity" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
             <p className="text-xl font-bold font-poppins text-green-700">{controlsStats.preventative}</p>
             <p className="text-[10px] text-gray-500 mt-0.5">Preventative</p>
-          </div>
-          <div className="rounded-lg border border-blue-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #EFF6FF, #F0F9FF)" }}>
+          </button>
+          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=DETECTIVE"); }} className="rounded-lg border border-blue-100 p-3 text-center hover:opacity-80 transition-opacity" style={{ background: "linear-gradient(135deg, #EFF6FF, #F0F9FF)" }}>
             <p className="text-xl font-bold font-poppins text-blue-700">{controlsStats.detective}</p>
             <p className="text-[10px] text-gray-500 mt-0.5">Detective</p>
-          </div>
-          <div className="rounded-lg border border-amber-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #FFFBEB, #FEFCE8)" }}>
+          </button>
+          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=DIRECTIVE"); }} className="rounded-lg border border-amber-100 p-3 text-center hover:opacity-80 transition-opacity" style={{ background: "linear-gradient(135deg, #FFFBEB, #FEFCE8)" }}>
             <p className="text-xl font-bold font-poppins text-amber-700">{controlsStats.directive}</p>
             <p className="text-[10px] text-gray-500 mt-0.5">Directive</p>
-          </div>
-          <div className="rounded-lg border border-red-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #FEF2F2, #FFF5F5)" }}>
+          </button>
+          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=CORRECTIVE"); }} className="rounded-lg border border-red-100 p-3 text-center hover:opacity-80 transition-opacity" style={{ background: "linear-gradient(135deg, #FEF2F2, #FFF5F5)" }}>
             <p className="text-xl font-bold font-poppins text-red-700">{controlsStats.corrective}</p>
             <p className="text-[10px] text-gray-500 mt-0.5">Corrective</p>
-          </div>
+          </button>
           <div className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm">
             <p className="text-xl font-bold font-poppins text-updraft-deep">{controlsStats.policiesWithControls}/{controlsStats.totalPolicies}</p>
             <p className="text-[10px] text-gray-500 mt-0.5">Policies Covered</p>
@@ -1340,7 +1355,7 @@ export default function DashboardHome() {
               <h3 className="text-xs font-bold text-amber-700 mb-2">Policies with Coverage Gaps</h3>
               <div className="space-y-2">
                 {crossEntityInsights.policiesWithGaps.map((p) => (
-                  <Link key={p.id} href="/policies" className="flex items-center justify-between text-xs hover:text-updraft-bright-purple transition-colors">
+                  <Link key={p.id} href={`/compliance?tab=policies&policy=${p.id}`} className="flex items-center justify-between text-xs hover:text-updraft-bright-purple transition-colors">
                     <span className="truncate flex-1 min-w-0 text-gray-700">
                       <span className="font-mono font-bold text-updraft-deep mr-1">{p.ref}</span>
                       {p.name}
@@ -1358,7 +1373,7 @@ export default function DashboardHome() {
               <h3 className="text-xs font-bold text-updraft-deep mb-2">Key Controls (Multi-Policy)</h3>
               <div className="space-y-2">
                 {crossEntityInsights.keyControls.map((c) => (
-                  <Link key={c.ref} href="/controls" className="flex items-center justify-between text-xs hover:text-updraft-bright-purple transition-colors">
+                  <Link key={c.ref} href={`/controls?tab=library&control=${c.id}`} className="flex items-center justify-between text-xs hover:text-updraft-bright-purple transition-colors">
                     <span className="truncate flex-1 min-w-0 text-gray-700">
                       <span className="font-mono font-bold text-updraft-deep mr-1">{c.ref}</span>
                       {c.name}
@@ -1435,7 +1450,7 @@ export default function DashboardHome() {
                 <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{r.name}</span>
                 <ScoreBadge likelihood={r.residualLikelihood} impact={r.residualImpact} size="sm" />
                 <DirectionArrow direction={r.directionOfTravel} />
-                <span className="text-xs text-gray-500 shrink-0">{ownerName}</span>
+                <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/risk-register?q=${encodeURIComponent(ownerName)}`); }} className="text-xs text-gray-500 shrink-0 hover:text-updraft-bright-purple transition-colors">{ownerName}</button>
               </Link>
             );
           })}
@@ -1519,7 +1534,7 @@ export default function DashboardHome() {
             <p className="text-xs text-text-secondary">Overdue</p>
             <p className="text-2xl font-bold font-poppins text-red-700">{actionStats.overdue}</p>
           </Link>
-          <Link href="/actions" className="rounded-xl border border-amber-100 p-3 cursor-pointer hover:border-amber-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEFCE8 100%)" }}>
+          <Link href="/actions?status=DUE_THIS_MONTH" className="rounded-xl border border-amber-100 p-3 cursor-pointer hover:border-amber-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEFCE8 100%)" }}>
             <p className="text-xs text-text-secondary">Due This Month</p>
             <p className="text-2xl font-bold font-poppins text-amber-700">{actionStats.dueThisMonth}</p>
           </Link>
@@ -1773,19 +1788,19 @@ export default function DashboardHome() {
             <p className="text-xs text-text-secondary">Total Risks</p>
             <p className="text-2xl font-bold font-poppins text-updraft-deep">{risks.length}</p>
           </Link>
-          <Link href="/risk-register" className="rounded-xl border border-green-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%)" }}>
+          <Link href="/risk-register?filter=LOW" className="rounded-xl border border-green-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%)" }}>
             <p className="text-xs text-text-secondary">Low Risk</p>
             <p className="text-2xl font-bold font-poppins text-green-700">
               {risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) <= 4).length}
             </p>
           </Link>
-          <Link href="/risk-register" className="rounded-xl border border-amber-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEFCE8 100%)" }}>
+          <Link href="/risk-register?filter=MEDIUM" className="rounded-xl border border-amber-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEFCE8 100%)" }}>
             <p className="text-xs text-text-secondary">Medium Risk</p>
             <p className="text-2xl font-bold font-poppins text-amber-700">
               {risks.filter((r) => { const s = getRiskScore(r.residualLikelihood, r.residualImpact); return s > 4 && s <= 12; }).length}
             </p>
           </Link>
-          <Link href="/risk-register" className="rounded-xl border border-red-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #FEF2F2 0%, #FFF5F5 100%)" }}>
+          <Link href="/risk-register?filter=HIGH" className="rounded-xl border border-red-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #FEF2F2 0%, #FFF5F5 100%)" }}>
             <p className="text-xs text-text-secondary">High Risk</p>
             <p className="text-2xl font-bold font-poppins text-red-700">
               {risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) > 12).length}
@@ -1857,8 +1872,9 @@ export default function DashboardHome() {
         <div className="flex gap-3 overflow-x-auto pb-2">
           {auditLogs.slice(0, 20).map((log) => {
             const logUser = users.find((u) => u.id === log.userId);
+            const entityUrl = getEntityUrl(log.entityType, log.entityId);
             return (
-              <Link key={log.id} href="/audit" className="flex-shrink-0 w-64 rounded-xl border border-[#E8E6E1] bg-surface-warm p-3 hover:border-updraft-light-purple hover:-translate-y-0.5 hover:shadow-bento transition-all cursor-pointer">
+              <Link key={log.id} href={entityUrl} className="flex-shrink-0 w-64 rounded-xl border border-[#E8E6E1] bg-surface-warm p-3 hover:border-updraft-light-purple hover:-translate-y-0.5 hover:shadow-bento transition-all cursor-pointer">
                 <div className="flex items-center gap-2 mb-1.5">
                   <div className="flex h-6 w-6 items-center justify-center rounded-full bg-updraft-pale-purple/40 text-[10px] font-semibold text-updraft-bright-purple">
                     {(logUser?.name ?? "?").charAt(0).toUpperCase()}

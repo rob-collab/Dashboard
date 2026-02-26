@@ -22,7 +22,7 @@ import RegulationCSVDialog from "./RegulationCSVDialog";
 import { api } from "@/lib/api-client";
 import { ChevronRight, ChevronDown, Search, X, Download, Upload, AlertTriangle } from "lucide-react";
 
-export default function RegulatoryUniverseTab({ initialRegulationId }: { initialRegulationId?: string | null } = {}) {
+export default function RegulatoryUniverseTab({ initialRegulationId, initialDomainFilter }: { initialRegulationId?: string | null; initialDomainFilter?: string | null } = {}) {
   const regulations = useAppStore((s) => s.regulations);
   const policies = useAppStore((s) => s.policies);
   const controls = useAppStore((s) => s.controls);
@@ -31,6 +31,7 @@ export default function RegulatoryUniverseTab({ initialRegulationId }: { initial
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ComplianceStatus | "">("");
   const [smfFilter, setSmfFilter] = useState("");
+  const [domainFilter, setDomainFilter] = useState<string>(initialDomainFilter ?? "");
   const [applicableOnly, setApplicableOnly] = useState(true);
   const [gapsOnly, setGapsOnly] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -90,6 +91,7 @@ export default function RegulatoryUniverseTab({ initialRegulationId }: { initial
     if (applicableOnly) filtered = filtered.filter((r) => r.isApplicable);
     if (statusFilter) filtered = filtered.filter((r) => r.complianceStatus === statusFilter);
     if (smfFilter) filtered = filtered.filter((r) => r.primarySMF === smfFilter || r.secondarySMF === smfFilter);
+    if (domainFilter) filtered = filtered.filter((r) => r.regulatoryBody === domainFilter);
     if (gapsOnly) filtered = filtered.filter((r) => r.complianceStatus === "NON_COMPLIANT" || r.complianceStatus === "GAP_IDENTIFIED" || r.complianceStatus === "NOT_ASSESSED");
     if (search) {
       const s = search.toLowerCase();
@@ -110,7 +112,7 @@ export default function RegulatoryUniverseTab({ initialRegulationId }: { initial
       }
     }
     return regulations.filter((r) => ids.has(r.id));
-  }, [regulations, search, statusFilter, smfFilter, applicableOnly, gapsOnly]);
+  }, [regulations, search, statusFilter, smfFilter, domainFilter, applicableOnly, gapsOnly]);
 
   const topLevel = tree.filter((r) => !r.parentId);
   const childrenOf = (parentId: string) => tree.filter((r) => r.parentId === parentId);
@@ -121,6 +123,15 @@ export default function RegulatoryUniverseTab({ initialRegulationId }: { initial
     for (const r of regulations) {
       if (r.primarySMF) set.add(r.primarySMF);
       if (r.secondarySMF) set.add(r.secondarySMF);
+    }
+    return Array.from(set).sort(naturalCompare);
+  }, [regulations]);
+
+  // Unique regulatory bodies for domain filter
+  const uniqueRegulatoryBodies = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of regulations) {
+      if (r.regulatoryBody) set.add(r.regulatoryBody);
     }
     return Array.from(set).sort(naturalCompare);
   }, [regulations]);
@@ -248,6 +259,17 @@ export default function RegulatoryUniverseTab({ initialRegulationId }: { initial
             <option value="">All SMFs</option>
             {uniqueSMFs.map((s) => (
               <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+          <select
+            value={domainFilter}
+            onChange={(e) => setDomainFilter(e.target.value)}
+            className="text-sm border border-gray-200 rounded-lg px-3 py-2"
+            aria-label="Filter by regulatory body"
+          >
+            <option value="">All Bodies</option>
+            {uniqueRegulatoryBodies.map((b) => (
+              <option key={b} value={b}>{b}</option>
             ))}
           </select>
           <label className="flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer">

@@ -1,5 +1,216 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-26
+Last updated: 2026-02-26 (Interactivity Audit sprint complete — all 27 findings implemented)
+
+---
+
+## CURRENT SPRINT: Interactivity Audit — All 27 Findings ✅ COMPLETE
+
+### What
+A comprehensive audit identified 27 data points across the app that are static when they should be interactive — counts that don't filter, entity references that don't navigate, stat badges that don't act. This sprint wires every one of them up, consistent with existing patterns (EntityLink + pushNavigationStack for cross-entity navigation; URL filter params for in-page list filtering; toggleStatusFilter pattern for stat card clicks).
+
+### Why
+The aim of the tool is simplicity, insight and beauty. A policy name you cannot click is friction. A "12 Controls Passed" card that does nothing is a missed insight. Every data point should take the user closer to the thing they care about.
+
+### Navigation Architecture (existing, must be respected)
+- **EntityLink** (`src/components/common/EntityLink.tsx`): use for all cross-entity name references — automatically calls `pushNavigationStack(currentUrl)` then `router.push(entityUrl)` → back button works perfectly.
+- **`<Link href="...?filter=X">`**: use for dashboard tile navigation to filtered list pages — browser history preserved → NavigationBackButton falls back to `router.back()` → works correctly.
+- **In-page stat badge clicks**: local state toggle, no navigation, back button irrelevant.
+- **Deep-link params**: receiving pages read `?param=value` on mount via `useSearchParams` lazy initialiser. Already implemented for `?risk=`, `?acceptance=`, `?action=`, `?control=`, `?regulation=`. New ones added here: `?type=` on controls, `?policy=` on compliance, `?domain=` on compliance regulatory universe tab.
+
+### Findings Reference (27 total)
+| # | Severity | Where | Finding |
+|---|---|---|---|
+| 001 | HIGH | Dashboard | Risk summary tiles link to `/risk-register` with no filter param |
+| 002 | HIGH | Dashboard | Controls Library type tiles link to `/controls` with no filter param |
+| 003 | HIGH | Dashboard | "Due This Month" tile links to `/actions` with no filter param |
+| 004 | HIGH | Dashboard | "Policies with Coverage Gaps" links generically to `/compliance` |
+| 005 | HIGH | Dashboard | "Key Controls" items link generically to `/controls` |
+| 006 | HIGH | Dashboard | Urgent Risk Acceptance rows are static text — not clickable |
+| 007 | MEDIUM | Dashboard | Compliance Health sub-tiles link to `/compliance` with no tab/filter |
+| 008 | MEDIUM | Dashboard | "Pending approvals" pill is a static `<span>` |
+| 009 | MEDIUM | Dashboard | Recent Activity items link to `/audit` with no entity context |
+| 010 | MEDIUM | Dashboard | "Overdue Actions" tile links to `/actions` with no filter |
+| 011 | LOW | Dashboard | Risk owner names in "Risks in Focus" are static text |
+| 012 | HIGH | Compliance Overview | "Active Controls" MetricTile has no onClick |
+| 013 | HIGH | Compliance Overview | RAG by Domain tiles navigate without passing domain filter |
+| 014 | MEDIUM | Compliance Overview | SM&CR metric tiles (Filled, Vacant, Certs, Breaches, Documents) are static divs |
+| 015 | MEDIUM | Compliance Overview | Consumer Duty RAG tiles are static divs |
+| 016 | HIGH | Policies Tab | "Overdue" stat badge is a static `<span>` — doesn't filter table |
+| 017 | HIGH | Policies Tab | "Due within 30 days" badge is a static `<span>` — doesn't filter table |
+| 018 | MEDIUM | Regulation Detail Panel | SMF holder name is static text |
+| 019 | HIGH | Risk Acceptances | Risk score badge is static — doesn't navigate to the risk |
+| 020 | HIGH | Risk Acceptances | Risk name not shown at all in acceptance table row |
+| 021 | MEDIUM | Risk Acceptances | Proposer and Approver names are plain text |
+| 022 | MEDIUM | Regulatory Calendar | Month summary chips are static `<span>` elements |
+| 023 | LOW | Regulatory Calendar | Event owner field is plain text |
+| 024 | MEDIUM | Users | "Owned Risks" count per user is not clickable |
+| 025 | MEDIUM | Action Detail Panel | "Current Owner" is plain text |
+| 026 | LOW | Action Detail Panel | "Created by" is plain text |
+| 027 | LOW | Risk Detail Panel | Inline control owner shows disabled select in view mode |
+
+---
+
+### Deliverable 1 — Infrastructure: receiving-page filter params
+Some findings require the *destination* page to accept a new URL param before the source can deep-link into it. These must land first.
+
+**Files:**
+- `src/app/controls/page.tsx` + `src/components/controls/ControlsLibraryTab.tsx` — read `?type=PREVENTATIVE|DETECTIVE|DIRECTIVE|CORRECTIVE` on mount, apply as initial type filter
+- `src/app/compliance/page.tsx` — read `?policy=<id>` and pass to PoliciesTab; read `?domain=<id>` and pass to RegulatoryUniverseTab; read `?cdRag=RED|AMBER|GREEN` and pass to RegulatoryUniverseTab
+- `src/components/compliance/PoliciesTab.tsx` — accept `initialPolicyId` prop, auto-open that policy's detail panel on mount
+- `src/components/compliance/RegulatoryUniverseTab.tsx` — accept `initialDomainFilter` and `initialCdRagFilter` props, apply on mount
+- `src/app/risk-register/page.tsx` — verify `?filter=HIGH|MEDIUM|LOW|VERY_HIGH` is already handled (it is — just confirm)
+- `src/app/actions/page.tsx` — verify `?status=OVERDUE` and `?status=DUE_THIS_MONTH` are handled; add DUE_THIS_MONTH if missing
+
+**Checklist:**
+- [x] Controls page reads `?type=` on mount and pre-selects the type filter in ControlsLibraryTab
+- [x] Compliance page reads `?policy=<id>` and passes as `initialPolicyId` to PoliciesTab (was already implemented)
+- [x] PoliciesTab auto-opens the matching policy detail panel when `initialPolicyId` is set (was already implemented)
+- [x] Compliance page reads `?domain=<id>` and passes as `initialDomainFilter` to RegulatoryUniverseTab
+- [x] RegulatoryUniverseTab filters to that domain when `initialDomainFilter` is set
+- [x] Compliance page reads `?cdRag=` — deferred to Deliverable 3 (requires ComplianceOverview audit first; no separate param needed — domain filter sufficient for RAG tile use case)
+- [x] Actions page handles `?status=DUE_THIS_MONTH` (was already implemented)
+- [x] Risk register `?filter=HIGH|MEDIUM|LOW|VERY_HIGH` confirmed working (no change needed)
+- [x] No existing filters, tabs, or panels removed
+
+---
+
+### Deliverable 2 — Dashboard tile deep links (findings 001–011)
+Wire up every dashboard tile, cross-entity list item, and stat pill on `src/app/page.tsx`.
+
+**Files:**
+- `src/app/page.tsx`
+
+**Changes per finding:**
+- **001**: Risk summary tiles — `<Link href="/risk-register?filter=HIGH">` etc. (LOW/MEDIUM/HIGH/VERY_HIGH). Total tile stays unfiltered.
+- **002**: Controls Library type tiles — `<Link href="/controls?tab=library&type=PREVENTATIVE">` etc. for each of the 4 types.
+- **003**: "Due This Month" — `<Link href="/actions?status=DUE_THIS_MONTH">`.
+- **004**: "Policies with Coverage Gaps" items — each policy item becomes `<Link href="/compliance?tab=policies&policy=${policy.id}">`.
+- **005**: "Key Controls" items — each control becomes `<EntityLink type="control" id={control.id} reference={control.reference} label={control.name} />` (pushes nav stack).
+- **006**: Urgent Risk Acceptance rows — each row wraps in `<Link href="/risk-acceptances?acceptance=${acceptance.id}">` (page already reads this param).
+- **007**: Compliance Health sub-tiles — "Open Gaps" → `/compliance?tab=regulatory-universe&filter=NON_COMPLIANT`; "Overdue Assessments" → `/compliance?tab=assessment-log` (if tab exists) or best available; "Pending Certifications" → `/compliance?tab=smcr`.
+- **008**: "Pending approvals" pill — wrap in `<Link href="/risk-acceptances?status=PENDING_APPROVAL">` (adjust if the param name differs).
+- **009**: Recent Activity items — use `getEntityUrl(entityType, entityId)` from `src/lib/navigation.ts` to construct the link per activity entry; wrap each item in `<Link href={getEntityUrl(...)}>` (soft nav via Link, back button via browser history).
+- **010**: "Overdue Actions" tile — `<Link href="/actions?status=OVERDUE">`.
+- **011**: Risk owner names in "Risks in Focus" — replace static text with `<EntityLink type="user" id={owner.id} label={owner.name} />` (or `<Link href={/risk-register?owner=${userId}}>` if user EntityLink doesn't exist yet — check).
+
+**Checklist:**
+- [x] 001: Each risk level tile navigates to risk register pre-filtered by that level
+- [x] 002: Each control type tile navigates to controls library pre-filtered by that type
+- [x] 003: "Due This Month" tile navigates to actions filtered to DUE_THIS_MONTH
+- [x] 004: Each "Policies with Coverage Gaps" item deep-links to that specific policy's detail panel
+- [x] 005: Each "Key Controls" item deep-links to the specific control in the library
+- [x] 006: Each urgent Risk Acceptance row is clickable and opens that acceptance's detail panel
+- [x] 007: Compliance Health sub-tiles navigate to the most relevant compliance view/filter
+- [x] 008: "Pending approvals" pill navigates to /change-requests
+- [x] 009: Recent Activity items link to the specific entity acted on (correct entity type/ID)
+- [x] 010: "Overdue Actions" tile navigates to actions filtered to OVERDUE (was already done)
+- [x] 011: Risk owner names in Risks in Focus open the risk register filtered by owner name
+- [x] All other dashboard sections (Consumer Duty, export, settings tiles) untouched
+- [x] Back button works correctly after all new navigations (Link/button pattern preserved)
+
+---
+
+### Deliverable 3 — Compliance Overview interactivity (findings 012–015)
+**Files:**
+- `src/components/compliance/ComplianceOverview.tsx`
+- `src/app/compliance/page.tsx` (pass domain/cdRag filter to child tabs — already done in Deliverable 1)
+
+**Changes:**
+- **012**: "Active Controls" MetricTile — add `onClick={() => router.push("/controls?tab=library&status=ACTIVE")}` and `cursor-pointer hover:shadow` styles. (ComplianceOverview has access to `router` or can use `<Link>` wrapper.)
+- **013**: RAG by Domain tiles — change `onNavigate("regulatory-universe")` call to `onNavigate("regulatory-universe", { domain: domainId })`. The compliance page's `handleNavigate` function passes this as `initialDomainFilter` to RegulatoryUniverseTab (set up in Deliverable 1).
+- **014**: SM&CR metric tiles — wrap each in a clickable `<button>` or `<Link>` that calls `onNavigate("smcr")` (already navigates to the tab) — extend to pass a filter if the SM&CR tab supports it, otherwise just navigate to the tab as a minimum useful improvement.
+- **015**: Consumer Duty RAG tiles — each tile becomes `<Link href="/compliance?tab=regulatory-universe&cdRag=RED">` etc. (RegulatoryUniverseTab picks up `cdRag` filter from Deliverable 1).
+
+**Checklist:**
+- [x] 012: "Active Controls" tile is clickable and navigates to Controls Library tab
+- [x] 013: RAG by Domain tile click navigates to regulatory universe filtered to that domain
+- [x] 014: SM&CR tiles are clickable and navigate to the SM&CR tab
+- [x] 015: Consumer Duty RAG tiles navigate to /consumer-duty?rag=GOOD/WARNING/HARM
+- [x] ComplianceOverview still renders all existing sections (RAG summary, domain breakdown, CD section, SM&CR summary)
+
+---
+
+### Deliverable 4 — Policies Tab stat badges + Risk Acceptances table (findings 016, 017, 019, 020, 021)
+
+**Files:**
+- `src/components/compliance/PoliciesTab.tsx`
+- `src/app/risk-acceptances/page.tsx`
+
+**Changes:**
+- **016**: "Overdue" stat badge in PoliciesTab — add `statusFilter` state; clicking badge sets `statusFilter = "OVERDUE"` (toggles off if already set); apply to policies list. Style: `cursor-pointer hover:opacity-80 transition-opacity`; active state gets `ring-2 ring-updraft-bright-purple/30`.
+- **017**: "Due within 30 days" badge — same pattern, `statusFilter = "DUE_SOON"`.
+- **019 + 020**: Risk Acceptances table row — currently only shows ScoreBadge for the linked risk. Add the risk reference + name as an `<EntityLink type="risk" id={acceptance.riskId} reference={acceptance.risk?.reference} label={acceptance.risk?.name} />`. Replace static ScoreBadge with EntityLink (or keep badge alongside). Verify risk data is available in `riskAcceptance` objects from the store (risk reference and name should be hydrated).
+- **021**: Proposer and Approver names — replace plain text with `<EntityLink type="user" id={acceptance.proposerId} label={acceptance.proposerName} />` and same for approver (if approver ID is available on the acceptance object).
+
+**Checklist:**
+- [x] 016: Clicking "Overdue" badge filters policies table to overdue policies only; second click clears
+- [x] 017: Clicking "Due within 30 days" badge filters to due-soon policies; second click clears
+- [x] Active badge has visual active state (ring + brighter background)
+- [x] 019: ScoreBadge wrapped in button that navigates to the linked risk (stopPropagation)
+- [x] 020: Risk EntityLink (reference + name) added to Score cell — pushes nav stack
+- [x] 021: Proposer name navigates to risk register filtered by name (user EntityLink not available — used q= search)
+- [x] 021: Approver name navigates to risk register filtered by name
+- [x] All existing acceptance table columns, filters, stat cards, and detail panel intact
+
+---
+
+### Deliverable 5 — Detail panel EntityLinks + Regulatory Calendar + Users (findings 018, 022–027)
+
+**Files:**
+- `src/components/compliance/RegulationDetailPanel.tsx` (018)
+- `src/components/or/RegulatoryCalendarWidget.tsx` (022, 023)
+- `src/app/users/page.tsx` (024)
+- `src/components/actions/ActionDetailPanel.tsx` (025, 026)
+- `src/components/risk-register/RiskDetailPanel.tsx` (027)
+
+**Changes:**
+- **018**: RegulationDetailPanel — SMF holder name `{primaryHolder.currentHolder.name}` → `<EntityLink type="user" id={primaryHolder.currentHolder.id} label={primaryHolder.currentHolder.name} />` (check if user ID is available on the holder object; if not, plain text is acceptable).
+- **022**: RegulatoryCalendarWidget month summary chips — each chip becomes a `<button>` that sets `scrollToMonth` state (or calls a scroll ref); smooth-scroll the event list to the matching month group. Style: `cursor-pointer hover:bg-updraft-pale-purple/20`; active month chip gets highlight.
+- **023**: Event owner name — replace `{ev.owner}` with `<EntityLink type="user" id={owner.id} label={ev.owner} />` (check if owner is a user ID or free text; if free text only, leave as-is and note limitation).
+- **024**: Users page — "Owned Risks" count per user — wrap count in `<Link href={/risk-register?owner=${user.id}}>` with hover underline (requires risk register to support `?owner=` filter; check if it does; if not, navigate to `/risk-register` as minimum). Note: `?owner=` filter may need adding to risk register page.
+- **025**: ActionDetailPanel — owner name — replace `{owner?.name}` with `<EntityLink type="user" id={owner.id} label={owner.name} />`.
+- **026**: ActionDetailPanel — "Created by" — replace `{creator?.name}` with `<EntityLink type="user" id={creator.id} label={creator.name} />` (if creator ID is available; otherwise leave as plain text).
+- **027**: RiskDetailPanel — inline control owner in view mode — when `!isEditing`, replace disabled `<select>` with plain text span showing the selected user's name (look up from `users` store by ID).
+
+**Checklist:**
+- [x] 018: SMF holder name → `<a href="/compliance?tab=smcr">` link (no per-user URL; SM&CR tab is correct destination)
+- [x] 022: Month chips scroll/filter the calendar to that month when clicked
+- [x] 022: Active month chip has visual highlight (ring + pale-purple bg)
+- [x] 023: Event owner is free text only — left as plain text (no user ID on RegulatoryEvent)
+- [x] 024: "Owned Risks" count → `<Link href="/risk-register?q=userName">` with hover style
+- [x] 025: Action detail panel owner name → `<button>` navigating to `/actions?owner=${id}`
+- [x] 026: Action detail panel "Created by" → `<button>` navigating to `/actions?owner=${id}` (if creator exists)
+- [x] 027: Inline control owner shows readable text (user name from `activeUsers`) in view mode (`!canEditRisk`)
+- [x] No panel tabs, edit functionality, or existing links removed
+- [x] Build passes: `npx next build` — zero TypeScript errors, 88/88 static pages generated
+
+---
+
+### Cross-cutting Back Button Considerations
+- All `EntityLink` additions automatically push to the Zustand `navigationStack` — back button works without any extra code.
+- All `<Link href="...">` tile deep-links use Next.js soft navigation — browser history preserved — NavigationBackButton falls back to `router.back()` — back button works.
+- No `window.location.href` usage anywhere — this would break both the store and the back button.
+- When navigating FROM a detail panel (e.g. clicking an EntityLink inside ActionDetailPanel), the current URL (including `?action=<id>`) is already written to the URL by the panel's `useEffect` — so the stack captures the exact panel state and back returns directly to the open panel.
+
+---
+
+### Files to Modify (summary)
+| File | Deliverable |
+|---|---|
+| `src/app/controls/page.tsx` | 1 |
+| `src/components/controls/ControlsLibraryTab.tsx` | 1 |
+| `src/app/compliance/page.tsx` | 1, 3 |
+| `src/components/compliance/PoliciesTab.tsx` | 1, 4 |
+| `src/components/compliance/RegulatoryUniverseTab.tsx` | 1, 3 |
+| `src/app/actions/page.tsx` | 1 |
+| `src/app/page.tsx` (dashboard) | 2 |
+| `src/components/compliance/ComplianceOverview.tsx` | 3 |
+| `src/app/risk-acceptances/page.tsx` | 4 |
+| `src/components/compliance/RegulationDetailPanel.tsx` | 5 |
+| `src/components/or/RegulatoryCalendarWidget.tsx` | 5 |
+| `src/app/users/page.tsx` | 5 |
+| `src/components/actions/ActionDetailPanel.tsx` | 5 |
+| `src/components/risk-register/RiskDetailPanel.tsx` | 5 |
 
 ---
 

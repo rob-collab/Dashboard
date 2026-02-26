@@ -21,6 +21,7 @@ import UserFormDialog from "@/components/users/UserFormDialog";
 import UserDeleteDialog from "@/components/users/UserDeleteDialog";
 import PermissionsPanel from "@/components/users/PermissionsPanel";
 import { cn, formatDate } from "@/lib/utils";
+import Link from "next/link";
 import type { Role, User } from "@/lib/types";
 import { EmptyState } from "@/components/common/EmptyState";
 import { logAuditEvent } from "@/lib/audit";
@@ -336,9 +337,12 @@ export default function UsersPage() {
                     </td>
                     <td className="px-4 py-3">
                       {(ownedRiskCounts.get(user.id) ?? 0) > 0 ? (
-                        <span className="inline-flex items-center justify-center rounded-full bg-updraft-pale-purple/40 px-2.5 py-0.5 text-xs font-semibold text-updraft-deep">
+                        <Link
+                          href={`/risk-register?q=${encodeURIComponent(user.name)}`}
+                          className="inline-flex items-center justify-center rounded-full bg-updraft-pale-purple/40 px-2.5 py-0.5 text-xs font-semibold text-updraft-deep hover:bg-updraft-light-purple/30 transition-colors"
+                        >
                           {ownedRiskCounts.get(user.id)}
-                        </span>
+                        </Link>
                       ) : (
                         <span className="text-xs text-gray-400">&mdash;</span>
                       )}

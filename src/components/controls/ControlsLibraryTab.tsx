@@ -70,7 +70,7 @@ const EMPTY_FORM: ControlFormData = {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
-export default function ControlsLibraryTab({ initialControlId }: { initialControlId?: string | null }) {
+export default function ControlsLibraryTab({ initialControlId, initialTypeFilter }: { initialControlId?: string | null; initialTypeFilter?: string | null }) {
   const controls = useAppStore((s) => s.controls);
   const controlBusinessAreas = useAppStore((s) => s.controlBusinessAreas);
   const users = useAppStore((s) => s.users);
@@ -128,6 +128,9 @@ export default function ControlsLibraryTab({ initialControlId }: { initialContro
   const [search, setSearch] = useState("");
   const [areaFilter, setAreaFilter] = useState("");
   const [outcomeFilter, setOutcomeFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState<ControlType | "">(
+    (initialTypeFilter as ControlType | "") || ""
+  );
   const [showArchived, setShowArchived] = useState(false);
   const [myControlsOnly, setMyControlsOnly] = useState(false);
 
@@ -190,9 +193,10 @@ export default function ControlsLibraryTab({ initialControlId }: { initialContro
       }
       if (areaFilter && c.businessAreaId !== areaFilter) return false;
       if (outcomeFilter && c.consumerDutyOutcome !== outcomeFilter) return false;
+      if (typeFilter && c.controlType !== typeFilter) return false;
       return true;
     });
-  }, [controls, search, areaFilter, outcomeFilter, showArchived, myControlsOnly, currentUser?.id]);
+  }, [controls, search, areaFilter, outcomeFilter, typeFilter, showArchived, myControlsOnly, currentUser?.id]);
 
   // ── Lookup helpers ─────────────────────────────────────────
   function areaName(id: string): string {
@@ -393,7 +397,7 @@ export default function ControlsLibraryTab({ initialControlId }: { initialContro
 
       {/* ── Filters ─────────────────────────────────────────── */}
       <div className="bento-card p-4">
-        <div className="flex flex-col md:flex-row gap-3 items-start md:items-end">
+        <div className="flex flex-col md:flex-row md:flex-wrap gap-3 items-start md:items-end">
           {/* Search */}
           <div className="flex-1 min-w-[200px]">
             <label className="block text-xs font-medium text-gray-500 mb-1">
@@ -450,6 +454,23 @@ export default function ControlsLibraryTab({ initialControlId }: { initialContro
                 <option key={key} value={key}>
                   {label}
                 </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Control Type */}
+          <div className="min-w-[180px]">
+            <label className="block text-xs font-medium text-gray-500 mb-1">
+              Control Type
+            </label>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value as ControlType | "")}
+              className={inputClasses}
+            >
+              <option value="">All Types</option>
+              {(Object.entries(CONTROL_TYPE_LABELS) as [ControlType, string][]).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
               ))}
             </select>
           </div>
