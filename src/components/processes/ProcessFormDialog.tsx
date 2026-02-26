@@ -248,7 +248,7 @@ export default function ProcessFormDialog({ open, onClose, onSave, initial }: Pr
             <select value={ownerId} onChange={(e) => setOwnerId(e.target.value)} className={inputClass}>
               <option value="">Select owner (optional)...</option>
               {activeUsers.map((u) => (
-                <option key={u.id} value={u.id}>{u.name}: {u.email}</option>
+                <option key={u.id} value={u.id}>{u.name}</option>
               ))}
             </select>
           </div>

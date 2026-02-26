@@ -77,11 +77,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       }
 
-      // On initial sign-in or token refresh, look up DB user
-      if (trigger === "signIn" || (token.email && !token.id)) {
+      // Always verify DB user identity from email.
+      // This ensures stale tokens (e.g. where token.id was incorrectly set to an OAuth
+      // provider sub rather than the DB user ID) are corrected on next JWT evaluation.
+      if (token.email) {
         try {
           const dbUser = await prisma.user.findUnique({
-            where: { email: token.email! },
+            where: { email: token.email },
             select: { id: true, role: true, name: true },
           });
           if (dbUser) {

@@ -296,11 +296,6 @@ export default function BulkScheduleActions({
                           className="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-updraft-pale-purple/20 hover:text-updraft-deep transition-colors border-b border-gray-50 last:border-b-0"
                         >
                           <span className="font-medium">{user.name}</span>
-                          {user.email && (
-                            <span className="block text-xs text-gray-400 mt-0.5">
-                              {user.email}
-                            </span>
-                          )}
                         </button>
                       ))
                     )}

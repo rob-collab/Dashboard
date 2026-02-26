@@ -272,8 +272,10 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
       setActionDueDate("");
       setActionPriority("");
       setRaiseActionAttempted(false);
-    } catch {
-      toast.error("Failed to raise action — please try again");
+    } catch (err) {
+      console.error("[raise action]", err);
+      const msg = err instanceof Error ? err.message : "";
+      toast.error(msg && !msg.toLowerCase().includes("internal") ? `Failed to raise action: ${msg}` : "Failed to raise action — please try again");
     } finally {
       setSubmittingAction(false);
     }
@@ -291,7 +293,8 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
       toast.success("Action linked");
       setShowLinkAction(false);
       setActionSearch("");
-    } catch {
+    } catch (err) {
+      console.error("[link action]", err);
       toast.error("Failed to link action — please try again");
     } finally {
       setSubmittingAction(false);
