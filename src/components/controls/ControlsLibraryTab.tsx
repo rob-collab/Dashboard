@@ -511,7 +511,7 @@ export default function ControlsLibraryTab({ initialControlId }: { initialContro
 
       {/* ── Table ───────────────────────────────────────────── */}
       <div className="bento-card overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-auto table-scroll max-h-[520px]">
           <table className="w-full text-sm min-w-[1100px]">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/60">
