@@ -473,6 +473,7 @@ model Action {
   changes          ActionChange[]
   linkedMitigation RiskMitigation?    @relation("MitigationAction")
   horizonLinks     HorizonActionLink[] @relation("HorizonActionLinks")
+  riskLinks        RiskActionLink[]
 
   @@index([reportId])
   @@index([assignedTo])
@@ -580,6 +581,7 @@ model Risk {
   acceptances RiskAcceptance[]
   changes      RiskChange[]
   controlLinks  RiskControlLink[]
+  actionLinks   RiskActionLink[]
   processLinks  ProcessRiskLink[]
   horizonLinks  HorizonRiskLink[]  @relation("HorizonRiskLinks")
 
@@ -1350,6 +1352,23 @@ model RiskControlLink {
   @@index([riskId])
   @@index([controlId])
   @@map("risk_control_links")
+}
+
+// ── Risk ↔ Action Link ────────────────────────────────────────────────────────
+
+model RiskActionLink {
+  id        String   @id @default(cuid())
+  riskId    String
+  risk      Risk     @relation(fields: [riskId], references: [id], onDelete: Cascade)
+  actionId  String
+  action    Action   @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  linkedAt  DateTime @default(now())
+  linkedBy  String
+
+  @@unique([riskId, actionId])
+  @@index([riskId])
+  @@index([actionId])
+  @@map("risk_action_links")
 }
 
 // ── Access Request System ─────────────────────────────────────────────────────

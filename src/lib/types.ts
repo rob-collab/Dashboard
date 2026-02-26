@@ -345,6 +345,7 @@ export interface Risk {
   snapshots?: RiskSnapshot[];
   changes?: RiskChange[];
   controlLinks?: RiskControlLink[];
+  actionLinks?: RiskActionLink[];
 }
 
 export interface RiskChange {
@@ -893,6 +894,17 @@ export const APPROVAL_STATUS_COLOURS: Record<ApprovalStatus, { bg: string; text:
   PENDING_APPROVAL: { bg: "bg-amber-100", text: "text-amber-700" },
   REJECTED: { bg: "bg-red-100", text: "text-red-700" },
 };
+
+// ── Risk ↔ Action Link ────────────────────────────────────────────────────────
+
+export interface RiskActionLink {
+  id: string;
+  riskId: string;
+  actionId: string;
+  action?: Pick<Action, "id" | "reference" | "title" | "status" | "assignedTo" | "dueDate" | "priority">;
+  linkedAt: string;
+  linkedBy: string;
+}
 
 // ── Risk ↔ Control Library Link ─────────────────────────────────────────────
 

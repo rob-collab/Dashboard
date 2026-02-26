@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
-import type { Risk, RiskControl, RiskMitigation } from "@/lib/types";
+import type { Risk } from "@/lib/types";
 import { getRiskScore, getRiskLevel, L1_CATEGORY_COLOURS } from "@/lib/risk-categories";
 import RiskHeatmap from "@/components/risk-register/RiskHeatmap";
 import RiskTable from "@/components/risk-register/RiskTable";
@@ -264,7 +264,7 @@ export default function RiskRegisterPage() {
   }, []);
 
   const handleSave = useCallback(
-    (data: Partial<Risk> & { controls?: Partial<RiskControl>[]; mitigations?: Partial<RiskMitigation>[] }) => {
+    (data: Partial<Risk>) => {
       if (isNewRisk) {
         const newRisk: Risk = {
           id: `risk-${Date.now()}`,
@@ -290,25 +290,8 @@ export default function RiskRegisterPage() {
           updatedAt: new Date().toISOString(),
           createdBy: currentUser?.id ?? "",
           updatedBy: currentUser?.id ?? "",
-          controls: (data.controls ?? []).map((c, i) => ({
-            id: `ctrl-${Date.now()}-${i}`,
-            riskId: "",
-            description: c.description ?? "",
-            controlOwner: c.controlOwner ?? null,
-            sortOrder: i,
-            createdAt: new Date().toISOString(),
-          })),
-          mitigations: (data.mitigations ?? []).map((m, i) => ({
-            id: `mit-${Date.now()}-${i}`,
-            riskId: "",
-            action: m.action ?? "",
-            owner: m.owner ?? null,
-            deadline: m.deadline ?? null,
-            status: m.status ?? "OPEN",
-            priority: m.priority ?? null,
-            actionId: null,
-            createdAt: new Date().toISOString(),
-          })),
+          controls: [],
+          mitigations: [],
         };
         addRisk(newRisk);
       } else if (selectedRisk) {

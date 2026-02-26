@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry, RiskAcceptance, Policy, Regulation, DashboardNotification, Role, RiskControlLink, SMFRole, PrescribedResponsibility, CertificationFunction, CertifiedPerson, ConductRule, ConductRuleBreach, SMCRDocument, ComplianceStatus, Applicability, AccessRequest, DashboardLayoutConfig, ImportantBusinessService, Process, ResilienceScenario, SelfAssessment, RegulatoryEvent, HorizonItem } from "./types";
+import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry, RiskAcceptance, Policy, Regulation, DashboardNotification, Role, RiskControlLink, RiskActionLink, SMFRole, PrescribedResponsibility, CertificationFunction, CertifiedPerson, ConductRule, ConductRuleBreach, SMCRDocument, ComplianceStatus, Applicability, AccessRequest, DashboardLayoutConfig, ImportantBusinessService, Process, ResilienceScenario, SelfAssessment, RegulatoryEvent, HorizonItem } from "./types";
 import { api, friendlyApiError } from "./api-client";
 
 interface AppState {
@@ -197,6 +197,10 @@ interface AppState {
   // Risk ↔ Control linking
   linkControlToRisk: (riskId: string, controlId: string, linkedBy: string, notes?: string) => void;
   unlinkControlFromRisk: (riskId: string, controlId: string) => void;
+
+  // Risk ↔ Action linking
+  linkActionToRisk: (riskId: string, link: RiskActionLink) => void;
+  unlinkActionFromRisk: (riskId: string, actionId: string) => void;
 
   // Entity approval
   approveEntity: (type: "risk" | "action" | "control", id: string) => void;
@@ -831,6 +835,24 @@ export const useAppStore = create<AppState>((set, get) => ({
       ),
     }));
     sync(() => api(`/api/risks/${riskId}/control-links`, { method: "DELETE", body: { controlId } }));
+  },
+
+  // ── Risk ↔ Action linking ────────────────────────────────────
+  linkActionToRisk: (riskId, link) => {
+    set((state) => ({
+      risks: state.risks.map((r) =>
+        r.id === riskId ? { ...r, actionLinks: [...(r.actionLinks ?? []), link] } : r
+      ),
+    }));
+  },
+  unlinkActionFromRisk: (riskId, actionId) => {
+    set((state) => ({
+      risks: state.risks.map((r) =>
+        r.id === riskId
+          ? { ...r, actionLinks: (r.actionLinks ?? []).filter((l) => l.actionId !== actionId) }
+          : r
+      ),
+    }));
   },
 
   // ── Entity approval ─────────────────────────────────────────

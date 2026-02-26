@@ -99,7 +99,7 @@ the dashboard so items are tracked, actionable, and linked to the risk and actio
 
 ---
 
-## PLANNED SPRINT: Risk / Action / Control Relational Refactor
+## CURRENT SPRINT: Risk / Action / Control Relational Refactor ✅ COMPLETE
 
 ### What
 Remove the inline free-text controls and mitigations from the Risk Detail Panel. Replace
@@ -124,14 +124,15 @@ Target (correct):     Risk ─── RiskControlLink ──→ Control library  
                       Risk ─── RiskActionLink  ──→ Action register    (new junction table)
 ```
 
-### Key decisions
-- `RiskControl` and `RiskMitigation` tables kept in DB — existing data preserved
-- Inline controls section removed from Risk Detail Panel UI (no new entries created)
-- Inline mitigations section removed from Risk Detail Panel UI (no new entries created)
-- Existing linked actions (from old mitigations) become visible in the new Linked Actions section
-- "Raise Action" on a risk opens action creation dialog → creates Action → creates RiskActionLink
-- "Link Existing Action" → search/select existing action → creates RiskActionLink
-- Fix PATCH /api/risks/[id]: stop deleting/recreating actions; instead manage RiskActionLink separately
+### Key decisions (confirmed 2026-02-26)
+- `RiskControl` and `RiskMitigation` tables kept in DB — existing data preserved, not migrated
+- Inline controls sub-section removed from Risk Detail Panel UI (control effectiveness dropdown + linked library controls remain)
+- Entire mitigations section removed from Risk Detail Panel UI (section 6)
+- Legacy mitigation-linked actions (RiskMitigation.actionId) NOT shown in new Linked Actions section — clean break
+- "Raise Action" → `checkPermission("create:action")` — CCRO_TEAM + OWNER permitted
+- "Link Existing Action" → `checkPermission("create:action")` — CCRO_TEAM + OWNER permitted
+- "Unlink action" → `requireCCRORole` — CCRO_TEAM only
+- Fix PATCH /api/risks/[id]: strip controls/mitigations from schema — stop deleting/recreating entirely
 
 ### Files to create
 | File | Purpose |
@@ -149,19 +150,19 @@ Target (correct):     Risk ─── RiskControlLink ──→ Control library  
 | `src/app/api/risks/[id]/route.ts` | Fix PATCH — remove delete-and-recreate mitigation logic |
 
 ### Acceptance criteria
-- [ ] S2-01: `RiskActionLink` model added to schema; migration runs clean; existing data untouched
-- [ ] S2-02: GET/POST /api/risks/[id]/action-links; DELETE /api/risks/[id]/action-links/[actionId]
-- [ ] S2-03: Risk Detail Panel: inline controls section removed from UI (RiskControl data preserved in DB)
-- [ ] S2-04: Risk Detail Panel: inline mitigations section removed from UI (RiskMitigation data preserved)
-- [ ] S2-05: Risk Detail Panel: "Linked Controls" section (from RiskControlLink) unchanged and still works
-- [ ] S2-06: Risk Detail Panel: new "Linked Actions" section shows actions linked via RiskActionLink
-- [ ] S2-07: "Raise Action" button creates new Action + RiskActionLink; action visible in Actions module
-- [ ] S2-08: "Link Existing Action" search/select creates RiskActionLink without creating new Action
-- [ ] S2-09: PATCH /api/risks/[id] no longer deletes or recreates linked actions on save
-- [ ] S2-10: All existing Risk Detail Panel functionality (ratings, categories, owner, review date, etc.) unchanged
-- [ ] S2-11: Build passes: zero TypeScript errors
-- [ ] S2-12: UAT agent review sign-off
-- [ ] S2-13: No existing risk data lost or corrupted
+- [x] S2-01: `RiskActionLink` model added to schema; migration runs clean; existing data untouched
+- [x] S2-02: GET/POST /api/risks/[id]/action-links; DELETE /api/risks/[id]/action-links/[actionId]
+- [x] S2-03: Risk Detail Panel: inline controls section removed from UI (RiskControl data preserved in DB)
+- [x] S2-04: Risk Detail Panel: inline mitigations section removed from UI (RiskMitigation data preserved)
+- [x] S2-05: Risk Detail Panel: "Linked Controls" section (from RiskControlLink) unchanged and still works
+- [x] S2-06: Risk Detail Panel: new "Linked Actions" section shows actions linked via RiskActionLink
+- [x] S2-07: "Raise Action" button creates new Action + RiskActionLink; action visible in Actions module
+- [x] S2-08: "Link Existing Action" search/select creates RiskActionLink without creating new Action
+- [x] S2-09: PATCH /api/risks/[id] no longer deletes or recreates linked actions on save
+- [x] S2-10: All existing Risk Detail Panel functionality (ratings, categories, owner, review date, etc.) unchanged
+- [x] S2-11: Build passes: zero TypeScript errors
+- [x] S2-12: UAT agent review sign-off (P0-1 status enum fixed, P0-2 isDirty fixed, P1-2 field validation added, P1-4 link panel loading state, P2-2 confirm state reset)
+- [x] S2-13: No existing risk data lost or corrupted (RiskControl + RiskMitigation DB tables unchanged; PATCH no longer touches them)
 
 ---
 

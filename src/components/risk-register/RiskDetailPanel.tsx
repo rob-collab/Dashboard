@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { Risk, RiskControl, RiskMitigation, ControlEffectiveness, RiskAppetite, DirectionOfTravel, MitigationStatus, ActionPriority } from "@/lib/types";
+import type { Risk, RiskActionLink, ControlEffectiveness, RiskAppetite, DirectionOfTravel, ActionPriority } from "@/lib/types";
 import { RISK_ACCEPTANCE_STATUS_LABELS, RISK_ACCEPTANCE_STATUS_COLOURS } from "@/lib/types";
 import { useAppStore } from "@/lib/store";
 import {
@@ -28,26 +28,10 @@ import ConfirmDialog from "@/components/common/ConfirmDialog";
 interface RiskDetailPanelProps {
   risk: Risk | null;
   isNew: boolean;
-  onSave: (data: Partial<Risk> & { controls?: Partial<RiskControl>[]; mitigations?: Partial<RiskMitigation>[] }) => void;
+  onSave: (data: Partial<Risk>) => void;
   onClose: () => void;
   onDelete?: (id: string) => void;
   onViewHistory?: (risk: Risk) => void;
-}
-
-interface FormControl {
-  id?: string;
-  description: string;
-  controlOwner: string;
-}
-
-interface FormMitigation {
-  id?: string;
-  action: string;
-  owner: string;
-  deadline: string;
-  status: MitigationStatus;
-  priority: string;
-  actionId?: string | null;
 }
 
 export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete, onViewHistory }: RiskDetailPanelProps) {
@@ -64,11 +48,15 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
   const toggleRiskInFocus = useAppStore((s) => s.toggleRiskInFocus);
   const linkControlToRisk = useAppStore((s) => s.linkControlToRisk);
   const unlinkControlFromRisk = useAppStore((s) => s.unlinkControlFromRisk);
+  const linkActionToRisk = useAppStore((s) => s.linkActionToRisk);
+  const unlinkActionFromRisk = useAppStore((s) => s.unlinkActionFromRisk);
+  const actions = useAppStore((s) => s.actions);
   const pushNavigationStack = useAppStore((s) => s.pushNavigationStack);
   const isCCRO = currentUser?.role === "CCRO_TEAM";
   const canToggleFocus = useHasPermission("can:toggle-risk-focus");
   const canEditRisk = useHasPermission("edit:risk");
   const canBypassApproval = useHasPermission("can:bypass-approval");
+  const canRaiseAction = useHasPermission("create:action");
 
   const activeUsers = users.filter((u) => u.isActive !== false);
   const PRIORITY_OPTIONS: { value: ActionPriority; label: string }[] =
@@ -105,10 +93,18 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
   const [directionOfTravel, setDirectionOfTravel] = useState<DirectionOfTravel>("STABLE");
   const [lastReviewed, setLastReviewed] = useState(new Date().toISOString().split("T")[0]);
   const [reviewFrequencyDays, setReviewFrequencyDays] = useState(90);
-  const [controls, setControls] = useState<FormControl[]>([]);
-  const [mitigations, setMitigations] = useState<FormMitigation[]>([]);
   const [controlsOpen, setControlsOpen] = useState(false);
-  const [mitigationsOpen, setMitigationsOpen] = useState(false);
+  const [linkedActionsOpen, setLinkedActionsOpen] = useState(false);
+  const [showRaiseAction, setShowRaiseAction] = useState(false);
+  const [showLinkAction, setShowLinkAction] = useState(false);
+  const [actionTitle, setActionTitle] = useState("");
+  const [actionAssignee, setActionAssignee] = useState("");
+  const [actionDueDate, setActionDueDate] = useState("");
+  const [actionPriority, setActionPriority] = useState<ActionPriority | "">("");
+  const [actionSearch, setActionSearch] = useState("");
+  const [submittingAction, setSubmittingAction] = useState(false);
+  const [raiseActionAttempted, setRaiseActionAttempted] = useState(false);
+  const [confirmUnlinkActionId, setConfirmUnlinkActionId] = useState<string | null>(null);
   const [libCtrlSearch, setLibCtrlSearch] = useState("");
   const [libCtrlAreaFilter, setLibCtrlAreaFilter] = useState<string>("");
 
@@ -129,13 +125,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
       setDirectionOfTravel(risk.directionOfTravel);
       setReviewFrequencyDays(risk.reviewFrequencyDays ?? 90);
       setLastReviewed(risk.lastReviewed.split("T")[0]);
-      setControls(risk.controls?.map((c) => ({ id: c.id, description: c.description, controlOwner: c.controlOwner ?? "" })) ?? []);
-      setMitigations(risk.mitigations?.map((m) => ({
-        id: m.id, action: m.action, owner: m.owner ?? "",
-        deadline: m.deadline ? m.deadline.split("T")[0] : "", status: m.status,
-        priority: m.priority ?? "",
-        actionId: m.actionId,
-      })) ?? []);
+      setConfirmUnlinkActionId(null);
     }
   }, [risk, isNew]);
 
@@ -156,7 +146,9 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
     inherentImpact !== risk.inherentImpact ||
     residualLikelihood !== risk.residualLikelihood ||
     residualImpact !== risk.residualImpact ||
-    directionOfTravel !== risk.directionOfTravel
+    directionOfTravel !== risk.directionOfTravel ||
+    controlEffectiveness !== (risk.controlEffectiveness ?? "") ||
+    riskAppetite !== (risk.riskAppetite ?? "")
   );
 
   function handleCancel() {
@@ -182,14 +174,6 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
       directionOfTravel, reviewFrequencyDays, lastReviewed,
       controlEffectiveness: controlEffectiveness || null,
       riskAppetite: riskAppetite || null,
-      controls: controls.filter((c) => c.description.trim()).map((c, i) => ({
-        description: c.description, controlOwner: c.controlOwner || null, sortOrder: i,
-      })),
-      mitigations: mitigations.filter((m) => m.action.trim()).map((m) => ({
-        action: m.action, owner: m.owner || null,
-        deadline: m.deadline || null, status: m.status,
-        priority: m.priority || null,
-      })),
     };
 
     if (!isNew && risk) {
@@ -211,7 +195,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
     } else {
       // New risk: delegate to parent which builds the full Risk object and calls addRisk
       setRiskSaveState("saving");
-      onSave(data as Partial<Risk> & { controls?: Partial<RiskControl>[]; mitigations?: Partial<RiskMitigation>[] });
+      onSave(data as Partial<Risk>);
       await new Promise((r) => setTimeout(r, 400));
       setRiskSaveState("saved");
       await new Promise((r) => setTimeout(r, 600));
@@ -262,6 +246,67 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
       toast.error(err instanceof Error ? err.message : "Failed to propose update");
     } finally {
       setProposing(false);
+    }
+  }
+
+  async function handleRaiseAction() {
+    if (!risk || submittingAction) return;
+    setRaiseActionAttempted(true);
+    if (!actionTitle.trim() || !actionAssignee) return;
+    setSubmittingAction(true);
+    try {
+      const link = await api<RiskActionLink>(`/api/risks/${risk.id}/action-links`, {
+        method: "POST",
+        body: {
+          title: actionTitle.trim(),
+          assignedTo: actionAssignee,
+          dueDate: actionDueDate || null,
+          priority: actionPriority || null,
+        },
+      });
+      linkActionToRisk(risk.id, link);
+      toast.success("Action raised and linked");
+      setShowRaiseAction(false);
+      setActionTitle("");
+      setActionAssignee("");
+      setActionDueDate("");
+      setActionPriority("");
+      setRaiseActionAttempted(false);
+    } catch {
+      toast.error("Failed to raise action — please try again");
+    } finally {
+      setSubmittingAction(false);
+    }
+  }
+
+  async function handleLinkExistingAction(actionId: string) {
+    if (!risk || submittingAction) return;
+    setSubmittingAction(true);
+    try {
+      const link = await api<RiskActionLink>(`/api/risks/${risk.id}/action-links`, {
+        method: "POST",
+        body: { actionId },
+      });
+      linkActionToRisk(risk.id, link);
+      toast.success("Action linked");
+      setShowLinkAction(false);
+      setActionSearch("");
+    } catch {
+      toast.error("Failed to link action — please try again");
+    } finally {
+      setSubmittingAction(false);
+    }
+  }
+
+  async function handleUnlinkAction(actionId: string) {
+    if (!risk) return;
+    try {
+      await api(`/api/risks/${risk.id}/action-links/${actionId}`, { method: "DELETE" });
+      unlinkActionFromRisk(risk.id, actionId);
+      toast.success("Action unlinked");
+      setConfirmUnlinkActionId(null);
+    } catch {
+      toast.error("Failed to unlink action — please try again");
     }
   }
 
@@ -537,7 +582,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                 <ScoreBadge likelihood={inherentLikelihood} impact={inherentImpact} size="lg" />
               </div>
               <div className="flex flex-col items-center">
-                <div className="text-[10px] text-gray-400 mb-0.5">{controls.filter((c) => c.description.trim()).length} controls</div>
+                <div className="text-[10px] text-gray-400 mb-0.5">{risk?.controlLinks?.length ?? 0} controls</div>
                 <div className="w-16 h-0.5 bg-gray-300 relative">
                   <div className="absolute -right-1 -top-1 text-gray-400">→</div>
                 </div>
@@ -560,7 +605,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
               <span className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs">4</span>
               Controls
               <span className="rounded-full bg-blue-100 text-blue-700 px-1.5 py-0.5 text-[10px] font-bold">
-                {controls.filter((c) => c.description.trim()).length + (risk?.controlLinks?.length ?? 0)}
+                {risk?.controlLinks?.length ?? 0}
               </span>
               <span className="text-[10px] text-gray-400 font-normal">bridging inherent → residual</span>
               <span className="ml-auto">
@@ -569,76 +614,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
             </button>
             {controlsOpen && (
               <div className="space-y-4">
-                {/* Sub-section A: Risk-specific inline controls */}
-                <div className="space-y-2">
-                  <p className="text-[11px] font-semibold text-blue-600 uppercase tracking-wide">
-                    Inline Controls
-                    <span className="ml-1.5 rounded-full bg-blue-50 text-blue-500 px-1.5 py-0.5 text-[10px] font-bold normal-case">{controls.filter((c) => c.description.trim()).length}</span>
-                    <span className="ml-1 text-gray-400 font-normal normal-case">— risk-specific, entered here</span>
-                  </p>
-                  {controls.map((ctrl, i) => (
-                    <div key={i} className="flex gap-2">
-                      <input
-                        value={ctrl.description}
-                        onChange={(e) => {
-                          const next = [...controls];
-                          next[i] = { ...next[i], description: e.target.value };
-                          setControls(next);
-                        }}
-                        placeholder="Control description"
-                        className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
-                      />
-                      {canEditRisk ? (
-                        <select
-                          value={ctrl.controlOwner}
-                          onChange={(e) => {
-                            const next = [...controls];
-                            next[i] = { ...next[i], controlOwner: e.target.value };
-                            setControls(next);
-                          }}
-                          className="w-36 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
-                        >
-                          <option value="">Owner...</option>
-                          {activeUsers.map((u) => (
-                            <option key={u.id} value={u.id}>{u.name}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span className="w-36 px-3 py-2 text-sm text-gray-600 inline-block">
-                          {activeUsers.find((u) => u.id === ctrl.controlOwner)?.name || (ctrl.controlOwner ? ctrl.controlOwner : "—")}
-                        </span>
-                      )}
-                      <button
-                        onClick={() => setControls(controls.filter((_, j) => j !== i))}
-                        className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                        aria-label="Delete control"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                  <button
-                    onClick={() => setControls([...controls, { description: "", controlOwner: "" }])}
-                    className="flex items-center gap-1.5 text-sm text-updraft-bright-purple hover:text-updraft-deep transition-colors"
-                  >
-                    <Plus className="w-4 h-4" /> Add inline control
-                  </button>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Overall Control Effectiveness</label>
-                    <select
-                      value={controlEffectiveness}
-                      onChange={(e) => setControlEffectiveness(e.target.value as ControlEffectiveness | "")}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white"
-                    >
-                      <option value="">Not assessed</option>
-                      {(Object.keys(EFFECTIVENESS_DISPLAY) as ControlEffectiveness[]).map((k) => (
-                        <option key={k} value={k}>{EFFECTIVENESS_DISPLAY[k].label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Sub-section B: Library controls — only for saved risks */}
+                {/* Control Library — shared controls linked from the Controls Library */}
                 {risk && !isNew && (
                   <div className="space-y-2 pt-3 border-t border-gray-100">
                     <p className="text-[11px] font-semibold text-blue-600 uppercase tracking-wide">
@@ -775,6 +751,19 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
               <span className="w-6 h-6 rounded-full bg-gray-500 text-white flex items-center justify-center text-xs">5</span>
               Additional
             </h3>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Overall Control Effectiveness</label>
+              <select
+                value={controlEffectiveness}
+                onChange={(e) => setControlEffectiveness(e.target.value as ControlEffectiveness | "")}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white"
+              >
+                <option value="">Not assessed</option>
+                {(Object.keys(EFFECTIVENESS_DISPLAY) as ControlEffectiveness[]).map((k) => (
+                  <option key={k} value={k}>{EFFECTIVENESS_DISPLAY[k].label}</option>
+                ))}
+              </select>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">Direction of Travel</label>
@@ -836,121 +825,248 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
             </div>
           </section>
 
-          {/* Mitigations (collapsible) */}
-          <section className="space-y-3">
-            <button
-              type="button"
-              onClick={() => setMitigationsOpen(!mitigationsOpen)}
-              className="w-full text-sm font-semibold text-gray-700 flex items-center gap-2"
-            >
-              <span className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs">6</span>
-              Mitigation Actions
-              <span className="rounded-full bg-purple-100 text-purple-700 px-1.5 py-0.5 text-[10px] font-bold">{mitigations.length}</span>
-              <span className="text-[10px] text-gray-400 font-normal">(optional)</span>
-              <span className="ml-auto">
-                {mitigationsOpen ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
-              </span>
-            </button>
-            {mitigationsOpen && (<>
-            {mitigations.map((mit, i) => (
-              <div key={i} className="space-y-2 p-3 bg-gray-50 rounded-lg">
-                {mit.actionId && (
-                  <EntityLink
-                    type="action"
-                    id={mit.actionId}
-                    label="View linked action"
-                  />
-                )}
-                <div className="flex gap-2">
-                  <input
-                    value={mit.action}
-                    onChange={(e) => {
-                      const next = [...mitigations];
-                      next[i] = { ...next[i], action: e.target.value };
-                      setMitigations(next);
-                    }}
-                    placeholder="Action description"
-                    className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
-                  />
-                  <button
-                    onClick={() => setMitigations(mitigations.filter((_, j) => j !== i))}
-                    className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                    aria-label="Delete mitigation"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  <select
-                    value={mit.owner}
-                    onChange={(e) => {
-                      const next = [...mitigations];
-                      next[i] = { ...next[i], owner: e.target.value };
-                      setMitigations(next);
-                    }}
-                    className="w-36 px-3 py-1.5 text-xs border border-gray-200 rounded-lg bg-white"
-                  >
-                    <option value="">Owner...</option>
-                    {activeUsers.map((u) => (
-                      <option key={u.id} value={u.id}>{u.name}</option>
-                    ))}
-                  </select>
-                  <select
-                    value={mit.priority}
-                    onChange={(e) => {
-                      const next = [...mitigations];
-                      next[i] = { ...next[i], priority: e.target.value };
-                      setMitigations(next);
-                    }}
-                    className="w-32 px-3 py-1.5 text-xs border border-gray-200 rounded-lg bg-white"
-                  >
-                    <option value="">Priority...</option>
-                    {PRIORITY_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="date"
-                    value={mit.deadline}
-                    onChange={(e) => {
-                      const next = [...mitigations];
-                      next[i] = { ...next[i], deadline: e.target.value };
-                      setMitigations(next);
-                    }}
-                    className="w-36 px-3 py-1.5 text-xs border border-gray-200 rounded-lg bg-white"
-                  />
-                  <select
-                    value={mit.status}
-                    onChange={(e) => {
-                      const next = [...mitigations];
-                      next[i] = { ...next[i], status: e.target.value as MitigationStatus };
-                      setMitigations(next);
-                    }}
-                    className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg bg-white"
-                  >
-                    <option value="OPEN">Open</option>
-                    <option value="IN_PROGRESS">In Progress</option>
-                    <option value="COMPLETE">Complete</option>
-                  </select>
-                </div>
-              </div>
-            ))}
-            <button
-              onClick={() => setMitigations([...mitigations, { action: "", owner: "", deadline: "", status: "OPEN", priority: "" }])}
-              className="flex items-center gap-1.5 text-sm text-updraft-bright-purple hover:text-updraft-deep transition-colors"
-            >
-              <Plus className="w-4 h-4" /> Add mitigation action
-            </button>
-            {risk && !isNew && (
+          {/* Linked Actions (collapsible) — only for saved risks */}
+          {risk && !isNew && (
+            <section className="space-y-3">
               <button
-                onClick={() => { pushNavigationStack(window.location.pathname + window.location.search); router.push(`/actions?newAction=true&source=${encodeURIComponent("Risk Register")}&metricName=${encodeURIComponent(`${risk.reference}: ${name}`)}&riskId=${risk.id}`); }}
-                className="flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-800 transition-colors"
+                type="button"
+                onClick={() => setLinkedActionsOpen(!linkedActionsOpen)}
+                className="w-full text-sm font-semibold text-gray-700 flex items-center gap-2"
               >
-                <Plus className="w-4 h-4" /> Raise formal action
+                <span className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs">6</span>
+                Linked Actions
+                <span className="rounded-full bg-purple-100 text-purple-700 px-1.5 py-0.5 text-[10px] font-bold">
+                  {risk.actionLinks?.length ?? 0}
+                </span>
+                <span className="text-[10px] text-gray-400 font-normal">tracking mitigation progress</span>
+                <span className="ml-auto">
+                  {linkedActionsOpen ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                </span>
               </button>
-            )}
-            </>)}
-          </section>
+              {linkedActionsOpen && (
+                <div className="space-y-3">
+                  {/* Linked actions list */}
+                  {(risk.actionLinks ?? []).length === 0 && (
+                    <p className="text-xs text-gray-400 italic">No actions linked yet.</p>
+                  )}
+                  {(risk.actionLinks ?? []).map((link) => {
+                    const action = link.action;
+                    if (!action) return null;
+                    const isConfirming = confirmUnlinkActionId === link.actionId;
+                    const STATUS_LABELS: Record<string, string> = {
+                      OPEN: "Open", IN_PROGRESS: "In Progress", COMPLETED: "Completed",
+                      PROPOSED_CLOSED: "Proposed Closed", OVERDUE: "Overdue",
+                    };
+                    const STATUS_COLOURS: Record<string, string> = {
+                      OPEN: "bg-blue-50 text-blue-700",
+                      IN_PROGRESS: "bg-amber-50 text-amber-700",
+                      COMPLETED: "bg-green-50 text-green-700",
+                      PROPOSED_CLOSED: "bg-purple-50 text-purple-700",
+                      OVERDUE: "bg-red-50 text-red-700",
+                    };
+                    return (
+                      <div key={link.id} className="flex items-start gap-2 p-2.5 bg-gray-50 rounded-lg group">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <EntityLink
+                              type="action"
+                              id={link.actionId}
+                              reference={action.reference}
+                              label={action.title}
+                            />
+                            <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${STATUS_COLOURS[action.status] ?? "bg-gray-50 text-gray-500"}`}>
+                              {STATUS_LABELS[action.status] ?? action.status}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-gray-400 mt-0.5">
+                            Assigned to {users.find((u) => u.id === action.assignedTo)?.name ?? action.assignedTo}
+                            {action.dueDate ? ` · Due ${new Date(action.dueDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}` : ""}
+                            {action.priority ? ` · ${action.priority}` : ""}
+                          </p>
+                        </div>
+                        {isCCRO && (
+                          isConfirming ? (
+                            <div className="flex items-center gap-1 shrink-0">
+                              <span className="text-[11px] text-gray-600">Unlink?</span>
+                              <button
+                                type="button"
+                                onClick={() => handleUnlinkAction(link.actionId)}
+                                className="text-[11px] font-medium text-red-600 hover:text-red-800 px-1.5 py-0.5 rounded"
+                              >
+                                Yes
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmUnlinkActionId(null)}
+                                className="text-[11px] font-medium text-gray-500 hover:text-gray-700 px-1.5 py-0.5 rounded"
+                              >
+                                No
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setConfirmUnlinkActionId(link.actionId)}
+                              className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all shrink-0"
+                              title="Unlink action"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )
+                        )}
+                      </div>
+                    );
+                  })}
+                  {/* Raise / Link action buttons */}
+                  {canRaiseAction && (
+                    <div className="space-y-2 pt-1">
+                      {!showRaiseAction && !showLinkAction && (
+                        <div className="flex gap-3">
+                          <button
+                            type="button"
+                            onClick={() => { setShowRaiseAction(true); setShowLinkAction(false); }}
+                            className="flex items-center gap-1.5 text-sm text-updraft-bright-purple hover:text-updraft-deep transition-colors"
+                          >
+                            <Plus className="w-4 h-4" /> Raise new action
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setShowLinkAction(true); setShowRaiseAction(false); }}
+                            className="flex items-center gap-1.5 text-sm text-updraft-bright-purple hover:text-updraft-deep transition-colors"
+                          >
+                            <Link2 className="w-4 h-4" /> Link existing action
+                          </button>
+                        </div>
+                      )}
+                      {/* Raise new action form */}
+                      {showRaiseAction && (
+                        <div className="space-y-2 p-3 bg-purple-50 rounded-lg border border-purple-100">
+                          <p className="text-[11px] font-semibold text-purple-700 uppercase tracking-wide">Raise New Action</p>
+                          <input
+                            value={actionTitle}
+                            onChange={(e) => setActionTitle(e.target.value)}
+                            placeholder="Action title *"
+                            className={cn("w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white", raiseActionAttempted && !actionTitle.trim() ? "border-red-300 focus:ring-red-300/30" : "border-gray-200 focus:ring-updraft-bright-purple/30")}
+                          />
+                          {raiseActionAttempted && !actionTitle.trim() && (
+                            <p className="text-xs text-red-500 -mt-1">Action title is required</p>
+                          )}
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                            <select
+                              value={actionAssignee}
+                              onChange={(e) => setActionAssignee(e.target.value)}
+                              className={cn("w-full px-3 py-2 text-sm border rounded-lg bg-white", raiseActionAttempted && !actionAssignee ? "border-red-300" : "border-gray-200")}
+                            >
+                              <option value="">Assign to *</option>
+                              {activeUsers.map((u) => (
+                                <option key={u.id} value={u.id}>{u.name}</option>
+                              ))}
+                            </select>
+                            {raiseActionAttempted && !actionAssignee && (
+                              <p className="text-xs text-red-500 mt-0.5">Assignee is required</p>
+                            )}
+                            </div>
+                            <select
+                              value={actionPriority}
+                              onChange={(e) => setActionPriority(e.target.value as ActionPriority | "")}
+                              className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white"
+                            >
+                              <option value="">Priority...</option>
+                              {PRIORITY_OPTIONS.map((opt) => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <input
+                            type="date"
+                            value={actionDueDate}
+                            onChange={(e) => setActionDueDate(e.target.value)}
+                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white"
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <button
+                              type="button"
+                              onClick={() => { setShowRaiseAction(false); setActionTitle(""); setActionAssignee(""); setActionDueDate(""); setActionPriority(""); setRaiseActionAttempted(false); }}
+                              className="px-3 py-1.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleRaiseAction}
+                              disabled={submittingAction || !actionTitle.trim() || !actionAssignee}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-updraft-deep rounded-lg hover:bg-updraft-bar disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {submittingAction && <Loader2 size={12} className="animate-spin" />}
+                              Raise Action
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      {/* Link existing action search */}
+                      {showLinkAction && (
+                        <div className="space-y-2 p-3 bg-purple-50 rounded-lg border border-purple-100">
+                          <p className="text-[11px] font-semibold text-purple-700 uppercase tracking-wide">Link Existing Action</p>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={actionSearch}
+                              onChange={(e) => setActionSearch(e.target.value)}
+                              placeholder="Search by reference or title..."
+                              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30 pl-9 bg-white"
+                            />
+                            <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          </div>
+                          {submittingAction && (
+                            <div className="flex items-center justify-center gap-2 py-3 text-xs text-gray-500">
+                              <Loader2 size={14} className="animate-spin" />
+                              Linking…
+                            </div>
+                          )}
+                          {!submittingAction && actionSearch.trim() && (
+                            <div className="max-h-48 overflow-y-auto space-y-1 rounded-lg border border-gray-200 bg-white p-2">
+                              {(() => {
+                                const q = actionSearch.toLowerCase();
+                                const linkedIds = new Set((risk.actionLinks ?? []).map((l) => l.actionId));
+                                const matches = actions.filter((a) => {
+                                  if (linkedIds.has(a.id)) return false;
+                                  return a.reference.toLowerCase().includes(q) || a.title.toLowerCase().includes(q);
+                                });
+                                if (matches.length === 0) return <p className="text-xs text-gray-400 py-2 text-center">No matching actions found</p>;
+                                return matches.slice(0, 20).map((a) => (
+                                  <button
+                                    key={a.id}
+                                    type="button"
+                                    onClick={() => handleLinkExistingAction(a.id)}
+                                    className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-xs rounded-md hover:bg-updraft-pale-purple/20 transition-colors"
+                                  >
+                                    <span className="font-mono font-medium text-updraft-deep whitespace-nowrap">{a.reference}</span>
+                                    <span className="text-gray-600 truncate flex-1">{a.title}</span>
+                                    <Plus className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                                  </button>
+                                ));
+                              })()}
+                            </div>
+                          )}
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              disabled={submittingAction}
+                              onClick={() => { setShowLinkAction(false); setActionSearch(""); }}
+                              className="px-3 py-1.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+          )}
 
           {/* Risk Acceptances */}
           {risk && !isNew && (() => {
