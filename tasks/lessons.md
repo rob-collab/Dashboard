@@ -141,23 +141,27 @@ exactly does this gate?" and use that as the prop name.
 
 ---
 
-### L012 — Never fabricate regulatory seed data — always use source documents verbatim
+### L012 — Never fabricate any seed data without express instruction or permission
 **What happened:** Source documents for horizon scanning items (uploaded in a previous session)
-were lost from context due to compaction. The seed was written from general regulatory
-knowledge, producing plausible-sounding but incorrect content. Most critically, FCA CP26/7
-was titled "Consumer Duty: Fair Value and Sludge Practices" — but the real CP26/7 is about
-mandatory credit information sharing (multi-bureau reporting) from the Credit Information
-Market Study. All 8 HIGH-priority items (HZ-001 to HZ-008) were incorrect.
-**Rule:** If source documents were provided in a previous session and may have been lost
-through context compaction, DO NOT generate substitutes from general knowledge. Instead:
-1. Tell the user the documents were lost from context
-2. Ask the user to re-provide the documents before writing the seed
-3. Only write compliance/regulatory seed data from the actual source documents verbatim
-**Do NOT:** Generate plausible-sounding regulatory references for compliance applications.
-Invented regulatory content is actively harmful — it could mislead a compliance officer.
-**Trigger:** Any seed data containing regulatory references, FCA consultation paper numbers,
-FOS decisions, enforcement cases, or compliance deadlines — all must trace to a real source.
-**Status:** Active — review before any compliance data seed work.
+were lost from context due to compaction. The seed was written from general knowledge,
+producing plausible-sounding but incorrect content. Most critically, FCA CP26/7 was titled
+"Consumer Duty: Fair Value and Sludge Practices" — but the real CP26/7 is about mandatory
+credit information sharing (multi-bureau reporting). All 8 HIGH-priority items were wrong.
+**Rule:** Do NOT generate or fabricate ANY seed data without express instruction or permission
+from the user. This applies to all data, not just regulatory content:
+1. If source data was provided in a previous session and may have been lost through context
+   compaction, STOP — tell the user the data was lost and ask them to re-provide it
+2. If asked to seed a module for the first time, ask the user to supply the data or
+   explicitly confirm that placeholder/demo data is acceptable
+3. Only use source documents, user-provided data, or explicitly approved placeholder content
+4. Never fill gaps with plausible-sounding invented content — even for "demo" purposes
+**Do NOT:** Generate anything that presents as real business data (names, figures, dates,
+case references, regulatory citations, risk names, policy titles, etc.) without the user's
+explicit sign-off. Invented data is at best misleading; in a compliance application it is
+actively harmful.
+**Trigger:** Any new seed block, any upsert of business/regulatory/compliance data, any
+placeholder added to a new module — confirm with the user before writing.
+**Status:** Active — check before writing any seed data.
 
 ---
 
