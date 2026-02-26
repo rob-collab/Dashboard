@@ -5,7 +5,7 @@ import { serialiseDates } from "@/lib/serialise";
 
 const updateSchema = z.object({
   currentHolderId: z.string().nullable().optional(),
-  status: z.enum(["ACTIVE", "VACANT", "PENDING_APPROVAL"]).optional(),
+  status: z.enum(["ACTIVE", "VACANT", "PENDING_APPROVAL", "NOT_REQUIRED"]).optional(),
   appointmentDate: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
 });

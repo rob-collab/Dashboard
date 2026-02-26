@@ -110,6 +110,7 @@ enum SMFStatus {
   ACTIVE
   VACANT
   PENDING_APPROVAL
+  NOT_REQUIRED
 }
 
 enum CertificationStatus {

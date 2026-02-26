@@ -1,5 +1,35 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-26 (Interactivity Audit sprint complete — all 27 findings implemented)
+Last updated: 2026-02-26 (SMCR hotfix — explicit save + NOT_REQUIRED status)
+
+---
+
+## CURRENT SPRINT: SMCR Hotfix — Explicit Save + NOT_REQUIRED Status ✅ COMPLETE
+
+### What
+SMF role edits were not persisting. The `saveEdit` function used the fire-and-forget `sync()` store pattern — optimistic local update appeared to work, but if the API call silently failed the DB was never updated and `hydrate()` on next mount reverted to the old state.
+
+### Why
+Any change made in the tool must be permanent. The fire-and-forget pattern is unsafe for user-facing edits.
+
+### Files changed
+- `prisma/schema.prisma` — added `NOT_REQUIRED` to `SMFStatus` enum; pushed to Supabase
+- `src/lib/types.ts` — updated `SMFStatus` type, `SMF_STATUS_LABELS`, `SMF_STATUS_COLOURS`
+- `src/app/api/compliance/smcr/roles/[id]/route.ts` — added `NOT_REQUIRED` to Zod enum
+- `src/components/compliance/smcr/SMFDirectory.tsx` — explicit async save with loading state, success/error toasts, store merge from API response; NOT_REQUIRED tile in summary strip
+
+### Acceptance criteria
+- [x] `saveEdit` awaits the API call directly (not fire-and-forget)
+- [x] Save button shows spinner + "Saving…" text during in-flight request
+- [x] Both buttons disabled while saving
+- [x] Success toast: "Role saved"
+- [x] Error toast: "Failed to save role — please try again"; panel stays open for retry
+- [x] Store updated from API response (not optimistic guess)
+- [x] `NOT_REQUIRED` status option available in edit dropdown
+- [x] Summary strip shows 4 tiles: Active / Vacant / Pending Approval / Not Required
+- [x] Build passes: zero errors
+
+### Next: Global Save Reliability Sprint (planned separately)
+The same fire-and-forget risk exists across all ~30 store update functions. Plan a dedicated sprint to replace `sync()` with explicit saves throughout the codebase.
 
 ---
 

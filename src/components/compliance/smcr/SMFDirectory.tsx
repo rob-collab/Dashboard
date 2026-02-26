@@ -12,6 +12,8 @@ import {
 import { cn } from "@/lib/utils";
 import { formatDateShort } from "@/lib/utils";
 import Link from "next/link";
+import { api } from "@/lib/api-client";
+import { toast } from "sonner";
 import {
   Shield,
   User as UserIcon,
@@ -20,13 +22,14 @@ import {
   Sparkles,
   Scale,
   ExternalLink,
+  Loader2,
 } from "lucide-react";
 
 export default function SMFDirectory() {
   const smfRoles = useAppStore((s) => s.smfRoles);
   const prescribedResponsibilities = useAppStore((s) => s.prescribedResponsibilities);
   const users = useAppStore((s) => s.users);
-  const updateSmfRole = useAppStore((s) => s.updateSmfRole);
+  const setSmfRoles = useAppStore((s) => s.setSmfRoles);
   const permissionSet = usePermissionSet();
   const canManage = permissionSet.has("manage:smcr");
 
@@ -34,6 +37,7 @@ export default function SMFDirectory() {
   const [editHolder, setEditHolder] = useState("");
   const [editStatus, setEditStatus] = useState<SMFStatus>("ACTIVE");
   const [editNotes, setEditNotes] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const responsibilityCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -54,13 +58,25 @@ export default function SMFDirectory() {
 
   const cancelEdit = () => setEditingId(null);
 
-  const saveEdit = (roleId: string) => {
-    updateSmfRole(roleId, {
-      currentHolderId: editHolder || null,
-      status: editStatus,
-      notes: editNotes || null,
-    });
-    setEditingId(null);
+  const saveEdit = async (roleId: string) => {
+    setSaving(true);
+    try {
+      const updated = await api<SMFRole>(`/api/compliance/smcr/roles/${roleId}`, {
+        method: "PATCH",
+        body: {
+          currentHolderId: editHolder || null,
+          status: editStatus,
+          notes: editNotes || null,
+        },
+      });
+      setSmfRoles(smfRoles.map((r) => (r.id === roleId ? { ...r, ...updated } : r)));
+      setEditingId(null);
+      toast.success("Role saved");
+    } catch {
+      toast.error("Failed to save role — please try again");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const getHolderName = (role: SMFRole): string | null => {
@@ -75,7 +91,7 @@ export default function SMFDirectory() {
   return (
     <div className="space-y-6">
       {/* Summary strip */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bento-card p-4 text-center">
           <p className="text-2xl font-bold font-poppins text-green-600">
             {smfRoles.filter((r) => r.status === "ACTIVE").length}
@@ -93,6 +109,12 @@ export default function SMFDirectory() {
             {smfRoles.filter((r) => r.status === "PENDING_APPROVAL").length}
           </p>
           <p className="text-xs text-gray-500 mt-1">Pending Approval</p>
+        </div>
+        <div className="bento-card p-4 text-center">
+          <p className="text-2xl font-bold font-poppins text-gray-400">
+            {smfRoles.filter((r) => r.status === "NOT_REQUIRED").length}
+          </p>
+          <p className="text-xs text-gray-500 mt-1">Not Required</p>
         </div>
       </div>
 
@@ -240,13 +262,16 @@ export default function SMFDirectory() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => saveEdit(role.id)}
-                      className="flex-1 text-xs font-medium text-white bg-updraft-bright-purple hover:bg-updraft-bar rounded-lg py-2 transition-colors"
+                      disabled={saving}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-medium text-white bg-updraft-bright-purple hover:bg-updraft-bar rounded-lg py-2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      Save
+                      {saving && <Loader2 size={12} className="animate-spin" />}
+                      {saving ? "Saving…" : "Save"}
                     </button>
                     <button
                       onClick={cancelEdit}
-                      className="flex-1 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg py-2 transition-colors"
+                      disabled={saving}
+                      className="flex-1 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg py-2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       Cancel
                     </button>

@@ -911,7 +911,7 @@ export interface RiskControlLink {
 
 export type Applicability = "CORE" | "HIGH" | "MEDIUM" | "LOW" | "N_A" | "ASSESS";
 export type ComplianceStatus = "COMPLIANT" | "PARTIALLY_COMPLIANT" | "NON_COMPLIANT" | "NOT_ASSESSED" | "GAP_IDENTIFIED";
-export type SMFStatus = "ACTIVE" | "VACANT" | "PENDING_APPROVAL";
+export type SMFStatus = "ACTIVE" | "VACANT" | "PENDING_APPROVAL" | "NOT_REQUIRED";
 export type CertificationStatus = "CURRENT" | "DUE" | "OVERDUE" | "LAPSED" | "REVOKED";
 export type BreachStatus = "IDENTIFIED" | "UNDER_INVESTIGATION" | "CLOSED_NO_ACTION" | "CLOSED_DISCIPLINARY" | "REPORTED_TO_FCA";
 export type DocumentStatus = "DOC_CURRENT" | "DOC_OVERDUE" | "DOC_DRAFT" | "DOC_NOT_STARTED";
@@ -954,12 +954,14 @@ export const SMF_STATUS_LABELS: Record<SMFStatus, string> = {
   ACTIVE: "Active",
   VACANT: "Vacant",
   PENDING_APPROVAL: "Pending Approval",
+  NOT_REQUIRED: "Not Required",
 };
 
 export const SMF_STATUS_COLOURS: Record<SMFStatus, { bg: string; text: string }> = {
   ACTIVE: { bg: "bg-green-100", text: "text-green-700" },
   VACANT: { bg: "bg-red-100", text: "text-red-700" },
   PENDING_APPROVAL: { bg: "bg-amber-100", text: "text-amber-700" },
+  NOT_REQUIRED: { bg: "bg-gray-100", text: "text-gray-500" },
 };
 
 export const CERTIFICATION_STATUS_LABELS: Record<CertificationStatus, string> = {
