@@ -1,7 +1,8 @@
 "use client";
 
-import { navigateToEntity, ENTITY_BADGE_STYLES, type NavigableEntity } from "@/lib/navigation";
+import { getEntityUrl, ENTITY_BADGE_STYLES, type NavigableEntity } from "@/lib/navigation";
 import { useAppStore } from "@/lib/store";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 interface EntityLinkProps {
@@ -29,12 +30,17 @@ export default function EntityLink({
   className,
 }: EntityLinkProps) {
   const pushNavigationStack = useAppStore((s) => s.pushNavigationStack);
+  const router = useRouter();
   const styles = ENTITY_BADGE_STYLES[type];
 
   function handleClick(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    navigateToEntity(type, id, pushNavigationStack);
+    // Push current URL onto back-stack BEFORE navigating.
+    // Using router.push() (soft nav) preserves Zustand store so the stack
+    // survives the route change — window.location.href would wipe it.
+    pushNavigationStack(window.location.pathname + window.location.search);
+    router.push(getEntityUrl(type, id));
   }
 
   return (

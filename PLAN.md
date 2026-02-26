@@ -1,5 +1,84 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-26 (Sprint — Favicon + Panel Header Purple)
+Last updated: 2026-02-26 (Sprint — Back Button + Detail Panels planned)
+
+---
+
+## CURRENT SPRINT: Back Button Fix + Actions & RegCal Detail Panels
+
+### What
+Three deliverables:
+1. **Back button fix** — root cause: `navigateToEntity()` uses `window.location.href` (hard nav), which wipes Zustand store on reload. Stack is always empty when new page loads. Fix: use `router.push()` in EntityLink (soft nav, preserves store).
+2. **Actions detail panel** — remove inline expand from actions page. Clean list rows (title, ref badge, priority, status, owner initials, due date). Row click → slide-out `ActionDetailPanel` component.
+3. **Regulatory Calendar event detail panel** — clicking an event card in the widget opens a `RegCalEventDetailPanel` slide-out instead of the current inline accordion expand.
+
+### Files
+**Back button:**
+- `src/components/common/EntityLink.tsx` — use `useRouter` + `router.push()` instead of `window.location.href` in `navigateToEntity` call
+- `src/lib/navigation.ts` — `navigateToEntity` signature stays, but EntityLink bypasses it and calls `router.push(getEntityUrl(...))` directly
+
+**Actions:**
+- `src/app/actions/page.tsx` — remove all `expandedIds` state + expanded card JSX + all inline form states (`showUpdateForm`, `showDateProposal`, `showReassignProposal`, `editingIssue`). Row click → `setSelectedAction(action)`. Keep: groups, progress bar, bulk ops, filters, search, stat cards, ActionFormDialog, CSV import/export.
+- `src/components/actions/ActionDetailPanel.tsx` — NEW slide-out panel with:
+  - Purple gradient header: reference badge, priority badge, status badge, title, due date, close button
+  - Issue to be Addressed section (rich text, CCRO editable)
+  - Risk link (EntityLink if linkedMitigation present)
+  - Key details grid: owner, due date, created by, delay summary
+  - Action buttons: Edit (CCRO), Mark Complete (CCRO), Delete (CCRO), Add Update (owner/CCRO), Request Date Change (non-CCRO), Request Reassignment (non-CCRO), Propose Closed (non-CCRO)
+  - ActionUpdateForm inline
+  - Date change proposal form inline
+  - Reassignment proposal form inline
+  - Description (read-only for non-CCRO, editable for CCRO)
+  - ActionChangePanel (change proposals/history)
+
+**Regulatory Calendar:**
+- `src/components/or/RegulatoryCalendarWidget.tsx` — remove inline accordion expand on event cards. Event card click → `setSelectedEvent(event)`. Keep: month grouping, RAG dots, create event form (CCRO).
+- `src/components/or/RegCalEventDetailPanel.tsx` — NEW slide-out panel with:
+  - Purple gradient header: event title, type badge (DEADLINE/REVIEW/etc.), RAG countdown pill, close button
+  - Details section: full description, event date, source (FCA/PRA/DORA/INTERNAL), owner, alert days
+  - External link button (if URL set)
+  - Edit mode (CCRO): all fields editable inline, Save/Cancel buttons
+  - Create Action button (CCRO): pre-fills action with event title + date as dueDate
+
+### Checklist
+**Back button:**
+- [ ] EntityLink uses `router.push(getEntityUrl(type, id))` — no more `window.location.href`
+- [ ] `pushNavigationStack` still called with current URL before navigation
+- [ ] Back button appears after any EntityLink click-through
+- [ ] Back button navigates to exact previous URL (preserves tab + search params)
+- [ ] Back button disappears after navigating back (stack empty)
+
+**Actions panel:**
+- [ ] `expandedIds` state removed from actions/page.tsx
+- [ ] All inline form states removed (showUpdateForm, showDateProposal, showReassignProposal, editingIssue)
+- [ ] Action rows are clean: ref badge, priority, title, owner initials, due date, status badge, pending change badges
+- [ ] Row click opens ActionDetailPanel slide-out
+- [ ] `?action=id` URL param still opens panel for the matching action on load
+- [ ] All action buttons (Edit, Complete, Delete, Update, proposals) work from within panel
+- [ ] Bulk ops (checkboxes, bulk complete, reassign, export) still work on list
+- [ ] Groups, progress bar, search, filters, stat cards all intact
+- [ ] ActionFormDialog, CSV import/export still functional
+
+**Regulatory Calendar panel:**
+- [ ] Inline accordion expand removed from RegulatoryCalendarWidget
+- [ ] Event card click opens RegCalEventDetailPanel
+- [ ] Panel shows title, type, date, RAG status, description, source, owner, alert days, URL
+- [ ] CCRO edit mode works within panel (all fields)
+- [ ] CCRO delete works from panel
+- [ ] Create Action button (CCRO) pre-fills new action with event title + due date
+- [ ] Create event form (CCRO) still works on main widget
+
+**General:**
+- [ ] Build passes — zero TypeScript errors
+- [ ] No existing features removed
+
+### Proposals (document only — do not implement yet)
+Other areas that would benefit from detail panels (propose to user, implement on request):
+- **Reports list** — quick preview panel (sections, status, period, owner) without navigating away
+- **Users page** — detail panel with role, permissions, last login, invite history, audit trail
+- **SM&CR Certifications** — detail panel with certificate details, expiry, fitness notes
+- **Audit log** — detail panel for full event diff (old→new, who, downstream effects)
+
+---
 
 ---
 
