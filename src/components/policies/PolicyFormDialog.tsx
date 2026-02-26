@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { X, ChevronRight, ChevronLeft, Scale, Search, Check } from "lucide-react";
+import { X, ChevronRight, ChevronLeft, Scale, Search, Check, Loader2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import type { Policy, PolicyStatus, PolicyRegulatoryLink } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/api-client";
+import { toast } from "sonner";
 
 const STATUS_OPTIONS: PolicyStatus[] = ["CURRENT", "OVERDUE", "UNDER_REVIEW", "ARCHIVED"];
 const CLASSIFICATION_OPTIONS = ["Internal Only", "Confidential", "Public"];
@@ -129,29 +131,8 @@ export default function PolicyFormDialog({ open, onClose, onSave, editPolicy }: 
   async function handleSubmit() {
     if (!validateStep1()) { setStep(1); return; }
     setSaving(true);
-    const now = new Date().toISOString();
-    const userId = currentUser?.id ?? "system";
 
-    // Build regulatory links from selected IDs
-    const existingLinks = editPolicy?.regulatoryLinks ?? [];
-    const regulatoryLinks: PolicyRegulatoryLink[] = Array.from(selectedRegIds).map((regId) => {
-      const existing = existingLinks.find((l) => l.regulationId === regId);
-      if (existing) return existing;
-      return {
-        id: `prl-${Date.now()}-${regId}`,
-        policyId: editPolicy?.id ?? `temp-${Date.now()}`,
-        regulationId: regId,
-        regulation: allRegulations.find((r) => r.id === regId),
-        policySections: null,
-        notes: null,
-        linkedAt: now,
-        linkedBy: userId,
-      };
-    });
-
-    const policy: Policy = {
-      id: editPolicy?.id ?? `temp-${Date.now()}`,
-      reference: editPolicy?.reference ?? "POL-???",
+    const body = {
       name,
       description,
       status,
@@ -168,21 +149,65 @@ export default function PolicyFormDialog({ open, onClose, onSave, editPolicy }: 
       exceptions: exceptions || null,
       relatedPolicies: relatedPolicies ? relatedPolicies.split(",").map((s) => s.trim()).filter(Boolean) : [],
       storageUrl: storageUrl || null,
-      approvingBody: editPolicy?.approvingBody ?? null,
-      consumerDutyOutcomes: editPolicy?.consumerDutyOutcomes ?? [],
-      createdAt: editPolicy?.createdAt ?? now,
-      updatedAt: now,
-      owner: users.find((u) => u.id === ownerId),
-      regulatoryLinks,
-      controlLinks: editPolicy?.controlLinks ?? [],
-      obligations: editPolicy?.obligations ?? [],
-      auditTrail: editPolicy?.auditTrail ?? [],
     };
-    onSave(policy);
-    // Brief "Saved ✓" feedback before closing
-    await new Promise((r) => setTimeout(r, 400));
-    setSaving(false);
-    onClose();
+
+    if (editPolicy) {
+      // Edit path: await the API call so failures surface to the user
+      try {
+        const updated = await api<Policy>(`/api/policies/${editPolicy.id}`, {
+          method: "PATCH",
+          body,
+        });
+        // Preserve client-side associations not returned by the PATCH response
+        onSave({
+          ...updated,
+          regulatoryLinks: editPolicy.regulatoryLinks,
+          controlLinks: editPolicy.controlLinks,
+          obligations: editPolicy.obligations,
+          auditTrail: editPolicy.auditTrail,
+        });
+        toast.success("Policy saved");
+        onClose();
+      } catch {
+        toast.error("Failed to save policy — please try again");
+      } finally {
+        setSaving(false);
+      }
+    } else {
+      // New policy: delegate to parent (PoliciesTab.handleCreatePolicy handles the API call)
+      const now = new Date().toISOString();
+      const userId = currentUser?.id ?? "system";
+      const regulatoryLinks: PolicyRegulatoryLink[] = Array.from(selectedRegIds).map((regId) => {
+        return {
+          id: `prl-${Date.now()}-${regId}`,
+          policyId: `temp-${Date.now()}`,
+          regulationId: regId,
+          regulation: allRegulations.find((r) => r.id === regId),
+          policySections: null,
+          notes: null,
+          linkedAt: now,
+          linkedBy: userId,
+        };
+      });
+      const policy: Policy = {
+        id: `temp-${Date.now()}`,
+        reference: "POL-???",
+        ...body,
+        approvingBody: null,
+        consumerDutyOutcomes: [],
+        createdAt: now,
+        updatedAt: now,
+        owner: users.find((u) => u.id === ownerId),
+        regulatoryLinks,
+        controlLinks: [],
+        obligations: [],
+        auditTrail: [],
+      };
+      onSave(policy);
+      await new Promise((r) => setTimeout(r, 400));
+      setSaving(false);
+      onClose();
+    }
   }
 
   const inputCls = (field: string) =>
@@ -471,9 +496,10 @@ export default function PolicyFormDialog({ open, onClose, onSave, editPolicy }: 
             ) : (
               <button
                 type="button" onClick={handleSubmit} disabled={saving}
-                className={cn("rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed", "bg-updraft-deep hover:bg-updraft-bar")}
+                className={cn("inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed", "bg-updraft-deep hover:bg-updraft-bar")}
               >
-                {saving ? "Saving..." : editPolicy ? "Save Changes" : "Create Policy"}
+                {saving && <Loader2 size={14} className="animate-spin" />}
+                {saving ? "Saving…" : editPolicy ? "Save Changes" : "Create Policy"}
               </button>
             )}
           </div>

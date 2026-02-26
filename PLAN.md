@@ -1,9 +1,9 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-26 (Global Save Reliability — D1–D5 complete, D6 pending)
+Last updated: 2026-02-26 (Global Save Reliability sprint ✅ COMPLETE — all 6 deliverables done)
 
 ---
 
-## CURRENT SPRINT: Global Save Reliability — Explicit Saves for Critical Entities
+## CURRENT SPRINT: Global Save Reliability — Explicit Saves for Critical Entities ✅ COMPLETE
 
 ### Problem statement
 The store uses a `sync()` fire-and-forget pattern for ~70 update functions. `sync()` does have retry logic (2 retries, exponential backoff) and shows a generic global toast error after ~6 seconds on failure — but:
@@ -72,7 +72,7 @@ The audit found ~70 store functions using `sync()` across ~21 UI components. Not
 - [x] D3 RegulationDetailPanel: was already explicit but had double-fire bug — all 5 sync() calls eliminated, replaced with setRegulations setter; link/unlink now uses real DB objects from API response
 - [x] D4 SMCR panels: ResponsibilitiesMatrix, DocumentTracker, ConductRulesPanel all explicit; per-row savingStatusId in ConductRulesPanel
 - [x] D5 Controls: ControlDetailModal already fully explicit; ControlsLibraryTab: missing toasts + spinner added
-- [ ] D6 Policy editor: updatePolicy / addPolicy explicit saves (pending)
+- [x] D6 Policy editor: edit path now awaits PATCH /api/policies/:id with spinner + toast; create path unchanged (already explicit in parent) (pending)
 - [x] Build passes: zero TypeScript errors, all 7 files compile cleanly
 - [x] All existing UI interactions preserved — only save path changes
 
