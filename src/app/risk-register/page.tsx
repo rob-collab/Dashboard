@@ -121,6 +121,24 @@ export default function RiskRegisterPage() {
     }
   }, [searchParams, risks]);
 
+  // Write ?risk=<id> to URL when panel opens; clear when it closes
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (panelOpen && selectedRisk && !isNewRisk) {
+      if (params.get("risk") !== selectedRisk.id) {
+        params.set("risk", selectedRisk.id);
+        router.replace(`/risk-register?${params.toString()}`, { scroll: false });
+      }
+    } else {
+      if (params.has("risk")) {
+        params.delete("risk");
+        router.replace(`/risk-register?${params.toString()}`, { scroll: false });
+      }
+    }
+  // searchParams deliberately excluded — read once per panel state change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panelOpen, selectedRisk?.id, isNewRisk]);
+
   const canBypassApproval = useHasPermission("can:bypass-approval");
   const isCCROTeam = currentUser?.role === "CCRO_TEAM";
   const isOwner = currentUser?.role === "OWNER";

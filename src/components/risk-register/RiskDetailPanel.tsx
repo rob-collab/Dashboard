@@ -62,6 +62,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
   const toggleRiskInFocus = useAppStore((s) => s.toggleRiskInFocus);
   const linkControlToRisk = useAppStore((s) => s.linkControlToRisk);
   const unlinkControlFromRisk = useAppStore((s) => s.unlinkControlFromRisk);
+  const pushNavigationStack = useAppStore((s) => s.pushNavigationStack);
   const isCCRO = currentUser?.role === "CCRO_TEAM";
   const canToggleFocus = useHasPermission("can:toggle-risk-focus");
   const canEditRisk = useHasPermission("edit:risk");
@@ -914,7 +915,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
             </button>
             {risk && !isNew && (
               <button
-                onClick={() => router.push(`/actions?newAction=true&source=${encodeURIComponent("Risk Register")}&metricName=${encodeURIComponent(`${risk.reference}: ${name}`)}&riskId=${risk.id}`)}
+                onClick={() => { pushNavigationStack(window.location.pathname + window.location.search); router.push(`/actions?newAction=true&source=${encodeURIComponent("Risk Register")}&metricName=${encodeURIComponent(`${risk.reference}: ${name}`)}&riskId=${risk.id}`); }}
                 className="flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-800 transition-colors"
               >
                 <Plus className="w-4 h-4" /> Raise formal action
@@ -958,7 +959,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                 )}
                 <button
                   type="button"
-                  onClick={() => router.push(`/risk-acceptances?newFrom=risk&riskId=${risk.id}`)}
+                  onClick={() => { pushNavigationStack(window.location.pathname + window.location.search); router.push(`/risk-acceptances?newFrom=risk&riskId=${risk.id}`); }}
                   className="flex items-center gap-1.5 text-sm text-updraft-bright-purple hover:text-updraft-deep transition-colors"
                 >
                   <ShieldQuestion className="w-4 h-4" /> Add Risk Acceptance

@@ -111,6 +111,24 @@ export default function ProcessesPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [processes]);
 
+  // Write ?process=<id> to URL when panel opens; clear when it closes
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (selectedProcess) {
+      if (params.get("process") !== selectedProcess.id) {
+        params.set("process", selectedProcess.id);
+        router.replace(`/processes?${params.toString()}`, { scroll: false });
+      }
+    } else {
+      if (params.has("process")) {
+        params.delete("process");
+        router.replace(`/processes?${params.toString()}`, { scroll: false });
+      }
+    }
+  // searchParams deliberately excluded — read once per panel state change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProcess?.id]);
+
   async function loadInsights() {
     setInsightsLoading(true);
     try {

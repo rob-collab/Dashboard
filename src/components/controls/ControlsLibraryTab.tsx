@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Search,
   Plus,
@@ -75,6 +76,8 @@ export default function ControlsLibraryTab({ initialControlId }: { initialContro
   const users = useAppStore((s) => s.users);
   const currentUser = useAppStore((s) => s.currentUser);
   const policies = useAppStore((s) => s.policies);
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Reverse lookup: control ID → number of policies linked
   const policyCountByControl = useMemo(() => {
@@ -101,6 +104,25 @@ export default function ControlsLibraryTab({ initialControlId }: { initialContro
   useEffect(() => {
     if (initialControlId) setSelectedControlId(initialControlId);
   }, [initialControlId]);
+
+  // Write ?control=<id> to URL when panel opens; clear when it closes
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (selectedControlId) {
+      if (params.get("control") !== selectedControlId) {
+        params.set("control", selectedControlId);
+        params.set("tab", "library");
+        router.replace(`/controls?${params.toString()}`, { scroll: false });
+      }
+    } else {
+      if (params.has("control")) {
+        params.delete("control");
+        router.replace(`/controls?${params.toString()}`, { scroll: false });
+      }
+    }
+  // searchParams deliberately excluded — read once per panel state change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedControlId]);
 
   // ── Filters ────────────────────────────────────────────────
   const [search, setSearch] = useState("");

@@ -45,6 +45,7 @@ export default function RegCalEventDetailPanel({ event, onClose }: RegCalEventDe
   const currentUser = useAppStore((s) => s.currentUser);
   const updateRegulatoryEvent = useAppStore((s) => s.updateRegulatoryEvent);
   const deleteRegulatoryEvent = useAppStore((s) => s.deleteRegulatoryEvent);
+  const pushNavigationStack = useAppStore((s) => s.pushNavigationStack);
   const isCCRO = currentUser?.role === "CCRO_TEAM";
 
   const [editing, setEditing] = useState(false);
@@ -271,13 +272,13 @@ export default function RegCalEventDetailPanel({ event, onClose }: RegCalEventDe
                     <ExternalLink size={11} /> View source
                   </a>
                 )}
-                <button type="button" onClick={() => router.push("/actions")}
+                <button type="button" onClick={() => { pushNavigationStack(window.location.pathname + window.location.search); router.push("/actions"); }}
                   className="inline-flex items-center gap-1 text-xs text-gray-600 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors">
                   <ListChecks size={11} /> View Actions
                 </button>
                 {isCCRO && (
                   <>
-                    <button type="button" onClick={() => router.push(`/actions?newAction=true&metricName=${encodeURIComponent(event.title)}`)}
+                    <button type="button" onClick={() => { pushNavigationStack(window.location.pathname + window.location.search); router.push(`/actions?newAction=true&metricName=${encodeURIComponent(event.title)}`); }}
                       className="inline-flex items-center gap-1 text-xs text-updraft-bright-purple border border-updraft-bright-purple/30 rounded-lg px-3 py-1.5 hover:bg-updraft-pale-purple/10 transition-colors">
                       <ListChecks size={11} /> Create Action
                     </button>

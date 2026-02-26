@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import {
   APPLICABILITY_LABELS,
@@ -25,6 +26,8 @@ export default function RegulatoryUniverseTab({ initialRegulationId }: { initial
   const regulations = useAppStore((s) => s.regulations);
   const policies = useAppStore((s) => s.policies);
   const controls = useAppStore((s) => s.controls);
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ComplianceStatus | "">("");
   const [smfFilter, setSmfFilter] = useState("");
@@ -40,6 +43,25 @@ export default function RegulatoryUniverseTab({ initialRegulationId }: { initial
   useEffect(() => {
     if (initialRegulationId) setSelectedId(initialRegulationId);
   }, [initialRegulationId]);
+
+  // Write ?regulation=<id> to URL when panel opens; clear when it closes
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (selectedId) {
+      if (params.get("regulation") !== selectedId) {
+        params.set("regulation", selectedId);
+        params.set("tab", "regulatory-universe");
+        router.replace(`/compliance?${params.toString()}`, { scroll: false });
+      }
+    } else {
+      if (params.has("regulation")) {
+        params.delete("regulation");
+        router.replace(`/compliance?${params.toString()}`, { scroll: false });
+      }
+    }
+  // searchParams deliberately excluded — read once per panel state change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
 
   const loadDetail = useCallback(async (id: string) => {
     setDetailLoading(true);

@@ -72,6 +72,7 @@ export default function TestResultsEntryTab() {
   const reports = useAppStore((s) => s.reports);
   const currentUser = useAppStore((s) => s.currentUser);
   const addAction = useAppStore((s) => s.addAction);
+  const pushNavigationStack = useAppStore((s) => s.pushNavigationStack);
 
   /* Period selector state — defaults to current month/year */
   const now = new Date();
@@ -309,6 +310,7 @@ export default function TestResultsEntryTab() {
   function handleCreateRiskAcceptance(entry: TestingScheduleEntry) {
     const control = entry.control;
     if (control) {
+      pushNavigationStack(window.location.pathname + window.location.search);
       router.push(`/risk-acceptances?newFrom=control&controlId=${control.id}`);
     }
   }

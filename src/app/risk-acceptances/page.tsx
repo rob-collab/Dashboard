@@ -66,6 +66,25 @@ export default function RiskAcceptancesPage() {
     }
   }, [searchParams, router, riskAcceptances]);
   const [selectedAcceptance, setSelectedAcceptance] = useState<RiskAcceptance | null>(null);
+
+  // Write ?acceptance=<id> to URL when panel opens; clear when it closes
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (selectedAcceptance) {
+      if (params.get("acceptance") !== selectedAcceptance.id) {
+        params.set("acceptance", selectedAcceptance.id);
+        router.replace(`/risk-acceptances?${params.toString()}`, { scroll: false });
+      }
+    } else {
+      if (params.has("acceptance")) {
+        params.delete("acceptance");
+        router.replace(`/risk-acceptances?${params.toString()}`, { scroll: false });
+      }
+    }
+  // searchParams deliberately excluded — read once per panel state change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAcceptance?.id]);
+
   const [tab, setTab] = useState<TabKey>("all");
   const [statusFilter, setStatusFilter] = useState<RiskAcceptanceStatus | "">("");
   const [sourceFilter, setSourceFilter] = useState<RiskAcceptanceSource | "">("");

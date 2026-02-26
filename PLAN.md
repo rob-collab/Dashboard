@@ -1,9 +1,44 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-26 (Sprint — Back Button + Detail Panels planned)
+Last updated: 2026-02-26
 
 ---
 
-## CURRENT SPRINT: Back Button Fix + Actions & RegCal Detail Panels
+## CURRENT SPRINT: URL Panel State + Navigation Stack Fix ✅ COMPLETE
+
+### What
+Two complementary fixes:
+1. **Part 1 — Write URL on panel selection**: Every slide-out panel now calls `router.replace` (via `useEffect`) to write its entity ID into the URL when opened, and clears it when closed. Enables refresh-safe deep-links and copy/paste sharing.
+2. **Part 2 — pushNavigationStack for panel action buttons**: Three panel files that call `router.push()` to navigate away now first push the current URL (including the panel param set by Part 1) onto the Zustand navigation stack so the Back button works.
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `src/app/risk-register/page.tsx` | useEffect: write `?risk=<id>` on open, clear on close |
+| `src/app/processes/page.tsx` | useEffect: write `?process=<id>` on open, clear on close |
+| `src/app/risk-acceptances/page.tsx` | useEffect: write `?acceptance=<id>` on open, clear on close |
+| `src/components/compliance/RegulatoryUniverseTab.tsx` | Add useRouter/useSearchParams + useEffect: write `?regulation=<id>` on open, clear on close |
+| `src/components/controls/ControlsLibraryTab.tsx` | Add useRouter/useSearchParams + useEffect: write `?control=<id>` on open, clear on close |
+| `src/components/risk-register/RiskDetailPanel.tsx` | pushNavigationStack before "Raise Action" and "Add Risk Acceptance" router.push calls |
+| `src/components/or/RegCalEventDetailPanel.tsx` | pushNavigationStack before "View Actions" and "Create Action" router.push calls |
+| `src/components/controls/TestResultsEntryTab.tsx` | pushNavigationStack before "Create Risk Acceptance" router.push call |
+
+### Checklist
+- [x] Risk register: URL shows `?risk=<id>` when panel is open; cleared on close
+- [x] Processes: URL shows `?process=<id>` when panel is open; cleared on close
+- [x] Risk acceptances: URL shows `?acceptance=<id>` when panel is open; cleared on close
+- [x] Compliance regulatory universe: URL shows `?regulation=<id>&tab=regulatory-universe` when panel open; cleared on close
+- [x] Controls library: URL shows `?control=<id>&tab=library` when panel open; cleared on close
+- [x] RiskDetailPanel: "Raise Action" button pushes to nav stack before navigating
+- [x] RiskDetailPanel: "Add Risk Acceptance" button pushes to nav stack before navigating
+- [x] RegCalEventDetailPanel: "View Actions" button pushes to nav stack before navigating
+- [x] RegCalEventDetailPanel: "Create Action" button pushes to nav stack before navigating
+- [x] TestResultsEntryTab: "Create Risk Acceptance" button pushes to nav stack before navigating
+- [x] Build passes — zero TypeScript errors
+- [x] No existing features removed
+
+---
+
+## PREVIOUSLY COMPLETED: Back Button Fix + Actions & RegCal Detail Panels
 
 ### What
 Three deliverables:
