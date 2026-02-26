@@ -162,6 +162,72 @@ item blocks progress until resolved.
 
 ---
 
+## CRITICAL: Bento Cards Must Be Interactive Filters
+
+**Every summary/stat card (bento card) MUST be a clickable filter, not a cosmetic display.**
+
+When a bento card shows a count, category, or status (e.g. "5 HIGH risks", "3 Actions Overdue",
+"2 In Focus"), clicking it MUST filter the view below to show only that subset of data.
+This is a non-negotiable product requirement — it is the entire point of surfacing the number.
+
+**Before building any bento card or summary stat:**
+- Confirm what it filters and how (which list/table, which filter field, which value)
+- Wire the click handler to the relevant filter state
+- Ensure the filtered state is visually indicated (active/selected styling on the card)
+- Ensure clicking again (or clicking a different card) resets or changes the filter
+
+**Never build a read-only bento card.** If you cannot determine what it should filter,
+ask before building it.
+
+---
+
+## CRITICAL: All Elements Must Be Editable and Persist
+
+**Every UI element that displays data must be editable by the CCRO Team, and all edits
+must persist to the database. There are no cosmetic-only views.**
+
+Rules:
+- **CCRO Team** can edit every element on every screen — name, description, scores,
+  status, dates, assignments, notes, linked items, everything
+- **Other roles** follow their assigned permissions (as defined in `src/lib/permissions.ts`)
+- **All changes must call the relevant API** (PATCH/POST/DELETE) and update the persistent
+  DB record — not just the local Zustand store
+- **The store is updated optimistically** but the API call is never fire-and-forget for
+  user-initiated edits — use explicit save with confirmation toast, not silent background sync
+- If a panel, card, or section displays a field, there must be an edit path for that field
+  accessible to CCRO Team. Read-only display for CCRO is a bug, not a design choice.
+
+**Before building any UI component:** ask "Can the CCRO Team edit this? Does saving it
+call the API and persist to the DB?" If either answer is no, fix it before shipping.
+
+---
+
+## CRITICAL: Flag Conflicts Before Implementing
+
+**Before writing any code for a new feature or change, explicitly check and call out:**
+
+1. **Override risk**: Will this change override, undo, or conflict with a previous
+   implementation? (e.g. restyling a component that was deliberately designed, changing
+   a data pathway that was explicitly agreed, reverting a bug fix)
+
+2. **Standard conflict**: Does anything in the prompt risk introducing inconsistency
+   with an already-agreed design standard, data schema, API contract, or navigation
+   pattern? (e.g. a new filter that bypasses the existing filter state, a new modal that
+   duplicates an existing panel, a new field that duplicates an existing field with a
+   different name)
+
+3. **Pathway conflict**: Does this create a parallel data path for an entity that already
+   has one? (e.g. creating a second way to raise actions from risks when one already exists)
+
+**How to flag:** Before the plan, state explicitly:
+> "⚠️ Conflict check: [describe any conflicts found, or 'None identified']"
+
+If a conflict is identified, describe it and propose how to resolve it (align with existing
+standard, or propose a deliberate upgrade) BEFORE proceeding. Do not silently implement
+something that conflicts with previous work.
+
+---
+
 ## CRITICAL: Never Delete Existing Features
 
 **Do NOT remove, delete, or disable any existing feature, UI component, tab, route, API endpoint, or functionality unless the user explicitly and unambiguously requests it.**
