@@ -42,6 +42,8 @@ For every change request (features, fixes, improvements):
    - Are there edge cases or error paths that have not been handled?
    - Does the code follow existing patterns in the codebase (store pattern, UK spelling, brand colours, Prisma adapter, etc.)?
    - Has anything been discovered during implementation that should revise the plan — new risks, simpler approach, missing acceptance criteria?
+   - **System integration check**: Does this feature touch entities (actions, risks, controls, etc.) that already exist elsewhere in the app? If so, explicitly confirm it wires into the existing views and data — same store slices, same API routes, same navigation patterns. Do not create parallel data paths for the same entity.
+   - **Consistency check**: Does this introduce any inconsistency in design (layout, colours, typography, component patterns) or data presentation (how the same field is labelled, formatted, or sorted) compared to existing screens? If yes, state the inconsistency and describe how you will harmonise it — either by matching the new work to the existing pattern, or by proposing a deliberate upgrade to both.
 
    **Layer 3 — UAT / UX review:**
    - What will an end user actually see or experience as a result of this change?
