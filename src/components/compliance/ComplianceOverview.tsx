@@ -7,11 +7,14 @@ import { useAppStore } from "@/lib/store";
 import {
   COMPLIANCE_STATUS_LABELS,
   COMPLIANCE_STATUS_COLOURS,
+  POLICY_STATUS_LABELS,
+  POLICY_STATUS_COLOURS,
   type Regulation,
   type ComplianceStatus,
+  type PolicyStatus,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { ShieldCheck, ShieldAlert, AlertTriangle, CheckCircle2, Clock, FileText, ArrowRight } from "lucide-react";
+import { ShieldCheck, ShieldAlert, AlertTriangle, CheckCircle2, Clock, FileText, ArrowRight, XCircle, MinusCircle } from "lucide-react";
 
 interface Props {
   onNavigate: (tab: "regulatory-universe" | "smcr" | "policies") => void;
@@ -27,6 +30,7 @@ export default function ComplianceOverview({ onNavigate }: Props) {
   const smcrDocuments = useAppStore((s) => s.smcrDocuments);
   const controls = useAppStore((s) => s.controls);
   const outcomes = useAppStore((s) => s.outcomes);
+  const users = useAppStore((s) => s.users);
 
   const applicable = useMemo(() => regulations.filter((r) => r.isApplicable), [regulations]);
 
@@ -107,6 +111,57 @@ export default function ComplianceOverview({ onNavigate }: Props) {
     return { overdue, dueSoon, notAssessed };
   }, [applicable, statusCounts]);
 
+  // Policy control breakdown
+  const policyBreakdown = useMemo(() => {
+    return policies.map((policy) => {
+      const links = policy.controlLinks ?? [];
+      // Resolve each linked control — prefer the embedded object, fall back to controls store
+      const linkedControls = links
+        .map((l) => l.control ?? controls.find((c) => c.id === l.controlId))
+        .filter(Boolean) as typeof controls;
+      const activeControls = linkedControls.filter((c) => c.isActive);
+
+      // Derive each active control's most-recent test result
+      let pass = 0, fail = 0, partial = 0, notTested = 0;
+      let latestDate: string | null = null;
+
+      for (const ctrl of activeControls) {
+        const results = (ctrl.testingSchedule?.testResults ?? [])
+          .slice()
+          .sort((a, b) => b.testedDate.localeCompare(a.testedDate));
+        const latest = results[0];
+        if (!latest) {
+          notTested++;
+        } else {
+          if (latest.result === "PASS") pass++;
+          else if (latest.result === "FAIL") fail++;
+          else if (latest.result === "PARTIALLY") partial++;
+          else notTested++;
+          // Track most recent test date across all controls
+          if (!latestDate || latest.testedDate > latestDate) latestDate = latest.testedDate;
+        }
+      }
+
+      // Owner name
+      const ownerName = policy.owner?.name ?? users.find((u) => u.id === policy.ownerId)?.name ?? "—";
+
+      return {
+        id: policy.id,
+        reference: policy.reference,
+        name: policy.name,
+        status: policy.status,
+        ownerName,
+        totalControls: linkedControls.length,
+        activeControls: activeControls.length,
+        pass,
+        fail,
+        partial,
+        notTested,
+        lastTested: latestDate,
+      };
+    });
+  }, [policies, controls, users]);
+
   return (
     <div className="space-y-6">
       {/* Key Metrics Row */}
@@ -170,6 +225,52 @@ export default function ComplianceOverview({ onNavigate }: Props) {
             <GapRow icon={CheckCircle2} label="Not yet assessed" count={assessmentPipeline.notAssessed} colour="gray" onClick={() => onNavigate("regulatory-universe")} />
           </div>
         </div>
+      </div>
+
+      {/* Compliance by Policy */}
+      <div className="bento-card p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-updraft-deep font-poppins">Compliance by Policy</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Control test status per policy — based on each control&apos;s most recent test result</p>
+          </div>
+          <button
+            onClick={() => onNavigate("policies")}
+            className="text-xs text-updraft-bright-purple hover:underline flex items-center gap-1"
+          >
+            View Policies <ArrowRight size={12} />
+          </button>
+        </div>
+
+        {policyBreakdown.length === 0 ? (
+          <div className="text-center py-8">
+            <FileText size={28} className="mx-auto text-gray-300 mb-2" />
+            <p className="text-sm text-gray-400">No policies configured yet.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-4">Policy</th>
+                  <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-4">Owner</th>
+                  <th className="text-center text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-4">Controls</th>
+                  <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-4">Test Status</th>
+                  <th className="text-right text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2">Last Tested</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {policyBreakdown.map((p) => (
+                  <PolicyRow
+                    key={p.id}
+                    policy={p}
+                    onClick={() => router.push(`/compliance?tab=policies&policy=${p.id}`)}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* RAG by Domain */}
@@ -343,5 +444,119 @@ function SmcrTile({ label, value, colour, onClick }: { label: string; value: num
       <p className={cn("text-xl font-bold font-poppins", colourClass)}>{value}</p>
       <p className="text-xs text-gray-500 mt-1">{label}</p>
     </Wrapper>
+  );
+}
+
+interface PolicyBreakdownRow {
+  id: string;
+  reference: string;
+  name: string;
+  status: PolicyStatus;
+  ownerName: string;
+  totalControls: number;
+  activeControls: number;
+  pass: number;
+  fail: number;
+  partial: number;
+  notTested: number;
+  lastTested: string | null;
+}
+
+function PolicyRow({ policy: p, onClick }: { policy: PolicyBreakdownRow; onClick: () => void }) {
+  const statusColours = POLICY_STATUS_COLOURS[p.status];
+  const hasIssues = p.fail > 0;
+  const allGood = p.activeControls > 0 && p.fail === 0 && p.notTested === 0 && p.partial === 0;
+  const total = p.pass + p.fail + p.partial + p.notTested;
+
+  return (
+    <tr
+      onClick={onClick}
+      className="cursor-pointer hover:bg-gray-50 transition-colors group"
+    >
+      {/* Policy name */}
+      <td className="py-2.5 pr-4">
+        <div className="flex items-center gap-2">
+          <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0", statusColours.bg, statusColours.text)}>
+            {p.reference}
+          </span>
+          <span className="text-sm text-gray-700 font-medium group-hover:text-updraft-deep transition-colors line-clamp-1">{p.name}</span>
+          <span className={cn("hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium shrink-0", statusColours.bg, statusColours.text)}>
+            {POLICY_STATUS_LABELS[p.status]}
+          </span>
+        </div>
+      </td>
+
+      {/* Owner */}
+      <td className="py-2.5 pr-4">
+        <span className="text-xs text-gray-500 whitespace-nowrap">{p.ownerName}</span>
+      </td>
+
+      {/* Control count */}
+      <td className="py-2.5 pr-4 text-center">
+        {p.totalControls === 0 ? (
+          <span className="text-xs text-gray-400">—</span>
+        ) : (
+          <span className="text-xs font-semibold text-gray-600">{p.activeControls}<span className="text-gray-400 font-normal">/{p.totalControls}</span></span>
+        )}
+      </td>
+
+      {/* Test status */}
+      <td className="py-2.5 pr-4">
+        {p.activeControls === 0 ? (
+          <span className="text-xs text-gray-400 italic">No active controls</span>
+        ) : (
+          <div className="flex items-center gap-2.5">
+            {/* Progress bar */}
+            {total > 0 && (
+              <div className="hidden md:flex w-20 h-1.5 rounded-full overflow-hidden bg-gray-100 shrink-0">
+                {p.pass > 0 && <div className="bg-green-500 h-full" style={{ width: `${(p.pass / total) * 100}%` }} />}
+                {p.partial > 0 && <div className="bg-amber-400 h-full" style={{ width: `${(p.partial / total) * 100}%` }} />}
+                {p.fail > 0 && <div className="bg-red-500 h-full" style={{ width: `${(p.fail / total) * 100}%` }} />}
+                {p.notTested > 0 && <div className="bg-gray-300 h-full" style={{ width: `${(p.notTested / total) * 100}%` }} />}
+              </div>
+            )}
+            {/* Counts */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {p.pass > 0 && (
+                <span className="inline-flex items-center gap-0.5 text-[11px] text-green-700">
+                  <CheckCircle2 size={11} className="shrink-0" />{p.pass}
+                </span>
+              )}
+              {p.fail > 0 && (
+                <span className="inline-flex items-center gap-0.5 text-[11px] text-red-600 font-semibold">
+                  <XCircle size={11} className="shrink-0" />{p.fail}
+                </span>
+              )}
+              {p.partial > 0 && (
+                <span className="inline-flex items-center gap-0.5 text-[11px] text-amber-600">
+                  <AlertTriangle size={11} className="shrink-0" />{p.partial}
+                </span>
+              )}
+              {p.notTested > 0 && (
+                <span className="inline-flex items-center gap-0.5 text-[11px] text-gray-400">
+                  <MinusCircle size={11} className="shrink-0" />{p.notTested}
+                </span>
+              )}
+              {allGood && (
+                <span className="inline-flex items-center gap-0.5 text-[11px] text-green-600">
+                  <CheckCircle2 size={11} className="shrink-0" /> All passing
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </td>
+
+      {/* Last tested */}
+      <td className="py-2.5 text-right">
+        {p.lastTested ? (
+          <span className={cn("text-xs whitespace-nowrap", hasIssues ? "text-red-600 font-medium" : "text-gray-500")}>
+            {new Date(p.lastTested).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+          </span>
+        ) : (
+          <span className="text-xs text-gray-400">Not tested</span>
+        )}
+      </td>
+    </tr>
   );
 }

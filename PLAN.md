@@ -1,5 +1,28 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-26 (SMCR hotfix — explicit save + NOT_REQUIRED status)
+Last updated: 2026-02-26 (Compliance by Policy section ✅)
+
+---
+
+## CURRENT SPRINT: Compliance by Policy — Overview Section ✅ COMPLETE
+
+### What
+Add a "Compliance by Policy" section to the Compliance module's Overview tab. Each row shows one policy with: reference badge, name, policy status badge, owner, linked control count (active / total), control test-result breakdown (Pass / Fail / Not Tested counts), and the most recent test date across all linked controls. Clicking a policy row navigates to `?tab=policies&policy=<id>`.
+
+### Why
+The compliance overview is missing a policy-centred view. The CCRO needs to see at a glance which policies have untested or failing controls and which are overdue.
+
+### Files to change
+- `src/components/compliance/ComplianceOverview.tsx` — add `policyBreakdown` useMemo + new section block
+
+### Acceptance criteria
+- [x] Section appears in Overview tab, after Compliance Posture + Gap Analysis, before RAG by Domain
+- [x] Each row shows: reference, policy name, status badge, owner name, control count, test pass/fail/not-tested counts, last tested date
+- [x] Policies with zero active controls show a "No active controls" placeholder (grey)
+- [x] Policies with failing controls show red count + red last-tested date
+- [x] Clicking a row navigates to `/compliance?tab=policies&policy=<id>`
+- [x] Empty state: if no policies, show a placeholder with icon
+- [x] Build passes: zero errors
+- [x] No existing sections removed or altered
 
 ---
 
