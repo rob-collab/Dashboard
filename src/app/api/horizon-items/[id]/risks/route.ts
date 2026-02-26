@@ -1,14 +1,15 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, getUserId, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
+import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const linkSchema = z.object({ riskId: z.string().min(1) });
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const userId = await getUserId(req);
-    if (!userId) return errorResponse("Unauthorised", 401);
+    const auth = await requireCCRORole(req);
+    if ("error" in auth) return auth.error;
+    const { userId } = auth;
 
     const { id } = await params;
     const rawBody = await req.json();
@@ -47,8 +48,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const userId = await getUserId(req);
-    if (!userId) return errorResponse("Unauthorised", 401);
+    const auth = await requireCCRORole(req);
+    if ("error" in auth) return auth.error;
 
     const { id } = await params;
     const { searchParams } = new URL(req.url);

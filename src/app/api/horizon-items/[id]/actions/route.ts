@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, getUserId, jsonResponse, errorResponse, validateBody, generateReference } from "@/lib/api-helpers";
+import { prisma, checkPermission, jsonResponse, errorResponse, validateBody, generateReference } from "@/lib/api-helpers";
 // Note: generateReference(prefix, modelName) — uses prisma internally
 import { serialiseDates } from "@/lib/serialise";
 
@@ -14,8 +14,9 @@ const createActionSchema = z.object({
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const userId = await getUserId(req);
-    if (!userId) return errorResponse("Unauthorised", 401);
+    const perm = await checkPermission(req, "create:action");
+    if (!perm.granted) return perm.error;
+    const { userId } = perm;
 
     const { id } = await params;
 

@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, getUserId, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
+import { prisma, getUserId, requireCCRORole, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const createSchema = z.object({
@@ -17,8 +17,16 @@ const createSchema = z.object({
   notes: z.string().nullable().optional(),
 });
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    // Determine caller role to decide whether to expose internal notes
+    const userId = getUserId(req);
+    let isCCRO = false;
+    if (userId) {
+      const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+      isCCRO = user?.role === "CCRO_TEAM";
+    }
+
     const items = await prisma.horizonItem.findMany({
       orderBy: [{ urgency: "asc" }, { deadline: "asc" }, { createdAt: "desc" }],
       include: {
@@ -34,7 +42,10 @@ export async function GET() {
         },
       },
     });
-    return jsonResponse(serialiseDates(items));
+
+    // Strip internal notes for non-CCRO callers
+    const safeItems = items.map((item) => ({ ...item, notes: isCCRO ? item.notes : null }));
+    return jsonResponse(serialiseDates(safeItems));
   } catch {
     return errorResponse("Internal server error", 500);
   }
@@ -42,8 +53,9 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const userId = await getUserId(req);
-    if (!userId) return errorResponse("Unauthorised", 401);
+    const auth = await requireCCRORole(req);
+    if ("error" in auth) return auth.error;
+    const { userId } = auth;
 
     const rawBody = await req.json();
     const validation = validateBody(createSchema, rawBody);

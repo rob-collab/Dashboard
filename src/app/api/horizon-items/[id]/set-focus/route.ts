@@ -4,8 +4,14 @@ import { serialiseDates } from "@/lib/serialise";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const userId = await getUserId(req);
+    // CCRO_TEAM and CEO may change which item is in focus
+    const userId = getUserId(req);
     if (!userId) return errorResponse("Unauthorised", 401);
+
+    const caller = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+    if (!caller || (caller.role !== "CCRO_TEAM" && caller.role !== "CEO")) {
+      return errorResponse("Forbidden — CCRO Team or CEO access required", 403);
+    }
 
     const { id } = await params;
 

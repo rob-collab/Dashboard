@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 interface Props {
   item: HorizonItem;
-  canManage: boolean;
+  canChangeFocus: boolean;
   onViewDetail: (item: HorizonItem) => void;
   onChangeFocus: () => void;
 }
@@ -19,7 +19,7 @@ function daysUntil(deadline: string | null): number | null {
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
 }
 
-export function HorizonInFocusSpotlight({ item, canManage, onViewDetail, onChangeFocus }: Props) {
+export function HorizonInFocusSpotlight({ item, canChangeFocus, onViewDetail, onChangeFocus }: Props) {
   const [expanded, setExpanded] = useState(false);
   const days = daysUntil(item.deadline);
   const statusColour = HORIZON_STATUS_COLOURS[item.status];
@@ -57,7 +57,7 @@ export function HorizonInFocusSpotlight({ item, canManage, onViewDetail, onChang
             <span className={cn("inline-block w-2 h-2 rounded-full animate-pulse", urgencyDot)} />
             <span className="text-xs font-semibold tracking-widest text-slate-400 uppercase">In Focus</span>
           </div>
-          {canManage && (
+          {canChangeFocus && (
             <button
               onClick={onChangeFocus}
               className="text-xs text-slate-400 hover:text-white transition-colors underline underline-offset-2"

@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, getUserId, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
+import { prisma, getUserId, requireCCRORole, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const patchSchema = z.object({
@@ -17,8 +17,16 @@ const patchSchema = z.object({
   notes: z.string().nullable().optional(),
 });
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    // Determine caller role to decide whether to expose internal notes
+    const userId = getUserId(req);
+    let isCCRO = false;
+    if (userId) {
+      const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+      isCCRO = user?.role === "CCRO_TEAM";
+    }
+
     const { id } = await params;
     const item = await prisma.horizonItem.findUnique({
       where: { id },
@@ -36,7 +44,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       },
     });
     if (!item) return errorResponse("Not found", 404);
-    return jsonResponse(serialiseDates(item));
+
+    // Strip internal notes for non-CCRO callers
+    const safeItem = { ...item, notes: isCCRO ? item.notes : null };
+    return jsonResponse(serialiseDates(safeItem));
   } catch {
     return errorResponse("Internal server error", 500);
   }
@@ -44,8 +55,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const userId = await getUserId(req);
-    if (!userId) return errorResponse("Unauthorised", 401);
+    const auth = await requireCCRORole(req);
+    if ("error" in auth) return auth.error;
 
     const { id } = await params;
     const rawBody = await req.json();
@@ -81,8 +92,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const userId = await getUserId(req);
-    if (!userId) return errorResponse("Unauthorised", 401);
+    const auth = await requireCCRORole(req);
+    if ("error" in auth) return auth.error;
 
     const { id } = await params;
     await prisma.horizonItem.delete({ where: { id } });

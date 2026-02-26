@@ -12,16 +12,27 @@ import { useAppStore } from "@/lib/store";
 interface Props {
   item: HorizonItem;
   canManage: boolean;
+  canCreateAction?: boolean; // defaults to canManage; OWNER also gets this via checkPermission
   risks: Risk[];
   onClose: () => void;
   onUpdated: (item: HorizonItem) => void;
   onDeleted: (id: string) => void;
 }
 
+const ACTION_STATUS_LABELS: Record<string, string> = {
+  OPEN: "Open",
+  IN_PROGRESS: "In Progress",
+  COMPLETED: "Completed",
+  CANCELLED: "Cancelled",
+  ON_HOLD: "On Hold",
+};
+
 type SectionKey = "details" | "overview" | "deadlineActions" | "source" | "linkedItems";
 
-export function HorizonDetailPanel({ item, canManage, risks, onClose, onUpdated, onDeleted }: Props) {
+export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, onClose, onUpdated, onDeleted }: Props) {
   const { users, addAction } = useAppStore();
+
+  const effectiveCanCreateAction = canCreateAction ?? canManage;
 
   // Edit state
   const [title, setTitle] = useState(item.title);
@@ -36,10 +47,25 @@ export function HorizonDetailPanel({ item, canManage, risks, onClose, onUpdated,
   const [sourceUrl, setSourceUrl] = useState(item.sourceUrl ?? "");
   const [notes, setNotes] = useState(item.notes ?? "");
 
+  // Dirty state — detect unsaved edits
+  const isDirty =
+    title !== item.title ||
+    category !== item.category ||
+    source !== item.source ||
+    urgency !== item.urgency ||
+    status !== item.status ||
+    summary !== item.summary ||
+    whyItMatters !== item.whyItMatters ||
+    deadline !== (item.deadline ? item.deadline.slice(0, 10) : "") ||
+    actions !== (item.actions ?? "") ||
+    sourceUrl !== (item.sourceUrl ?? "") ||
+    notes !== (item.notes ?? "");
+
   // UI state
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmUnlinkId, setConfirmUnlinkId] = useState<string | null>(null);
   const [openSections, setOpenSections] = useState<Set<SectionKey>>(new Set(["details", "overview", "deadlineActions", "linkedItems"] as SectionKey[]));
 
   // Action creation
@@ -63,6 +89,11 @@ export function HorizonDetailPanel({ item, canManage, risks, onClose, onUpdated,
       if (next.has(key)) { next.delete(key); } else { next.add(key); }
       return next;
     });
+  }
+
+  function handleClose() {
+    if (isDirty && !confirm("You have unsaved changes. Close without saving?")) return;
+    onClose();
   }
 
   async function handleSave() {
@@ -145,7 +176,8 @@ export function HorizonDetailPanel({ item, canManage, risks, onClose, onUpdated,
     }
   }
 
-  async function handleUnlinkRisk(riskId: string) {
+  async function handleConfirmedUnlink(riskId: string) {
+    setConfirmUnlinkId(null);
     try {
       await api(`/api/horizon-items/${item.id}/risks?riskId=${riskId}`, { method: "DELETE" });
       onUpdated({ ...item, riskLinks: (item.riskLinks ?? []).filter((r) => r.riskId !== riskId) });
@@ -166,7 +198,7 @@ export function HorizonDetailPanel({ item, canManage, risks, onClose, onUpdated,
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/20 z-40" onClick={handleClose} />
 
       {/* Panel */}
       <div className="fixed right-0 top-0 bottom-0 w-full max-w-2xl bg-white shadow-2xl z-50 flex flex-col">
@@ -178,10 +210,15 @@ export function HorizonDetailPanel({ item, canManage, risks, onClose, onUpdated,
               <span className={cn("text-xs font-semibold px-1.5 py-0.5 rounded", urgencyStyle.bg, urgencyStyle.text)}>
                 {urgency}
               </span>
+              {isDirty && canManage && (
+                <span className="text-xs font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                  Unsaved changes
+                </span>
+              )}
             </div>
             <h2 className="font-poppins font-semibold text-updraft-deep text-sm leading-snug line-clamp-2">{title}</h2>
           </div>
-          <button onClick={onClose} className="shrink-0 p-1 text-slate-400 hover:text-slate-600 rounded transition-colors">
+          <button onClick={handleClose} className="shrink-0 p-1 text-slate-400 hover:text-slate-600 rounded transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -291,7 +328,7 @@ export function HorizonDetailPanel({ item, canManage, risks, onClose, onUpdated,
                   <span className="text-xs font-semibold text-slate-600 flex items-center gap-1">
                     <Zap className="w-3.5 h-3.5 text-amber-500" /> Linked Actions
                   </span>
-                  {canManage && (
+                  {effectiveCanCreateAction && (
                     <button onClick={() => setShowCreateAction(!showCreateAction)} className="text-xs text-updraft-bright-purple hover:underline flex items-center gap-0.5">
                       <Plus className="w-3 h-3" /> Create Action
                     </button>
@@ -304,11 +341,11 @@ export function HorizonDetailPanel({ item, canManage, risks, onClose, onUpdated,
                   <div key={link.id} className="flex items-center gap-2 py-1.5 border-b border-slate-100 last:border-0">
                     <span className="font-mono text-xs text-slate-400">{link.action?.reference}</span>
                     <span className="text-xs text-slate-700 flex-1 truncate">{link.action?.title}</span>
-                    <span className="text-xs text-slate-400">{link.action?.status}</span>
+                    <span className="text-xs text-slate-400">{ACTION_STATUS_LABELS[link.action?.status ?? ""] ?? link.action?.status}</span>
                   </div>
                 ))}
 
-                {showCreateAction && canManage && (
+                {showCreateAction && effectiveCanCreateAction && (
                   <div className="mt-2 p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
                     <p className="text-xs font-semibold text-slate-600">Create & link new action</p>
                     <input className={inputCls} placeholder="Action title" value={actionTitle} onChange={(e) => setActionTitle(e.target.value)} />
@@ -361,11 +398,17 @@ export function HorizonDetailPanel({ item, canManage, risks, onClose, onUpdated,
                   <div key={link.id} className="flex items-center gap-2 py-1.5 border-b border-slate-100 last:border-0">
                     <span className="font-mono text-xs text-slate-400">{link.risk?.reference}</span>
                     <span className="text-xs text-slate-700 flex-1 truncate">{link.risk?.name}</span>
-                    {canManage && (
-                      <button onClick={() => handleUnlinkRisk(link.riskId)} className="text-slate-300 hover:text-red-500 transition-colors">
+                    {canManage && confirmUnlinkId === link.riskId ? (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-xs text-red-600">Unlink?</span>
+                        <button onClick={() => handleConfirmedUnlink(link.riskId)} className="text-xs text-red-600 font-semibold hover:underline">Yes</button>
+                        <button onClick={() => setConfirmUnlinkId(null)} className="text-xs text-slate-400 hover:text-slate-600">No</button>
+                      </div>
+                    ) : canManage ? (
+                      <button onClick={() => setConfirmUnlinkId(link.riskId)} className="text-slate-300 hover:text-red-500 transition-colors">
                         <Unlink className="w-3.5 h-3.5" />
                       </button>
-                    )}
+                    ) : null}
                   </div>
                 ))}
 

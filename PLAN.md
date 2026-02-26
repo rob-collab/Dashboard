@@ -1,5 +1,5 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-26 (Sprint 1 implementation complete — pending UAT/compliance review)
+Last updated: 2026-02-26 (Sprint 1 complete — UAT + compliance review fixes applied)
 
 ---
 
@@ -69,8 +69,33 @@ the dashboard so items are tracked, actionable, and linked to the risk and actio
 - [x] S1-16: Filter bar: category, urgency, status dropdowns + search; dismissed items hidden by default
 - [x] S1-17: OWNER/VIEWER can view + export only; create/edit/delete buttons hidden
 - [x] S1-18: Build passes: zero TypeScript errors
-- [ ] S1-19: UAT agent review: CRO persona sign-off
-- [ ] S1-20: Compliance agent review: no NON-COMPLIANT findings
+- [x] S1-19: UAT agent review: CRO persona sign-off — review completed; all P1/P2 fixes applied (see below)
+- [x] S1-20: Compliance agent review: no NON-COMPLIANT findings — CONCERN resolved; all security fixes applied
+
+#### Post-review fixes applied (2026-02-26)
+**Security (Compliance CONCERN → resolved):**
+- [x] POST /api/horizon-items — now uses `requireCCRORole` (was `getUserId`)
+- [x] PATCH/DELETE /api/horizon-items/[id] — now uses `requireCCRORole`
+- [x] POST /api/horizon-items/[id]/actions — now uses `checkPermission("create:action")` (OWNER permitted)
+- [x] POST/DELETE /api/horizon-items/[id]/risks — now uses `requireCCRORole`
+- [x] POST /api/horizon-items/[id]/set-focus — custom role check: CCRO_TEAM or CEO
+- [x] GET /api/horizon-items + GET /api/horizon-items/[id] — strip `notes` field for non-CCRO callers
+
+**UAT P1 fixes:**
+- [x] Action status labels — human-readable (Open/In Progress/Completed/Cancelled) in HorizonDetailPanel
+- [x] Dirty state tracking — "Unsaved changes" amber badge in panel header; confirm dialog on close if dirty
+
+**UAT P2 fixes:**
+- [x] Unlink risk confirmation — "Unlink? Yes / No" inline prompt before DELETE fires
+- [x] canCreateAction prop — OWNER role can now create actions from horizon panel (API + UI)
+- [x] canChangeFocus — CEO role can now change in-focus item (API: CCRO_TEAM|CEO; UI: canChangeFocus prop)
+- [x] "Last item added" timestamp shown in page header subtitle
+- [x] HorizonInFocusSpotlight prop renamed canManage → canChangeFocus for semantic clarity
+
+**Seed data (Compliance Advisory → resolved):**
+- [x] HZ-026: ICO Article 22 Automated Decision-Making (HIGH — enforcement risk)
+- [x] HZ-027: FCA Collections & Debt Respite Scheme (HIGH — supervisory focus)
+- [x] HZ-028: CONC 5.2A Affordability Guidance Refresh (MEDIUM — FOS uphold rate trend)
 
 ---
 

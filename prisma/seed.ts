@@ -2232,6 +2232,33 @@ async function main() {
       actions: "1. Review AR oversight framework if any AR relationships exist\n2. Confirm no unintended AR relationships in distribution arrangements",
       notes: "Updraft does not currently have ARs — monitor in case distribution strategy changes.", monthAdded: "February 2026", inFocus: false, addedById: "user-rob",
     },
+    {
+      id: "hz-026", reference: "HZ-026", title: "ICO Article 22 Automated Decision-Making Enforcement",
+      category: "DATA_TECHNOLOGY", source: "ICO", urgency: "HIGH", status: "ACTION_REQUIRED",
+      summary: "The ICO issued a public reprimand to a consumer lender in Q3 2024 for automated credit decisioning that lacked meaningful human review under UK GDPR Article 22. The ICO has signalled further enforcement action across the consumer credit sector in 2026.",
+      whyItMatters: "Updraft's underwriting and affordability models involve automated decision-making that significantly affects customers. Without documented human review processes and clear customer rights to explanation and review, the firm is exposed to ICO enforcement, potential fines, and reputational damage.",
+      deadline: new Date("2026-06-30"), sourceUrl: "https://ico.org.uk/action-weve-taken/enforcement/",
+      actions: "1. Map all automated decisions within credit journey against UK GDPR Art 22 criteria\n2. Document human oversight steps and ensure they are meaningful (not rubber-stamp)\n3. Update privacy notices to describe automated decision logic and customer rights\n4. Implement and test customer objection / review request process\n5. Brief board on ICO enforcement risk and remediation timeline",
+      notes: "Priority review needed ahead of H1 2026. Legal to advise on Article 22 applicability to hybrid models.", monthAdded: "February 2026", inFocus: false, addedById: "user-rob",
+    },
+    {
+      id: "hz-027", reference: "HZ-027", title: "FCA Collections & Forbearance Supervisory Focus / Debt Respite Scheme",
+      category: "FCA_REGULATORY", source: "FCA", urgency: "HIGH", status: "MONITORING",
+      summary: "The FCA has intensified supervisory focus on collections practices and forbearance across consumer credit firms in 2025–26. The Breathing Space / Debt Respite Scheme (DRS) continues to see growing enrolments and firms face FCA scrutiny over how they handle customers within the DRS period.",
+      whyItMatters: "Updraft must ensure collections strategies treat customers fairly, identify financial difficulty early, and pause debt collection activity correctly for DRS customers. Non-compliance risks FCA enforcement, remediation costs, and harm to vulnerable customers.",
+      deadline: new Date("2026-09-30"), sourceUrl: "https://www.fca.org.uk/consumers/debt-management",
+      actions: "1. Review collections playbook against CONC 7 and Treating Customers Fairly principles\n2. Audit DRS handling process — confirm debt collection pause is automated and reliable\n3. Assess early arrears intervention strategy for alignment with FCA forbearance expectations\n4. Train collections team on vulnerability indicators and appropriate forbearance options\n5. Test end-to-end DRS notification workflow",
+      notes: "FCA Dear CEO letter expected H1 2026 on collections standards. Watch for sector-wide requirements.", monthAdded: "February 2026", inFocus: false, addedById: "user-rob",
+    },
+    {
+      id: "hz-028", reference: "HZ-028", title: "CONC 5.2A Affordability Guidance Refresh — FCA Supervisory Expectations",
+      category: "FCA_REGULATORY", source: "FCA / FOS", urgency: "MEDIUM", status: "MONITORING",
+      summary: "The FCA's updated CONC 5.2A affordability assessment guidance and Financial Ombudsman Service (FOS) decisions continue to raise the bar for evidenced affordability checks in consumer credit. FOS has upheld increasing numbers of unaffordable lending complaints since 2023.",
+      whyItMatters: "Updraft's lending decisions must be based on proportionate, evidenced affordability assessments. Rising FOS upheld rates indicate that current industry-standard approaches may not meet the expected standard, exposing Updraft to redress liability and FCA scrutiny.",
+      deadline: null, sourceUrl: "https://www.fca.org.uk/firms/consumer-credit/affordability",
+      actions: "1. Benchmark Updraft's affordability assessment methodology against FOS decisional guidance\n2. Review data sources used in income/expenditure verification — any gaps?\n3. Assess remediation exposure if current book were subject to FOS-standard review\n4. Update affordability policy documentation and board approval\n5. Monitor FOS uphold rate quarterly as leading indicator",
+      notes: "FOS upheld rate a key canary metric. Consider proactive case review if uphold rate rises above sector average.", monthAdded: "February 2026", inFocus: false, addedById: "user-rob",
+    },
   ];
 
   let horizonSeeded = 0;
@@ -2248,7 +2275,7 @@ async function main() {
     });
     horizonSeeded++;
   }
-  console.log(`  ✓ ${horizonSeeded} horizon scanning items seeded (HZ-004 set as In Focus)`);
+  console.log(`  ✓ ${horizonSeeded} horizon scanning items seeded (HZ-004 set as In Focus; HZ-026/027 HIGH urgency action items added)`);
 
   console.log("Seed complete!");
 }

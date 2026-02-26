@@ -35,8 +35,16 @@ export default function HorizonScanningPage() {
 
   const userRole = (session?.user as { role?: string } | undefined)?.role ?? "";
   const canManage = userRole === "CCRO_TEAM";
+  const canChangeFocus = userRole === "CCRO_TEAM" || userRole === "CEO";
+  const canCreateAction = userRole === "CCRO_TEAM" || userRole === "OWNER";
 
   const inFocusItem = useMemo(() => horizonItems.find((h) => h.inFocus), [horizonItems]);
+
+  const lastAddedDate = useMemo(() => {
+    if (horizonItems.length === 0) return null;
+    const sorted = [...horizonItems].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return sorted[0].createdAt;
+  }, [horizonItems]);
 
   const filteredItems = useMemo(() => {
     return horizonItems.filter((item) => {
@@ -99,6 +107,11 @@ export default function HorizonScanningPage() {
             <h1 className="font-poppins text-2xl font-bold text-updraft-deep">Horizon Scanning</h1>
           </div>
           <p className="text-sm text-slate-500">Regulatory &amp; Business Environment Monitor — updated monthly</p>
+          {lastAddedDate && (
+            <p className="text-xs text-slate-400 mt-0.5">
+              Last item added: {new Date(lastAddedDate).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button
@@ -124,14 +137,14 @@ export default function HorizonScanningPage() {
       {inFocusItem && !showChangeFocus && (
         <HorizonInFocusSpotlight
           item={inFocusItem}
-          canManage={canManage}
+          canChangeFocus={canChangeFocus}
           onViewDetail={setSelectedItem}
           onChangeFocus={() => setShowChangeFocus(true)}
         />
       )}
 
       {/* Change focus picker */}
-      {showChangeFocus && canManage && (
+      {showChangeFocus && canChangeFocus && (
         <ChangeFocusPicker
           items={horizonItems}
           current={inFocusItem}
@@ -252,6 +265,7 @@ export default function HorizonScanningPage() {
         <HorizonDetailPanel
           item={selectedItem}
           canManage={canManage}
+          canCreateAction={canCreateAction}
           risks={risks}
           onClose={() => setSelectedItem(null)}
           onUpdated={(updated) => {
