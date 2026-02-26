@@ -62,13 +62,13 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Risk Register", href: "/risk-register", icon: ShieldAlert, permission: "page:risk-register" },
       { label: "Risk Acceptances", href: "/risk-acceptances", icon: ShieldQuestion, permission: "page:risk-acceptances", badgeKey: "riskAcceptance" },
-      { label: "Consumer Duty", href: "/consumer-duty", icon: ShieldCheck, permission: "page:consumer-duty" },
     ],
   },
   {
     groupLabel: "Compliance & Controls",
     items: [
       { label: "Compliance", href: "/compliance", icon: Scale, permission: "page:compliance", badgeKey: "compliance" },
+      { label: "Consumer Duty", href: "/consumer-duty", icon: ShieldCheck, permission: "page:consumer-duty" },
       { label: "Controls", href: "/controls", icon: FlaskConical, permission: "page:controls", badgeKey: "controls" },
       { label: "Processes & IBS", href: "/processes", icon: Layers, permission: "page:compliance", badgeKey: "operationalResilience" },
       { label: "Reg Calendar", href: "/regulatory-calendar", icon: Calendar, permission: "page:compliance" },
