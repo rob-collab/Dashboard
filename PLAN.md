@@ -1,5 +1,83 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-26 (Compliance by Policy section ✅)
+Last updated: 2026-02-26 (Global Save Reliability Sprint — planned)
+
+---
+
+## CURRENT SPRINT: Global Save Reliability — Explicit Saves for Critical Entities
+
+### Problem statement
+The store uses a `sync()` fire-and-forget pattern for ~70 update functions. `sync()` does have retry logic (2 retries, exponential backoff) and shows a generic global toast error after ~6 seconds on failure — but:
+- There is no per-operation success/failure feedback at the component level
+- If the user closes a panel before the 6-second failure toast appears, they don't know the save failed
+- On next mount, `hydrate()` fetches from the DB and reverts the optimistic local state — data is silently lost
+- The user has no way to retry a failed save without re-entering data
+
+### Agreed fix pattern
+The fix used for SMCR (`SMFDirectory.tsx`) is the gold standard for this project:
+1. Component calls `api()` directly (awaited) rather than the store's fire-and-forget function
+2. `saving` boolean state → Save button shows spinner + "Saving…", disabled during request
+3. On success: update store via `setXs(xs.map(...))` (merges API response), show "X saved" toast, close panel
+4. On error: show "Failed to save — please try again" toast, panel stays open for retry
+5. `setSaving(false)` in finally block — no stuck spinners
+
+The store's fire-and-forget functions (`updateRisk`, `updateAction`, etc.) are kept in place — they still work for any callers that don't need explicit feedback. Only the critical UI edit panels are migrated.
+
+### Scope: critical entities only (first sprint)
+The audit found ~70 store functions using `sync()` across ~21 UI components. Not all need immediate treatment. This sprint targets entities where:
+- A user explicitly edits data in a named field (not a toggle or link/unlink)
+- A failed silent save has a compliance or business impact
+- The panel/dialog currently gives zero feedback on save result
+
+**Out of scope for this sprint (lower risk):**
+- Templates, components, notifications (admin / infrequent)
+- Consumer Duty outcomes/measures (internal RAG tracking)
+- Reports and sections (handled by dedicated report editor)
+- Access requests, Process Library, Operational Resilience (local-only or planned separately)
+
+### Files and deliverables
+
+**Deliverable 1 — RiskDetailPanel (high impact)**
+- File: `src/components/risk-register/RiskDetailPanel.tsx`
+- Functions to replace: `updateRisk()` calls in inline field saves and the main Save flow
+- Also: `linkControlToRisk()` / `unlinkControlFromRisk()` — show toast feedback
+- Saving state: per-panel (not per-field — save is triggered by explicit Save button)
+
+**Deliverable 2 — ActionDetailPanel (high impact)**
+- File: `src/components/actions/ActionDetailPanel.tsx`
+- Check if `updateAction()` calls are already explicit (audit showed partial explicit handling)
+- Ensure all saves: await API → merge store → toast feedback
+
+**Deliverable 3 — RegulationDetailPanel (compliance-critical)**
+- File: `src/components/compliance/RegulationDetailPanel.tsx`
+- Functions: `updateRegulation()`, `updateRegulationCompliance()`, `linkRegulationToControl/Policy()`, `unlinkRegulationFromControl/Policy()`
+- Only the core compliance assessment save needs a blocking Save button; link/unlink can show inline toast without blocking
+
+**Deliverable 4 — SMCR edit panels (compliance-critical)**
+- Files: `src/components/compliance/smcr/ResponsibilitiesMatrix.tsx`, `DocumentTracker.tsx`, `ConductRulesPanel.tsx`
+- Functions: `updatePrescribedResponsibility()`, `updateSmcrDocument()`, `updateCertifiedPerson()`, `updateConductRuleBreach()`
+- Apply same pattern: Save button → await API → toast → revert on error
+
+**Deliverable 5 — ControlDetailModal / ControlsLibraryTab (operational)**
+- Files: `src/components/controls/ControlDetailModal.tsx`, `src/components/controls/ControlsLibraryTab.tsx`
+- Functions: `updateControl()`, `addControl()`
+- Save button → await API → toast
+
+**Deliverable 6 — Policy editor (governance)**
+- File: wherever `updatePolicy()` is called (likely in policy detail panel or dialog)
+- Functions: `updatePolicy()`, `addPolicy()`
+
+### Acceptance criteria (per deliverable, same checklist repeated)
+- [ ] D1 RiskDetailPanel: save is awaited; spinner on button; "Risk saved" / "Failed to save risk" toast; panel stays open on error
+- [ ] D2 ActionDetailPanel: all updateAction() calls are explicit; same pattern as D1
+- [ ] D3 RegulationDetailPanel: compliance assessment save is explicit; link/unlink shows inline toast
+- [ ] D4 SMCR panels: ResponsibilitiesMatrix, DocumentTracker, ConductRulesPanel all explicit
+- [ ] D5 Controls: ControlDetailModal + ControlsLibraryTab explicit saves
+- [ ] D6 Policy editor: updatePolicy / addPolicy explicit saves
+- [ ] Build passes after each deliverable (zero errors, no existing features removed)
+- [ ] All existing UI interactions preserved — only save path changes
+
+### Store functions left untouched (by design)
+`updateRisk`, `updateAction`, `updateControl`, `updatePolicy`, `updateRegulation`, etc. remain in the store and still use `sync()`. They act as a fallback for any callers not yet migrated and for store hydration merges.
 
 ---
 
