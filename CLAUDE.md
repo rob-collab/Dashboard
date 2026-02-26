@@ -58,6 +58,11 @@ Exceptions — skip questions only when the request is fully unambiguous and sin
 
 For every change request (features, fixes, improvements):
 
+0. **Read `tasks/lessons.md` before planning** — before writing a single line of PLAN.md or code,
+   scan the active L-entries and W-entries for patterns relevant to the work about to start.
+   Ask: "Do any of these lessons apply here? Could I repeat the same class of mistake?"
+   If a lesson is directly relevant, state it explicitly before proceeding.
+
 1. **Write to PLAN.md first** — before touching any code, add the requested items to `PLAN.md` under a new sprint heading (or the current sprint if one is active). Include:
    - What is being changed and why
    - Files to be modified/created
@@ -191,8 +196,17 @@ item blocks progress until resolved.
 2. Describe what worked and why — be specific enough that it's reusable
 3. Again, let the retrospective decide whether to promote
 
-### At sprint end — retrospective and promotion
+### At sprint end — document first, then retrospective
 
+**Step 1 — Document lessons before anything else.**
+Before running the Retrospective Agent or declaring a sprint complete, manually reflect
+on the sprint and write any new lessons:
+- What went wrong, required rework, or surprised you? → Add an `L00N` entry
+- What worked well and is worth repeating? → Add a `W00N` entry
+- Did any existing lesson prove relevant? Note it in the entry if so
+This is not optional. Every sprint should produce at least one L or W entry.
+
+**Step 2 — Run the Retrospective Agent.**
 Run the Retrospective Agent (`.claude/agents/retrospective-agent.md`) as a
 `general-purpose` subagent. It reads lessons, wins, agent outputs, commits, and PLAN.md
 from the sprint and recommends what to promote and where.
@@ -239,8 +253,9 @@ Never tell the user that changes are implemented or a sprint is done without fir
 2. **Confirm every item is ticked `- [x]`** — if any item is unticked, finish it or explicitly flag it as a known gap before saying anything is done
 3. **Run `npx next build`** — zero errors, zero type errors required
 4. **Final UAT pass** — describe what an end user will see and experience, what has changed compared to before, whether it is an improvement, and whether any existing behaviour has changed unexpectedly
+5. **Document lessons** — write any new L or W entries to `tasks/lessons.md` before closing the sprint. If nothing new was learned, state that explicitly. Do not skip this step.
 
-Do not say "done", "complete", "implemented", or any equivalent until steps 1–4 are all satisfied.
+Do not say "done", "complete", "implemented", or any equivalent until steps 1–5 are all satisfied.
 
 ---
 
