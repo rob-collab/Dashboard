@@ -30,6 +30,7 @@ export const DASHBOARD_SECTIONS: DashboardSectionDef[] = [
   { key: "risk-summary", label: "Risk Summary", description: "Risk register summary with heatmap indicators" },
   { key: "reports", label: "Reports", description: "Recent and published reports" },
   { key: "recent-activity", label: "Recent Activity", description: "Latest audit log entries" },
+  { key: "horizon-scanning", label: "Horizon Scanning", description: "Regulatory & business environment monitor — urgency breakdown and in-focus item" },
 ];
 
 export const DEFAULT_SECTION_ORDER = DASHBOARD_SECTIONS.map((s) => s.key);

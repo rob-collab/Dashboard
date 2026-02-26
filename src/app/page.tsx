@@ -65,6 +65,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import WelcomeBanner from "@/components/common/WelcomeBanner";
+import { HorizonDashboardWidget } from "@/components/horizon/HorizonDashboardWidget";
 
 function daysUntilDue(dueDate: string | null): number | null {
   if (!dueDate) return null;
@@ -402,6 +403,7 @@ export default function DashboardHome() {
   const isCCRO = role === "CCRO_TEAM";
 
   // Dashboard layout state
+  const horizonItems = useAppStore((s) => s.horizonItems);
   const dashboardLayout = useAppStore((s) => s.dashboardLayout);
   const setDashboardLayout = useAppStore((s) => s.setDashboardLayout);
 
@@ -1859,6 +1861,10 @@ export default function DashboardHome() {
           </table>
         </div>
       </div>
+    ) : null,
+
+    "horizon-scanning": horizonItems.filter((h) => h.status !== "DISMISSED" && h.status !== "COMPLETED").length > 0 ? (
+      <HorizonDashboardWidget />
     ) : null,
 
     "recent-activity": hasAuditPage && auditLogs.length > 0 ? (

@@ -1613,3 +1613,96 @@ export const REG_CAL_TYPE_COLOURS: Record<RegCalEventType, { bg: string; text: s
   CONSULTATION: { bg: "bg-sky-100", text: "text-sky-700" },
   INTERNAL_DEADLINE: { bg: "bg-amber-100", text: "text-amber-700" },
 };
+
+// ── Horizon Scanning Module ───────────────────────────────────────────────────
+
+export type HorizonCategory =
+  | "FCA_REGULATORY"
+  | "LEGISLATIVE"
+  | "ECONOMIC"
+  | "DATA_TECHNOLOGY"
+  | "EMPLOYMENT"
+  | "PAYMENTS_REGULATORY"
+  | "COMPETITIVE";
+
+export type HorizonUrgency = "HIGH" | "MEDIUM" | "LOW";
+
+export type HorizonStatus =
+  | "MONITORING"
+  | "ACTION_REQUIRED"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "DISMISSED";
+
+export interface HorizonItem {
+  id: string;
+  reference: string;
+  title: string;
+  category: HorizonCategory;
+  source: string;
+  summary: string;
+  whyItMatters: string;
+  deadline: string | null;
+  urgency: HorizonUrgency;
+  status: HorizonStatus;
+  sourceUrl: string | null;
+  actions: string | null;
+  notes: string | null;
+  monthAdded: string;
+  inFocus: boolean;
+  addedById: string;
+  createdAt: string;
+  updatedAt: string;
+  actionLinks?: HorizonActionLink[];
+  riskLinks?: HorizonRiskLink[];
+}
+
+export interface HorizonActionLink {
+  id: string;
+  horizonItemId: string;
+  actionId: string;
+  action?: { id: string; reference: string; title: string; status: string };
+  linkedAt: string;
+  linkedBy: string;
+}
+
+export interface HorizonRiskLink {
+  id: string;
+  horizonItemId: string;
+  riskId: string;
+  risk?: { id: string; reference: string; name: string };
+  linkedAt: string;
+  linkedBy: string;
+}
+
+export const HORIZON_CATEGORY_LABELS: Record<HorizonCategory, string> = {
+  FCA_REGULATORY: "FCA Regulatory",
+  LEGISLATIVE: "Legislative",
+  ECONOMIC: "Economic",
+  DATA_TECHNOLOGY: "Data & Technology",
+  EMPLOYMENT: "Employment Law",
+  PAYMENTS_REGULATORY: "Payments & PSR",
+  COMPETITIVE: "Competitive",
+};
+
+export const HORIZON_URGENCY_COLOURS: Record<HorizonUrgency, { bg: string; text: string; border: string; dot: string }> = {
+  HIGH:   { bg: "bg-red-100",    text: "text-red-700",    border: "border-red-500",    dot: "bg-red-500"    },
+  MEDIUM: { bg: "bg-amber-100",  text: "text-amber-700",  border: "border-amber-500",  dot: "bg-amber-500"  },
+  LOW:    { bg: "bg-emerald-100", text: "text-emerald-700", border: "border-emerald-500", dot: "bg-emerald-500" },
+};
+
+export const HORIZON_STATUS_LABELS: Record<HorizonStatus, string> = {
+  MONITORING:      "Monitoring",
+  ACTION_REQUIRED: "Action Required",
+  IN_PROGRESS:     "In Progress",
+  COMPLETED:       "Completed",
+  DISMISSED:       "Dismissed",
+};
+
+export const HORIZON_STATUS_COLOURS: Record<HorizonStatus, { bg: string; text: string }> = {
+  MONITORING:      { bg: "bg-blue-100",    text: "text-blue-700"    },
+  ACTION_REQUIRED: { bg: "bg-red-100",     text: "text-red-700"     },
+  IN_PROGRESS:     { bg: "bg-amber-100",   text: "text-amber-700"   },
+  COMPLETED:       { bg: "bg-emerald-100", text: "text-emerald-700" },
+  DISMISSED:       { bg: "bg-gray-100",    text: "text-gray-500"    },
+};

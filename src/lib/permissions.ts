@@ -15,6 +15,7 @@ export type PermissionCode =
   | "page:settings"
   | "page:users"
   | "page:operational-resilience"
+  | "page:horizon-scanning"
   // Data actions
   | "create:risk"
   | "create:action"
@@ -53,6 +54,7 @@ export const ALL_PERMISSIONS: Record<PermissionCode, { label: string; category: 
   "page:settings":                  { label: "View Settings",                 category: "Pages" },
   "page:users":                     { label: "View Users",                    category: "Pages" },
   "page:operational-resilience":    { label: "View Operational Resilience",   category: "Pages" },
+  "page:horizon-scanning":          { label: "View Horizon Scanning",          category: "Pages" },
   // Data
   "create:risk":    { label: "Create Risks",    category: "Data" },
   "create:action":  { label: "Create Actions",  category: "Data" },
@@ -95,6 +97,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<Role, Partial<Record<PermissionCod
     "page:reports": true,
     "page:risk-acceptances": true,
     "page:operational-resilience": true, // CEO needs board-level OR visibility (FCA PS21/3)
+    "page:horizon-scanning": true,
     "can:toggle-risk-focus": true,
   },
   OWNER: {
@@ -107,6 +110,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<Role, Partial<Record<PermissionCod
     "page:compliance": true,
     "page:reports": true,
     "page:risk-acceptances": true,
+    "page:horizon-scanning": true,
     "create:risk": true,
     "create:action": true,
     "edit:risk": true,
@@ -122,6 +126,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<Role, Partial<Record<PermissionCod
     "page:compliance": true,
     "page:reports": true,
     "page:risk-acceptances": true,
+    "page:horizon-scanning": true,
   },
 };
 

@@ -190,6 +190,9 @@ model User {
   riskProposedChanges  RiskChange[]  @relation("RiskProposedChanges")
   riskReviewedChanges  RiskChange[]  @relation("RiskReviewedChanges")
 
+  // Horizon Scanning
+  horizonItemsAdded    HorizonItem[]           @relation("HorizonItemsAdded")
+
   // Dashboard Notifications
   createdNotifications DashboardNotification[] @relation("NotificationCreator")
 
@@ -468,7 +471,8 @@ model Action {
   updatedAt     DateTime     @updatedAt
 
   changes          ActionChange[]
-  linkedMitigation RiskMitigation? @relation("MitigationAction")
+  linkedMitigation RiskMitigation?    @relation("MitigationAction")
+  horizonLinks     HorizonActionLink[] @relation("HorizonActionLinks")
 
   @@index([reportId])
   @@index([assignedTo])
@@ -575,8 +579,9 @@ model Risk {
   snapshots   RiskSnapshot[]
   acceptances RiskAcceptance[]
   changes      RiskChange[]
-  controlLinks RiskControlLink[]
-  processLinks ProcessRiskLink[]
+  controlLinks  RiskControlLink[]
+  processLinks  ProcessRiskLink[]
+  horizonLinks  HorizonRiskLink[]  @relation("HorizonRiskLinks")
 
   @@index([categoryL1])
   @@index([ownerId])
@@ -1718,6 +1723,92 @@ model SelfAssessment {
   updatedAt            DateTime         @updatedAt
 
   @@map("self_assessments")
+}
+
+// ── Horizon Scanning Module ───────────────────────────────────────────────────
+
+enum HorizonCategory {
+  FCA_REGULATORY
+  LEGISLATIVE
+  ECONOMIC
+  DATA_TECHNOLOGY
+  EMPLOYMENT
+  PAYMENTS_REGULATORY
+  COMPETITIVE
+}
+
+enum HorizonUrgency {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum HorizonStatus {
+  MONITORING
+  ACTION_REQUIRED
+  IN_PROGRESS
+  COMPLETED
+  DISMISSED
+}
+
+model HorizonItem {
+  id           String          @id @default(cuid())
+  reference    String          @unique
+  title        String
+  category     HorizonCategory
+  source       String
+  summary      String          @db.Text
+  whyItMatters String          @db.Text
+  deadline     DateTime?
+  urgency      HorizonUrgency
+  status       HorizonStatus   @default(MONITORING)
+  sourceUrl    String?
+  actions      String?         @db.Text
+  notes        String?         @db.Text
+  monthAdded   String
+  inFocus      Boolean         @default(false)
+  addedById    String
+  addedBy      User            @relation("HorizonItemsAdded", fields: [addedById], references: [id])
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  actionLinks  HorizonActionLink[]
+  riskLinks    HorizonRiskLink[]
+
+  @@index([urgency])
+  @@index([status])
+  @@index([inFocus])
+  @@map("horizon_items")
+}
+
+model HorizonActionLink {
+  id            String      @id @default(cuid())
+  horizonItemId String
+  horizonItem   HorizonItem @relation(fields: [horizonItemId], references: [id], onDelete: Cascade)
+  actionId      String
+  action        Action      @relation("HorizonActionLinks", fields: [actionId], references: [id], onDelete: Cascade)
+  linkedAt      DateTime    @default(now())
+  linkedBy      String
+
+  @@unique([horizonItemId, actionId])
+  @@index([horizonItemId])
+  @@index([actionId])
+  @@map("horizon_action_links")
+}
+
+model HorizonRiskLink {
+  id            String      @id @default(cuid())
+  horizonItemId String
+  horizonItem   HorizonItem @relation(fields: [horizonItemId], references: [id], onDelete: Cascade)
+  riskId        String
+  risk          Risk        @relation("HorizonRiskLinks", fields: [riskId], references: [id], onDelete: Cascade)
+  linkedAt      DateTime    @default(now())
+  linkedBy      String
+
+  @@unique([horizonItemId, riskId])
+  @@index([horizonItemId])
+  @@index([riskId])
+  @@map("horizon_risk_links")
 }
 
 // ── Regulatory Calendar ───────────────────────────────────────────────────────

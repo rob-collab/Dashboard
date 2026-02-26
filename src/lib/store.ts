@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry, RiskAcceptance, Policy, Regulation, DashboardNotification, Role, RiskControlLink, SMFRole, PrescribedResponsibility, CertificationFunction, CertifiedPerson, ConductRule, ConductRuleBreach, SMCRDocument, ComplianceStatus, Applicability, AccessRequest, DashboardLayoutConfig, ImportantBusinessService, Process, ResilienceScenario, SelfAssessment, RegulatoryEvent } from "./types";
+import type { User, Report, Section, Template, ImportedComponent, AuditLogEntry, ConsumerDutyOutcome, ConsumerDutyMeasure, ConsumerDutyMI, ReportVersion, BrandingConfig, Action, Risk, RiskCategoryDB, PriorityDefinition, SiteSettings, ControlRecord, ControlBusinessArea, TestingScheduleEntry, RiskAcceptance, Policy, Regulation, DashboardNotification, Role, RiskControlLink, SMFRole, PrescribedResponsibility, CertificationFunction, CertifiedPerson, ConductRule, ConductRuleBreach, SMCRDocument, ComplianceStatus, Applicability, AccessRequest, DashboardLayoutConfig, ImportantBusinessService, Process, ResilienceScenario, SelfAssessment, RegulatoryEvent, HorizonItem } from "./types";
 import { api, friendlyApiError } from "./api-client";
 
 interface AppState {
@@ -156,6 +156,13 @@ interface AppState {
   addRegulatoryEvent: (item: RegulatoryEvent) => void;
   updateRegulatoryEvent: (id: string, data: Partial<RegulatoryEvent>) => void;
   deleteRegulatoryEvent: (id: string) => void;
+
+  // Horizon Scanning
+  horizonItems: HorizonItem[];
+  setHorizonItems: (items: HorizonItem[]) => void;
+  addHorizonItem: (item: HorizonItem) => void;
+  updateHorizonItem: (id: string, data: Partial<HorizonItem>) => void;
+  removeHorizonItem: (id: string) => void;
 
   // Dashboard Notifications
   notifications: DashboardNotification[];
@@ -317,7 +324,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   _saveError: null,
   hydrate: async () => {
     try {
-      const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, permissionsData, smfRoles, prescribedResponsibilities, certificationFunctions, conductRules, conductRuleBreaches, smcrDocuments, accessRequests, dashboardLayout, ibs, processes, scenarios, selfAssessments, regulatoryEvents] = await Promise.all([
+      const [users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, permissionsData, smfRoles, prescribedResponsibilities, certificationFunctions, conductRules, conductRuleBreaches, smcrDocuments, accessRequests, dashboardLayout, ibs, processes, scenarios, selfAssessments, regulatoryEvents, horizonItems] = await Promise.all([
         api<User[]>("/api/users"),
         api<Report[]>("/api/reports"),
         api<ConsumerDutyOutcome[]>("/api/consumer-duty"),
@@ -350,12 +357,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         api<ResilienceScenario[]>("/api/ibs/scenarios").catch(() => []),
         api<SelfAssessment[]>("/api/self-assessments").catch(() => []),
         api<RegulatoryEvent[]>("/api/or/regulatory-calendar").catch(() => []),
+        api<HorizonItem[]>("/api/horizon-items").catch(() => []),
       ]);
       // Extract certified persons from nested certification functions response
       const allCertifiedPersons = certificationFunctions.flatMap((cf: CertificationFunction & { certifiedPersons?: CertifiedPerson[] }) => cf.certifiedPersons ?? []);
       // Fire-and-forget: expire any access grants that have lapsed
       api("/api/access-requests/expiry-check", { method: "POST" }).catch(() => {});
-      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, rolePermissions: permissionsData.rolePermissions, userPermissions: permissionsData.userPermissions, smfRoles, prescribedResponsibilities, certificationFunctions, certifiedPersons: allCertifiedPersons, conductRules, conductRuleBreaches, smcrDocuments, accessRequests, dashboardLayout, ibs, processes, scenarios, selfAssessments, regulatoryEvents, _hydrated: true, _hydrateError: null, _hydratedAt: new Date() });
+      set({ users, reports, outcomes, templates, components, auditLogs, actions, risks, siteSettings, riskCategories, priorityDefinitions, controlBusinessAreas, controls, testingSchedule, riskAcceptances, policies, regulations, notifications, rolePermissions: permissionsData.rolePermissions, userPermissions: permissionsData.userPermissions, smfRoles, prescribedResponsibilities, certificationFunctions, certifiedPersons: allCertifiedPersons, conductRules, conductRuleBreaches, smcrDocuments, accessRequests, dashboardLayout, ibs, processes, scenarios, selfAssessments, regulatoryEvents, horizonItems, _hydrated: true, _hydrateError: null, _hydratedAt: new Date() });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to connect to server";
       console.error("[hydrate] API unreachable:", message);
@@ -1010,6 +1018,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((s) => ({ regulatoryEvents: s.regulatoryEvents.map((e) => (e.id === id ? { ...e, ...data } : e)) })),
   deleteRegulatoryEvent: (id) =>
     set((s) => ({ regulatoryEvents: s.regulatoryEvents.filter((e) => e.id !== id) })),
+
+  // ── Horizon Scanning ───────────────────────────────────────
+  horizonItems: [],
+  setHorizonItems: (items) => set({ horizonItems: items }),
+  addHorizonItem: (item) => set((s) => ({ horizonItems: [item, ...s.horizonItems] })),
+  updateHorizonItem: (id, data) =>
+    set((s) => ({ horizonItems: s.horizonItems.map((h) => (h.id === id ? { ...h, ...data } : h)) })),
+  removeHorizonItem: (id) =>
+    set((s) => ({ horizonItems: s.horizonItems.filter((h) => h.id !== id) })),
 
   // ── Dashboard Layout ───────────────────────────────────────
   dashboardLayout: null,

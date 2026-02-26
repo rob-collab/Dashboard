@@ -29,6 +29,7 @@ import {
   Layers,
   Calendar,
   Download,
+  Radar,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import type { User } from "@/lib/types";
@@ -69,6 +70,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Compliance", href: "/compliance", icon: Scale, permission: "page:compliance", badgeKey: "compliance" },
       { label: "Consumer Duty", href: "/consumer-duty", icon: ShieldCheck, permission: "page:consumer-duty" },
+      { label: "Horizon Scanning", href: "/horizon-scanning", icon: Radar, permission: "page:horizon-scanning" },
       { label: "Controls", href: "/controls", icon: FlaskConical, permission: "page:controls", badgeKey: "controls" },
       { label: "Processes & IBS", href: "/processes", icon: Layers, permission: "page:compliance", badgeKey: "operationalResilience" },
       { label: "Reg Calendar", href: "/regulatory-calendar", icon: Calendar, permission: "page:compliance" },

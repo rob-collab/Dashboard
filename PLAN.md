@@ -1,5 +1,142 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-26 (Global Save Reliability sprint ✅ COMPLETE — all 6 deliverables done)
+Last updated: 2026-02-26 (Sprint 1 implementation complete — pending UAT/compliance review)
+
+---
+
+## CURRENT SPRINT: Horizon Scanning Module
+
+### What
+Add a Horizon Scanning module to the CCRO Dashboard — a standalone page and sidebar entry
+giving the CCRO team a structured, searchable, monthly register of regulatory, legislative,
+competitive, and employment developments that may affect Updraft. Replaces the manual Word/
+Excel process.
+
+### Why
+The CCRO team currently maintains a Word document horizon scan. This sprint builds it into
+the dashboard so items are tracked, actionable, and linked to the risk and action registers.
+
+### Key design decisions
+- Standalone page `/horizon-scanning` with sidebar nav (not a compliance tab — too content-rich)
+- One item can be designated "In Focus" — appears as a prominent spotlight banner at the top
+  of the page. CP26-7 is the first in-focus item.
+- "Create Action" on a horizon item creates a real `Action` DB record + `HorizonActionLink`
+- "Link Risk" on a horizon item links to an existing `Risk` record via `HorizonRiskLink`
+- `inFocus` boolean on HorizonItem — only one can be true at a time (enforced in API)
+- CCRO_TEAM has full CRUD; OWNER/VIEWER read-only + export
+
+### Files to create
+| File | Purpose |
+|---|---|
+| `src/app/horizon-scanning/page.tsx` | Main page |
+| `src/app/api/horizon-items/route.ts` | GET + POST |
+| `src/app/api/horizon-items/[id]/route.ts` | PATCH + DELETE |
+| `src/app/api/horizon-items/[id]/set-focus/route.ts` | Set item as in-focus |
+| `src/app/api/horizon-items/[id]/actions/route.ts` | Create + link Action |
+| `src/app/api/horizon-items/[id]/risks/route.ts` | Link / unlink Risk |
+| `src/app/api/horizon-items/export/route.ts` | CSV export |
+| `src/components/horizon/HorizonInFocusSpotlight.tsx` | Featured item banner |
+| `src/components/horizon/HorizonItemCard.tsx` | List card component |
+| `src/components/horizon/HorizonDetailPanel.tsx` | Slide-in detail/edit panel |
+| `src/components/horizon/HorizonFormDialog.tsx` | Create new item dialog |
+| `src/components/horizon/HorizonDashboardWidget.tsx` | Dashboard home widget |
+
+### Files to modify
+| File | Change |
+|---|---|
+| `prisma/schema.prisma` | Add HorizonItem, HorizonActionLink, HorizonRiskLink, enums |
+| `prisma/seed.ts` | Add 25 horizon items (Feb 2026 scan); CP26-7 set inFocus |
+| `src/lib/types.ts` | Add HorizonItem, HorizonCategory, HorizonUrgency, HorizonStatus, link types |
+| `src/lib/store.ts` | Add horizonItems slice + 4 actions + hydration fetch |
+| `src/components/layout/Sidebar.tsx` | Add Horizon Scanning nav entry (Radar icon) |
+| `src/app/page.tsx` | Add HorizonDashboardWidget |
+
+### Acceptance criteria
+- [x] S1-01: `HorizonItem`, `HorizonActionLink`, `HorizonRiskLink` models in schema; migration runs clean
+- [x] S1-02: TypeScript types added; store slice added; hydration fetches from API
+- [x] S1-03: GET/POST /api/horizon-items works; PATCH/DELETE /api/horizon-items/[id] works
+- [x] S1-04: POST /api/horizon-items/[id]/set-focus sets item inFocus=true, clears all others
+- [x] S1-05: "In Focus" spotlight renders at top of page with gradient bg, reference badge, urgency pill, deadline countdown, summary excerpt
+- [x] S1-06: Item list renders grouped by urgency (HIGH→MEDIUM→LOW) with section headers + counts
+- [x] S1-07: Each card shows reference, title, category badge, source, deadline, status, truncated summary
+- [x] S1-08: HorizonDetailPanel opens on card click; all fields editable by CCRO_TEAM; Save explicit + toasted
+- [x] S1-09: Create new item dialog works; reference auto-generated (HZ-NNN); inFocus=false by default
+- [x] S1-10: "Create Action" from detail panel creates real Action DB record + HorizonActionLink; action appears in Actions module
+- [x] S1-11: "Link Risk" from detail panel links to existing Risk via HorizonRiskLink; shows linked risk reference + name
+- [x] S1-12: Sidebar shows "Horizon Scanning" with Radar icon; route navigates correctly
+- [x] S1-13: Seed data: all 25 items from Feb 2026 horizon scan; CP26-7 (HZ-004) set as inFocus
+- [x] S1-14: CSV export returns all fields; accessible to all roles
+- [x] S1-15: Dashboard widget shows HIGH/MEDIUM/LOW counts + nearest deadline; links to /horizon-scanning
+- [x] S1-16: Filter bar: category, urgency, status dropdowns + search; dismissed items hidden by default
+- [x] S1-17: OWNER/VIEWER can view + export only; create/edit/delete buttons hidden
+- [x] S1-18: Build passes: zero TypeScript errors
+- [ ] S1-19: UAT agent review: CRO persona sign-off
+- [ ] S1-20: Compliance agent review: no NON-COMPLIANT findings
+
+---
+
+## PLANNED SPRINT: Risk / Action / Control Relational Refactor
+
+### What
+Remove the inline free-text controls and mitigations from the Risk Detail Panel. Replace
+with proper relational DB links to the existing Control Library and Action register.
+Also fix a critical bug: the PATCH /api/risks/[id] handler currently deletes all linked
+Action records and re-creates them on every save — destroying action history.
+
+### Why
+- Inline `RiskControl[]` entries are plain text — never tested, never tracked, not part of
+  the control library
+- Inline `RiskMitigation[]` create Action records on save but destroy them on re-save
+- The user cannot currently link an existing action to a risk — only create a new one
+  from mitigation text
+- Result: actions raised from risks are invisible in the action register and vice versa
+
+### Architecture
+```
+Current (broken):     Risk.controls[]     → RiskControl (plain text, orphaned)
+                      Risk.mitigations[]  → RiskMitigation + auto-created Action (destroyed on re-save)
+
+Target (correct):     Risk ─── RiskControlLink ──→ Control library   (already exists ✅)
+                      Risk ─── RiskActionLink  ──→ Action register    (new junction table)
+```
+
+### Key decisions
+- `RiskControl` and `RiskMitigation` tables kept in DB — existing data preserved
+- Inline controls section removed from Risk Detail Panel UI (no new entries created)
+- Inline mitigations section removed from Risk Detail Panel UI (no new entries created)
+- Existing linked actions (from old mitigations) become visible in the new Linked Actions section
+- "Raise Action" on a risk opens action creation dialog → creates Action → creates RiskActionLink
+- "Link Existing Action" → search/select existing action → creates RiskActionLink
+- Fix PATCH /api/risks/[id]: stop deleting/recreating actions; instead manage RiskActionLink separately
+
+### Files to create
+| File | Purpose |
+|---|---|
+| `src/app/api/risks/[id]/action-links/route.ts` | GET + POST (link action to risk) |
+| `src/app/api/risks/[id]/action-links/[actionId]/route.ts` | DELETE (unlink) |
+
+### Files to modify
+| File | Change |
+|---|---|
+| `prisma/schema.prisma` | Add RiskActionLink model + relations |
+| `src/lib/types.ts` | Add RiskActionLink type |
+| `src/lib/store.ts` | Add linkActionToRisk / unlinkActionFromRisk store actions |
+| `src/components/risk-register/RiskDetailPanel.tsx` | Remove inline controls/mitigations sections; add Linked Actions section |
+| `src/app/api/risks/[id]/route.ts` | Fix PATCH — remove delete-and-recreate mitigation logic |
+
+### Acceptance criteria
+- [ ] S2-01: `RiskActionLink` model added to schema; migration runs clean; existing data untouched
+- [ ] S2-02: GET/POST /api/risks/[id]/action-links; DELETE /api/risks/[id]/action-links/[actionId]
+- [ ] S2-03: Risk Detail Panel: inline controls section removed from UI (RiskControl data preserved in DB)
+- [ ] S2-04: Risk Detail Panel: inline mitigations section removed from UI (RiskMitigation data preserved)
+- [ ] S2-05: Risk Detail Panel: "Linked Controls" section (from RiskControlLink) unchanged and still works
+- [ ] S2-06: Risk Detail Panel: new "Linked Actions" section shows actions linked via RiskActionLink
+- [ ] S2-07: "Raise Action" button creates new Action + RiskActionLink; action visible in Actions module
+- [ ] S2-08: "Link Existing Action" search/select creates RiskActionLink without creating new Action
+- [ ] S2-09: PATCH /api/risks/[id] no longer deletes or recreates linked actions on save
+- [ ] S2-10: All existing Risk Detail Panel functionality (ratings, categories, owner, review date, etc.) unchanged
+- [ ] S2-11: Build passes: zero TypeScript errors
+- [ ] S2-12: UAT agent review sign-off
+- [ ] S2-13: No existing risk data lost or corrupted
 
 ---
 
