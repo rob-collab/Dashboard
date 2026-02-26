@@ -29,12 +29,28 @@ For every change request (features, fixes, improvements):
    - Files to be modified/created
    - A checklist of acceptance criteria (`- [ ] ...`)
 
-2. **Implement one logical step at a time** — do not batch all changes into one pass. After each meaningful step:
-   - State what was just done
-   - Verify the step against the relevant checklist item(s)
-   - Explicitly check: did anything break or get removed that should not have?
-   - Update the plan (tick done items, add newly discovered items, flag gaps)
-   - Only then proceed to the next step
+2. **Implement one deliverable at a time — senior developer review gate after each** — do not batch all changes into one pass. After each meaningful deliverable, run all three layers before moving on:
+
+   **Layer 1 — Build & verify:**
+   - State clearly what was just implemented
+   - Verify it against the relevant checklist item(s)
+   - Explicitly check: did anything break or get silently removed?
+   - Tick done items, add newly discovered items, flag gaps in the plan
+
+   **Layer 2 — Senior developer review:**
+   - Does this implementation actually solve the problem it was designed to? Would a staff engineer approve it?
+   - Are there edge cases or error paths that have not been handled?
+   - Does the code follow existing patterns in the codebase (store pattern, UK spelling, brand colours, Prisma adapter, etc.)?
+   - Has anything been discovered during implementation that should revise the plan — new risks, simpler approach, missing acceptance criteria?
+
+   **Layer 3 — UAT / UX review:**
+   - What will an end user actually see or experience as a result of this change?
+   - Is the experience better, the same, or worse than before this change?
+   - Are there any behaviours or functions that have changed in a way the user would not expect?
+   - What would a reasonable user expect to be able to do — and can they still do it?
+   - Are there any side effects on adjacent features, flows, or roles?
+
+   Only proceed to the next deliverable once all three layers are satisfied.
 
 3. **Before committing/pushing, review PLAN.md** — go through every checklist item and confirm it is done. Tick completed items (`- [x]`). If something is incomplete, finish it or flag it explicitly to the user before pushing.
 
@@ -87,6 +103,19 @@ When the user corrects a mistake or points out something that went wrong:
 2. Write a rule to `tasks/lessons.md` that prevents the same class of mistake
 3. Confirm the lesson was written before moving on
 4. Review `tasks/lessons.md` at the start of future sessions for active reminders
+
+---
+
+## Declaring Work Complete
+
+Never tell the user that changes are implemented or a sprint is done without first completing ALL of the following:
+
+1. **Read PLAN.md in full** — go through every checklist item in the current sprint
+2. **Confirm every item is ticked `- [x]`** — if any item is unticked, finish it or explicitly flag it as a known gap before saying anything is done
+3. **Run `npx next build`** — zero errors, zero type errors required
+4. **Final UAT pass** — describe what an end user will see and experience, what has changed compared to before, whether it is an improvement, and whether any existing behaviour has changed unexpectedly
+
+Do not say "done", "complete", "implemented", or any equivalent until steps 1–4 are all satisfied.
 
 ---
 
