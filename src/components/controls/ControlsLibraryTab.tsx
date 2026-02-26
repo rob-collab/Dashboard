@@ -135,12 +135,22 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
   );
   const [showArchived, setShowArchived] = useState(false);
   const [myControlsOnly, setMyControlsOnly] = useState(false);
+  const [myControlsInitialized, setMyControlsInitialized] = useState(false);
 
   // My controls count
   const myControlsCount = useMemo(
     () => controls.filter((c) => c.isActive !== false && c.controlOwnerId === currentUser?.id).length,
     [controls, currentUser],
   );
+
+  // Default to "my controls" if user owns any (runs once after data loads)
+  useEffect(() => {
+    if (myControlsInitialized || controls.length === 0 || !currentUser?.id) return;
+    const owned = controls.filter((c) => c.isActive !== false && c.controlOwnerId === currentUser.id);
+    if (owned.length > 0) setMyControlsOnly(true);
+    setMyControlsInitialized(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [controls.length, currentUser?.id]);
 
   // ── Import dialog state ────────────────────────────────────
   const [showImportDialog, setShowImportDialog] = useState(false);

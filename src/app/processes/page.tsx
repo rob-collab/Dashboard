@@ -36,10 +36,22 @@ export default function ProcessesPage() {
   const updateProcess = useAppStore((s) => s.updateProcess);
   const currentUser = useAppStore((s) => s.currentUser);
   const isCCRO = currentUser?.role === "CCRO_TEAM";
-  const isOwner = currentUser?.role === "OWNER";
 
-  // D1: OWNER role defaults to seeing only their own processes
-  const displayProcesses = isOwner && currentUser?.id
+  // My/All toggle — explicit, replaces the silent OWNER-only filter
+  const myProcessesCount = processes.filter((p) => p.ownerId === currentUser?.id).length;
+  const [viewMode, setViewMode] = useState<"all" | "my">("all");
+  const [viewModeSet, setViewModeSet] = useState(false);
+  useEffect(() => {
+    if (!hydrated || viewModeSet) return;
+    if (!isCCRO && currentUser?.id) {
+      const owned = processes.filter((p) => p.ownerId === currentUser.id);
+      setViewMode(owned.length > 0 ? "my" : "all");
+    }
+    setViewModeSet(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
+
+  const displayProcesses = viewMode === "my" && currentUser?.id
     ? processes.filter((p) => p.ownerId === currentUser.id)
     : processes;
   const searchParams = useSearchParams();
@@ -373,6 +385,44 @@ export default function ProcessesPage() {
       {activeTab === "processes" && showInsights && insightsData && (
         <div className="px-6 pt-4 shrink-0">
           <ProcessInsightsPanel data={insightsData} onProcessClick={handleInsightsProcessClick} />
+        </div>
+      )}
+
+      {/* My/All toggle — Processes tab */}
+      {activeTab === "processes" && (
+        <div className="px-6 pt-2 shrink-0">
+          <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-1 w-fit">
+            <button
+              onClick={() => setViewMode("all")}
+              className={cn(
+                "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                viewMode === "all"
+                  ? "bg-updraft-pale-purple/40 text-updraft-deep"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              All Processes
+            </button>
+            <button
+              onClick={() => myProcessesCount > 0 && setViewMode("my")}
+              disabled={myProcessesCount === 0}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                viewMode === "my"
+                  ? "bg-updraft-pale-purple/40 text-updraft-deep"
+                  : myProcessesCount === 0
+                  ? "text-gray-300 cursor-not-allowed"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              My Processes
+              {myProcessesCount > 0 && (
+                <span className="rounded-full bg-updraft-bright-purple/10 px-1.5 py-0.5 text-[10px] font-semibold text-updraft-bright-purple">
+                  {myProcessesCount}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
       )}
 

@@ -144,8 +144,22 @@ export default function RiskRegisterPage() {
   const isOwner = currentUser?.role === "OWNER";
   const isReadOnly = currentUser?.role === "VIEWER";
 
-  // OWNER role defaults to seeing only their own risks (C1)
-  const ownerRiskFilter = isOwner ? currentUser?.id : null;
+  // My/All toggle — explicit, replaces the silent OWNER-only filter
+  const [viewMode, setViewMode] = useState<"all" | "my">("all");
+  // After hydration: default to "my" if user owns any risks (unless CCRO who sees all)
+  const [viewModeSet, setViewModeSet] = useState(false);
+  useEffect(() => {
+    if (!hydrated || viewModeSet) return;
+    if (!isCCROTeam && currentUser?.id) {
+      const owned = risks.filter((r) => r.ownerId === currentUser.id);
+      setViewMode(owned.length > 0 ? "my" : "all");
+    }
+    setViewModeSet(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
+
+  const myRisksCount = risks.filter((r) => r.ownerId === currentUser?.id).length;
+  const ownerRiskFilter = viewMode === "my" ? (currentUser?.id ?? null) : null;
 
   // Score helper for current mode (inherent/residual — overlay uses residual for cards)
   const effectiveMode = scoreMode === "overlay" ? "residual" : scoreMode;
@@ -655,6 +669,42 @@ export default function RiskRegisterPage() {
       )}
 
       {activeTab === "register" && <>
+
+      {/* My/All toggle */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-1">
+          <button
+            onClick={() => setViewMode("all")}
+            className={cn(
+              "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+              viewMode === "all"
+                ? "bg-updraft-pale-purple/40 text-updraft-deep"
+                : "text-gray-500 hover:text-gray-700"
+            )}
+          >
+            All Risks
+          </button>
+          <button
+            onClick={() => myRisksCount > 0 && setViewMode("my")}
+            disabled={myRisksCount === 0}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+              viewMode === "my"
+                ? "bg-updraft-pale-purple/40 text-updraft-deep"
+                : myRisksCount === 0
+                ? "text-gray-300 cursor-not-allowed"
+                : "text-gray-500 hover:text-gray-700"
+            )}
+          >
+            My Risks
+            {myRisksCount > 0 && (
+              <span className="rounded-full bg-updraft-bright-purple/10 px-1.5 py-0.5 text-[10px] font-semibold text-updraft-bright-purple">
+                {myRisksCount}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
 
       {/* Search Bar */}
       <div className="relative">

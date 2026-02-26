@@ -48,20 +48,30 @@ function ConsumerDutyContent() {
   const isCCROTeam = currentUser?.role === "CCRO_TEAM";
   const canEdit = isOwner || isCCROTeam;
 
-  // Page-level tab: dashboard or history
-  const [activeTab, setActiveTab] = useState<"dashboard" | "history">(() =>
-    searchParams.get("tab") === "history" ? "history" : "dashboard"
-  );
+  // Page-level tab: dashboard, manage (CCRO only), or history
+  const [activeTab, setActiveTab] = useState<"dashboard" | "manage" | "history">(() => {
+    const t = searchParams.get("tab");
+    if (t === "history") return "history";
+    if (t === "manage") return "manage";
+    return "dashboard";
+  });
 
   // Sync activeTab from URL
   useEffect(() => {
-    setActiveTab(searchParams.get("tab") === "history" ? "history" : "dashboard");
+    const t = searchParams.get("tab");
+    if (t === "history") setActiveTab("history");
+    else if (t === "manage") setActiveTab("manage");
+    else setActiveTab("dashboard");
   }, [searchParams]);
 
-  function handleTabChange(tab: "dashboard" | "history") {
+  function handleTabChange(tab: "dashboard" | "manage" | "history") {
     setActiveTab(tab);
     if (tab === "history") {
       router.replace("/consumer-duty?tab=history", { scroll: false });
+    } else if (tab === "manage") {
+      router.replace("/consumer-duty?tab=manage", { scroll: false });
+    } else {
+      router.replace("/consumer-duty", { scroll: false });
     }
   }
 
@@ -75,6 +85,7 @@ function ConsumerDutyContent() {
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") ?? "");
   const [viewMode, setViewMode] = useState<"all" | "my">("all");
   const [measureRagFilter, setMeasureRagFilter] = useState<RAGStatus | "ALL">("ALL");
+  const [metricsRagFilter, setMetricsRagFilter] = useState<RAGStatus | "ALL">("ALL");
 
   // Management dialog state
   const [outcomeDialogOpen, setOutcomeDialogOpen] = useState(false);
@@ -123,7 +134,7 @@ function ConsumerDutyContent() {
   // Debounced URL sync for ragFilter + searchQuery
   const cdSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (activeTab === "history") return; // don't overwrite ?tab=history with filter params
+    if (activeTab === "history" || activeTab === "manage") return; // don't overwrite tab params
     if (cdSyncTimerRef.current) clearTimeout(cdSyncTimerRef.current);
     cdSyncTimerRef.current = setTimeout(() => {
       const params = new URLSearchParams();
@@ -205,6 +216,28 @@ function ConsumerDutyContent() {
   const goodCount = outcomes.filter((o) => o.ragStatus === "GOOD").length;
   const warningCount = outcomes.filter((o) => o.ragStatus === "WARNING").length;
   const harmCount = outcomes.filter((o) => o.ragStatus === "HARM").length;
+
+  // All metrics flattened from outcomes → measures → metrics, with measure context
+  const allMetrics = useMemo(() => {
+    return outcomes.flatMap((o) =>
+      (o.measures ?? []).flatMap((m) =>
+        (m.metrics ?? []).map((mi) => ({
+          ...mi,
+          measureId: m.measureId,
+          measureName: m.name,
+        }))
+      )
+    );
+  }, [outcomes]);
+
+  const filteredMetrics = useMemo(() => {
+    if (metricsRagFilter === "ALL") return allMetrics;
+    return allMetrics.filter((mi) => mi.ragStatus === metricsRagFilter);
+  }, [allMetrics, metricsRagFilter]);
+
+  const metricsGoodCount = allMetrics.filter((mi) => mi.ragStatus === "GOOD").length;
+  const metricsWarningCount = allMetrics.filter((mi) => mi.ragStatus === "WARNING").length;
+  const metricsHarmCount = allMetrics.filter((mi) => mi.ragStatus === "HARM").length;
 
   // Can the current user edit a particular measure?
   const canEditMeasure = (measure: ConsumerDutyMeasure): boolean => {
@@ -338,52 +371,13 @@ function ConsumerDutyContent() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-updraft-deep font-poppins">
-                <GlossaryTooltip term="Consumer Duty">Consumer Duty</GlossaryTooltip> Dashboard
+                Consumer Duty Dashboard
               </h1>
               <p className="text-sm text-fca-gray mt-0.5">FCA Consumer Duty outcomes and measures overview</p>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* CCRO Team management buttons */}
-          {isCCROTeam && (
-            <>
-              <Link
-                href="/audit?q=consumer_duty"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                Audit Trail
-              </Link>
-              <button
-                onClick={() => { setEditingOutcome(undefined); setOutcomeDialogOpen(true); }}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                <Plus size={14} />
-                Add Outcome
-              </button>
-              <button
-                onClick={() => { setEditingMeasure(undefined); setMeasureDialogOpen(true); }}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                <Plus size={14} />
-                Add Measure
-              </button>
-              <button
-                onClick={() => setCsvDialogOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                <Upload size={14} />
-                Import Measures
-              </button>
-              <button
-                onClick={() => setMiImportDialogOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-bright-purple px-3 py-2 text-xs font-medium text-white hover:bg-updraft-deep transition-colors"
-              >
-                <Upload size={14} />
-                Import MI
-              </button>
-            </>
-          )}
           {/* View toggle for metric owners */}
           {canEdit && (
             <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-1 ml-2">
@@ -432,11 +426,11 @@ function ConsumerDutyContent() {
 
       {/* Page tab bar */}
       <div className="flex gap-1 border-b border-gray-200">
-        {(["dashboard", "history"] as const).map((tab) => (
+        {(["dashboard", ...(isCCROTeam ? ["manage"] : []), "history"] as const).map((tab) => (
           <button
             key={tab}
             type="button"
-            onClick={() => handleTabChange(tab)}
+            onClick={() => handleTabChange(tab as "dashboard" | "manage" | "history")}
             className={cn(
               "px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
               activeTab === tab
@@ -444,7 +438,7 @@ function ConsumerDutyContent() {
                 : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             )}
           >
-            {tab === "dashboard" ? "Dashboard" : "History"}
+            {tab === "dashboard" ? "Dashboard" : tab === "manage" ? "Manage" : "History"}
           </button>
         ))}
       </div>
@@ -455,6 +449,107 @@ function ConsumerDutyContent() {
           title="Consumer Duty History"
           description="Audit trail of outcome, measure and MI changes."
         />
+      )}
+
+      {/* MANAGE TAB — CCRO Team only */}
+      {activeTab === "manage" && isCCROTeam && (
+        <div className="space-y-6">
+          <div className="bento-card p-6">
+            <h2 className="text-lg font-semibold text-updraft-deep font-poppins mb-4">Manage Consumer Duty</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+              {/* Add Outcome */}
+              <button
+                onClick={() => { setEditingOutcome(undefined); setOutcomeDialogOpen(true); }}
+                className="flex flex-col items-start gap-2 rounded-xl border border-gray-200 bg-white p-5 text-left hover:border-updraft-light-purple hover:shadow-sm transition-all group"
+              >
+                <div className="rounded-lg bg-updraft-pale-purple/40 p-2.5 group-hover:bg-updraft-pale-purple/60 transition-colors">
+                  <Plus size={18} className="text-updraft-bright-purple" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-updraft-deep">Add Outcome</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Create a new Consumer Duty outcome</p>
+                </div>
+              </button>
+
+              {/* Add Measure */}
+              <button
+                onClick={() => { setEditingMeasure(undefined); setMeasureDialogOpen(true); }}
+                className="flex flex-col items-start gap-2 rounded-xl border border-gray-200 bg-white p-5 text-left hover:border-updraft-light-purple hover:shadow-sm transition-all group"
+              >
+                <div className="rounded-lg bg-updraft-pale-purple/40 p-2.5 group-hover:bg-updraft-pale-purple/60 transition-colors">
+                  <Plus size={18} className="text-updraft-bright-purple" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-updraft-deep">Add Measure</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Add a measure to an existing outcome</p>
+                </div>
+              </button>
+
+              {/* Import Measures CSV */}
+              <button
+                onClick={() => setCsvDialogOpen(true)}
+                className="flex flex-col items-start gap-2 rounded-xl border border-gray-200 bg-white p-5 text-left hover:border-updraft-light-purple hover:shadow-sm transition-all group"
+              >
+                <div className="rounded-lg bg-updraft-pale-purple/40 p-2.5 group-hover:bg-updraft-pale-purple/60 transition-colors">
+                  <Upload size={18} className="text-updraft-bright-purple" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-updraft-deep">Import Measures CSV</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Bulk-import or replace measures from CSV</p>
+                </div>
+              </button>
+
+              {/* Import MI */}
+              <button
+                onClick={() => setMiImportDialogOpen(true)}
+                className="flex flex-col items-start gap-2 rounded-xl border border-updraft-bright-purple/30 bg-updraft-pale-purple/10 p-5 text-left hover:border-updraft-bright-purple hover:shadow-sm transition-all group"
+              >
+                <div className="rounded-lg bg-updraft-bright-purple/10 p-2.5 group-hover:bg-updraft-bright-purple/20 transition-colors">
+                  <Upload size={18} className="text-updraft-bright-purple" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-updraft-deep">Import MI Data</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Upload management information metrics</p>
+                </div>
+              </button>
+
+              {/* RAG Override */}
+              <Link
+                href="/settings?tab=consumer-duty"
+                className="flex flex-col items-start gap-2 rounded-xl border border-gray-200 bg-white p-5 text-left hover:border-updraft-light-purple hover:shadow-sm transition-all group"
+              >
+                <div className="rounded-lg bg-updraft-pale-purple/40 p-2.5 group-hover:bg-updraft-pale-purple/60 transition-colors">
+                  <Shield size={18} className="text-updraft-bright-purple" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-updraft-deep">RAG Override</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Manually override RAG statuses in Settings</p>
+                </div>
+              </Link>
+
+              {/* Audit Trail */}
+              <Link
+                href="/audit?q=consumer_duty"
+                className="flex flex-col items-start gap-2 rounded-xl border border-gray-200 bg-white p-5 text-left hover:border-updraft-light-purple hover:shadow-sm transition-all group"
+              >
+                <div className="rounded-lg bg-gray-100 p-2.5 group-hover:bg-gray-200 transition-colors">
+                  <Filter size={18} className="text-gray-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-updraft-deep">Audit Trail</p>
+                  <p className="text-xs text-gray-500 mt-0.5">View all Consumer Duty change history</p>
+                </div>
+              </Link>
+            </div>
+          </div>
+
+          {/* RAG Override note */}
+          <div className="rounded-lg bg-updraft-pale-purple/20 border border-updraft-light-purple/30 p-4 text-xs text-updraft-bar">
+            <p className="font-semibold mb-1">About RAG Override</p>
+            <p>When the CCRO team sets a RAG status manually (overriding the worst-of-measures calculation), an &ldquo;Override&rdquo; badge appears on the outcome card. The tooltip shows the computed vs manually-set status. Override settings are managed in Settings → Consumer Duty.</p>
+          </div>
+        </div>
       )}
 
       {activeTab === "dashboard" && <>
@@ -514,6 +609,22 @@ function ConsumerDutyContent() {
           <p className="text-2xl font-bold text-risk-red mt-1">{measureHarmCount}</p>
           <p className="text-xs text-fca-gray mt-1">{harmCount} red outcome{harmCount !== 1 ? "s" : ""}</p>
         </button>
+      </div>
+
+      {/* RAG status legend */}
+      <div className="flex items-center gap-6 text-xs text-gray-500 flex-wrap">
+        <div className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-risk-green shrink-0" />
+          <span><span className="font-medium text-risk-green">Green</span> — Good customer outcome</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-risk-amber shrink-0" />
+          <span><span className="font-medium text-risk-amber">Amber</span> — Possible detriment</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-risk-red shrink-0" />
+          <span><span className="font-medium text-risk-red">Red</span> — Customer harm identified</span>
+        </div>
       </div>
 
       {/* Measure-level RAG quick view */}
@@ -874,6 +985,119 @@ function ConsumerDutyContent() {
               </table>
             </div>}
           </div>
+
+          {/* Metrics Overview — individual MI data points */}
+          {allMetrics.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-lg font-bold text-updraft-deep font-poppins">Metrics Overview</h2>
+
+              {/* Stat tiles */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <button
+                  onClick={() => setMetricsRagFilter("ALL")}
+                  className={cn(
+                    "bento-card cursor-pointer text-left",
+                    metricsRagFilter === "ALL" && "ring-2 ring-updraft-bright-purple/30"
+                  )}
+                >
+                  <p className="text-xs text-fca-gray">Total Metrics</p>
+                  <p className="text-2xl font-bold text-updraft-deep mt-1">{allMetrics.length}</p>
+                  <p className="text-xs text-fca-gray mt-1">{allMeasures.length} measures</p>
+                </button>
+                <button
+                  onClick={() => setMetricsRagFilter(metricsRagFilter === "GOOD" ? "ALL" : "GOOD")}
+                  className={cn(
+                    "bento-card cursor-pointer text-left border-l-[3px] border-l-risk-green",
+                    metricsRagFilter === "GOOD" && "ring-2 ring-risk-green/40 bg-risk-green/5"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={cn("h-3 w-3 rounded-full rag-glow", ragBgColor("GOOD"))} />
+                    <p className="text-xs text-fca-gray">Green Metrics</p>
+                  </div>
+                  <p className="text-2xl font-bold text-risk-green mt-1">{metricsGoodCount}</p>
+                </button>
+                <button
+                  onClick={() => setMetricsRagFilter(metricsRagFilter === "WARNING" ? "ALL" : "WARNING")}
+                  className={cn(
+                    "bento-card cursor-pointer text-left border-l-[3px] border-l-risk-amber",
+                    metricsRagFilter === "WARNING" && "ring-2 ring-risk-amber/40 bg-risk-amber/5"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={cn("h-3 w-3 rounded-full", ragBgColor("WARNING"))} />
+                    <p className="text-xs text-fca-gray">Amber Metrics</p>
+                  </div>
+                  <p className="text-2xl font-bold text-risk-amber mt-1">{metricsWarningCount}</p>
+                </button>
+                <button
+                  onClick={() => setMetricsRagFilter(metricsRagFilter === "HARM" ? "ALL" : "HARM")}
+                  className={cn(
+                    "bento-card cursor-pointer text-left border-l-[3px] border-l-risk-red",
+                    metricsRagFilter === "HARM" && "ring-2 ring-risk-red/40 bg-risk-red/5"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={cn("h-3 w-3 rounded-full rag-pulse", ragBgColor("HARM"))} />
+                    <p className="text-xs text-fca-gray">Red Metrics</p>
+                  </div>
+                  <p className="text-2xl font-bold text-risk-red mt-1">{metricsHarmCount}</p>
+                </button>
+              </div>
+
+              {/* Metrics table */}
+              <div className="bento-card overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">Measure</th>
+                      <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">Metric</th>
+                      <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">Current Value</th>
+                      <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">Period</th>
+                      <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">RAG</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredMetrics.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="border border-gray-200 px-3 py-8 text-center text-sm text-gray-400">
+                          No metrics with this status
+                        </td>
+                      </tr>
+                    )}
+                    {filteredMetrics.map((mi) => {
+                      const latestSnapshot = (mi.snapshots ?? [])
+                        .slice()
+                        .sort((a, b) => b.month.localeCompare(a.month))[0];
+                      const period = latestSnapshot?.month ?? "—";
+                      return (
+                        <tr key={mi.id} className="hover:bg-gray-50/50">
+                          <td className="border border-gray-200 px-3 py-2">
+                            <span className="font-mono text-xs font-semibold text-updraft-deep">{mi.measureId}</span>
+                            <span className="text-xs text-gray-500 ml-1.5">{mi.measureName}</span>
+                          </td>
+                          <td className="border border-gray-200 px-3 py-2 text-gray-800">{mi.metric}</td>
+                          <td className="border border-gray-200 px-3 py-2 font-medium text-gray-800">{mi.current}</td>
+                          <td className="border border-gray-200 px-3 py-2 text-gray-500 text-xs">{period}</td>
+                          <td className="border border-gray-200 px-3 py-2">
+                            <span className={cn(
+                              "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold",
+                              mi.ragStatus === "GOOD" && "bg-risk-green/15 text-risk-green",
+                              mi.ragStatus === "WARNING" && "bg-risk-amber/10 text-risk-amber",
+                              mi.ragStatus === "HARM" && "bg-risk-red/10 text-risk-red"
+                            )}>
+                              <span className={cn("h-1.5 w-1.5 rounded-full", ragBgColor(mi.ragStatus))} />
+                              {ragLabelShort(mi.ragStatus)}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </>
       )}
 

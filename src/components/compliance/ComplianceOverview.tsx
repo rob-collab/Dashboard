@@ -7,11 +7,8 @@ import { useAppStore } from "@/lib/store";
 import {
   COMPLIANCE_STATUS_LABELS,
   COMPLIANCE_STATUS_COLOURS,
-  POLICY_STATUS_LABELS,
-  POLICY_STATUS_COLOURS,
   type Regulation,
   type ComplianceStatus,
-  type PolicyStatus,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ShieldCheck, ShieldAlert, AlertTriangle, CheckCircle2, Clock, FileText, ArrowRight, XCircle, MinusCircle } from "lucide-react";
@@ -142,8 +139,10 @@ export default function ComplianceOverview({ onNavigate }: Props) {
         }
       }
 
-      // Owner name
-      const ownerName = policy.owner?.name ?? users.find((u) => u.id === policy.ownerId)?.name ?? "—";
+      // Owner name and id
+      const resolvedOwner = policy.owner ?? users.find((u) => u.id === policy.ownerId);
+      const ownerName = resolvedOwner?.name ?? "—";
+      const ownerId = policy.ownerId ?? null;
 
       return {
         id: policy.id,
@@ -151,6 +150,8 @@ export default function ComplianceOverview({ onNavigate }: Props) {
         name: policy.name,
         status: policy.status,
         ownerName,
+        ownerId,
+        nextReviewDate: policy.nextReviewDate ?? null,
         totalControls: linkedControls.length,
         activeControls: activeControls.length,
         pass,
@@ -161,6 +162,26 @@ export default function ComplianceOverview({ onNavigate }: Props) {
       };
     });
   }, [policies, controls, users]);
+
+  // Group policyBreakdown by owner
+  const policyByOwner = useMemo(() => {
+    const map = new Map<string, { ownerName: string; ownerId: string | null; items: typeof policyBreakdown }>();
+    for (const p of policyBreakdown) {
+      const key = p.ownerId ?? "__unassigned__";
+      if (!map.has(key)) {
+        map.set(key, { ownerName: p.ownerName, ownerId: p.ownerId, items: [] });
+      }
+      map.get(key)!.items.push(p);
+    }
+    // Sort: assigned owners by name, then unassigned last
+    return Array.from(map.entries())
+      .sort(([ka], [kb]) => {
+        if (ka === "__unassigned__") return 1;
+        if (kb === "__unassigned__") return -1;
+        return map.get(ka)!.ownerName.localeCompare(map.get(kb)!.ownerName);
+      })
+      .map(([, v]) => v);
+  }, [policyBreakdown]);
 
   return (
     <div className="space-y-6">
@@ -227,12 +248,12 @@ export default function ComplianceOverview({ onNavigate }: Props) {
         </div>
       </div>
 
-      {/* Compliance by Policy */}
+      {/* Compliance by Policy Owner */}
       <div className="bento-card p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-lg font-semibold text-updraft-deep font-poppins">Compliance by Policy</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Control test status per policy — based on each control&apos;s most recent test result</p>
+            <h2 className="text-lg font-semibold text-updraft-deep font-poppins">Compliance by Policy Owner</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Control test status grouped by policy owner — based on each control&apos;s most recent test result</p>
           </div>
           <button
             onClick={() => onNavigate("policies")}
@@ -242,33 +263,81 @@ export default function ComplianceOverview({ onNavigate }: Props) {
           </button>
         </div>
 
-        {policyBreakdown.length === 0 ? (
+        {policyByOwner.length === 0 ? (
           <div className="text-center py-8">
             <FileText size={28} className="mx-auto text-gray-300 mb-2" />
             <p className="text-sm text-gray-400">No policies configured yet.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-4">Policy</th>
-                  <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-4">Owner</th>
-                  <th className="text-center text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-4">Controls</th>
-                  <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-4">Test Status</th>
-                  <th className="text-right text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2">Last Tested</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {policyBreakdown.map((p) => (
-                  <PolicyRow
-                    key={p.id}
-                    policy={p}
-                    onClick={() => router.push(`/compliance?tab=policies&policy=${p.id}`)}
-                  />
-                ))}
-              </tbody>
-            </table>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {policyByOwner.map((group) => {
+              const now = new Date();
+              const overdueCount = group.items.filter(
+                (p) => p.nextReviewDate && new Date(p.nextReviewDate) < now
+              ).length;
+              const totalPass = group.items.reduce((s, p) => s + p.pass, 0);
+              const totalFail = group.items.reduce((s, p) => s + p.fail, 0);
+              const totalPartial = group.items.reduce((s, p) => s + p.partial, 0);
+              const totalNotTested = group.items.reduce((s, p) => s + p.notTested, 0);
+              const keyGap = group.items.find((p) => p.fail > 0)?.name
+                ?? group.items.find((p) => p.partial > 0)?.name
+                ?? null;
+              const isUnassigned = group.ownerId === null;
+              const initials = isUnassigned ? "?" : group.ownerName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+
+              return (
+                <button
+                  key={group.ownerId ?? "__unassigned__"}
+                  type="button"
+                  onClick={() => onNavigate("policies")}
+                  className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 text-left hover:border-updraft-light-purple hover:shadow-sm transition-all group"
+                >
+                  {/* Owner header */}
+                  <div className="flex items-center gap-2.5">
+                    <div className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
+                      isUnassigned ? "bg-gray-100 text-gray-400" : "bg-updraft-pale-purple/40 text-updraft-bar"
+                    )}>
+                      {initials}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-updraft-deep truncate">
+                        {isUnassigned ? "No Owner Assigned" : group.ownerName}
+                      </p>
+                      <p className="text-xs text-gray-500">{group.items.length} polic{group.items.length === 1 ? "y" : "ies"}</p>
+                    </div>
+                    <MiniDonut pass={totalPass} partial={totalPartial} fail={totalFail} notTested={totalNotTested} />
+                  </div>
+
+                  {/* Key gap */}
+                  {keyGap && (
+                    <div className="flex items-start gap-1.5 rounded-lg bg-red-50 border border-red-100 px-2.5 py-1.5">
+                      <XCircle size={12} className="text-red-400 shrink-0 mt-0.5" />
+                      <p className="text-[11px] text-red-700 line-clamp-1">Key gap: {keyGap}</p>
+                    </div>
+                  )}
+
+                  {/* Status row */}
+                  <div className="flex items-center gap-3 text-[11px] text-gray-500 flex-wrap">
+                    {totalPass > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500" />{totalPass} pass</span>}
+                    {totalPartial > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400" />{totalPartial} partial</span>}
+                    {totalFail > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500" />{totalFail} fail</span>}
+                    {totalNotTested > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-300" />{totalNotTested} untested</span>}
+                    {totalPass === 0 && totalFail === 0 && totalPartial === 0 && totalNotTested === 0 && (
+                      <span className="flex items-center gap-1 text-gray-400"><MinusCircle size={10} /> No controls linked</span>
+                    )}
+                  </div>
+
+                  {/* Overdue review flag */}
+                  {overdueCount > 0 && (
+                    <div className="flex items-center gap-1.5 rounded-lg bg-amber-50 border border-amber-100 px-2.5 py-1.5">
+                      <AlertTriangle size={11} className="text-amber-500 shrink-0" />
+                      <p className="text-[11px] text-amber-700">{overdueCount} polic{overdueCount === 1 ? "y" : "ies"} overdue for review</p>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
@@ -447,116 +516,55 @@ function SmcrTile({ label, value, colour, onClick }: { label: string; value: num
   );
 }
 
-interface PolicyBreakdownRow {
-  id: string;
-  reference: string;
-  name: string;
-  status: PolicyStatus;
-  ownerName: string;
-  totalControls: number;
-  activeControls: number;
-  pass: number;
-  fail: number;
-  partial: number;
-  notTested: number;
-  lastTested: string | null;
-}
+// ── Mini Donut Chart ───────────────────────────────────────────────
 
-function PolicyRow({ policy: p, onClick }: { policy: PolicyBreakdownRow; onClick: () => void }) {
-  const statusColours = POLICY_STATUS_COLOURS[p.status];
-  const hasIssues = p.fail > 0;
-  const allGood = p.activeControls > 0 && p.fail === 0 && p.notTested === 0 && p.partial === 0;
-  const total = p.pass + p.fail + p.partial + p.notTested;
+function MiniDonut({ pass, partial, fail, notTested }: { pass: number; partial: number; fail: number; notTested: number }) {
+  const total = pass + partial + fail + notTested;
+  const r = 18;
+  const circumference = 2 * Math.PI * r;
+
+  if (total === 0) {
+    return (
+      <svg width="44" height="44" viewBox="0 0 44 44" className="shrink-0">
+        <circle cx="22" cy="22" r={r} fill="none" stroke="#e5e7eb" strokeWidth="7" />
+      </svg>
+    );
+  }
+
+  // Segment colours
+  const segments: { count: number; colour: string }[] = [
+    { count: pass, colour: "#22c55e" },
+    { count: partial, colour: "#f59e0b" },
+    { count: fail, colour: "#ef4444" },
+    { count: notTested, colour: "#d1d5db" },
+  ];
+
+  let offset = 0;
+  const circles = segments
+    .filter((s) => s.count > 0)
+    .map((s) => {
+      const arc = (s.count / total) * circumference;
+      const el = (
+        <circle
+          key={s.colour}
+          cx="22" cy="22" r={r}
+          fill="none"
+          stroke={s.colour}
+          strokeWidth="7"
+          strokeDasharray={`${arc} ${circumference - arc}`}
+          strokeDashoffset={-offset}
+          transform="rotate(-90 22 22)"
+        />
+      );
+      offset += arc;
+      return el;
+    });
 
   return (
-    <tr
-      onClick={onClick}
-      className="cursor-pointer hover:bg-gray-50 transition-colors group"
-    >
-      {/* Policy name */}
-      <td className="py-2.5 pr-4">
-        <div className="flex items-center gap-2">
-          <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0", statusColours.bg, statusColours.text)}>
-            {p.reference}
-          </span>
-          <span className="text-sm text-gray-700 font-medium group-hover:text-updraft-deep transition-colors line-clamp-1">{p.name}</span>
-          <span className={cn("hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium shrink-0", statusColours.bg, statusColours.text)}>
-            {POLICY_STATUS_LABELS[p.status]}
-          </span>
-        </div>
-      </td>
-
-      {/* Owner */}
-      <td className="py-2.5 pr-4">
-        <span className="text-xs text-gray-500 whitespace-nowrap">{p.ownerName}</span>
-      </td>
-
-      {/* Control count */}
-      <td className="py-2.5 pr-4 text-center">
-        {p.totalControls === 0 ? (
-          <span className="text-xs text-gray-400">—</span>
-        ) : (
-          <span className="text-xs font-semibold text-gray-600">{p.activeControls}<span className="text-gray-400 font-normal">/{p.totalControls}</span></span>
-        )}
-      </td>
-
-      {/* Test status */}
-      <td className="py-2.5 pr-4">
-        {p.activeControls === 0 ? (
-          <span className="text-xs text-gray-400 italic">No active controls</span>
-        ) : (
-          <div className="flex items-center gap-2.5">
-            {/* Progress bar */}
-            {total > 0 && (
-              <div className="hidden md:flex w-20 h-1.5 rounded-full overflow-hidden bg-gray-100 shrink-0">
-                {p.pass > 0 && <div className="bg-green-500 h-full" style={{ width: `${(p.pass / total) * 100}%` }} />}
-                {p.partial > 0 && <div className="bg-amber-400 h-full" style={{ width: `${(p.partial / total) * 100}%` }} />}
-                {p.fail > 0 && <div className="bg-red-500 h-full" style={{ width: `${(p.fail / total) * 100}%` }} />}
-                {p.notTested > 0 && <div className="bg-gray-300 h-full" style={{ width: `${(p.notTested / total) * 100}%` }} />}
-              </div>
-            )}
-            {/* Counts */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {p.pass > 0 && (
-                <span className="inline-flex items-center gap-0.5 text-[11px] text-green-700">
-                  <CheckCircle2 size={11} className="shrink-0" />{p.pass}
-                </span>
-              )}
-              {p.fail > 0 && (
-                <span className="inline-flex items-center gap-0.5 text-[11px] text-red-600 font-semibold">
-                  <XCircle size={11} className="shrink-0" />{p.fail}
-                </span>
-              )}
-              {p.partial > 0 && (
-                <span className="inline-flex items-center gap-0.5 text-[11px] text-amber-600">
-                  <AlertTriangle size={11} className="shrink-0" />{p.partial}
-                </span>
-              )}
-              {p.notTested > 0 && (
-                <span className="inline-flex items-center gap-0.5 text-[11px] text-gray-400">
-                  <MinusCircle size={11} className="shrink-0" />{p.notTested}
-                </span>
-              )}
-              {allGood && (
-                <span className="inline-flex items-center gap-0.5 text-[11px] text-green-600">
-                  <CheckCircle2 size={11} className="shrink-0" /> All passing
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-      </td>
-
-      {/* Last tested */}
-      <td className="py-2.5 text-right">
-        {p.lastTested ? (
-          <span className={cn("text-xs whitespace-nowrap", hasIssues ? "text-red-600 font-medium" : "text-gray-500")}>
-            {new Date(p.lastTested).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-          </span>
-        ) : (
-          <span className="text-xs text-gray-400">Not tested</span>
-        )}
-      </td>
-    </tr>
+    <svg width="44" height="44" viewBox="0 0 44 44" className="shrink-0">
+      <circle cx="22" cy="22" r={r} fill="none" stroke="#f3f4f6" strokeWidth="7" />
+      {circles}
+    </svg>
   );
 }
+

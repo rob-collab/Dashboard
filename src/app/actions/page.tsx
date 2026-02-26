@@ -440,6 +440,46 @@ function ActionsPageContent() {
 
       {activeTab === "actions" && <>
 
+      {/* My/All toggle */}
+      {(() => {
+        const myCount = actions.filter((a) => a.assignedTo === currentUser?.id).length;
+        const isMyMode = ownerFilter === currentUser?.id;
+        return (
+          <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-1 w-fit">
+            <button
+              onClick={() => setOwnerFilter("ALL")}
+              className={cn(
+                "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                !isMyMode
+                  ? "bg-updraft-pale-purple/40 text-updraft-deep"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              All Actions
+            </button>
+            <button
+              onClick={() => myCount > 0 && currentUser?.id && setOwnerFilter(currentUser.id)}
+              disabled={myCount === 0}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                isMyMode
+                  ? "bg-updraft-pale-purple/40 text-updraft-deep"
+                  : myCount === 0
+                  ? "text-gray-300 cursor-not-allowed"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              My Actions
+              {myCount > 0 && (
+                <span className="rounded-full bg-updraft-bright-purple/10 px-1.5 py-0.5 text-[10px] font-semibold text-updraft-bright-purple">
+                  {myCount}
+                </span>
+              )}
+            </button>
+          </div>
+        );
+      })()}
+
       {/* Priority cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {priorityCards.map((p) => (

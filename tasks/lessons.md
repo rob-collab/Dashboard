@@ -203,7 +203,38 @@ Simple, auditable, and keeps Prisma queries clean.
 
 ---
 
-<!-- Add W-series entries here: W003, W004, ... -->
+### W003 — Hydration-gated default toggle pattern
+**What happened:** Multiple pages needed "default to My items if user owns any" logic, but
+Zustand hydration is async. Setting initial state to "my" immediately caused a flash of
+empty state before data loaded.
+**Pattern:**
+```ts
+const [viewMode, setViewMode] = useState<"all" | "my">("all");
+const [viewModeSet, setViewModeSet] = useState(false);
+useEffect(() => {
+  if (!hydrated || viewModeSet) return;
+  if (!isCCROTeam && currentUser?.id) {
+    const owned = items.filter((i) => i.ownerId === currentUser.id);
+    setViewMode(owned.length > 0 ? "my" : "all");
+  }
+  setViewModeSet(true);
+}, [hydrated]);
+```
+`viewModeSet` prevents the effect re-running on subsequent renders/hydration events.
+CCRO Team always defaults to "all" (they're expected to see everything).
+**Applies to:** Any list page that needs ownership-gated default filter.
+
+---
+
+### W004 — Silent owner filters should always be explicit toggles
+**What happened:** Several pages (Risk Register, Processes) had invisible `if (isOwner) filter(ownerId)` logic with no UI indication. Users could not tell they were seeing a filtered view.
+**Rule:** Never filter a list silently based on role without surfacing a visible All/My toggle to the user. The toggle is the feature — a silent filter is a UX bug.
+**Pattern:** Replace `ownerRiskFilter = isOwner ? currentUser?.id : null` with explicit `viewMode` state + toggle UI (see W003).
+**Applies to:** Any list page that previously had silent role-based filtering.
+
+---
+
+<!-- Add W-series entries here: W005, W006, ... -->
 
 ---
 

@@ -1,9 +1,57 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-26 (Horizon seed corrected; header fix; Sprint 2 complete)
+Last updated: 2026-02-26 (Sprint 3: UX Polish — Filters, Defaults, Back Button & Consumer Duty CCRO)
 
 ---
 
-## CURRENT SPRINT: Horizon Scanning Module
+## CURRENT SPRINT: UX Polish — Filters, Defaults, Back Button & Consumer Duty CCRO ✅ COMPLETE
+
+### Context
+Multiple UX improvements across Consumer Duty, Compliance, Policies, and global navigation.
+Key themes: clickable filter cards, default "My items" view, back button reliability, CCRO manage tab.
+
+### Acceptance Criteria
+- [x] D1-01: No tooltip on hover over "Consumer Duty" heading
+- [x] D1-02: Heading renders correctly
+- [x] D2-01: Overdue tile count uses date-based logic
+- [x] D2-02: Clicking Overdue tile filters to all overdue policies
+- [x] D2-03: No policies disappear from other filters
+- [x] D3-01: RAG legend visible below summary cards on dashboard tab
+- [x] D3-02: Legend uses correct brand RAG colours
+- [x] D3-03: Legend is compact — one line
+- [x] D4-01: Metrics section renders below All Measures Summary
+- [x] D4-02: 4 stat tiles show correct totals
+- [x] D4-03: Clicking a tile filters the metrics list
+- [x] D4-04: Active tile has highlighted styling
+- [x] D4-05: Metrics table shows Measure, Metric name, Value, Period, and RAG
+- [x] D5-01: Clicking Back navigates without white flash
+- [x] D5-02: Back button returns to previous page correctly
+- [x] D5-03: Back button still only appears when navigationStack has entries
+- [x] D6-01: "Manage" tab appears for CCRO Team only
+- [x] D6-02: All 4 CCRO action buttons work from Manage tab
+- [x] D6-03: CCRO buttons no longer in page header
+- [x] D6-04: Dashboard and History tabs unchanged
+- [x] D6-05: RAG Override accessible from Manage tab
+- [x] D6-06: Override element investigated — Override badge is a working, legitimate feature (shows when CCRO manually sets RAG vs computed worst-of-measures; tooltip shows both values)
+- [x] D7-01: Old Compliance by Policy table removed
+- [x] D7-02: Owner-grouped cards render with correct counts
+- [x] D7-03: Mini donut chart shows control test status breakdown
+- [x] D7-04: Overdue review flag shows correctly
+- [x] D7-05: Clicking card navigates to Policies tab
+- [x] D7-06: "No owner assigned" group shown for unassigned
+- [x] D8-01: Risk Register defaults to My Risks + toggle
+- [x] D8-02: Actions defaults to My Actions + toggle
+- [x] D8-03: Controls Library defaults to My Controls + toggle
+- [x] D8-04: Policies defaults to My Policies + toggle
+- [x] D8-05: Processes defaults to My Processes + toggle
+- [x] D8-06: Horizon Scanning assessed — HorizonItem has no ownerId/addedById field; skip
+- [x] D8-07: Toggle "My" button greyed when user owns nothing
+- [x] D8-08: Toggle doesn't affect CCRO Team seeing all items
+
+---
+
+## PREVIOUSLY COMPLETED
+
+### Horizon Scanning Module
 
 ### What
 Add a Horizon Scanning module to the CCRO Dashboard — a standalone page and sidebar entry

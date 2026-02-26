@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import { ArrowLeft } from "lucide-react";
 
@@ -14,6 +15,7 @@ interface Props {
  * the risk of accidentally backing out of the app entirely.
  */
 export default function NavigationBackButton({ sidebarOpen }: Props) {
+  const router = useRouter();
   const stackLength = useAppStore((s) => s.navigationStack.length);
   const popNavigationStack = useAppStore((s) => s.popNavigationStack);
 
@@ -22,7 +24,7 @@ export default function NavigationBackButton({ sidebarOpen }: Props) {
   function handleBack() {
     const prev = popNavigationStack();
     if (prev) {
-      window.location.href = prev;
+      router.push(prev); // soft-nav — no full reload, no white flash
     }
   }
 

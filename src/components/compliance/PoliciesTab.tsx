@@ -39,6 +39,18 @@ export default function PoliciesTab({ initialPolicyId }: { initialPolicyId?: str
 
   const canCreate = permissionSet.has("edit:compliance") || currentUser?.role === "CCRO_TEAM";
 
+  // My/All toggle
+  const myPoliciesCount = policies.filter((p) => p.ownerId === currentUser?.id).length;
+  const [viewMode, setViewMode] = useState<"all" | "my">(() => "all");
+  useEffect(() => {
+    if (currentUser?.id) {
+      const owned = policies.filter((p) => p.ownerId === currentUser.id);
+      setViewMode(owned.length > 0 ? "my" : "all");
+    }
+  // Only run once after data loads
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [policies.length > 0]);
+
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
@@ -54,11 +66,17 @@ export default function PoliciesTab({ initialPolicyId }: { initialPolicyId?: str
     }
   }, [initialPolicyId, policies]);
 
+  // Date-based overdue helper: any non-archived policy whose review date is in the past
+  const isOverdue = (p: Policy) =>
+    p.status !== "ARCHIVED" &&
+    (p.status === "OVERDUE" ||
+      (!!p.nextReviewDate && new Date(p.nextReviewDate) < new Date()));
+
   // Summary stats
   const stats = useMemo(() => {
-    const overdue = policies.filter((p) => p.status === "OVERDUE").length;
+    const overdue = policies.filter(isOverdue).length;
     const dueSoon = policies.filter((p) => {
-      if (p.status === "OVERDUE") return false;
+      if (isOverdue(p)) return false;
       if (!p.nextReviewDate) return false;
       const days = Math.ceil(
         (new Date(p.nextReviewDate).getTime() - Date.now()) / 86400000
@@ -73,20 +91,25 @@ export default function PoliciesTab({ initialPolicyId }: { initialPolicyId?: str
       archived: policies.filter((p) => p.status === "ARCHIVED").length,
       dueSoon,
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [policies]);
 
   // Filtered + sorted
   const filtered = useMemo(() => {
-    let items = [...policies];
+    let items = viewMode === "my" && currentUser?.id
+      ? policies.filter((p) => p.ownerId === currentUser.id)
+      : [...policies];
 
     // Status filter
     if (statusFilter === "DUE_SOON") {
       items = items.filter((p) => {
-        if (p.status === "OVERDUE") return false;
+        if (isOverdue(p)) return false;
         if (!p.nextReviewDate) return false;
         const days = Math.ceil((new Date(p.nextReviewDate).getTime() - Date.now()) / 86400000);
         return days >= 0 && days <= 30;
       });
+    } else if (statusFilter === "OVERDUE") {
+      items = items.filter(isOverdue);
     } else if (statusFilter !== "all") {
       items = items.filter((p) => p.status === statusFilter);
     }
@@ -138,7 +161,7 @@ export default function PoliciesTab({ initialPolicyId }: { initialPolicyId?: str
     });
 
     return items;
-  }, [policies, statusFilter, search, sortBy, sortDir]);
+  }, [policies, statusFilter, search, sortBy, sortDir, viewMode, currentUser?.id]);
 
   function handleSort(key: SortKey) {
     if (sortBy === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -407,6 +430,40 @@ export default function PoliciesTab({ initialPolicyId }: { initialPolicyId?: str
             </>
           )}
         </div>
+      </div>
+
+      {/* My/All toggle */}
+      <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-1 w-fit">
+        <button
+          onClick={() => setViewMode("all")}
+          className={cn(
+            "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+            viewMode === "all"
+              ? "bg-updraft-pale-purple/40 text-updraft-deep"
+              : "text-gray-500 hover:text-gray-700"
+          )}
+        >
+          All Policies
+        </button>
+        <button
+          onClick={() => myPoliciesCount > 0 && setViewMode("my")}
+          disabled={myPoliciesCount === 0}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+            viewMode === "my"
+              ? "bg-updraft-pale-purple/40 text-updraft-deep"
+              : myPoliciesCount === 0
+              ? "text-gray-300 cursor-not-allowed"
+              : "text-gray-500 hover:text-gray-700"
+          )}
+        >
+          My Policies
+          {myPoliciesCount > 0 && (
+            <span className="rounded-full bg-updraft-bright-purple/10 px-1.5 py-0.5 text-[10px] font-semibold text-updraft-bright-purple">
+              {myPoliciesCount}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* Summary Cards */}
