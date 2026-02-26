@@ -41,20 +41,20 @@ export default function IBSDetailPanel({
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="flex items-start justify-between px-5 py-4 border-b border-gray-200 shrink-0">
+      <div className="bg-gradient-to-r from-updraft-deep to-updraft-bar flex items-start justify-between px-5 py-4 shrink-0">
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-mono text-gray-400">{ibs.reference}</span>
+            <span className="text-xs font-mono bg-white/20 text-white px-2 py-0.5 rounded">{ibs.reference}</span>
             <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", statusColour)}>
               {IBS_STATUS_LABELS[ibs.status]}
             </span>
           </div>
-          <h2 className="font-poppins font-semibold text-gray-900 text-sm leading-snug">{ibs.name}</h2>
+          <h2 className="font-poppins font-semibold text-white text-sm leading-snug">{ibs.name}</h2>
           {ibs.smfAccountable && (
-            <p className="text-xs text-gray-400 mt-0.5">{ibs.smfAccountable}</p>
+            <p className="text-xs text-white/50 mt-0.5">{ibs.smfAccountable}</p>
           )}
         </div>
-        <button onClick={onClose} className="ml-3 p-1 text-gray-400 hover:text-gray-600 shrink-0">
+        <button onClick={onClose} className="ml-3 p-1 text-white/70 hover:bg-white/10 hover:text-white rounded shrink-0">
           <X size={16} />
         </button>
       </div>

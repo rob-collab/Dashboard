@@ -1,5 +1,35 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-25 (Sprint 3 — D2, D4)
+Last updated: 2026-02-26 (Sprint — Favicon + Panel Header Purple)
+
+---
+
+## CURRENT SPRINT: Cosmetic — Favicon + Panel Header Purple
+
+### What
+Two cosmetic fixes:
+1. **Favicon**: Replace current shield icon (white on blue — renders as white-on-white for other users) with helloupdraft_logo (white balloon on purple)
+2. **Panel header background**: All detail panels have reverted to `bg-white` headers. PolicyDetailPanel already has the correct purple gradient. Apply the same `bg-gradient-to-r from-updraft-deep to-updraft-bar` header to all other detail panels, updating interior text colours to white.
+
+### Files
+- `src/app/layout.tsx` — add `<link rel="icon">` pointing to helloupdraft_logo
+- `public/helloupdraft_logo.jpeg` — copy logo file here
+- `src/components/risk-acceptances/RiskAcceptanceDetailPanel.tsx` — header bg + text colours
+- `src/components/risk-register/RiskDetailPanel.tsx` — header bg + text colours
+- `src/components/processes/ProcessDetailPanel.tsx` — header bg + text colours
+- `src/components/or/IBSDetailPanel.tsx` — header bg + text colours
+- `src/components/compliance/RegulationDetailPanel.tsx` — header bg + text colours
+
+### Checklist
+- [x] helloupdraft_logo.jpeg copied to public/
+- [x] layout.tsx `<head>` references helloupdraft_logo as favicon (overrides default)
+- [x] RiskAcceptanceDetailPanel: header is purple gradient, breadcrumb/title/badges use white tones
+- [x] RiskDetailPanel: header is purple gradient, breadcrumb/title/badges use white tones
+- [x] ProcessDetailPanel: header is purple gradient, name/badges use white tones
+- [x] IBSDetailPanel: header is purple gradient, name/ref/SMF use white tones
+- [x] RegulationDetailPanel: header is purple gradient, name/ref/body use white tones
+- [x] PolicyDetailPanel: already correct — confirmed untouched
+- [x] No tabs, content areas, or other features removed or broken
+- [x] Build passes — zero TypeScript errors
 
 ---
 

@@ -252,36 +252,36 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
       {/* Panel */}
       <div className="relative w-full max-w-2xl bg-white shadow-2xl overflow-y-auto animate-slide-in-right">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 z-10 bg-gradient-to-r from-updraft-deep to-updraft-bar px-6 py-4 flex items-center justify-between">
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] uppercase tracking-wider text-gray-400 font-medium mb-0.5">Risk Register {risk && !isNew ? `› ${risk.reference}` : ""}</p>
-            <h2 className="text-lg font-poppins font-semibold text-gray-900 truncate">
+            <p className="text-[10px] uppercase tracking-wider text-white/50 font-medium mb-0.5">Risk Register {risk && !isNew ? `› ${risk.reference}` : ""}</p>
+            <h2 className="text-lg font-poppins font-semibold text-white truncate">
               {isNew ? "Add New Risk" : `Edit: ${risk?.name ?? risk?.reference}`}
             </h2>
             {risk && !isNew && (
               <div className="flex items-center gap-2 mt-1">
-                <span className="inline-block font-mono text-[11px] font-bold text-updraft-deep bg-updraft-pale-purple/30 px-1.5 py-0.5 rounded">
+                <span className="inline-block font-mono text-[11px] font-bold bg-white/20 text-white px-1.5 py-0.5 rounded">
                   {risk.reference}
                 </span>
                 {canToggleFocus && (
                   <button
                     onClick={() => toggleRiskInFocus(risk.id, !risk.inFocus)}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium transition-colors hover:bg-amber-50"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium transition-colors hover:bg-white/10"
                     title={risk.inFocus ? "Remove from Focus" : "Mark as Risk in Focus"}
                   >
-                    <Star className={`w-3.5 h-3.5 ${risk.inFocus ? "text-amber-400 fill-amber-400" : "text-gray-400"}`} />
-                    <span className={risk.inFocus ? "text-amber-600" : "text-gray-400"}>
+                    <Star className={`w-3.5 h-3.5 ${risk.inFocus ? "text-amber-400 fill-amber-400" : "text-white/50"}`} />
+                    <span className={risk.inFocus ? "text-amber-300" : "text-white/50"}>
                       {risk.inFocus ? "In Focus" : "Focus"}
                     </span>
                   </button>
                 )}
                 {!canToggleFocus && risk.inFocus && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium text-amber-600 bg-amber-50">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium text-amber-300 bg-white/10">
                     <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
                     In Focus
                   </span>
                 )}
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-white/50">
                   Last updated {new Date(risk.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                 </span>
               </div>
@@ -299,15 +299,15 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
             {risk && !isNew && onViewHistory && (
               <button
                 onClick={() => onViewHistory(risk)}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-updraft-bright-purple hover:bg-updraft-pale-purple/20 rounded-lg transition-colors"
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-white/70 hover:bg-white/10 rounded-lg transition-colors"
                 title="View 12-month history"
               >
                 <History className="w-4 h-4" />
                 History
               </button>
             )}
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Close">
-              <X className="w-5 h-5 text-gray-500" />
+            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors" aria-label="Close">
+              <X className="w-5 h-5 text-white/70" />
             </button>
           </div>
         </div>

@@ -258,6 +258,8 @@ export default function RootLayout({
         <meta property="og:title" content="Updraft CCRO Dashboard" />
         <meta property="og:description" content="Chief Compliance & Risk Officer Dashboard" />
         <meta property="og:type" content="website" />
+        <link rel="icon" href="/helloupdraft_logo.jpeg" />
+        <link rel="apple-touch-icon" href="/helloupdraft_logo.jpeg" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#311B92" />
       </head>
