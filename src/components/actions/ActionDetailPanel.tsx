@@ -19,6 +19,7 @@ import {
   CheckCircle,
   XCircle,
   GitBranch,
+  Loader2,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
@@ -93,8 +94,10 @@ interface ActionDetailPanelProps {
 export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDetailPanelProps) {
   const currentUser = useAppStore((s) => s.currentUser);
   const users = useAppStore((s) => s.users);
+  const actions = useAppStore((s) => s.actions);
   const risks = useAppStore((s) => s.risks);
   const updateAction = useAppStore((s) => s.updateAction);
+  const setActions = useAppStore((s) => s.setActions);
   const deleteAction = useAppStore((s) => s.deleteAction);
 
   const router = useRouter();
@@ -109,6 +112,8 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
   const [proposedDate, setProposedDate] = useState("");
   const [proposedOwner, setProposedOwner] = useState("");
   const [proposalReason, setProposalReason] = useState("");
+  const [savingIssue, setSavingIssue] = useState(false);
+  const [savingComplete, setSavingComplete] = useState(false);
 
   // Reset when action changes
   useEffect(() => {
@@ -120,6 +125,8 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
     setProposedDate("");
     setProposedOwner("");
     setProposalReason("");
+    setSavingIssue(false);
+    setSavingComplete(false);
   }, [action?.id]);
 
   // ── handlers ──────────────────────────────────────────────────────────────
@@ -217,8 +224,20 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
   async function handleSaveIssueDescription(html: string) {
     if (!action) return;
     const clean = html === "<p></p>" ? "" : html;
-    updateAction(action.id, { issueDescription: clean || null });
-    setEditingIssue(false);
+    setSavingIssue(true);
+    try {
+      const updated = await api<Action>(`/api/actions/${action.id}`, {
+        method: "PATCH",
+        body: { issueDescription: clean || null },
+      });
+      setActions(actions.map((a) => (a.id === action.id ? { ...a, ...updated } : a)));
+      setEditingIssue(false);
+      toast.success("Action saved");
+    } catch {
+      toast.error("Failed to save action — please try again");
+    } finally {
+      setSavingIssue(false);
+    }
   }
 
   function handleDelete() {
@@ -228,10 +247,21 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
     onClose();
   }
 
-  function handleMarkComplete() {
+  async function handleMarkComplete() {
     if (!action) return;
-    updateAction(action.id, { status: "COMPLETED", completedAt: new Date().toISOString() });
-    toast.success("Action marked as complete");
+    setSavingComplete(true);
+    try {
+      const updated = await api<Action>(`/api/actions/${action.id}`, {
+        method: "PATCH",
+        body: { status: "COMPLETED", completedAt: new Date().toISOString() },
+      });
+      setActions(actions.map((a) => (a.id === action.id ? { ...a, ...updated } : a)));
+      toast.success("Action marked as complete");
+    } catch {
+      toast.error("Failed to save action — please try again");
+    } finally {
+      setSavingComplete(false);
+    }
   }
 
   // ── render ────────────────────────────────────────────────────────────────
@@ -375,16 +405,19 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
                   <button
                     type="button"
                     onClick={() => setEditingIssue(false)}
-                    className="rounded-lg border border-gray-200 px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                    disabled={savingIssue}
+                    className="rounded-lg border border-gray-200 px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
                     onClick={() => handleSaveIssueDescription(issueEditorValue)}
-                    className="rounded-lg bg-updraft-bright-purple px-3 py-1 text-xs font-medium text-white hover:bg-updraft-deep transition-colors"
+                    disabled={savingIssue}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-bright-purple px-3 py-1 text-xs font-medium text-white hover:bg-updraft-deep transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    Save
+                    {savingIssue && <Loader2 size={12} className="animate-spin" />}
+                    {savingIssue ? "Saving…" : "Save"}
                   </button>
                 </div>
               </div>
@@ -480,9 +513,11 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
                 {isActive && (
                   <button
                     onClick={handleMarkComplete}
-                    className="rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100 transition-colors"
+                    disabled={savingComplete}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    Mark Complete
+                    {savingComplete && <Loader2 size={12} className="animate-spin" />}
+                    {savingComplete ? "Saving…" : "Mark Complete"}
                   </button>
                 )}
                 <button

@@ -5,18 +5,21 @@ import { useAppStore } from "@/lib/store";
 import { usePermissionSet } from "@/lib/usePermission";
 import type { PrescribedResponsibility } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, ChevronDown, ClipboardList } from "lucide-react";
+import { AlertTriangle, ChevronDown, ClipboardList, Loader2 } from "lucide-react";
+import { api } from "@/lib/api-client";
+import { toast } from "sonner";
 
 export default function ResponsibilitiesMatrix() {
   const prescribedResponsibilities = useAppStore((s) => s.prescribedResponsibilities);
   const smfRoles = useAppStore((s) => s.smfRoles);
   const users = useAppStore((s) => s.users);
-  const updatePrescribedResponsibility = useAppStore((s) => s.updatePrescribedResponsibility);
+  const setPrescribedResponsibilities = useAppStore((s) => s.setPrescribedResponsibilities);
   const permissionSet = usePermissionSet();
   const canManage = permissionSet.has("manage:smcr");
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editSMFId, setEditSMFId] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const gaps = useMemo(
     () => prescribedResponsibilities.filter((pr) => !pr.assignedSMFId).length,
@@ -45,11 +48,26 @@ export default function ResponsibilitiesMatrix() {
     setEditSMFId(pr.assignedSMFId ?? "");
   };
 
-  const saveReassign = (prId: string) => {
-    updatePrescribedResponsibility(prId, {
-      assignedSMFId: editSMFId || null,
-    });
-    setEditingId(null);
+  const saveReassign = async (prId: string) => {
+    setSaving(true);
+    try {
+      const updated = await api<PrescribedResponsibility>(
+        `/api/compliance/smcr/responsibilities/${prId}`,
+        {
+          method: "PATCH",
+          body: { assignedSMFId: editSMFId || null },
+        },
+      );
+      setPrescribedResponsibilities(
+        prescribedResponsibilities.map((r) => (r.id === prId ? { ...r, ...updated } : r)),
+      );
+      setEditingId(null);
+      toast.success("Responsibility saved");
+    } catch {
+      toast.error("Failed to save — please try again");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -127,13 +145,16 @@ export default function ResponsibilitiesMatrix() {
                           </div>
                           <button
                             onClick={() => saveReassign(pr.id)}
-                            className="text-[10px] font-medium text-white bg-updraft-bright-purple hover:bg-updraft-bar rounded px-2 py-1 transition-colors"
+                            disabled={saving}
+                            className="inline-flex items-center gap-1 text-[10px] font-medium text-white bg-updraft-bright-purple hover:bg-updraft-bar rounded px-2 py-1 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                           >
-                            Save
+                            {saving && <Loader2 size={10} className="animate-spin" />}
+                            {saving ? "Saving…" : "Save"}
                           </button>
                           <button
                             onClick={() => setEditingId(null)}
-                            className="text-[10px] font-medium text-gray-500 hover:text-gray-700"
+                            disabled={saving}
+                            className="text-[10px] font-medium text-gray-500 hover:text-gray-700 disabled:opacity-60 disabled:cursor-not-allowed"
                           >
                             Cancel
                           </button>

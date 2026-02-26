@@ -15,7 +15,7 @@ import {
   getL2Categories as getFallbackL2,
 } from "@/lib/risk-categories";
 import ScoreBadge from "./ScoreBadge";
-import { X, Plus, Trash2, AlertTriangle, ChevronRight, ChevronDown, History, Link2, ShieldQuestion, Star, Clock, XCircle } from "lucide-react";
+import { X, Plus, Trash2, AlertTriangle, ChevronRight, ChevronDown, History, Link2, ShieldQuestion, Star, Clock, XCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
@@ -54,6 +54,8 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
   const router = useRouter();
   const users = useAppStore((s) => s.users);
   const currentUser = useAppStore((s) => s.currentUser);
+  const risks = useAppStore((s) => s.risks);
+  const setRisks = useAppStore((s) => s.setRisks);
   const storeCategories = useAppStore((s) => s.riskCategories);
   const priorityDefinitions = useAppStore((s) => s.priorityDefinitions);
   const riskAcceptances = useAppStore((s) => s.riskAcceptances);
@@ -189,12 +191,32 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
         priority: m.priority || null,
       })),
     };
-    setRiskSaveState("saving");
-    onSave(data as Partial<Risk> & { controls?: Partial<RiskControl>[]; mitigations?: Partial<RiskMitigation>[] });
-    await new Promise((r) => setTimeout(r, 400));
-    setRiskSaveState("saved");
-    await new Promise((r) => setTimeout(r, 600));
-    setRiskSaveState("idle");
+
+    if (!isNew && risk) {
+      // Explicit save: await the API call directly so failures surface to the user
+      setRiskSaveState("saving");
+      try {
+        const updated = await api<Risk>(`/api/risks/${risk.id}`, {
+          method: "PATCH",
+          body: data,
+        });
+        setRisks(risks.map((r) => (r.id === risk.id ? { ...r, ...updated } : r)));
+        toast.success("Risk saved");
+        onClose();
+      } catch {
+        toast.error("Failed to save risk — please try again");
+      } finally {
+        setRiskSaveState("idle");
+      }
+    } else {
+      // New risk: delegate to parent which builds the full Risk object and calls addRisk
+      setRiskSaveState("saving");
+      onSave(data as Partial<Risk> & { controls?: Partial<RiskControl>[]; mitigations?: Partial<RiskMitigation>[] });
+      await new Promise((r) => setTimeout(r, 400));
+      setRiskSaveState("saved");
+      await new Promise((r) => setTimeout(r, 600));
+      setRiskSaveState("idle");
+    }
   }
 
   const [proposing, setProposing] = useState(false);
@@ -1006,10 +1028,11 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
               <button
                 onClick={handleSave}
                 disabled={!canSave || riskSaveState !== "idle"}
-                className={`px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+                className={`inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
                   isNew && !canBypassApproval ? "bg-amber-600 hover:bg-amber-700" : "bg-updraft-deep hover:bg-updraft-bar"
                 }`}
               >
+                {riskSaveState === "saving" && <Loader2 size={14} className="animate-spin" />}
                 {riskSaveState === "saving" ? "Saving…" : riskSaveState === "saved" ? "Saved ✓" : isNew && !canBypassApproval ? "Submit for Approval" : isNew ? "Create Risk" : "Save Changes"}
               </button>
             )}

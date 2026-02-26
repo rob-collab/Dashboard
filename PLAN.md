@@ -1,5 +1,5 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-26 (Global Save Reliability Sprint — planned)
+Last updated: 2026-02-26 (Global Save Reliability — D1–D5 complete, D6 pending)
 
 ---
 
@@ -67,14 +67,14 @@ The audit found ~70 store functions using `sync()` across ~21 UI components. Not
 - Functions: `updatePolicy()`, `addPolicy()`
 
 ### Acceptance criteria (per deliverable, same checklist repeated)
-- [ ] D1 RiskDetailPanel: save is awaited; spinner on button; "Risk saved" / "Failed to save risk" toast; panel stays open on error
-- [ ] D2 ActionDetailPanel: all updateAction() calls are explicit; same pattern as D1
-- [ ] D3 RegulationDetailPanel: compliance assessment save is explicit; link/unlink shows inline toast
-- [ ] D4 SMCR panels: ResponsibilitiesMatrix, DocumentTracker, ConductRulesPanel all explicit
-- [ ] D5 Controls: ControlDetailModal + ControlsLibraryTab explicit saves
-- [ ] D6 Policy editor: updatePolicy / addPolicy explicit saves
-- [ ] Build passes after each deliverable (zero errors, no existing features removed)
-- [ ] All existing UI interactions preserved — only save path changes
+- [x] D1 RiskDetailPanel: save is awaited; spinner on button; "Risk saved" / "Failed to save risk" toast; panel stays open on error
+- [x] D2 ActionDetailPanel: 4 already explicit; 2 fire-and-forgets (handleSaveIssueDescription, handleMarkComplete) now explicit
+- [x] D3 RegulationDetailPanel: was already explicit but had double-fire bug — all 5 sync() calls eliminated, replaced with setRegulations setter; link/unlink now uses real DB objects from API response
+- [x] D4 SMCR panels: ResponsibilitiesMatrix, DocumentTracker, ConductRulesPanel all explicit; per-row savingStatusId in ConductRulesPanel
+- [x] D5 Controls: ControlDetailModal already fully explicit; ControlsLibraryTab: missing toasts + spinner added
+- [ ] D6 Policy editor: updatePolicy / addPolicy explicit saves (pending)
+- [x] Build passes: zero TypeScript errors, all 7 files compile cleanly
+- [x] All existing UI interactions preserved — only save path changes
 
 ### Store functions left untouched (by design)
 `updateRisk`, `updateAction`, `updateControl`, `updatePolicy`, `updateRegulation`, etc. remain in the store and still use `sync()`. They act as a fallback for any callers not yet migrated and for store hydration merges.

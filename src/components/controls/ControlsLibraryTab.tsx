@@ -14,7 +14,9 @@ import {
   Clock,
   Upload,
   Download,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useAppStore } from "@/lib/store";
 import type {
   ControlRecord,
@@ -245,6 +247,7 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
           }
         );
         updateControl(editingControl.id, updated);
+        toast.success("Control saved");
       } else {
         // POST new
         const created = await api<ControlRecord>("/api/controls/library", {
@@ -262,12 +265,14 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
           },
         });
         addControl(created);
+        toast.success("Control created");
       }
       setShowDialog(false);
       setEditingControl(null);
     } catch (err) {
       console.error("[ControlsLibraryTab] save failed:", err);
-      setErrors({ _form: err instanceof Error ? err.message : "Failed to save control" });
+      toast.error("Failed to save control — please try again");
+      setErrors({ _form: err instanceof Error ? err.message : "Failed to save control — please try again" });
     } finally {
       setSaving(false);
     }
@@ -285,8 +290,10 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
         }
       );
       updateControl(control.id, updated);
+      toast.success(newActive ? "Control restored" : "Control archived");
     } catch (err) {
       console.error("[ControlsLibraryTab] archive toggle failed:", err);
+      toast.error("Failed to save control — please try again");
     }
   }
 
@@ -1046,10 +1053,11 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
                 <button
                   type="submit"
                   disabled={saving}
-                  className="rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colours disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colours disabled:opacity-50 disabled:cursor-not-allowed"
                 >
+                  {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                   {saving
-                    ? "Saving..."
+                    ? "Saving…"
                     : editingControl
                       ? "Save Changes"
                       : "Add Control"}

@@ -11,7 +11,6 @@ import {
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { formatDateShort } from "@/lib/utils";
-import { generateId } from "@/lib/utils";
 import {
   ChevronDown,
   ChevronRight,
@@ -20,14 +19,16 @@ import {
   X,
   AlertTriangle,
   CheckCircle2,
+  Loader2,
 } from "lucide-react";
+import { api } from "@/lib/api-client";
+import { toast } from "sonner";
 
 export default function ConductRulesPanel() {
   const conductRules = useAppStore((s) => s.conductRules);
   const conductRuleBreaches = useAppStore((s) => s.conductRuleBreaches);
   const users = useAppStore((s) => s.users);
-  const addConductRuleBreach = useAppStore((s) => s.addConductRuleBreach);
-  const updateConductRuleBreach = useAppStore((s) => s.updateConductRuleBreach);
+  const setConductRuleBreaches = useAppStore((s) => s.setConductRuleBreaches);
   const currentUser = useAppStore((s) => s.currentUser);
   const permissionSet = usePermissionSet();
   const canManage = permissionSet.has("manage:smcr");
@@ -36,6 +37,8 @@ export default function ConductRulesPanel() {
   const [showNewBreach, setShowNewBreach] = useState(false);
   const [editingBreachId, setEditingBreachId] = useState<string | null>(null);
   const [editBreachStatus, setEditBreachStatus] = useState<BreachStatus>("IDENTIFIED");
+  const [savingNew, setSavingNew] = useState(false);
+  const [savingStatusId, setSavingStatusId] = useState<string | null>(null);
 
   // New breach form
   const [newRuleId, setNewRuleId] = useState("");
@@ -70,32 +73,32 @@ export default function ConductRulesPanel() {
     [conductRuleBreaches],
   );
 
-  const handleCreateBreach = () => {
+  const handleCreateBreach = async () => {
     if (!newRuleId || !newUserId || !newDescription.trim()) return;
-    const now = new Date().toISOString();
-    const reference = `BR-${String(conductRuleBreaches.length + 1).padStart(3, "0")}`;
-    addConductRuleBreach({
-      id: generateId(),
-      reference,
-      conductRuleId: newRuleId,
-      userId: newUserId,
-      dateIdentified: now,
-      description: newDescription.trim(),
-      investigationNotes: null,
-      status: "IDENTIFIED",
-      outcome: null,
-      disciplinaryAction: null,
-      reportedToFCA: false,
-      fcaReportDate: null,
-      reportedById: currentUser?.id ?? null,
-      closedAt: null,
-      createdAt: now,
-      updatedAt: now,
-    });
-    setNewRuleId("");
-    setNewUserId("");
-    setNewDescription("");
-    setShowNewBreach(false);
+    setSavingNew(true);
+    try {
+      const created = await api<ConductRuleBreach>("/api/compliance/smcr/breaches", {
+        method: "POST",
+        body: {
+          conductRuleId: newRuleId,
+          userId: newUserId,
+          dateIdentified: new Date().toISOString(),
+          description: newDescription.trim(),
+          reportedById: currentUser?.id ?? undefined,
+          status: "IDENTIFIED",
+        },
+      });
+      setConductRuleBreaches([created, ...conductRuleBreaches]);
+      setNewRuleId("");
+      setNewUserId("");
+      setNewDescription("");
+      setShowNewBreach(false);
+      toast.success("Breach recorded");
+    } catch {
+      toast.error("Failed to save — please try again");
+    } finally {
+      setSavingNew(false);
+    }
   };
 
   const startEditBreach = (breach: ConductRuleBreach) => {
@@ -103,13 +106,27 @@ export default function ConductRulesPanel() {
     setEditBreachStatus(breach.status);
   };
 
-  const saveBreachStatus = (breachId: string) => {
-    const update: Partial<ConductRuleBreach> = { status: editBreachStatus };
-    if (editBreachStatus === "CLOSED_NO_ACTION" || editBreachStatus === "CLOSED_DISCIPLINARY") {
-      update.closedAt = new Date().toISOString();
+  const saveBreachStatus = async (breachId: string) => {
+    setSavingStatusId(breachId);
+    try {
+      const body: Record<string, unknown> = { status: editBreachStatus };
+      if (editBreachStatus === "CLOSED_NO_ACTION" || editBreachStatus === "CLOSED_DISCIPLINARY") {
+        body.closedAt = new Date().toISOString();
+      }
+      const updated = await api<ConductRuleBreach>(
+        `/api/compliance/smcr/breaches/${breachId}`,
+        { method: "PATCH", body },
+      );
+      setConductRuleBreaches(
+        conductRuleBreaches.map((b) => (b.id === breachId ? { ...b, ...updated } : b)),
+      );
+      setEditingBreachId(null);
+      toast.success("Breach status updated");
+    } catch {
+      toast.error("Failed to save — please try again");
+    } finally {
+      setSavingStatusId(null);
     }
-    updateConductRuleBreach(breachId, update);
-    setEditingBreachId(null);
   };
 
   return (
@@ -252,10 +269,11 @@ export default function ConductRulesPanel() {
             </div>
             <button
               onClick={handleCreateBreach}
-              disabled={!newRuleId || !newUserId || !newDescription.trim()}
-              className="text-xs font-medium text-white bg-updraft-bright-purple hover:bg-updraft-bar disabled:opacity-50 disabled:cursor-not-allowed rounded-lg px-4 py-2 transition-colors"
+              disabled={!newRuleId || !newUserId || !newDescription.trim() || savingNew}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-updraft-bright-purple hover:bg-updraft-bar disabled:opacity-50 disabled:cursor-not-allowed rounded-lg px-4 py-2 transition-colors"
             >
-              Record Breach
+              {savingNew && <Loader2 size={12} className="animate-spin" />}
+              {savingNew ? "Saving…" : "Record Breach"}
             </button>
           </div>
         )}
@@ -297,7 +315,8 @@ export default function ConductRulesPanel() {
                               <select
                                 value={editBreachStatus}
                                 onChange={(e) => setEditBreachStatus(e.target.value as BreachStatus)}
-                                className="text-xs border border-gray-200 rounded-md px-2 py-1.5 pr-6 appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-updraft-light-purple"
+                                disabled={savingStatusId === breach.id}
+                                className="text-xs border border-gray-200 rounded-md px-2 py-1.5 pr-6 appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-updraft-light-purple disabled:opacity-60"
                               >
                                 {(Object.entries(BREACH_STATUS_LABELS) as [BreachStatus, string][]).map(([val, label]) => (
                                   <option key={val} value={val}>{label}</option>
@@ -307,13 +326,16 @@ export default function ConductRulesPanel() {
                             </div>
                             <button
                               onClick={() => saveBreachStatus(breach.id)}
-                              className="text-[10px] font-medium text-white bg-updraft-bright-purple hover:bg-updraft-bar rounded px-2 py-1 transition-colors"
+                              disabled={savingStatusId === breach.id}
+                              className="inline-flex items-center gap-1 text-[10px] font-medium text-white bg-updraft-bright-purple hover:bg-updraft-bar rounded px-2 py-1 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                             >
-                              Save
+                              {savingStatusId === breach.id && <Loader2 size={10} className="animate-spin" />}
+                              {savingStatusId === breach.id ? "Saving…" : "Save"}
                             </button>
                             <button
                               onClick={() => setEditingBreachId(null)}
-                              className="text-[10px] font-medium text-gray-500 hover:text-gray-700"
+                              disabled={savingStatusId === breach.id}
+                              className="text-[10px] font-medium text-gray-500 hover:text-gray-700 disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                               Cancel
                             </button>

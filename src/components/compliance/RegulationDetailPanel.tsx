@@ -11,6 +11,8 @@ import {
   type Regulation,
   type ComplianceStatus,
   type Applicability,
+  type PolicyRegulatoryLink,
+  type RegulationControlLink,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { X, ExternalLink, ShieldCheck, FileText, Link2, Plus, Search, Pencil, Loader2, ChevronDown, ChevronRight, History, Layers } from "lucide-react";
@@ -31,11 +33,8 @@ interface Props {
 export default function RegulationDetailPanel({ regulation, loading, onClose, onRefresh }: Props) {
   const permissionSet = usePermissionSet();
   const canEdit = permissionSet.has("edit:compliance");
-  const updateRegulationCompliance = useAppStore((s) => s.updateRegulationCompliance);
-  const linkRegulationToControl = useAppStore((s) => s.linkRegulationToControl);
-  const unlinkRegulationFromControl = useAppStore((s) => s.unlinkRegulationFromControl);
-  const linkRegulationToPolicy = useAppStore((s) => s.linkRegulationToPolicy);
-  const unlinkRegulationFromPolicy = useAppStore((s) => s.unlinkRegulationFromPolicy);
+  const regulations = useAppStore((s) => s.regulations);
+  const setRegulations = useAppStore((s) => s.setRegulations);
   const currentUser = useAppStore((s) => s.currentUser);
   const controls = useAppStore((s) => s.controls);
   const policies = useAppStore((s) => s.policies);
@@ -161,22 +160,7 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
     if (!regulation) return;
     setSaving(true);
     try {
-      await api(`/api/compliance/regulations/${regulation.id}`, {
-        method: "PATCH",
-        body: {
-          description: editDescription || null,
-          provisions: editProvisions || null,
-          applicability: editApplicability,
-          applicabilityNotes: editApplicabilityNotes || null,
-          primarySMF: editPrimarySMF || null,
-          secondarySMF: editSecondarySMF || null,
-          smfNotes: editSMFNotes || null,
-          complianceStatus: editStatus,
-          assessmentNotes: editNotes || null,
-          nextReviewDate: editNextReview || null,
-        },
-      });
-      updateRegulationCompliance(regulation.id, {
+      const patch = {
         description: editDescription || null,
         provisions: editProvisions || null,
         applicability: editApplicability,
@@ -187,12 +171,20 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
         complianceStatus: editStatus,
         assessmentNotes: editNotes || null,
         nextReviewDate: editNextReview || null,
+      };
+      await api(`/api/compliance/regulations/${regulation.id}`, {
+        method: "PATCH",
+        body: patch,
       });
+      // Update store directly — no secondary sync() fire
+      setRegulations(
+        regulations.map((r) => (r.id === regulation.id ? { ...r, ...patch } : r))
+      );
       toast.success("Regulation updated");
       setEditMode(false);
       onRefresh?.();
     } catch {
-      toast.error("Failed to save changes");
+      toast.error("Failed to save changes — please try again");
     } finally {
       setSaving(false);
     }
@@ -202,15 +194,22 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
     if (!regulation || !currentUser) return;
     setLinkingCtrl(controlId);
     try {
-      await api(`/api/compliance/regulations/${regulation.id}/control-links`, {
-        method: "POST",
-        body: { controlId },
-      });
-      linkRegulationToControl(regulation.id, controlId, currentUser.id);
+      const newLink = await api<RegulationControlLink>(
+        `/api/compliance/regulations/${regulation.id}/control-links`,
+        { method: "POST", body: { controlId } },
+      );
+      // Update store directly — no secondary sync() fire
+      setRegulations(
+        regulations.map((r) =>
+          r.id === regulation.id
+            ? { ...r, controlLinks: [...(r.controlLinks ?? []), newLink] }
+            : r
+        )
+      );
       toast.success("Control linked");
       onRefresh?.();
     } catch {
-      toast.error("Failed to link control");
+      toast.error("Failed to link control — please try again");
     } finally {
       setLinkingCtrl(null);
     }
@@ -223,11 +222,18 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
         method: "DELETE",
         body: { controlId },
       });
-      unlinkRegulationFromControl(regulation.id, controlId);
+      // Update store directly — no secondary sync() fire
+      setRegulations(
+        regulations.map((r) =>
+          r.id === regulation.id
+            ? { ...r, controlLinks: (r.controlLinks ?? []).filter((l) => l.controlId !== controlId) }
+            : r
+        )
+      );
       toast.success("Control unlinked");
       onRefresh?.();
     } catch {
-      toast.error("Failed to unlink control");
+      toast.error("Failed to unlink control — please try again");
     }
   }
 
@@ -235,15 +241,22 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
     if (!regulation || !currentUser) return;
     setLinkingPolicy(policyId);
     try {
-      await api(`/api/compliance/regulations/${regulation.id}/policy-links`, {
-        method: "POST",
-        body: { policyId },
-      });
-      linkRegulationToPolicy(regulation.id, policyId, currentUser.id);
+      const newLink = await api<PolicyRegulatoryLink>(
+        `/api/compliance/regulations/${regulation.id}/policy-links`,
+        { method: "POST", body: { policyId } },
+      );
+      // Update store directly — no secondary sync() fire
+      setRegulations(
+        regulations.map((r) =>
+          r.id === regulation.id
+            ? { ...r, policyLinks: [...(r.policyLinks ?? []), newLink] }
+            : r
+        )
+      );
       toast.success("Policy linked");
       onRefresh?.();
     } catch {
-      toast.error("Failed to link policy");
+      toast.error("Failed to link policy — please try again");
     } finally {
       setLinkingPolicy(null);
     }
@@ -256,11 +269,18 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
         method: "DELETE",
         body: { policyId },
       });
-      unlinkRegulationFromPolicy(regulation.id, policyId);
+      // Update store directly — no secondary sync() fire
+      setRegulations(
+        regulations.map((r) =>
+          r.id === regulation.id
+            ? { ...r, policyLinks: (r.policyLinks ?? []).filter((l) => l.policyId !== policyId) }
+            : r
+        )
+      );
       toast.success("Policy unlinked");
       onRefresh?.();
     } catch {
-      toast.error("Failed to unlink policy");
+      toast.error("Failed to unlink policy — please try again");
     }
   }
 
