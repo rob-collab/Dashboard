@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useCallback, Suspense, useRef, useEffect } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ListChecks,
@@ -19,13 +18,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   Circle,
-  ArrowUpRight,
-  CalendarClock,
-  UserRoundPen,
-  ShieldAlert,
-  History,
-  MessageSquare,
-  Info,
   XCircle,
   CheckCircle,
   GitBranch,
@@ -41,13 +33,9 @@ import type { Action, ActionStatus, ActionPriority } from "@/lib/types";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
 import ActionFormDialog from "@/components/actions/ActionFormDialog";
-import ActionChangePanel from "@/components/actions/ActionChangePanel";
+import ActionDetailPanel from "@/components/actions/ActionDetailPanel";
 import ActionCSVUploadDialog from "@/components/actions/ActionCSVUploadDialog";
-import ActionUpdateForm from "@/components/actions/ActionUpdateForm";
 import HistoryTab from "@/components/common/HistoryTab";
-import dynamic from "next/dynamic";
-
-const RichTextEditor = dynamic(() => import("@/components/common/RichTextEditor"), { ssr: false });
 import { usePageTitle } from "@/lib/usePageTitle";
 import RequestEditAccessButton from "@/components/common/RequestEditAccessButton";
 
@@ -100,10 +88,8 @@ function ActionsPageContent() {
   const actions = useAppStore((s) => s.actions);
   const reports = useAppStore((s) => s.reports);
   const users = useAppStore((s) => s.users);
-  const risks = useAppStore((s) => s.risks);
   const addAction = useAppStore((s) => s.addAction);
   const updateAction = useAppStore((s) => s.updateAction);
-  const deleteAction = useAppStore((s) => s.deleteAction);
   const setActions = useAppStore((s) => s.setActions);
 
   const isCCRO = currentUser?.role === "CCRO_TEAM";
@@ -156,13 +142,11 @@ function ActionsPageContent() {
   // UI State
   const [showForm, setShowForm] = useState(prefillNewAction);
   const [editAction, setEditAction] = useState<Action | undefined>(undefined);
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
-    const initial = searchParams.get("action") || searchParams.get("edit");
-    return initial ? new Set([initial]) : new Set();
+  const [selectedActionId, setSelectedActionId] = useState<string | null>(() => {
+    return searchParams.get("action") || searchParams.get("edit") || null;
   });
   const [showCSVImport, setShowCSVImport] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [showUpdateForm, setShowUpdateForm] = useState<string | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
     try {
       const s = localStorage.getItem("actions-collapsed-groups");
@@ -173,7 +157,6 @@ function ActionsPageContent() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkReassignTo, setBulkReassignTo] = useState("");
   const [showBulkReassign, setShowBulkReassign] = useState(false);
-  const [showDateProposal, setShowDateProposal] = useState<string | null>(null);
   const [reminderSending, setReminderSending] = useState(false);
   const [lastRemindedAt, setLastRemindedAt] = useState<Date | null>(() => {
     try {
@@ -181,12 +164,6 @@ function ActionsPageContent() {
       return s ? new Date(s) : null;
     } catch { return null; }
   });
-  const [showReassignProposal, setShowReassignProposal] = useState<string | null>(null);
-  const [proposedDate, setProposedDate] = useState("");
-  const [proposedOwner, setProposedOwner] = useState("");
-  const [proposalReason, setProposalReason] = useState("");
-  const [editingIssue, setEditingIssue] = useState<string | null>(null);
-  const [issueEditorValue, setIssueEditorValue] = useState("");
 
   // Debounced URL sync for all filters
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -299,72 +276,6 @@ function ActionsPageContent() {
     updateAction(action.id, action);
   }, [updateAction]);
 
-  const handleDeleteAction = useCallback((id: string) => {
-    if (!confirm("Are you sure you want to delete this action?")) return;
-    deleteAction(id);
-  }, [deleteAction]);
-
-  const handleApproveChange = useCallback(async (actionId: string, changeId: string, note: string) => {
-    try {
-      await api(`/api/actions/${actionId}/changes/${changeId}`, {
-        method: "PATCH",
-        body: { status: "APPROVED", reviewNote: note },
-      });
-      // Refresh action from API
-      const updated = await api<Action>(`/api/actions/${actionId}`);
-      updateAction(actionId, updated);
-    } catch (err) {
-      console.error("Failed to approve change:", err);
-    }
-  }, [updateAction]);
-
-  const handleRejectChange = useCallback(async (actionId: string, changeId: string, note: string) => {
-    try {
-      await api(`/api/actions/${actionId}/changes/${changeId}`, {
-        method: "PATCH",
-        body: { status: "REJECTED", reviewNote: note },
-      });
-      const updated = await api<Action>(`/api/actions/${actionId}`);
-      updateAction(actionId, updated);
-    } catch (err) {
-      console.error("Failed to reject change:", err);
-    }
-  }, [updateAction]);
-
-  const handleProposeChange = useCallback(async (actionId: string, field: string, oldValue: string, newValue: string) => {
-    try {
-      await api(`/api/actions/${actionId}/changes`, {
-        method: "POST",
-        body: { fieldChanged: field, oldValue, newValue },
-      });
-      const updated = await api<Action>(`/api/actions/${actionId}`);
-      updateAction(actionId, updated);
-    } catch (err) {
-      console.error("Failed to propose change:", err);
-    }
-  }, [updateAction]);
-
-  const handleSubmitUpdate = useCallback(async (actionId: string, data: { updateText: string; evidenceUrl: string | null; evidenceName: string | null }) => {
-    try {
-      await api(`/api/actions/${actionId}/changes`, {
-        method: "POST",
-        body: {
-          fieldChanged: "update",
-          oldValue: null,
-          newValue: data.updateText,
-          isUpdate: true,
-          evidenceUrl: data.evidenceUrl,
-          evidenceName: data.evidenceName,
-        },
-      });
-      const updated = await api<Action>(`/api/actions/${actionId}`);
-      updateAction(actionId, updated);
-      setShowUpdateForm(null);
-    } catch (err) {
-      console.error("Failed to submit update:", err);
-    }
-  }, [updateAction]);
-
   const handleExport = useCallback(() => {
     const params = new URLSearchParams();
     if (statusFilter !== "ALL") params.set("status", statusFilter);
@@ -423,65 +334,7 @@ function ActionsPageContent() {
     }
   }, [setActions]);
 
-  const handleProposeDateChange = useCallback(async (actionId: string) => {
-    if (!proposedDate || !proposalReason.trim()) return;
-    const action = actions.find((a) => a.id === actionId);
-    if (!action) return;
-    await handleProposeChange(actionId, "dueDate", action.dueDate || "", new Date(proposedDate).toISOString());
-    // Also submit the reason as a progress update
-    await handleSubmitUpdate(actionId, {
-      updateText: `Date change requested: ${proposalReason.trim()}`,
-      evidenceUrl: null,
-      evidenceName: null,
-    });
-    setShowDateProposal(null);
-    setProposedDate("");
-    setProposalReason("");
-  }, [actions, proposedDate, proposalReason, handleProposeChange, handleSubmitUpdate]);
-
-  const handleProposeReassign = useCallback(async (actionId: string) => {
-    if (!proposedOwner || !proposalReason.trim()) return;
-    const action = actions.find((a) => a.id === actionId);
-    if (!action) return;
-    await handleProposeChange(actionId, "assignedTo", action.assignedTo, proposedOwner);
-    await handleSubmitUpdate(actionId, {
-      updateText: `Ownership reassignment requested: ${proposalReason.trim()}`,
-      evidenceUrl: null,
-      evidenceName: null,
-    });
-    setShowReassignProposal(null);
-    setProposedOwner("");
-    setProposalReason("");
-  }, [actions, proposedOwner, proposalReason, handleProposeChange, handleSubmitUpdate]);
-
-  const handleSaveIssueDescription = useCallback(async (actionId: string, html: string) => {
-    const clean = html === "<p></p>" ? "" : html;
-    updateAction(actionId, { issueDescription: clean || null });
-    setEditingIssue(null);
-  }, [updateAction]);
-
-  // Derive original values from change history
-  function getOriginalValue(action: Action, field: string): string | null {
-    if (!action.changes || action.changes.length === 0) return null;
-    const sorted = [...action.changes]
-      .filter((c) => c.fieldChanged === field && !c.isUpdate)
-      .sort((a, b) => new Date(a.proposedAt).getTime() - new Date(b.proposedAt).getTime());
-    return sorted.length > 0 ? sorted[0].oldValue : null;
-  }
-
-  // Count total delays in days from date changes
-  function getTotalDelayDays(action: Action): number {
-    if (!action.changes) return 0;
-    const dateChanges = action.changes
-      .filter((c) => c.fieldChanged === "dueDate" && c.status === "APPROVED")
-      .sort((a, b) => new Date(a.proposedAt).getTime() - new Date(b.proposedAt).getTime());
-    if (dateChanges.length === 0) return 0;
-    const originalDate = dateChanges[0].oldValue;
-    const latestDate = dateChanges[dateChanges.length - 1].newValue;
-    if (!originalDate || !latestDate) return 0;
-    const diffMs = new Date(latestDate).getTime() - new Date(originalDate).getTime();
-    return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-  }
+  const selectedAction = selectedActionId ? actions.find((a) => a.id === selectedActionId) ?? null : null;
 
   async function handleSendReminders() {
     if (reminderSending) return;
@@ -498,8 +351,6 @@ function ActionsPageContent() {
       setReminderSending(false);
     }
   }
-
-  // expandedIds — multi-row expansion (replaces single expandedId)
 
   const statCards = [
     { label: "Total", value: stats.total, color: "text-gray-700", bg: "bg-gray-50", filterKey: "ALL", type: "status" as const },
@@ -874,10 +725,7 @@ function ActionsPageContent() {
                     <div className="divide-y divide-gray-100">
                       {groupActions.map((action) => {
               const owner = users.find((u) => u.id === action.assignedTo);
-              const isExpanded = expandedIds.has(action.id);
               const StatusIcon = STATUS_CONFIG[action.status].icon;
-              const days = daysUntilDue(action.dueDate);
-
               const isSelected = selectedIds.has(action.id);
               return (
                 <div key={action.id} className={cn(isSelected && "bg-updraft-pale-purple/5")}>
@@ -886,7 +734,7 @@ function ActionsPageContent() {
                     className={cn(
                       "flex w-full items-center gap-2 border-l-4",
                       rowBorderColor(action),
-                      isExpanded && "bg-updraft-pale-purple/10"
+                      selectedActionId === action.id && "bg-updraft-pale-purple/10"
                     )}
                   >
                     {/* Checkbox (CCRO only) */}
@@ -910,20 +758,12 @@ function ActionsPageContent() {
                       </button>
                     )}
                   <button
-                    onClick={() => setExpandedIds((prev) => { const next = new Set(prev); if (next.has(action.id)) next.delete(action.id); else next.add(action.id); return next; })}
+                    onClick={() => setSelectedActionId(action.id)}
                     className={cn(
                       "flex flex-1 items-center gap-4 px-4 py-3 text-left hover:bg-gray-50/80 transition-colors",
                       !isCCRO && "pl-4"
                     )}
                   >
-                    <div className="shrink-0">
-                      {isExpanded ? (
-                        <ChevronDown size={16} className="text-gray-400" />
-                      ) : (
-                        <ChevronRight size={16} className="text-gray-400" />
-                      )}
-                    </div>
-
                     {/* Title + Report */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
@@ -1005,404 +845,6 @@ function ActionsPageContent() {
                     )}
                   </button>
                   </div>{/* end row outer div */}
-
-                  {/* Expanded Detail Card */}
-                  {isExpanded && (() => {
-                    const creator = users.find((u) => u.id === action.createdBy);
-                    const originalOwnerVal = getOriginalValue(action, "assignedTo");
-                    const originalOwnerUser = originalOwnerVal ? users.find((u) => u.id === originalOwnerVal) : null;
-                    const originalDueDateVal = getOriginalValue(action, "dueDate");
-                    const totalDelay = getTotalDelayDays(action);
-                    const dateChangeCount = (action.changes || []).filter((c) => c.fieldChanged === "dueDate").length;
-                    const isMyAction = action.assignedTo === currentUser?.id;
-                    const isActive = action.status !== "COMPLETED";
-
-                    return (
-                      <div className="border-t border-updraft-pale-purple/40 bg-white px-6 py-5 animate-slide-up">
-                        {/* Issue to be Addressed */}
-                        <div className="mb-4 rounded-lg bg-updraft-pale-purple/15 border border-updraft-pale-purple/30 px-4 py-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <Info size={14} className="text-updraft-bar shrink-0" />
-                              <span className="text-xs font-semibold text-updraft-bar uppercase tracking-wider">Issue to be Addressed</span>
-                            </div>
-                            {isCCRO && editingIssue !== action.id && (
-                              <button
-                                type="button"
-                                onClick={() => { setEditingIssue(action.id); setIssueEditorValue(action.issueDescription || ""); }}
-                                className="text-[10px] font-medium text-updraft-bright-purple hover:underline"
-                              >
-                                Edit
-                              </button>
-                            )}
-                          </div>
-
-                          {/* Risk link (always shown if present) */}
-                          {action.linkedMitigation && (() => {
-                            const linkedRisk = risks.find((r) => r.id === action.linkedMitigation!.riskId);
-                            const riskLabel = linkedRisk
-                              ? `${linkedRisk.reference}: ${linkedRisk.name}`
-                              : action.linkedMitigation.riskId;
-                            return (
-                              <Link
-                                href={`/risk-register?risk=${action.linkedMitigation.riskId}`}
-                                className="mb-2 text-sm text-updraft-bright-purple hover:underline inline-flex items-center gap-1"
-                              >
-                                <ShieldAlert size={13} />
-                                {riskLabel}
-                                <ArrowUpRight size={11} />
-                              </Link>
-                            );
-                          })()}
-
-                          {/* Editable issue description (CCRO inline editor) */}
-                          {editingIssue === action.id ? (
-                            <div className="space-y-2">
-                              <RichTextEditor
-                                value={issueEditorValue}
-                                onChange={setIssueEditorValue}
-                                placeholder="Describe the issue this action addresses..."
-                                minHeight="80px"
-                              />
-                              <div className="flex items-center justify-end gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => setEditingIssue(null)}
-                                  className="rounded-lg border border-gray-200 px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleSaveIssueDescription(action.id, issueEditorValue)}
-                                  className="rounded-lg bg-updraft-bright-purple px-3 py-1 text-xs font-medium text-white hover:bg-updraft-deep transition-colors"
-                                >
-                                  Save
-                                </button>
-                              </div>
-                            </div>
-                          ) : action.issueDescription ? (
-                            <RichTextEditor
-                              value={action.issueDescription}
-                              readOnly
-                            />
-                          ) : !action.linkedMitigation ? (
-                            <p className="text-sm text-gray-400 italic">No issue description provided</p>
-                          ) : null}
-                        </div>
-
-                        {/* Title + Status + Priority */}
-                        <div className="flex items-start justify-between gap-4 mb-4">
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs font-bold font-mono text-updraft-deep">
-                                {action.reference}
-                              </span>
-                              {action.priority && (
-                                <span className={cn("inline-flex items-center rounded px-2 py-0.5 text-xs font-bold", PRIORITY_CONFIG[action.priority].bgColor)}>
-                                  {PRIORITY_CONFIG[action.priority].label}
-                                </span>
-                              )}
-                              <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold", STATUS_CONFIG[action.status].bgColor)}>
-                                {(() => { const SI = STATUS_CONFIG[action.status].icon; return <SI size={11} />; })()}
-                                {STATUS_CONFIG[action.status].label}
-                              </span>
-                            </div>
-                            <h3 className="font-poppins text-lg font-semibold text-gray-900">{action.title}</h3>
-                          </div>
-                        </div>
-
-                        {/* Description — greyed out for non-CCRO */}
-                        <div className={cn(
-                          "rounded-lg border p-4 mb-4",
-                          isCCRO ? "border-gray-200 bg-white" : "border-gray-100 bg-gray-50"
-                        )}>
-                          <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Description</label>
-                          {action.description ? (
-                            <div className={cn(!isCCRO && "opacity-50")}>
-                              <RichTextEditor value={action.description} readOnly />
-                            </div>
-                          ) : (
-                            <p className="text-sm text-gray-400 italic">No description provided.</p>
-                          )}
-                          {!isCCRO && (
-                            <p className="text-[10px] text-gray-400 mt-2 italic">Only the CCRO team can edit the description</p>
-                          )}
-                        </div>
-
-                        {/* Key Details Grid */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-                          <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
-                            <span className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Current Owner</span>
-                            <p className="text-sm font-medium text-gray-800">{owner?.name || "Unassigned"}</p>
-                            {originalOwnerUser && originalOwnerUser.id !== action.assignedTo && (
-                              <p className="text-[10px] text-gray-400 mt-0.5">Originally: {originalOwnerUser.name}</p>
-                            )}
-                          </div>
-                          <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
-                            <span className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Due Date</span>
-                            <p className={cn("text-sm font-medium", dueDateColor(action))}>
-                              {action.dueDate ? formatDateShort(action.dueDate) : "No date"}
-                              {days !== null && days > 0 && isActive && (
-                                <span className="text-gray-400 font-normal ml-1">({days}d)</span>
-                              )}
-                            </p>
-                            {originalDueDateVal && originalDueDateVal !== action.dueDate && (
-                              <p className="text-[10px] text-gray-400 mt-0.5">Originally: {formatDateShort(originalDueDateVal)}</p>
-                            )}
-                          </div>
-                          <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
-                            <span className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Created</span>
-                            <p className="text-sm font-medium text-gray-800">{formatDateShort(action.createdAt)}</p>
-                            <p className="text-[10px] text-gray-400 mt-0.5">by {creator?.name || "Unknown"}</p>
-                          </div>
-                          <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
-                            <span className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Delay Summary</span>
-                            {totalDelay > 0 ? (
-                              <>
-                                <p className="text-sm font-medium text-red-600">{totalDelay} days delayed</p>
-                                <p className="text-[10px] text-gray-400 mt-0.5">{dateChangeCount} date {dateChangeCount === 1 ? "change" : "changes"}</p>
-                              </>
-                            ) : dateChangeCount > 0 ? (
-                              <p className="text-sm font-medium text-gray-600">{dateChangeCount} date {dateChangeCount === 1 ? "change" : "changes"}</p>
-                            ) : (
-                              <p className="text-sm text-gray-400">On track</p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex flex-wrap items-center gap-2 mb-5 pb-4 border-b border-gray-100">
-                          {isCCRO && (
-                            <>
-                              <button
-                                onClick={() => { setEditAction(action); setShowForm(true); }}
-                                className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 transition-colors"
-                              >
-                                Edit
-                              </button>
-                              {isActive && (
-                                <button
-                                  onClick={() => updateAction(action.id, { status: "COMPLETED", completedAt: new Date().toISOString() })}
-                                  className="rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100 transition-colors"
-                                >
-                                  Mark Complete
-                                </button>
-                              )}
-                              <button
-                                onClick={() => handleDeleteAction(action.id)}
-                                className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
-                              >
-                                Delete
-                              </button>
-                            </>
-                          )}
-                          {isActive && (isMyAction || isCCRO) && (
-                            <>
-                              <button
-                                onClick={() => setShowUpdateForm(showUpdateForm === action.id ? null : action.id)}
-                                className={cn(
-                                  "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
-                                  showUpdateForm === action.id
-                                    ? "border-updraft-bright-purple bg-updraft-pale-purple/30 text-updraft-deep"
-                                    : "border-updraft-light-purple bg-updraft-pale-purple/20 text-updraft-deep hover:bg-updraft-pale-purple/40"
-                                )}
-                              >
-                                <MessageSquare size={12} /> Add Update
-                              </button>
-                              {!isCCRO && (
-                                <>
-                                  <button
-                                    onClick={() => {
-                                      setShowDateProposal(showDateProposal === action.id ? null : action.id);
-                                      setShowReassignProposal(null);
-                                    }}
-                                    className={cn(
-                                      "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
-                                      showDateProposal === action.id
-                                        ? "border-amber-400 bg-amber-50 text-amber-700"
-                                        : "border-amber-200 text-amber-700 hover:bg-amber-50"
-                                    )}
-                                  >
-                                    <CalendarClock size={12} /> Request Date Change
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setShowReassignProposal(showReassignProposal === action.id ? null : action.id);
-                                      setShowDateProposal(null);
-                                    }}
-                                    className={cn(
-                                      "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
-                                      showReassignProposal === action.id
-                                        ? "border-blue-400 bg-blue-50 text-blue-700"
-                                        : "border-blue-200 text-blue-700 hover:bg-blue-50"
-                                    )}
-                                  >
-                                    <UserRoundPen size={12} /> Request Reassignment
-                                  </button>
-                                  <button
-                                    onClick={() => handleProposeChange(action.id, "status", action.status, "PROPOSED_CLOSED")}
-                                    className="rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100 transition-colors"
-                                  >
-                                    Propose Closed
-                                  </button>
-                                </>
-                              )}
-                            </>
-                          )}
-                        </div>
-
-                        {/* Inline Forms */}
-                        <div className="space-y-3 mb-5">
-                          {/* Progress Update Form */}
-                          {showUpdateForm === action.id && (
-                            <ActionUpdateForm
-                              actionId={action.id}
-                              onSubmit={(data) => handleSubmitUpdate(action.id, data)}
-                              onCancel={() => setShowUpdateForm(null)}
-                            />
-                          )}
-
-                          {/* Date Change Proposal Form */}
-                          {showDateProposal === action.id && (
-                            <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4 space-y-3">
-                              <div className="flex items-center gap-2 mb-1">
-                                <CalendarClock size={14} className="text-amber-600" />
-                                <span className="text-xs font-semibold text-amber-700">Request Due Date Change</span>
-                              </div>
-                              <div className="rounded-md bg-amber-100/60 border border-amber-200 px-3 py-2">
-                                <p className="text-xs text-amber-800">
-                                  Date changes require approval from the CCRO team. Your request will be reviewed and you will be notified of the outcome.
-                                </p>
-                              </div>
-                              <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                  <label className="block text-xs font-medium text-gray-700 mb-1">Current Due Date</label>
-                                  <p className="text-sm text-gray-500 px-3 py-2 rounded-lg bg-gray-100 border border-gray-200">
-                                    {action.dueDate ? formatDateShort(action.dueDate) : "Not set"}
-                                  </p>
-                                </div>
-                                <div>
-                                  <label className="block text-xs font-medium text-gray-700 mb-1">Proposed New Date</label>
-                                  <input
-                                    type="date"
-                                    value={proposedDate}
-                                    onChange={(e) => setProposedDate(e.target.value)}
-                                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple"
-                                  />
-                                </div>
-                              </div>
-                              <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Reason for Change</label>
-                                <textarea
-                                  rows={2}
-                                  value={proposalReason}
-                                  onChange={(e) => setProposalReason(e.target.value)}
-                                  placeholder="Explain why the due date needs to change..."
-                                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple resize-none"
-                                />
-                              </div>
-                              <div className="flex items-center justify-end gap-2">
-                                <button
-                                  onClick={() => { setShowDateProposal(null); setProposedDate(""); setProposalReason(""); }}
-                                  className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  onClick={() => handleProposeDateChange(action.id)}
-                                  disabled={!proposedDate || !proposalReason.trim()}
-                                  className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  Submit for Approval
-                                </button>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Reassignment Proposal Form */}
-                          {showReassignProposal === action.id && (
-                            <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4 space-y-3">
-                              <div className="flex items-center gap-2 mb-1">
-                                <UserRoundPen size={14} className="text-blue-600" />
-                                <span className="text-xs font-semibold text-blue-700">Request Ownership Reassignment</span>
-                              </div>
-                              <div className="rounded-md bg-blue-100/60 border border-blue-200 px-3 py-2">
-                                <p className="text-xs text-blue-800">
-                                  Reassignment requests are reviewed by the CCRO team before taking effect.
-                                </p>
-                              </div>
-                              <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                  <label className="block text-xs font-medium text-gray-700 mb-1">Current Owner</label>
-                                  <p className="text-sm text-gray-500 px-3 py-2 rounded-lg bg-gray-100 border border-gray-200">
-                                    {owner?.name || "Unassigned"}
-                                  </p>
-                                </div>
-                                <div>
-                                  <label className="block text-xs font-medium text-gray-700 mb-1">Proposed New Owner</label>
-                                  <select
-                                    value={proposedOwner}
-                                    onChange={(e) => setProposedOwner(e.target.value)}
-                                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple"
-                                  >
-                                    <option value="">Select...</option>
-                                    {users.filter((u) => u.isActive && u.id !== action.assignedTo).map((u) => (
-                                      <option key={u.id} value={u.id}>{u.name}</option>
-                                    ))}
-                                  </select>
-                                </div>
-                              </div>
-                              <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Reason for Reassignment</label>
-                                <textarea
-                                  rows={2}
-                                  value={proposalReason}
-                                  onChange={(e) => setProposalReason(e.target.value)}
-                                  placeholder="Explain why this action should be reassigned..."
-                                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple resize-none"
-                                />
-                              </div>
-                              <div className="flex items-center justify-end gap-2">
-                                <button
-                                  onClick={() => { setShowReassignProposal(null); setProposedOwner(""); setProposalReason(""); }}
-                                  className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  onClick={() => handleProposeReassign(action.id)}
-                                  disabled={!proposedOwner || !proposalReason.trim()}
-                                  className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  Submit for Approval
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Change History Timeline */}
-                        <div>
-                          <div className="flex items-center gap-2 mb-3">
-                            <History size={14} className="text-gray-500" />
-                            <h4 className="text-sm font-semibold text-gray-700">Change History</h4>
-                            {(action.changes || []).length > 0 && (
-                              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500">
-                                {(action.changes || []).length}
-                              </span>
-                            )}
-                          </div>
-                          <ActionChangePanel
-                            changes={action.changes || []}
-                            isCCRO={isCCRO}
-                            onApprove={(changeId, note) => handleApproveChange(action.id, changeId, note)}
-                            onReject={(changeId, note) => handleRejectChange(action.id, changeId, note)}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })()}
                 </div>
               );
               })}
@@ -1437,6 +879,13 @@ function ActionsPageContent() {
         open={showCSVImport}
         onClose={() => setShowCSVImport(false)}
         onImportComplete={handleImportComplete}
+      />
+
+      {/* Action Detail Panel */}
+      <ActionDetailPanel
+        action={selectedAction}
+        onClose={() => setSelectedActionId(null)}
+        onEdit={(action) => { setEditAction(action); setShowForm(true); }}
       />
     </div>
   );

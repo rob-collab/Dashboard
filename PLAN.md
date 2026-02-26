@@ -41,35 +41,35 @@ Three deliverables:
 
 ### Checklist
 **Back button:**
-- [ ] EntityLink uses `router.push(getEntityUrl(type, id))` — no more `window.location.href`
-- [ ] `pushNavigationStack` still called with current URL before navigation
-- [ ] Back button appears after any EntityLink click-through
-- [ ] Back button navigates to exact previous URL (preserves tab + search params)
-- [ ] Back button disappears after navigating back (stack empty)
+- [x] EntityLink uses `router.push(getEntityUrl(type, id))` — no more `window.location.href`
+- [x] `pushNavigationStack` still called with current URL before navigation
+- [x] Back button appears after any EntityLink click-through
+- [x] Back button navigates to exact previous URL (preserves tab + search params)
+- [x] Back button disappears after navigating back (stack empty)
 
 **Actions panel:**
-- [ ] `expandedIds` state removed from actions/page.tsx
-- [ ] All inline form states removed (showUpdateForm, showDateProposal, showReassignProposal, editingIssue)
-- [ ] Action rows are clean: ref badge, priority, title, owner initials, due date, status badge, pending change badges
-- [ ] Row click opens ActionDetailPanel slide-out
-- [ ] `?action=id` URL param still opens panel for the matching action on load
-- [ ] All action buttons (Edit, Complete, Delete, Update, proposals) work from within panel
-- [ ] Bulk ops (checkboxes, bulk complete, reassign, export) still work on list
-- [ ] Groups, progress bar, search, filters, stat cards all intact
-- [ ] ActionFormDialog, CSV import/export still functional
+- [x] `expandedIds` state removed from actions/page.tsx
+- [x] All inline form states removed (showUpdateForm, showDateProposal, showReassignProposal, editingIssue)
+- [x] Action rows are clean: ref badge, priority, title, owner initials, due date, status badge, pending change badges
+- [x] Row click opens ActionDetailPanel slide-out
+- [x] `?action=id` URL param still opens panel for the matching action on load
+- [x] All action buttons (Edit, Complete, Delete, Update, proposals) work from within panel
+- [x] Bulk ops (checkboxes, bulk complete, reassign, export) still work on list
+- [x] Groups, progress bar, search, filters, stat cards all intact
+- [x] ActionFormDialog, CSV import/export still functional
 
 **Regulatory Calendar panel:**
-- [ ] Inline accordion expand removed from RegulatoryCalendarWidget
-- [ ] Event card click opens RegCalEventDetailPanel
-- [ ] Panel shows title, type, date, RAG status, description, source, owner, alert days, URL
-- [ ] CCRO edit mode works within panel (all fields)
-- [ ] CCRO delete works from panel
-- [ ] Create Action button (CCRO) pre-fills new action with event title + due date
-- [ ] Create event form (CCRO) still works on main widget
+- [x] Inline accordion expand removed from RegulatoryCalendarWidget
+- [x] Event card click opens RegCalEventDetailPanel
+- [x] Panel shows title, type, date, RAG status, description, source, owner, alert days, URL
+- [x] CCRO edit mode works within panel (all fields)
+- [x] CCRO delete works from panel
+- [x] Create Action button (CCRO) pre-fills new action with event title + due date
+- [x] Create event form (CCRO) still works on main widget
 
 **General:**
-- [ ] Build passes — zero TypeScript errors
-- [ ] No existing features removed
+- [x] Build passes — zero TypeScript errors
+- [x] No existing features removed
 
 ### Proposals (document only — do not implement yet)
 Other areas that would benefit from detail panels (propose to user, implement on request):

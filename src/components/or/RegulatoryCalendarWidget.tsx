@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
 import type { RegulatoryEvent, RegCalEventType } from "@/lib/types";
@@ -11,17 +10,13 @@ import {
   Calendar,
   Plus,
   X,
-  ExternalLink,
-  Trash2,
   ChevronDown,
   User2,
-  Edit3,
-  Save,
   ListChecks,
-  Bell,
   Clock,
 } from "lucide-react";
 import { toast } from "sonner";
+import RegCalEventDetailPanel from "./RegCalEventDetailPanel";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -64,19 +59,12 @@ const EMPTY_FORM = {
 // ── main component ────────────────────────────────────────────────────────────
 
 export default function RegulatoryCalendarWidget() {
-  const router = useRouter();
   const regulatoryEvents = useAppStore((s) => s.regulatoryEvents);
   const addRegulatoryEvent = useAppStore((s) => s.addRegulatoryEvent);
-  const updateRegulatoryEvent = useAppStore((s) => s.updateRegulatoryEvent);
-  const deleteRegulatoryEvent = useAppStore((s) => s.deleteRegulatoryEvent);
   const currentUser = useAppStore((s) => s.currentUser);
   const isCCRO = currentUser?.role === "CCRO_TEAM";
 
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<typeof EMPTY_FORM>(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<RegulatoryEvent | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [addForm, setAddForm] = useState(EMPTY_FORM);
   const [adding, setAdding] = useState(false);
@@ -110,65 +98,6 @@ export default function RegulatoryCalendarWidget() {
   }, [groupedUpcoming]);
 
   // ── handlers ──────────────────────────────────────────────────────────────
-
-  function toggleExpand(id: string) {
-    if (expandedId === id) { setExpandedId(null); setEditingId(null); }
-    else { setExpandedId(id); setEditingId(null); }
-  }
-
-  function startEdit(ev: RegulatoryEvent) {
-    setEditForm({
-      title: ev.title,
-      description: ev.description ?? "",
-      eventDate: ev.eventDate.split("T")[0],
-      type: ev.type,
-      source: ev.source,
-      url: ev.url ?? "",
-      alertDays: ev.alertDays,
-      owner: ev.owner ?? "",
-    });
-    setEditingId(ev.id);
-  }
-
-  async function handleSave(id: string) {
-    setSaving(true);
-    try {
-      const updated = await api<RegulatoryEvent>(`/api/or/regulatory-calendar/${id}`, {
-        method: "PATCH",
-        body: {
-          title: editForm.title,
-          description: editForm.description || null,
-          eventDate: editForm.eventDate,
-          type: editForm.type,
-          source: editForm.source,
-          url: editForm.url || null,
-          alertDays: editForm.alertDays,
-          owner: editForm.owner || null,
-        },
-      });
-      updateRegulatoryEvent(id, updated);
-      setEditingId(null);
-      toast.success("Event updated");
-    } catch {
-      toast.error("Failed to save changes");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleDelete(id: string) {
-    setDeletingId(id);
-    try {
-      await api(`/api/or/regulatory-calendar/${id}`, { method: "DELETE" });
-      deleteRegulatoryEvent(id);
-      if (expandedId === id) setExpandedId(null);
-      toast.success("Event removed");
-    } catch {
-      toast.error("Failed to delete event");
-    } finally {
-      setDeletingId(null);
-    }
-  }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -244,7 +173,7 @@ export default function RegulatoryCalendarWidget() {
           <EventFormFields form={addForm} onChange={setAddForm} />
           <div className="flex gap-2">
             <button type="submit" disabled={adding} className="px-3 py-1.5 text-xs bg-updraft-deep text-white rounded-lg hover:bg-updraft-bar disabled:opacity-50">
-              {adding ? "Adding…" : "Add Event"}
+              {adding ? "Adding..." : "Add Event"}
             </button>
             <button type="button" onClick={() => setShowAddForm(false)} className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
           </div>
@@ -280,8 +209,6 @@ export default function RegulatoryCalendarWidget() {
                   const days = daysUntil(ev.eventDate);
                   const rag = ragForDays(days);
                   const tc = REG_CAL_TYPE_COLOURS[ev.type];
-                  const isExpanded = expandedId === ev.id;
-                  const isEditing = editingId === ev.id;
 
                   return (
                     <div key={ev.id} className="relative">
@@ -292,12 +219,9 @@ export default function RegulatoryCalendarWidget() {
                       )} />
 
                       {/* Card */}
-                      <div className={cn(
-                        "rounded-xl border transition-all duration-200",
-                        isExpanded ? "border-updraft-bright-purple/40 shadow-sm" : "border-gray-200 hover:border-gray-300 hover:shadow-sm"
-                      )}>
-                        {/* Header row */}
-                        <button type="button" onClick={() => toggleExpand(ev.id)} className="w-full flex items-center gap-3 p-3 text-left">
+                      <div className="rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all duration-200">
+                        {/* Header row — clicking opens the panel */}
+                        <button type="button" onClick={() => setSelectedEvent(ev)} className="w-full flex items-center gap-3 p-3 text-left">
                           {/* Date block */}
                           <div className="shrink-0 text-center w-10">
                             <p className="text-[10px] text-gray-400 leading-none">
@@ -326,93 +250,9 @@ export default function RegulatoryCalendarWidget() {
                           {/* Days remaining */}
                           <div className="shrink-0 flex items-center gap-2">
                             <span className={cn("text-xs font-bold tabular-nums", rag.textClass)}>{rag.label}</span>
-                            <ChevronDown size={14} className={cn("text-gray-400 transition-transform duration-200", isExpanded && "rotate-180")} />
+                            <ListChecks size={13} className="text-gray-300" />
                           </div>
                         </button>
-
-                        {/* Expanded detail */}
-                        {isExpanded && (
-                          <div className="px-4 pb-4 border-t border-updraft-bright-purple/10 pt-3 space-y-3">
-                            {isEditing ? (
-                              <>
-                                <EventFormFields form={editForm} onChange={setEditForm} />
-                                <div className="flex gap-2">
-                                  <button type="button" onClick={() => handleSave(ev.id)} disabled={saving}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-updraft-deep text-white rounded-lg hover:bg-updraft-bar disabled:opacity-50">
-                                    <Save size={11} /> {saving ? "Saving…" : "Save Changes"}
-                                  </button>
-                                  <button type="button" onClick={() => setEditingId(null)}
-                                    className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50">
-                                    Cancel
-                                  </button>
-                                </div>
-                              </>
-                            ) : (
-                              <>
-                                <div className="grid grid-cols-2 gap-3 text-xs">
-                                  <div>
-                                    <p className="text-gray-400 uppercase tracking-wide text-[10px] mb-0.5">Full Date</p>
-                                    <p className="text-gray-800 font-medium">
-                                      {new Date(ev.eventDate).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
-                                    </p>
-                                  </div>
-                                  <div>
-                                    <p className="text-gray-400 uppercase tracking-wide text-[10px] mb-0.5">Alert Window</p>
-                                    <div className="flex items-center gap-1">
-                                      <Bell size={11} className="text-amber-500" />
-                                      <p className="text-gray-800 font-medium">{ev.alertDays} days before</p>
-                                    </div>
-                                  </div>
-                                  {ev.owner && (
-                                    <div>
-                                      <p className="text-gray-400 uppercase tracking-wide text-[10px] mb-0.5">Owner</p>
-                                      <div className="flex items-center gap-1">
-                                        <User2 size={11} className="text-gray-400" />
-                                        <p className="text-gray-800 font-medium">{ev.owner}</p>
-                                      </div>
-                                    </div>
-                                  )}
-                                  <div>
-                                    <p className="text-gray-400 uppercase tracking-wide text-[10px] mb-0.5">Source</p>
-                                    <p className="text-gray-800 font-medium font-mono">{ev.source}</p>
-                                  </div>
-                                </div>
-
-                                {ev.description && (
-                                  <div>
-                                    <p className="text-gray-400 uppercase tracking-wide text-[10px] mb-1">Description</p>
-                                    <p className="text-sm text-gray-700 leading-relaxed">{ev.description}</p>
-                                  </div>
-                                )}
-
-                                <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-gray-100">
-                                  {ev.url && (
-                                    <a href={ev.url} target="_blank" rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-1 text-xs text-updraft-deep hover:underline">
-                                      <ExternalLink size={11} /> View source
-                                    </a>
-                                  )}
-                                  <button type="button" onClick={() => router.push("/actions")}
-                                    className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-updraft-deep border border-gray-200 rounded-lg px-2 py-1 hover:border-updraft-bright-purple/30 transition-colors">
-                                    <ListChecks size={11} /> View Actions
-                                  </button>
-                                  {isCCRO && (
-                                    <>
-                                      <button type="button" onClick={() => startEdit(ev)}
-                                        className="inline-flex items-center gap-1 text-xs text-updraft-deep border border-updraft-bright-purple/20 rounded-lg px-2 py-1 hover:bg-updraft-pale-purple/10 transition-colors">
-                                        <Edit3 size={11} /> Edit
-                                      </button>
-                                      <button type="button" onClick={() => handleDelete(ev.id)} disabled={deletingId === ev.id}
-                                        className="inline-flex items-center gap-1 text-xs text-red-500 hover:text-red-700 border border-red-100 rounded-lg px-2 py-1 hover:bg-red-50 transition-colors ml-auto disabled:opacity-50">
-                                        <Trash2 size={11} /> {deletingId === ev.id ? "Removing…" : "Delete"}
-                                      </button>
-                                    </>
-                                  )}
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        )}
                       </div>
                     </div>
                   );
@@ -438,13 +278,11 @@ export default function RegulatoryCalendarWidget() {
               <div className="absolute left-2.5 top-0 bottom-0 w-px bg-gray-100" />
               {past.map((ev) => {
                 const tc = REG_CAL_TYPE_COLOURS[ev.type];
-                const isExpanded = expandedId === ev.id;
                 return (
                   <div key={ev.id} className="relative">
                     <div className="absolute -left-6 top-3.5 w-3 h-3 rounded-full bg-gray-200 border-2 border-white shadow-sm" />
-                    <div className={cn("rounded-xl border transition-all",
-                      isExpanded ? "border-gray-300 shadow-sm bg-white" : "border-gray-100 bg-gray-50/50")}>
-                      <button type="button" onClick={() => toggleExpand(ev.id)}
+                    <div className="rounded-xl border border-gray-100 bg-gray-50/50 hover:border-gray-200 transition-all">
+                      <button type="button" onClick={() => setSelectedEvent(ev)}
                         className="w-full flex items-center gap-3 p-3 text-left opacity-60 hover:opacity-80">
                         <div className="shrink-0 text-center w-10">
                           <p className="text-[10px] text-gray-400">{new Date(ev.eventDate).toLocaleDateString("en-GB", { month: "short" })}</p>
@@ -460,28 +298,7 @@ export default function RegulatoryCalendarWidget() {
                         <span className="text-xs text-gray-400 shrink-0">
                           {new Date(ev.eventDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                         </span>
-                        <ChevronDown size={13} className={cn("text-gray-300 transition-transform shrink-0", isExpanded && "rotate-180")} />
                       </button>
-
-                      {isExpanded && (
-                        <div className="px-4 pb-3 border-t border-gray-100 pt-2 space-y-2">
-                          {ev.description && <p className="text-xs text-gray-600">{ev.description}</p>}
-                          {ev.owner && <p className="text-xs text-gray-500 flex items-center gap-1"><User2 size={10} /> {ev.owner}</p>}
-                          <div className="flex items-center gap-2">
-                            {ev.url && (
-                              <a href={ev.url} target="_blank" rel="noopener noreferrer" className="text-xs text-updraft-deep hover:underline flex items-center gap-1">
-                                <ExternalLink size={10} /> Source
-                              </a>
-                            )}
-                            {isCCRO && (
-                              <button type="button" onClick={() => handleDelete(ev.id)} disabled={deletingId === ev.id}
-                                className="text-xs text-red-400 hover:text-red-600 flex items-center gap-1 ml-auto">
-                                <Trash2 size={10} /> Delete
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 );
@@ -490,6 +307,12 @@ export default function RegulatoryCalendarWidget() {
           )}
         </div>
       )}
+
+      {/* Event Detail Panel */}
+      <RegCalEventDetailPanel
+        event={selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+      />
     </div>
   );
 }
@@ -543,7 +366,7 @@ function EventFormFields({
       </div>
       <div className="col-span-2">
         <label className="text-xs font-medium text-gray-600 block mb-1">URL (optional)</label>
-        <input type="url" value={form.url} onChange={(e) => set({ url: e.target.value })} placeholder="https://…"
+        <input type="url" value={form.url} onChange={(e) => set({ url: e.target.value })} placeholder="https://..."
           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30" />
       </div>
       <div className="col-span-2">
