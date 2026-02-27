@@ -85,26 +85,49 @@ export const ROLE_DEFAULT_HIDDEN: Record<string, string[]> = {
  * y: Infinity lets RGL auto-pack vertically on first render.
  * These widths/heights are the recommended starting sizes; users can resize freely.
  */
+/**
+ * rowHeight = 40px. Heights calibrated so each section comfortably shows its
+ * content without excessive empty space. Users can resize freely in edit mode.
+ *
+ * Side-by-side pairs share the same y value; max(h) of the pair determines
+ * the next row's y so sections always stack flush.
+ *
+ * y-offsets (cumulative):
+ *   welcome        y=0   h=5  → next=5
+ *   notif/action   y=5   h=3/6 → next=11
+ *   priority       y=11  h=8  → next=19
+ *   risk-acc/comp  y=19  h=10/8 → next=29
+ *   controls/pol   y=29  h=7/7 → next=36
+ *   cross-entity   y=36  h=10 → next=46
+ *   focus/approvals y=46 h=10/9 → next=56
+ *   proposed-ch    y=56  h=10 → next=66
+ *   action/overdue y=66  h=11/8 → next=77
+ *   tasks-reviews  y=77  h=12 → next=89
+ *   consumer/risk  y=89  h=10/12 → next=101
+ *   prog/reports   y=101 h=5/9  → next=110
+ *   recent-act     y=110 h=9  → next=119
+ *   horizon        y=119 h=8  → next=127
+ */
 export const DEFAULT_GRID_LAYOUT: RGLLayoutItem[] = [
-  { i: "welcome",           x: 0, y: 0,        w: 12, h: 4,  minW: 4, minH: 2 },
-  { i: "notifications",     x: 0, y: 4,        w: 6,  h: 3,  minW: 3, minH: 2 },
-  { i: "action-required",   x: 6, y: 4,        w: 6,  h: 4,  minW: 3, minH: 2 },
-  { i: "priority-actions",  x: 0, y: 8,        w: 12, h: 6,  minW: 4, minH: 3 },
-  { i: "risk-acceptances",  x: 0, y: 14,       w: 8,  h: 6,  minW: 4, minH: 3 },
-  { i: "compliance-health", x: 8, y: 14,       w: 4,  h: 6,  minW: 3, minH: 3 },
-  { i: "controls-library",  x: 0, y: 20,       w: 6,  h: 4,  minW: 3, minH: 2 },
-  { i: "policy-health",     x: 6, y: 20,       w: 6,  h: 4,  minW: 3, minH: 2 },
-  { i: "cross-entity",      x: 0, y: 24,       w: 12, h: 7,  minW: 4, minH: 3 },
-  { i: "risks-in-focus",    x: 0, y: 31,       w: 6,  h: 8,  minW: 3, minH: 3 },
-  { i: "pending-approvals", x: 6, y: 31,       w: 6,  h: 7,  minW: 3, minH: 3 },
-  { i: "proposed-changes",  x: 0, y: 39,       w: 6,  h: 8,  minW: 3, minH: 3 },
-  { i: "action-tracking",   x: 0, y: 47,       w: 8,  h: 9,  minW: 4, minH: 3 },
-  { i: "overdue-metrics",   x: 8, y: 47,       w: 4,  h: 7,  minW: 3, minH: 3 },
-  { i: "tasks-reviews",     x: 0, y: 56,       w: 12, h: 10, minW: 4, minH: 4 },
-  { i: "consumer-duty",     x: 0, y: 66,       w: 4,  h: 8,  minW: 3, minH: 3 },
-  { i: "risk-summary",      x: 4, y: 66,       w: 8,  h: 10, minW: 4, minH: 4 },
-  { i: "programme-health",  x: 0, y: 76,       w: 6,  h: 6,  minW: 3, minH: 3 },
-  { i: "reports",           x: 6, y: 76,       w: 6,  h: 7,  minW: 3, minH: 3 },
-  { i: "recent-activity",   x: 0, y: 83,       w: 6,  h: 7,  minW: 3, minH: 3 },
-  { i: "horizon-scanning",  x: 0, y: 90,       w: 12, h: 6,  minW: 4, minH: 3 },
+  { i: "welcome",           x: 0, y: 0,   w: 12, h: 5,  minW: 4, minH: 4 },
+  { i: "notifications",     x: 0, y: 5,   w: 6,  h: 3,  minW: 3, minH: 3 },
+  { i: "action-required",   x: 6, y: 5,   w: 6,  h: 6,  minW: 3, minH: 4 },
+  { i: "priority-actions",  x: 0, y: 11,  w: 12, h: 8,  minW: 4, minH: 6 },
+  { i: "risk-acceptances",  x: 0, y: 19,  w: 8,  h: 10, minW: 4, minH: 6 },
+  { i: "compliance-health", x: 8, y: 19,  w: 4,  h: 8,  minW: 3, minH: 6 },
+  { i: "controls-library",  x: 0, y: 29,  w: 6,  h: 7,  minW: 3, minH: 4 },
+  { i: "policy-health",     x: 6, y: 29,  w: 6,  h: 7,  minW: 3, minH: 4 },
+  { i: "cross-entity",      x: 0, y: 36,  w: 12, h: 10, minW: 4, minH: 6 },
+  { i: "risks-in-focus",    x: 0, y: 46,  w: 6,  h: 10, minW: 3, minH: 6 },
+  { i: "pending-approvals", x: 6, y: 46,  w: 6,  h: 9,  minW: 3, minH: 6 },
+  { i: "proposed-changes",  x: 0, y: 56,  w: 6,  h: 10, minW: 3, minH: 6 },
+  { i: "action-tracking",   x: 0, y: 66,  w: 8,  h: 11, minW: 4, minH: 6 },
+  { i: "overdue-metrics",   x: 8, y: 66,  w: 4,  h: 8,  minW: 3, minH: 6 },
+  { i: "tasks-reviews",     x: 0, y: 77,  w: 12, h: 12, minW: 4, minH: 8 },
+  { i: "consumer-duty",     x: 0, y: 89,  w: 4,  h: 10, minW: 3, minH: 6 },
+  { i: "risk-summary",      x: 4, y: 89,  w: 8,  h: 12, minW: 4, minH: 8 },
+  { i: "programme-health",  x: 0, y: 101, w: 6,  h: 5,  minW: 3, minH: 4 },
+  { i: "reports",           x: 6, y: 101, w: 6,  h: 9,  minW: 3, minH: 6 },
+  { i: "recent-activity",   x: 0, y: 110, w: 6,  h: 9,  minW: 3, minH: 6 },
+  { i: "horizon-scanning",  x: 0, y: 119, w: 12, h: 8,  minW: 4, minH: 6 },
 ];

@@ -2050,9 +2050,9 @@ export default function DashboardHome() {
               isDraggable
               isResizable
               draggableHandle=".rgl-drag-handle"
-              rowHeight={80}
+              rowHeight={40}
               cols={12}
-              margin={[12, 12]}
+              margin={[10, 10]}
               compactType="vertical"
               autoSize
             >
@@ -2141,9 +2141,9 @@ export default function DashboardHome() {
               layout={effectiveGrid.filter((item) => !effectiveHidden.has(item.i))}
               isDraggable={false}
               isResizable={false}
-              rowHeight={80}
+              rowHeight={40}
               cols={12}
-              margin={[12, 12]}
+              margin={[10, 10]}
               compactType="vertical"
               autoSize
             >
