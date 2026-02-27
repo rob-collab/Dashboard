@@ -178,6 +178,15 @@ This works at any target without config changes.
 
 <!-- Add new L-series entries here: L014, L015, ... -->
 
+### L014 — Spreading HTMLAttributes into motion.div causes type conflict
+**What happened:** `MotionDiv` accepted `HTMLAttributes<HTMLDivElement>` via spread, which includes
+`onDrag` typed as `DragEventHandler<HTMLDivElement>`. Framer Motion's `motion.div` redefines `onDrag`
+with an incompatible signature (takes `MouseEvent | PointerEvent | TouchEvent`). TypeScript build failed.
+**Rule:** Never spread `HTMLAttributes<HTMLDivElement>` into a `motion.div`. Accept only the specific
+props the component actually needs (e.g. `children`, `className`, `onClick`).
+**Trigger:** Any component that wraps `motion.div` or `motion.tr` and accepts pass-through HTML props.
+**Status:** Active.
+
 ---
 
 ## Wins & Reusable Patterns (W-series)
@@ -282,6 +291,31 @@ by not selecting a separate section key.
 ---
 
 <!-- Add W-series entries here: W007, W008, ... -->
+
+### W007 — AnimatedNumber component pattern for useCountUp in .map()
+**What happened:** `useCountUp` is a hook and can't be called inside a `.map()` callback. Created
+`AnimatedNumber` as a React component that wraps `useCountUp` — this is a full component so it can
+be used inside `.map()` without violating the Rules of Hooks.
+**Pattern:**
+```tsx
+export function AnimatedNumber({ value, duration = 800, className }: Props) {
+  const animated = useCountUp(value, duration);
+  return <span className={className}>{animated}</span>;
+}
+// Usage inside .map():
+<AnimatedNumber value={card.value} className="text-2xl font-bold" />
+```
+**Applies to:** Any hook that needs to be used inside a list render. Extract into a micro-component.
+
+---
+
+### W008 — glass-card CSS class has embedded padding/radius — use panel-surface for panels
+**What happened:** `.glass-card` in globals.css has `border-radius: 24px; padding: 24px` baked in.
+Applying it to a slide-out panel or modal inner div overrides the intended layout. Created `.panel-surface`
+as a minimal variant (background + backdrop-filter only, no border/padding/radius) for panels.
+**Pattern:** When applying glassmorphism to a component that manages its own layout, create a
+minimal utility with only the frosted-glass visual properties. Leave radius/padding to the component.
+**Applies to:** Any glassmorphism application to existing components.
 
 ---
 

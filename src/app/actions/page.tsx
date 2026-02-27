@@ -38,6 +38,10 @@ import ActionCSVUploadDialog from "@/components/actions/ActionCSVUploadDialog";
 import HistoryTab from "@/components/common/HistoryTab";
 import { usePageTitle } from "@/lib/usePageTitle";
 import RequestEditAccessButton from "@/components/common/RequestEditAccessButton";
+import { MotionListDiv } from "@/components/motion/MotionList";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
+import { SkeletonStatRow, SkeletonTable } from "@/components/common/SkeletonLoader";
+import { MotionDiv } from "@/components/motion/MotionRow";
 
 const STATUS_CONFIG: Record<ActionStatus, { label: string; color: string; bgColor: string; icon: typeof Circle }> = {
   OPEN: { label: "Open", color: "text-blue-600", bgColor: "bg-blue-100 text-blue-700", icon: Circle },
@@ -83,6 +87,7 @@ function ActionsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentUser = useAppStore((s) => s.currentUser);
+  const hydrated = useAppStore((s) => s._hydrated);
   const actions = useAppStore((s) => s.actions);
   const reports = useAppStore((s) => s.reports);
   const users = useAppStore((s) => s.users);
@@ -374,6 +379,13 @@ function ActionsPageContent() {
     { label: "P3 Routine", value: stats.p3, color: "text-slate-600", bg: "bg-slate-50", filterKey: "P3" },
   ];
 
+  if (!hydrated) return (
+    <div className="space-y-6">
+      <SkeletonStatRow count={4} />
+      <SkeletonTable rows={6} cols={5} />
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -518,7 +530,7 @@ function ActionsPageContent() {
             )}
           >
             <p className="text-xs text-gray-500">{p.label}</p>
-            <p className={cn("text-2xl font-bold font-poppins", p.color)}>{p.value}</p>
+            <AnimatedNumber value={p.value} className={cn("text-2xl font-bold font-poppins", p.color)} />
             <p className="text-[10px] text-gray-400 mt-0.5">active actions</p>
           </button>
         ))}
@@ -539,7 +551,7 @@ function ActionsPageContent() {
             )}
           >
             <p className="text-xs text-gray-500">{s.label}</p>
-            <p className={cn("text-2xl font-bold font-poppins", s.color)}>{s.value}</p>
+            <AnimatedNumber value={s.value} className={cn("text-2xl font-bold font-poppins", s.color)} />
           </button>
         ))}
       </div>
@@ -807,13 +819,13 @@ function ActionsPageContent() {
                     })()}
                   </button>
                   {!isGroupCollapsed && (
-                    <div className="divide-y divide-gray-100">
+                    <MotionListDiv className="divide-y divide-gray-100">
                       {groupActions.map((action) => {
               const owner = users.find((u) => u.id === action.assignedTo);
               const StatusIcon = STATUS_CONFIG[action.status].icon;
               const isSelected = selectedIds.has(action.id);
               return (
-                <div key={action.id} className={cn(isSelected && "bg-updraft-pale-purple/5")}>
+                <MotionDiv key={action.id} className={cn(isSelected && "bg-updraft-pale-purple/5", action.status === "OVERDUE" && "row-overdue")}>
                   {/* Row */}
                   <div
                     className={cn(
@@ -856,7 +868,7 @@ function ActionsPageContent() {
                           {action.reference}
                         </span>
                         {action.priority && (
-                          <span className={cn("inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold shrink-0", PRIORITY_CONFIG[action.priority].bgColor)}>
+                          <span className={cn("inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold shrink-0", PRIORITY_CONFIG[action.priority].bgColor, action.priority === "P1" && "badge-glow-red")}>
                             {action.priority}
                           </span>
                         )}
@@ -930,10 +942,10 @@ function ActionsPageContent() {
                     )}
                   </button>
                   </div>{/* end row outer div */}
-                </div>
+                </MotionDiv>
               );
               })}
-                    </div>
+                    </MotionListDiv>
                   )}
                 </div>
               );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import {
   X,
   Info,
@@ -290,7 +291,13 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
       />
 
       {/* Panel */}
-      <div className="fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-white shadow-2xl sm:w-[560px] lg:w-[620px]">
+      <motion.div
+        className="fixed inset-y-0 right-0 z-50 flex w-full flex-col panel-surface shadow-2xl sm:w-[560px] lg:w-[620px]"
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        transition={{ type: "spring", stiffness: 320, damping: 30 }}
+        style={{ willChange: "transform" }}
+      >
         {/* Purple gradient header */}
         <div className="bg-gradient-to-r from-updraft-deep to-updraft-bar px-6 py-4 shrink-0">
           <div className="flex items-start justify-between gap-4">
@@ -760,7 +767,7 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
           </div>
 
         </div>
-      </div>
+      </motion.div>
     </>
   );
 }

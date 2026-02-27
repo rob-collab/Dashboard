@@ -107,7 +107,7 @@ export default function Modal({
     <div
       ref={overlayRef}
       onClick={handleBackdropClick}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px] p-4 animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby={title ? "modal-title" : undefined}
@@ -116,7 +116,8 @@ export default function Modal({
       <div
         ref={panelRef}
         className={cn(
-          "relative w-full rounded-xl bg-white shadow-xl animate-slide-up",
+          "relative w-full rounded-xl shadow-xl animate-slide-up",
+          "bg-white/96 backdrop-blur-[30px] border border-white/40",
           SIZE_CLASSES[size]
         )}
       >

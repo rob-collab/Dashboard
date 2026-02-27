@@ -1,9 +1,69 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-27 (Controls & Consumer Duty Deep Polish sprint)
+Last updated: 2026-02-27 (Premium Design Phase 1 sprint)
 
 ---
 
-## CURRENT SPRINT: Controls & Consumer Duty Deep Polish ✅ COMPLETE
+## CURRENT SPRINT: Premium Design — Phase 1 ✅ COMPLETE
+
+### Context
+Layered premium visual and interaction quality: spring-physics animations (Framer Motion),
+glassmorphism panels, animated KPI counters, skeleton loading states, and CSS polish fixes.
+Goal: world-class SaaS product feel without touching any existing features or data paths.
+
+### Deliverables
+
+#### D1 — Framer Motion: List stagger + spring panels + page transitions
+- [x] D1-01: Risk Register rows stagger-in when list loads or filter changes
+- [x] D1-02: Actions table rows stagger-in on load
+- [x] D1-03: Horizon Scanning cards stagger-in on load
+- [x] D1-04: RiskDetailPanel slides in from right with spring physics (no CSS animation remaining)
+- [x] D1-05: ActionDetailPanel slides in from right with spring physics
+- [x] D1-06: Navigating between pages has a subtle fade transition
+- [x] D1-07: Dashboard drag-to-reorder still works (dnd-kit unaffected)
+- [x] D1-08: No console errors from AnimatePresence or motion components
+
+#### D2 — CSS polish: Fix missing animations + badge glows + overdue row highlight
+- [x] D2-01: Modal.tsx `animate-fade-in` and `animate-slide-up` now render correctly
+- [x] D2-02: VERY_HIGH risk score badges have a red glow
+- [x] D2-03: HIGH risk score badges have an amber glow
+- [x] D2-04: Overdue action rows have a subtle red left-gradient background
+- [x] D2-05: P1 action priority badge has red glow
+- [x] D2-06: No existing animation broken or duplicated
+
+#### D3 — Glassmorphism: Panels + modals
+- [x] D3-01: Risk detail panel has glassmorphism background (blur + slight transparency)
+- [x] D3-02: Action detail panel has glassmorphism background
+- [x] D3-03: Modal backdrop has 2px blur
+- [x] D3-04: Modal content area uses glass-card styling
+- [x] D3-05: Panel headers (gradient from updraft-deep to updraft-bar) unchanged
+- [x] D3-06: Text and form elements inside panels remain fully readable
+- [x] D3-07: No visual regression on existing panel content
+
+#### D4 — Animated KPI counters (useCountUp hook)
+- [x] D4-01: Dashboard stat tiles count up from 0 on first load
+- [x] D4-02: Risk Register bento cards count up from 0 on first load
+- [x] D4-03: Actions headline metrics count up from 0
+- [x] D4-04: Consumer Duty measure + metric tiles count up from 0
+- [x] D4-05: Animation is smooth (ease-out cubic, ~800ms)
+- [x] D4-06: Tile click-to-filter behaviour unchanged (onClick still fires)
+- [x] D4-07: Numbers are stable (stop animating) after reaching target
+
+#### D5 — Skeleton loading states
+- [x] D5-01: Risk Register shows skeleton table while hydrating
+- [x] D5-02: Actions page shows skeleton while hydrating
+- [x] D5-03: Controls page shows skeleton while hydrating
+- [x] D5-04: Horizon Scanning shows skeleton cards while hydrating
+- [x] D5-05: Shimmer animation is smooth and looping
+- [x] D5-06: Skeleton immediately replaced by real content once store hydration completes
+- [x] D5-07: No flash of empty state (skeleton shown from t=0)
+
+### Build: ✅ PASSING (zero TypeScript errors)
+### UAT: ✅ PASS — no FAILs, no blockers
+### Designer: ✅ CONSISTENT — no design system deviations
+
+---
+
+## PREVIOUSLY COMPLETED: Controls & Consumer Duty Deep Polish ✅ COMPLETE
 
 ### Context
 Multiple interconnected improvements across Controls, Consumer Duty, Actions, and the Export Centre.

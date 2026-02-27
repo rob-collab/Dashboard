@@ -11,6 +11,9 @@ import { HorizonItemCard } from "@/components/horizon/HorizonItemCard";
 import { HorizonDetailPanel } from "@/components/horizon/HorizonDetailPanel";
 import { HorizonFormDialog } from "@/components/horizon/HorizonFormDialog";
 import { cn } from "@/lib/utils";
+import { MotionListDiv } from "@/components/motion/MotionList";
+import { MotionDiv } from "@/components/motion/MotionRow";
+import { SkeletonCard } from "@/components/common/SkeletonLoader";
 
 const URGENCY_ORDER: HorizonUrgency[] = ["HIGH", "MEDIUM", "LOW"];
 
@@ -23,6 +26,7 @@ const URGENCY_SECTION_STYLES: Record<HorizonUrgency, { label: string; headerBg: 
 export default function HorizonScanningPage() {
   const { data: session } = useSession();
   const { horizonItems, risks } = useAppStore();
+  const hydrated = useAppStore((s) => s._hydrated);
 
   const [selectedItem, setSelectedItem] = useState<HorizonItem | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -96,6 +100,14 @@ export default function HorizonScanningPage() {
   function handleExport() {
     window.location.href = "/api/horizon-items/export";
   }
+
+  if (!hydrated) return (
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} lines={4} />)}
+      </div>
+    </div>
+  );
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -242,11 +254,13 @@ export default function HorizonScanningPage() {
                   {items.length}
                 </span>
               </div>
-              <div className="space-y-2">
+              <MotionListDiv className="space-y-2">
                 {items.map((item) => (
-                  <HorizonItemCard key={item.id} item={item} onClick={setSelectedItem} />
+                  <MotionDiv key={item.id}>
+                    <HorizonItemCard item={item} onClick={setSelectedItem} />
+                  </MotionDiv>
                 ))}
-              </div>
+              </MotionListDiv>
             </div>
           );
         })}

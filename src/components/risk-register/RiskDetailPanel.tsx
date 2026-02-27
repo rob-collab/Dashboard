@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import type { Risk, RiskActionLink, ControlEffectiveness, RiskAppetite, DirectionOfTravel, ActionPriority } from "@/lib/types";
 import { RISK_ACCEPTANCE_STATUS_LABELS, RISK_ACCEPTANCE_STATUS_COLOURS } from "@/lib/types";
@@ -321,7 +322,13 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
       <div className="absolute inset-0 bg-black/30" onClick={handleCancel} />
 
       {/* Panel */}
-      <div className="relative w-full max-w-2xl bg-white shadow-2xl overflow-y-auto animate-slide-in-right">
+      <motion.div
+        className="relative w-full max-w-2xl panel-surface shadow-2xl overflow-y-auto"
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        transition={{ type: "spring", stiffness: 320, damping: 30 }}
+        style={{ willChange: "transform" }}
+      >
         {/* Header */}
         <div className="sticky top-0 z-10 bg-gradient-to-r from-updraft-deep to-updraft-bar px-6 py-4 flex items-center justify-between">
           <div className="min-w-0 flex-1">
@@ -1157,7 +1164,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
       <ConfirmDialog
         open={confirmDiscard}
         onClose={() => setConfirmDiscard(false)}

@@ -20,6 +20,7 @@ import type { ConsumerDutyMeasure, ConsumerDutyOutcome, ConsumerDutyMI, RAGStatu
 import { usePageTitle } from "@/lib/usePageTitle";
 import GlossaryTooltip from "@/components/common/GlossaryTooltip";
 import HistoryTab from "@/components/common/HistoryTab";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 
 type RagFilterValue = RAGStatus | "ALL" | "ATTENTION";
 
@@ -570,7 +571,7 @@ function ConsumerDutyContent() {
           )}
         >
           <p className="text-xs text-fca-gray">Total Measures</p>
-          <p className="text-2xl font-bold text-updraft-deep mt-1">{totalMeasures}</p>
+          <AnimatedNumber value={totalMeasures} className="text-2xl font-bold text-updraft-deep mt-1" />
           <p className="text-xs text-fca-gray mt-1">{outcomes.length} outcomes tracked</p>
         </button>
         <button
@@ -584,7 +585,7 @@ function ConsumerDutyContent() {
             <span className={cn("h-3 w-3 rounded-full rag-glow", ragBgColor("GOOD"))} />
             <p className="text-xs text-fca-gray">Green Measures</p>
           </div>
-          <p className="text-2xl font-bold text-risk-green mt-1">{measureGoodCount}</p>
+          <AnimatedNumber value={measureGoodCount} className="text-2xl font-bold text-risk-green mt-1" />
           <p className="text-xs text-fca-gray mt-1">{goodCount} green outcome{goodCount !== 1 ? "s" : ""}</p>
         </button>
         <button
@@ -598,7 +599,7 @@ function ConsumerDutyContent() {
             <span className={cn("h-3 w-3 rounded-full", ragBgColor("WARNING"))} />
             <p className="text-xs text-fca-gray">Amber Measures</p>
           </div>
-          <p className="text-2xl font-bold text-risk-amber mt-1">{measureWarningCount}</p>
+          <AnimatedNumber value={measureWarningCount} className="text-2xl font-bold text-risk-amber mt-1" />
           <p className="text-xs text-fca-gray mt-1">{warningCount} amber outcome{warningCount !== 1 ? "s" : ""}</p>
         </button>
         <button
@@ -612,7 +613,7 @@ function ConsumerDutyContent() {
             <span className={cn("h-3 w-3 rounded-full rag-pulse", ragBgColor("HARM"))} />
             <p className="text-xs text-fca-gray">Red Measures</p>
           </div>
-          <p className="text-2xl font-bold text-risk-red mt-1">{measureHarmCount}</p>
+          <AnimatedNumber value={measureHarmCount} className="text-2xl font-bold text-risk-red mt-1" />
           <p className="text-xs text-fca-gray mt-1">{harmCount} red outcome{harmCount !== 1 ? "s" : ""}</p>
         </button>
       </div>
@@ -644,7 +645,7 @@ function ConsumerDutyContent() {
             )}
           >
             <p className="text-xs text-fca-gray">Total Metrics</p>
-            <p className="text-2xl font-bold text-updraft-deep mt-1">{allMetrics.length}</p>
+            <AnimatedNumber value={allMetrics.length} className="text-2xl font-bold text-updraft-deep mt-1" />
             <p className="text-xs text-fca-gray mt-1">{allMeasures.length} measures</p>
           </button>
           <button
@@ -658,7 +659,7 @@ function ConsumerDutyContent() {
               <span className={cn("h-3 w-3 rounded-full rag-glow", ragBgColor("GOOD"))} />
               <p className="text-xs text-fca-gray">Green Metrics</p>
             </div>
-            <p className="text-2xl font-bold text-risk-green mt-1">{metricsGoodCount}</p>
+            <AnimatedNumber value={metricsGoodCount} className="text-2xl font-bold text-risk-green mt-1" />
           </button>
           <button
             onClick={() => setMetricsRagFilter(metricsRagFilter === "WARNING" ? "ALL" : "WARNING")}
@@ -671,7 +672,7 @@ function ConsumerDutyContent() {
               <span className={cn("h-3 w-3 rounded-full", ragBgColor("WARNING"))} />
               <p className="text-xs text-fca-gray">Amber Metrics</p>
             </div>
-            <p className="text-2xl font-bold text-risk-amber mt-1">{metricsWarningCount}</p>
+            <AnimatedNumber value={metricsWarningCount} className="text-2xl font-bold text-risk-amber mt-1" />
           </button>
           <button
             onClick={() => setMetricsRagFilter(metricsRagFilter === "HARM" ? "ALL" : "HARM")}
@@ -684,7 +685,7 @@ function ConsumerDutyContent() {
               <span className={cn("h-3 w-3 rounded-full rag-pulse", ragBgColor("HARM"))} />
               <p className="text-xs text-fca-gray">Red Metrics</p>
             </div>
-            <p className="text-2xl font-bold text-risk-red mt-1">{metricsHarmCount}</p>
+            <AnimatedNumber value={metricsHarmCount} className="text-2xl font-bold text-risk-red mt-1" />
           </button>
         </div>
       )}

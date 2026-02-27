@@ -65,6 +65,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import WelcomeBanner from "@/components/common/WelcomeBanner";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 import { HorizonDashboardWidget } from "@/components/horizon/HorizonDashboardWidget";
 
 function daysUntilDue(dueDate: string | null): number | null {
@@ -1530,19 +1531,19 @@ export default function DashboardHome() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Link href="/actions?status=OPEN" className="rounded-xl border border-blue-100 p-3 cursor-pointer hover:border-blue-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #EFF6FF 0%, #F0F7FF 100%)" }}>
             <p className="text-xs text-text-secondary">Open</p>
-            <p className="text-2xl font-bold font-poppins text-blue-700">{actionStats.open}</p>
+            <AnimatedNumber value={actionStats.open} className="text-2xl font-bold font-poppins text-blue-700" />
           </Link>
           <Link href="/actions?status=OVERDUE" className="rounded-xl border border-red-100 p-3 cursor-pointer hover:border-red-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #FEF2F2 0%, #FFF5F5 100%)" }}>
             <p className="text-xs text-text-secondary">Overdue</p>
-            <p className="text-2xl font-bold font-poppins text-red-700">{actionStats.overdue}</p>
+            <AnimatedNumber value={actionStats.overdue} className="text-2xl font-bold font-poppins text-red-700" />
           </Link>
           <Link href="/actions?status=DUE_THIS_MONTH" className="rounded-xl border border-amber-100 p-3 cursor-pointer hover:border-amber-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEFCE8 100%)" }}>
             <p className="text-xs text-text-secondary">Due This Month</p>
-            <p className="text-2xl font-bold font-poppins text-amber-700">{actionStats.dueThisMonth}</p>
+            <AnimatedNumber value={actionStats.dueThisMonth} className="text-2xl font-bold font-poppins text-amber-700" />
           </Link>
           <Link href="/actions?status=COMPLETED" className="rounded-xl border border-blue-100 p-3 cursor-pointer hover:border-blue-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #EFF6FF 0%, #F0F7FF 100%)" }}>
             <p className="text-xs text-text-secondary">Completed</p>
-            <p className="text-2xl font-bold font-poppins text-blue-700">{actionStats.completed}</p>
+            <AnimatedNumber value={actionStats.completed} className="text-2xl font-bold font-poppins text-blue-700" />
           </Link>
         </div>
       </div>
@@ -1788,25 +1789,19 @@ export default function DashboardHome() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Link href="/risk-register" className="rounded-xl border border-[#E8E6E1] bg-surface-warm p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all">
             <p className="text-xs text-text-secondary">Total Risks</p>
-            <p className="text-2xl font-bold font-poppins text-updraft-deep">{risks.length}</p>
+            <AnimatedNumber value={risks.length} className="text-2xl font-bold font-poppins text-updraft-deep" />
           </Link>
           <Link href="/risk-register?filter=LOW" className="rounded-xl border border-green-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%)" }}>
             <p className="text-xs text-text-secondary">Low Risk</p>
-            <p className="text-2xl font-bold font-poppins text-green-700">
-              {risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) <= 4).length}
-            </p>
+            <AnimatedNumber value={risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) <= 4).length} className="text-2xl font-bold font-poppins text-green-700" />
           </Link>
           <Link href="/risk-register?filter=MEDIUM" className="rounded-xl border border-amber-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEFCE8 100%)" }}>
             <p className="text-xs text-text-secondary">Medium Risk</p>
-            <p className="text-2xl font-bold font-poppins text-amber-700">
-              {risks.filter((r) => { const s = getRiskScore(r.residualLikelihood, r.residualImpact); return s > 4 && s <= 12; }).length}
-            </p>
+            <AnimatedNumber value={risks.filter((r) => { const s = getRiskScore(r.residualLikelihood, r.residualImpact); return s > 4 && s <= 12; }).length} className="text-2xl font-bold font-poppins text-amber-700" />
           </Link>
           <Link href="/risk-register?filter=HIGH" className="rounded-xl border border-red-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #FEF2F2 0%, #FFF5F5 100%)" }}>
             <p className="text-xs text-text-secondary">High Risk</p>
-            <p className="text-2xl font-bold font-poppins text-red-700">
-              {risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) > 12).length}
-            </p>
+            <AnimatedNumber value={risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) > 12).length} className="text-2xl font-bold font-poppins text-red-700" />
           </Link>
         </div>
       </div>

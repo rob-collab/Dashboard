@@ -18,7 +18,8 @@ import RiskCSVUploadDialog from "@/components/risk-register/RiskCSVUploadDialog"
 import { usePageTitle } from "@/lib/usePageTitle";
 import { useHasPermission } from "@/lib/usePermission";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
-import { PageLoadingState } from "@/components/common/LoadingState";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
+import { SkeletonStatRow, SkeletonTable } from "@/components/common/SkeletonLoader";
 
 type ViewTab = "heatmap" | "table";
 type ScoreMode = "inherent" | "residual" | "overlay";
@@ -589,7 +590,12 @@ export default function RiskRegisterPage() {
     { key: "IN_FOCUS", value: inFocusCount, label: "In Focus", colour: "text-amber-500" },
   ];
 
-  if (!hydrated) return <PageLoadingState />;
+  if (!hydrated) return (
+    <div className="space-y-6">
+      <SkeletonStatRow count={6} />
+      <SkeletonTable rows={8} cols={6} />
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -732,7 +738,7 @@ export default function RiskRegisterPage() {
               }`}
             >
               <div className="flex items-center justify-between">
-                <div className={`text-2xl font-bold ${card.colour}`}>{card.value}</div>
+                <AnimatedNumber value={card.value} className={`text-2xl font-bold ${card.colour}`} />
                 {Icon && <Icon className={`w-5 h-5 ${card.colour} opacity-60`} />}
               </div>
               <div className="text-xs text-gray-500 mt-0.5">{card.label}</div>

@@ -3,13 +3,15 @@
 import { useState, useMemo, useCallback } from "react";
 import type { Risk } from "@/lib/types";
 import { useAppStore } from "@/lib/store";
-import { L1_CATEGORY_COLOURS, L1_CATEGORIES as FALLBACK_L1, getRiskScore, getAppetiteMaxScore } from "@/lib/risk-categories";
+import { L1_CATEGORY_COLOURS, L1_CATEGORIES as FALLBACK_L1, getRiskScore, getRiskLevel, getAppetiteMaxScore } from "@/lib/risk-categories";
 import ScoreBadge from "./ScoreBadge";
 import DirectionArrow from "./DirectionArrow";
 import { EmptyState } from "@/components/common/EmptyState";
 import { naturalCompare } from "@/lib/utils";
 import { ChevronUp, ChevronDown, Search, Filter, ShieldAlert, Star, AlertTriangle } from "lucide-react";
 import { useHasPermission } from "@/lib/usePermission";
+import { MotionList } from "@/components/motion/MotionList";
+import { MotionTr } from "@/components/motion/MotionRow";
 
 type SortField = "reference" | "name" | "categoryL1" | "owner" | "inherent" | "residual" | "direction" | "lastReviewed" | "nextReview" | "vsAppetite";
 type SortDir = "asc" | "desc";
@@ -205,11 +207,11 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <MotionList className="divide-y divide-gray-100">
             {sorted.map((risk) => {
               const catColour = L1_CATEGORY_COLOURS[risk.categoryL1];
               return (
-                <tr
+                <MotionTr
                   key={risk.id}
                   onClick={() => onRiskClick(risk)}
                   className="hover:bg-updraft-pale-purple/10 cursor-pointer transition-colors"
@@ -255,7 +257,17 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
                   </td>
                   <td className="px-3 py-3 text-gray-600 max-w-[120px] truncate">{getOwnerName(risk)}</td>
                   <td className="px-3 py-3">
-                    <ScoreBadge likelihood={risk.inherentLikelihood} impact={risk.inherentImpact} size="sm" />
+                    {(() => {
+                      const inherentLevel = getRiskLevel(getRiskScore(risk.inherentLikelihood, risk.inherentImpact));
+                      const glowClass =
+                        inherentLevel.level === "Very High" ? "badge-glow-red rounded-md" :
+                        inherentLevel.level === "High" ? "badge-glow-amber rounded-md" : "";
+                      return (
+                        <span className={glowClass}>
+                          <ScoreBadge likelihood={risk.inherentLikelihood} impact={risk.inherentImpact} size="sm" />
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-3 py-3">
                     <ScoreBadge likelihood={risk.residualLikelihood} impact={risk.residualImpact} size="sm" />
@@ -313,7 +325,7 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
                       </td>
                     );
                   })()}
-                </tr>
+                </MotionTr>
               );
             })}
             {sorted.length === 0 && (
@@ -327,7 +339,7 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
                 </td>
               </tr>
             )}
-          </tbody>
+          </MotionList>
         </table>
       </div>
 

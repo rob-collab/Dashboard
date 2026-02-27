@@ -3,6 +3,7 @@
 import "./globals.css";
 import { useState, useCallback, useEffect, Suspense } from "react";
 import { usePathname } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import { Toaster } from "sonner";
 import { SessionProvider, useSession } from "@/lib/auth";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -209,10 +210,19 @@ function AppShell({ children }: { children: React.ReactNode }) {
                 <div className="h-10 w-10 animate-spin rounded-full border-4 border-updraft-bright-purple border-t-transparent" />
               </div>
             }>
-              <div className="p-6 max-w-[1400px] mx-auto">
-                <Breadcrumb />
-                {children}
-              </div>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={pathname}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="p-6 max-w-[1400px] mx-auto"
+                >
+                  <Breadcrumb />
+                  {children}
+                </motion.div>
+              </AnimatePresence>
             </Suspense>
           </ErrorBoundary>
         </main>
