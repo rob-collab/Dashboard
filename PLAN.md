@@ -1,5 +1,5 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-27 (Sprint I: Inner Element Control — element order, hide/show per section)
+Last updated: 2026-02-27 (Full audit complete — Sprints J–O planned)
 
 ## COMPLETED SPRINT: Sprint H — Dashboard Enhancements ✅ COMPLETE
 
@@ -3112,6 +3112,371 @@ Files: prisma/seed.ts
 - NEXT_PUBLIC_APP_URL=https://dashboard-u6ay.vercel.app (set in Vercel)
 
 ---
+
+---
+
+## FULL AUDIT FINDINGS — Sprint J Onwards
+Last updated: 2026-02-27 (8 specialist agents: data saving, editability, click-through, navigation,
+animation, security, UX/a11y, designer/UAT, compliance domain, technical debt)
+
+---
+
+## SPRINT J — Security Hardening (URGENT — ship before any external demo)
+
+### Context
+8 specialist agents identified **multiple unauthenticated API GET endpoints** exposing sensitive
+compliance data (reports, controls, audit logs, permissions, user records) without any auth check.
+This is the highest-priority issue in the entire codebase.
+
+### J1 — Add authentication to all unauthenticated GET endpoints
+Files to fix (each needs `getUserId(request)` + 401 guard at top of GET handler):
+- `src/app/api/reports/route.ts`
+- `src/app/api/controls/library/route.ts`
+- `src/app/api/audit/route.ts`
+- `src/app/api/settings/route.ts`
+- `src/app/api/permissions/route.ts`
+- `src/app/api/users/[id]/route.ts`
+- `src/app/api/permissions/users/[id]/route.ts`
+- `src/app/api/actions/route.ts` (GET)
+
+### J2 — Fix XSS: add sanitiseHTML to TextBlock and AccordionSection
+- `src/components/sections/TextBlock.tsx` line 42 — `dangerouslySetInnerHTML` with no DOMPurify
+- `src/components/sections/AccordionSection.tsx` line 83 — same pattern
+- Match the pattern already used in `SectionRenderer` and `ComponentsPanel`
+
+### J3 — Gate DEV_BYPASS_AUTH behind NODE_ENV === 'development'
+- `src/middleware.ts` and `src/app/api/auth/session/route.ts`
+- Ensure dev bypass code cannot run in production environment
+
+### J4 — Add audit logging for permission changes
+- `src/app/api/permissions/route.ts` and `src/app/api/permissions/users/[id]/route.ts`
+- Call `auditLog()` on every POST/PUT/DELETE — currently silent (FCA compliance gap)
+
+### J5 — Add security headers middleware
+- `src/middleware.ts` — add `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`,
+  `X-Frame-Options: DENY` to all responses
+
+### Acceptance Criteria
+- [ ] J1: Every GET endpoint returns 401 without auth header
+- [ ] J2: Both components call sanitiseHTML before dangerouslySetInnerHTML
+- [ ] J3: DEV_BYPASS_AUTH code wrapped in `if (process.env.NODE_ENV !== 'production')`
+- [ ] J4: Permission changes appear in audit log
+- [ ] J5: Security headers present on every response
+- [ ] Build passes — zero errors
+
+---
+
+## SPRINT K — Critical UX Fixes (CCRO Product Requirements)
+
+### Context
+Multiple violations of the "bento cards must be interactive filters" product rule, a non-functional
+CSS class causing silent transition failures, missing error toasts in ControlDetailModal, and the
+dashboard losing all state on back-navigation.
+
+### K1 — Fix transition-colours → transition-colors (non-functional Tailwind class)
+- `src/components/settings/ComponentsPanel.tsx` — replace all `transition-colours` (invalid)
+- `src/components/settings/BusinessAreaDrillDown.tsx` — same fix
+- Tailwind uses American CSS class names; `transition-colours` silently does nothing
+
+### K2 — Add interactive filter behaviour to missing bento cards
+Review these pages and wire every stat card that shows a count to filter the list below:
+- Controls page dashboard tab — pass rate, controls tested, overdue tests
+- Compliance overview — regulation status breakdowns
+- Consumer Duty — top RAG row stat cards (are not click-targets)
+- Confirm dashboard section bento cards are all wired (many were, some may not be)
+
+### K3 — Add error toasts to ControlDetailModal link/unlink/delete operations
+- `src/components/controls/ControlDetailModal.tsx`
+- `handleLinkAction`, `handleUnlinkAction`, `handleDeleteAction` — all have `console.error` but no `toast.error`
+- User currently gets no feedback when these operations fail
+
+### K4 — Dashboard URL state persistence
+- `src/app/page.tsx` — add URL params for active filters (e.g. `?riskFilter=HIGH`)
+- Dashboard is the ONLY main page with no URL state persistence
+- On back-navigation from any detail page, all dashboard filters are lost
+
+### K5 — Distinguish Action OPEN and COMPLETED status colours
+- Both use `text-blue-600 bg-blue-100` — visually identical
+- OPEN: keep blue. COMPLETED: use green (`text-green-600 bg-green-50`)
+- Update in `ActionDetailPanel.tsx` STATUS_CONFIG and matching in `actions/page.tsx`
+
+### K6 — Show background sync errors to user
+- `src/lib/store.ts` — `_saveError: string | null` exists but is never rendered
+- Add a persistent error banner or toast when `_saveError` is non-null after retries
+- Prevents silent data loss from failed background syncs
+
+### K7 — Add MEDIUM and LOW risk bento cards to Risk Register
+- `src/app/risk-register/page.tsx` — `cards` array only has VERY_HIGH and HIGH
+- Add MEDIUM and LOW cards — filter logic already works, just missing from `cards` array
+- Tiny change, high visibility for a CRO scanning the register
+
+### Acceptance Criteria
+- [ ] K1: `transition-colours` eliminated; transitions work on settings components
+- [ ] K2: All bento card counts on all pages filter the view on click with active styling
+- [ ] K3: ControlDetailModal shows error toast on link/unlink/delete failure
+- [ ] K4: Dashboard filter state survives back-navigation (URL params)
+- [ ] K5: OPEN and COMPLETED action statuses visually distinct (different colours)
+- [ ] K6: User sees error notification if background sync fails after retries
+- [ ] K7: MEDIUM and LOW risk cards present and clickable on risk register
+- [ ] Build passes — zero errors
+
+---
+
+## SPRINT L — Click-Through & Navigation Polish
+
+### Context
+User names (owners, assignees, creators) are text-only throughout the entire application —
+a CRO cannot click an owner name to filter to that person's items. Horizon Item links to
+risk/action register need verification. Detail panels have no entrance animations.
+
+### L1 — Make user names clickable (filter by owner/assignee)
+Throughout the app, risk owners, action assignees, control owners, policy owners appear as
+plain text labels. Add a click handler to each that sets the relevant filter to that user:
+- Risk register: click risk owner → filter to that owner's risks
+- Actions page: click assignee → filter to that person's actions
+- Consumer Duty measure owner (currently free-text string — see L5)
+- Controls library: control owner → filter to that owner's controls
+Pattern: wrap in a `<button>` with `onClick={() => setOwnerFilter(userId)}` + URL param sync
+
+### L2 — Verify and fix Horizon Item ↔ Risk/Action click-through
+- Read `src/components/horizon/HorizonDetailPanel.tsx`
+- Confirm `HorizonRiskLink` and `HorizonActionLink` items render as EntityLink
+- If text-only: convert to EntityLink with correct `type` and navigation
+
+### L3 — Consumer Duty measure reference → EntityLink
+- Where outcome → measure references appear as plain text in tables/displays
+- Convert to navigable EntityLink or click handler opening the measure panel
+
+### L4 — Replace browser confirm() with custom ConfirmDialog
+- `src/app/actions/page.tsx` line 302 (and similar in other pages) uses native `confirm()`
+- Replace with `<ConfirmDialog>` component (already exists, just not used here)
+- Check all pages for `confirm(` and replace
+
+### L5 — Fix ConsumerDutyMeasure.owner: convert free-text to FK
+- Schema: `ConsumerDutyMeasure.owner String?` → `ownerId String?` + relation to User
+- Align with every other entity that uses FK-based ownership
+- Update seed, API, and UI component
+
+### L6 — Add entrance animations to detail panels
+- RiskDetailPanel, ActionDetailPanel, ControlDetailModal, ProcessDetailPanel, HorizonDetailPanel
+- Add `animate-slide-up-fade` or framer-motion `motion.div` fade-in when panel opens
+- Adds polish and signals to user that a new context has loaded
+
+### L7 — Add focus traps and ARIA to ConfirmDialog and NotificationDrawer
+- `src/components/common/ConfirmDialog.tsx` — add `role="dialog"`, `aria-modal="true"`, focus trap
+- `src/components/common/NotificationDrawer.tsx` — same
+- Copy the focus trap pattern from `Modal.tsx` lines 44–71
+
+### Acceptance Criteria
+- [ ] L1: Owner/assignee names are clickable filters on risks, actions, and controls pages
+- [ ] L2: Horizon detail panel links to risks and actions as EntityLink
+- [ ] L3: Consumer Duty measure text references converted to clickable links
+- [ ] L4: No `confirm()` calls remain; all use ConfirmDialog
+- [ ] L5: ConsumerDutyMeasure.ownerId FK + migration applied
+- [ ] L6: Detail panel entrance animation on open
+- [ ] L7: ConfirmDialog and NotificationDrawer have focus traps and ARIA attributes
+- [ ] Build passes
+
+---
+
+## SPRINT M — Animation Consistency & UX Polish
+
+### Context
+Animation agent found: Reports page and Audit page have NO AnimatedNumber. ScrollReveal is
+only used on dashboard — all other long-scroll pages miss it. Chart animations inconsistent.
+User wants animations to fire on scroll, not just page load.
+
+### M1 — Add AnimatedNumber to Reports and Audit pages
+- `src/app/reports/page.tsx` — wrap report status counts (draft/published/archived)
+- `src/app/audit/page.tsx` — wrap audit log stats and action count filters
+- `src/app/processes/page.tsx` — process count summary stats
+
+### M2 — Apply ScrollReveal to long-scroll pages
+Apply ScrollReveal wrapper to content sections on:
+- `src/app/reports/page.tsx` — report cards
+- `src/app/audit/page.tsx` — audit log rows (batch of 20)
+- `src/app/processes/page.tsx` — process cards
+- `src/app/risk-acceptances/page.tsx` — acceptance detail cards
+- Detail panel sections (when long — e.g. links section scrolling into view)
+
+### M3 — Staggered stat card entrance
+Where groups of stat cards appear (e.g. Risk Register top row, Actions top row),
+add a staggered delay (50ms per card) so cards cascade in rather than pop all at once.
+Use AnimatedNumber's existing `delay` prop + a cascade index.
+
+### M4 — Refresh AnimatedNumber on data change
+Currently AnimatedNumber only fires once on mount. When the Zustand store hydrates
+or updates, re-trigger the count-up animation by updating a key prop.
+Affects: all dashboard stat cards, risk summary tiles, action pipeline counts.
+
+### M5 — Tab cross-fade transition
+When switching tabs on any page, content should fade out/in (150ms) rather than instant swap.
+Implement with AnimatePresence + motion.div keyed on active tab.
+
+### M6 — Add "Last Refreshed" timestamp to dashboard
+A CRO cannot tell if dashboard data is live or cached.
+Add a small "Refreshed 2 min ago" indicator in the dashboard toolbar that shows
+`store.hydratedAt` (or a computed timestamp from last API call).
+
+### M7 — Add overdue review warning on Risk Register
+Risks with `lastReviewed` older than `reviewFrequencyDays` ago should show a subtle
+amber badge "Review Overdue" in the risk row and in the detail panel header.
+Computed client-side, no API change needed.
+
+### Acceptance Criteria
+- [ ] M1: Reports and Audit pages show AnimatedNumber on all count stats
+- [ ] M2: ScrollReveal applied to all long-scroll page content
+- [ ] M3: Stat card groups cascade in (staggered delay)
+- [ ] M4: AnimatedNumber re-triggers on store data update
+- [ ] M5: Tab switches have cross-fade (AnimatePresence)
+- [ ] M6: Dashboard shows "last refreshed" timestamp
+- [ ] M7: Risk register shows "Review Overdue" badge on stale risks
+- [ ] Build passes
+
+---
+
+## SPRINT N — Domain Completeness & Email Automation
+
+### Context
+Compliance agent identified critical domain gaps. Technical debt agent found the overdue
+action email cron was 95% built but never wired. These items directly affect regulatory
+adequacy.
+
+### N1 — Wire automated overdue action email alerts (Vercel cron)
+- `src/app/api/actions/remind/route.ts` already has `CRON_SECRET` env var support
+- Create `vercel.json` with cron config: `{ "crons": [{ "path": "/api/actions/remind", "schedule": "0 8 * * 1-5" }] }`
+- Add `Authorization: Bearer ${CRON_SECRET}` header check to the route
+- Risk review-due: add a second cron endpoint for overdue risk reviews
+
+### N2 — Risk acceptance workflow email notifications
+- When status changes to `AWAITING_APPROVAL` → email the designated approver
+- When status changes to `APPROVED` or `REJECTED` → email the requestor
+- Use existing Resend integration (`src/lib/email.ts`)
+
+### N3 — Direct Risk ↔ Regulation linkage
+- Add `RiskRegulationLink` join table to schema (riskId, regulationId, notes)
+- API: GET /api/risks/[id]/regulation-links, POST/DELETE
+- UI: add "Regulatory Obligations" tab or linked items section in RiskDetailPanel
+- EntityLink navigation in both directions
+
+### N4 — Risk appetite breach surfaced on Register
+- In `risk-register/page.tsx` and `RiskDetailPanel`, compute and display whether
+  residual score exceeds the stated appetite threshold (logic exists in `calculateBreach`)
+- Show amber "Appetite Breach" badge on risk rows where residual > appetite
+- Add "In Breach" filter card to the bento card row
+
+### N5 — Expand risk appetite scale to include HIGH
+- Schema: add `HIGH` to the `RiskAppetite` enum
+- Update all dropdowns, seed data, and display labels
+- Current truncated scale (VERY_LOW / LOW / LOW_TO_MODERATE / MODERATE) is insufficient
+  for lending/insurance firms with higher-appetite business areas
+
+### N6 — Fix "HARM" RAG label for non-Consumer-Duty contexts
+- `HARM` is Consumer Duty terminology (PS22/9). Using it on operational risk controls
+  and general risk register is inaccurate
+- Rename to context-sensitive labels: Consumer Duty keeps HARM; Risk Register uses CRITICAL;
+  Controls uses FAILING
+- Update `ragLabel()` utility to accept a context parameter
+
+### N7 — Add "2LOD & 1LOD Controls Testing" heading correction
+- `src/app/controls/page.tsx` line 94 reads "2LOD Controls Testing"
+- The attestation tab captures 1LoD (first-line) sign-off too
+- Update to "Controls Testing & Attestation" or "1LoD + 2LoD Controls Framework"
+
+### Acceptance Criteria
+- [ ] N1: Nightly cron fires via Vercel; overdue action emails sent to assignees
+- [ ] N2: Risk acceptance status-change emails sent to approver/requestor
+- [ ] N3: Risks can be linked to regulations; links shown as EntityLink in both panels
+- [ ] N4: Appetite breach badge shown on risk register and detail panel
+- [ ] N5: HIGH option added to risk appetite scale throughout
+- [ ] N6: RAG labels context-sensitive (HARM only in Consumer Duty)
+- [ ] N7: Controls page heading corrected
+- [ ] Build passes
+
+---
+
+## SPRINT O — Technical Debt & Performance
+
+### Context
+Technical debt agent found: page.tsx is 2,418 lines, dead Supabase dependency, missing DB
+indexes, several large components, DashboardNotification.type is an unvalidated string.
+
+### O1 — Split src/app/page.tsx into section components
+Extract each dashboard section into a standalone component in `src/components/dashboard/`:
+- `WelcomeSection` (welcome banner)
+- `NotificationBannersSection` (notifications)
+- `ActionRequiredWrapper` (already extracted as ActionRequiredSection)
+- `PriorityActionsSection`
+- `RiskAcceptancesSection`
+- etc.
+page.tsx becomes a composition of `<SectionComponents>` — target < 400 lines
+
+### O2 — Remove dead Supabase dependency
+- Delete `src/lib/supabase.ts` (never imported)
+- Remove `@supabase/auth-helpers-nextjs` and `@supabase/supabase-js` from package.json
+- Run `npm install` to update lock file
+
+### O3 — Add missing DB indexes
+```prisma
+@@index([approvalStatus]) on Risk, Action, Control
+@@index([periodYear, periodMonth]) on ControlAttestation
+```
+Run `npx prisma db push`
+
+### O4 — Convert DashboardNotification.type to Prisma enum
+```prisma
+enum NotificationType { INFO WARNING URGENT }
+// Change type String @default("info") → type NotificationType @default(INFO)
+```
+Migration: update existing rows to uppercase enum values
+
+### O5 — Fix @types/uuid redundant dependency
+- Remove `@types/uuid` from devDependencies (uuid@13 ships its own types)
+- Verify no type conflicts from removal
+
+### O6 — Upgrade isomorphic-dompurify from RC to stable
+- `"isomorphic-dompurify": "^3.0.0-rc.2"` → `"^3.0.0"` (stable)
+- Security library should not be on a release candidate
+
+### O7 — Fix setTimeout not cleaned up in CDRadialRing and ActionRequiredSection
+- Both components have a `setTimeout` inside a `setInterval` callback
+- The inner timeout is not cleaned up, causing state updates on unmounted components
+- Add `const innerTimeout = useRef<NodeJS.Timeout>()` and clear in cleanup
+
+### O8 — Wrap CSS animations in prefers-reduced-motion
+- `src/app/globals.css` — `@keyframes shimmer`, `@keyframes pop-in`, `@keyframes rag-pulse`
+- Wrap with `@media (prefers-reduced-motion: no-preference) { ... }`
+- Existing JS-level check (useReducedMotion in layout.tsx) handles Framer Motion,
+  but raw CSS keyframe animations bypass it
+
+### O9 — Add not-found.tsx
+- Create `src/app/not-found.tsx` — branded 404 page with "Return to Dashboard" link
+- Currently invalid routes hit the generic error boundary
+
+### Acceptance Criteria
+- [ ] O1: page.tsx < 400 lines; each section is an independently importable component
+- [ ] O2: Supabase packages removed; bundle size decreases; no import errors
+- [ ] O3: DB indexes applied; `npx prisma db push` succeeds
+- [ ] O4: DashboardNotification.type is NotificationType enum; migration applied
+- [ ] O5: @types/uuid removed; build passes
+- [ ] O6: isomorphic-dompurify on stable release
+- [ ] O7: No "Cannot call setState on unmounted component" warnings
+- [ ] O8: CSS animations gated behind prefers-reduced-motion media query
+- [ ] O9: 404 page renders on invalid routes
+- [ ] Build passes
+
+---
+
+## AUDIT SUMMARY TABLE
+
+| Theme | Critical | High | Medium | Low |
+|-------|----------|------|--------|-----|
+| Security | 8 unauth endpoints, XSS risk | DEV bypass, IDOR | Auth retry, info leakage | Rate limiting, CSRF docs |
+| UX / Product | Bento cards not filtering, transition-colours | Dashboard no URL state, no error toast in modal | action colour, sync error UX | back confirm, mobile polish |
+| Click-through | — | User names text-only everywhere | Horizon links, CD measure links | Business area links |
+| Animation | — | Reports/Audit have none | ScrollReveal missing site-wide | Stagger, tab fade |
+| Domain/Regulatory | — | SMCR F&P gaps, no risk↔reg link | Risk appetite, RAG labels | Leading/lagging indicators |
+| Technical Debt | — | 2418-line page.tsx, XSS via dangerouslySetInnerHTML | Dead Supabase dep, DB indexes | setTimeout leaks, 1000+ line files |
 
 ## TECH NOTES FOR FUTURE REFERENCE
 
