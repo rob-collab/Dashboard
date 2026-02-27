@@ -3304,6 +3304,19 @@ Pattern: wrap in a `<button>` with `onClick={() => setOwnerFilter(userId)}` + UR
 - `src/components/common/NotificationDrawer.tsx` — same
 - Copy the focus trap pattern from `Modal.tsx` lines 44–71
 
+### L8 — Show loading indicator in detail panels during data fetch
+From ad2e22a UX audit (2026-02-27):
+- `ControlDetailModal.tsx`: sets `loading=true` during fetch but never renders a spinner/skeleton;
+  user sees blank or stale content briefly
+- `RiskDetailPanel.tsx`: same issue — full data fetch happens post-open with no visual indicator
+- Fix: render a skeleton or `<Loader2 animate-spin>` while `loading === true`
+
+### L9 — Add ARIA attributes to SearchableSelect
+From ad2e22a UX audit (2026-02-27):
+- `src/components/common/SearchableSelect.tsx` — no `role="listbox"`, `role="option"`,
+  `aria-expanded`, or `aria-selected` attributes; screen readers don't announce dropdown properly
+- Add ARIA attributes matching combobox pattern
+
 ### Acceptance Criteria
 - [ ] L1: Owner/assignee names are clickable filters on risks, actions, and controls pages
 - [ ] L2: Horizon detail panel links to risks and actions as EntityLink
@@ -3312,6 +3325,8 @@ Pattern: wrap in a `<button>` with `onClick={() => setOwnerFilter(userId)}` + UR
 - [ ] L5: ConsumerDutyMeasure.ownerId FK + migration applied
 - [ ] L6: Detail panel entrance animation on open
 - [ ] L7: ConfirmDialog and NotificationDrawer have focus traps and ARIA attributes
+- [ ] L8: ControlDetailModal and RiskDetailPanel show loading indicator during data fetch
+- [ ] L9: SearchableSelect has correct ARIA combobox attributes
 - [ ] Build passes
 
 ---
@@ -3510,6 +3525,19 @@ From a00a2a7 full-codebase audit:
 - Users who navigate by keyboard cannot interact with risk circles in the heatmap
 - Add keyboard navigation to risk circle elements
 
+### O13 — Dashboard store selector optimisation
+From ad2e22a UX/performance audit (2026-02-27):
+- `src/app/page.tsx` has 25+ individual `useAppStore()` selectors, each creating a separate
+  subscription; any store change causes a full re-render of all dashboard widgets
+- Replace with `useShallow()` grouped selectors or custom memoised selector per widget
+- Only needed if performance issues appear on slow devices; lower priority than O1
+
+### O14 — Add error boundaries to detail panels
+From ad2e22a UX/performance audit (2026-02-27):
+- `ControlDetailModal.tsx`, `RiskDetailPanel.tsx`, `ActionDetailPanel.tsx` have no error boundary
+- A crash in a nested component takes down the entire page instead of just the panel
+- Wrap each detail panel render in `<ErrorBoundary fallback={...}>`
+
 ### Acceptance Criteria
 - [ ] O1: page.tsx < 400 lines; each section is an independently importable component
 - [ ] O2: Supabase packages removed; bundle size decreases; no import errors
@@ -3523,6 +3551,8 @@ From a00a2a7 full-codebase audit:
 - [ ] O10: No hardcoded hex values (#fff) in ScoreBadge, RiskHeatmap, RiskHistoryChart
 - [ ] O11: ExportPanel.tsx inline styles replaced with Tailwind classes
 - [ ] O12: RiskHeatmap risk circles keyboard-accessible
+- [ ] O13: Dashboard store selectors consolidated (no unnecessary re-renders)
+- [ ] O14: ControlDetailModal, RiskDetailPanel, ActionDetailPanel wrapped in ErrorBoundary
 - [ ] Build passes
 
 ---
