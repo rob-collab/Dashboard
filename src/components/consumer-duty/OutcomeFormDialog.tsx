@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Modal from "@/components/common/Modal";
 import type { ConsumerDutyOutcome, RAGStatus } from "@/lib/types";
 import { generateId } from "@/lib/utils";
+import { AutoResizeTextarea } from "@/components/common/AutoResizeTextarea";
 
 interface OutcomeFormDialogProps {
   open: boolean;
@@ -222,9 +223,9 @@ export default function OutcomeFormDialog({
           <div className="space-y-4">
             <div>
               <label htmlFor="outcome-detailed-desc" className={labelClasses}>Detailed Description</label>
-              <textarea
+              <AutoResizeTextarea
                 id="outcome-detailed-desc"
-                rows={4}
+                minRows={4}
                 value={detailedDescription}
                 onChange={(e) => setDetailedDescription(e.target.value)}
                 placeholder="Comprehensive explanation of this outcome and what it monitors..."

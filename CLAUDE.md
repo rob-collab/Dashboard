@@ -93,10 +93,22 @@ Exceptions — skip questions only when the request is fully unambiguous and sin
 
 For every change request (features, fixes, improvements):
 
-0. **Read `tasks/lessons.md` before planning** — before writing a single line of PLAN.md or code,
-   scan the active L-entries and W-entries for patterns relevant to the work about to start.
-   Ask: "Do any of these lessons apply here? Could I repeat the same class of mistake?"
-   If a lesson is directly relevant, state it explicitly before proceeding.
+0. **Read `tasks/lessons.md` AND `tasks/patterns.md` before planning** — before writing a single
+   line of PLAN.md or code, scan both files for patterns relevant to the work about to start.
+
+   - `tasks/lessons.md`: scan active L-entries. Ask: "Could I repeat the same class of mistake?"
+   - `tasks/patterns.md`: scan the D-series design contract. Ask: "Does the work I'm about to do
+     touch a panel, table, form, navigation, badge, or cross-entity reference? If so, which
+     D-series rules apply?" Check specifically:
+     - Any new panel → D007, D016, D018, D020 (structure, textareas, sizing, edit unlock)
+     - Any cross-entity reference → D019 (EntityLink required)
+     - Any many-to-many display → D024 (linked items chip layout)
+     - Any panel with detail sections → D022 (collapsible sections)
+     - Any new route or panel opened by URL → D023 (URL state)
+     - Any table or list → D017 (text overflow truncation)
+     - Any new stat/summary card → D004 (must be interactive filter)
+
+   If a pattern is directly relevant, state it explicitly before writing the plan.
 
 1. **Write to PLAN.md first** — before touching any code, add the requested items to `PLAN.md` under a new sprint heading (or the current sprint if one is active). Include:
    - What is being changed and why
@@ -116,6 +128,13 @@ For every change request (features, fixes, improvements):
    - Are there edge cases or error paths that have not been handled?
    - Does the code follow existing patterns in the codebase (store pattern, UK spelling, brand colours, Prisma adapter, etc.)?
    - Has anything been discovered during implementation that should revise the plan — new risks, simpler approach, missing acceptance criteria?
+   - **Design contract check**: Re-read the relevant D-series entries in `tasks/patterns.md` for
+     everything this deliverable touches. Explicitly confirm or deny each:
+     - Panels: correct flex structure (D007/D018)? pencil edit unlock (D020)? AutoResizeTextarea (D016)?
+     - Cross-entity refs: all rendered as EntityLink (D019)? URL state wired (D023)?
+     - Many-to-many: chip layout with add/remove (D024)? Collapsible sections (D022)?
+     - Tables: truncation + title on all text cells (D017)? Bento cards are filters (D004)?
+     If any D-series rule is violated, fix it before marking the deliverable done.
    - **System integration check**: Does this feature touch entities (actions, risks, controls, etc.) that already exist elsewhere in the app? If so, explicitly confirm it wires into the existing views and data — same store slices, same API routes, same navigation patterns. Do not create parallel data paths for the same entity.
    - **Consistency check**: Does this introduce any inconsistency in design (layout, colours, typography, component patterns) or data presentation (how the same field is labelled, formatted, or sorted) compared to existing screens? If yes, state the inconsistency and describe how you will harmonise it — either by matching the new work to the existing pattern, or by proposing a deliberate upgrade to both.
 

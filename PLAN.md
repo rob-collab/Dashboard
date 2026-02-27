@@ -82,7 +82,7 @@ Last updated: 2026-02-27
 
 ---
 
-## CURRENT SPRINT: UX Foundations — Navigation, Resize & Overflow
+## CURRENT SPRINT: UX Foundations — Navigation, Resize & Overflow ✅ COMPLETE
 Last updated: 2026-02-27
 
 ### Context
@@ -94,19 +94,21 @@ spills out of table cells across the app — add truncation + tooltip.
 ### Deliverables
 
 #### E1 — Back button: extend to all navigation
-- [ ] E1-01: Store gains `_suppressNavPush: boolean` + `setSuppressNavPush` action
-- [ ] E1-02: `layout.tsx` tracks pathname changes, pushes prev pathname to `navigationStack` (unless suppressed or EntityLink already pushed same path)
-- [ ] E1-03: `NavigationBackButton` calls `setSuppressNavPush(true)` before navigating back to prevent double-push
+- [x] E1-01: Store gains `_suppressNavPush: boolean` + `setSuppressNavPush` action
+- [x] E1-02: `layout.tsx` tracks pathname changes, pushes prev pathname to `navigationStack` (unless suppressed or EntityLink already pushed same path)
+- [x] E1-03: `NavigationBackButton` calls `setSuppressNavPush(true)` before navigating back to prevent double-push
 
 #### E2 — AutoResizeTextarea in all detail panels
-- [ ] E2-01: `RiskAcceptanceDetailPanel` — 3 textareas (ccroNote, returnComment, approverRationale)
-- [ ] E2-02: `RegCalEventDetailPanel` — 1 textarea (description)
-- [ ] E2-03: `ConductRulesPanel` — 1 textarea (breach description)
-- [ ] E2-04: `OutcomeFormDialog` — 1 textarea (detailedDescription)
+- [x] E2-01: `RiskAcceptanceDetailPanel` — 3 textareas (ccroNote, returnComment, approverRationale)
+- [x] E2-02: `RegCalEventDetailPanel` — 1 textarea (description)
+- [x] E2-03: `ConductRulesPanel` — 1 textarea (breach description)
+- [x] E2-04: `OutcomeFormDialog` — 1 textarea (detailedDescription)
 
 #### E3 — Table text overflow fixed
-- [ ] E3-01: `DataTable` — all read-mode text cells get `truncate` class + `title` tooltip
-- [ ] E3-02: Other tables/views — audit and patch unprotected long-text columns
+- [x] E3-01: `DataTable` — all read-mode text cells get `truncate` class + `title` tooltip
+- [x] E3-02: `RiskTable` already protected (max-w + truncate on name/owner columns) — confirmed no other unprotected tables found in audit
+
+### Build: ✅ PASSING (zero TypeScript errors, 92/92 pages)
 
 ### Key Files
 | File | Change |

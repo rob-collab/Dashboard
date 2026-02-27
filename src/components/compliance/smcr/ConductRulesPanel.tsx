@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
+import { AutoResizeTextarea } from "@/components/common/AutoResizeTextarea";
 
 export default function ConductRulesPanel() {
   const conductRules = useAppStore((s) => s.conductRules);
@@ -259,12 +260,12 @@ export default function ConductRulesPanel() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
-              <textarea
+              <AutoResizeTextarea
                 value={newDescription}
                 onChange={(e) => setNewDescription(e.target.value)}
-                rows={3}
+                minRows={3}
                 placeholder="Describe the breach..."
-                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-updraft-light-purple resize-none"
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-updraft-light-purple"
               />
             </div>
             <button

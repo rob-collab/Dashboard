@@ -70,7 +70,7 @@ export default function DataTable({ content, editable, onChange }: DataTableProp
                   <td
                     key={ci}
                     className={cn(
-                      "border border-gray-200 px-3 py-2",
+                      "border border-gray-200 px-3 py-2 max-w-[240px]",
                       isRagCol && ragCellColor(cell) && `font-semibold ${ragCellColor(cell)}`
                     )}
                   >
@@ -82,7 +82,7 @@ export default function DataTable({ content, editable, onChange }: DataTableProp
                         className="w-full bg-transparent outline-none"
                       />
                     ) : (
-                      cell
+                      <span className="block truncate" title={cell}>{cell}</span>
                     )}
                   </td>
                 );

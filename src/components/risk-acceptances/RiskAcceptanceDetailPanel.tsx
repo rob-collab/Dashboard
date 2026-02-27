@@ -11,6 +11,7 @@ import { formatDate } from "@/lib/utils";
 import { getRiskScore, getAppetiteMaxScore, calculateBreach, APPETITE_DISPLAY } from "@/lib/risk-categories";
 import ScoreBadge from "@/components/risk-register/ScoreBadge";
 import type { RiskAcceptance, RiskAcceptanceStatus, RiskAcceptanceComment as RAComment } from "@/lib/types";
+import { AutoResizeTextarea } from "@/components/common/AutoResizeTextarea";
 import { RISK_ACCEPTANCE_STATUS_LABELS, RISK_ACCEPTANCE_STATUS_COLOURS, RISK_ACCEPTANCE_SOURCE_LABELS } from "@/lib/types";
 
 interface Props {
@@ -484,7 +485,7 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">CCRO Note (optional)</label>
-                      <textarea value={ccroNote} onChange={(e) => setCcroNote(e.target.value)} rows={2} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" placeholder="Note for the approver..." />
+                      <AutoResizeTextarea value={ccroNote} onChange={(e) => setCcroNote(e.target.value)} minRows={2} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" placeholder="Note for the approver..." />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Review Date</label>
@@ -496,7 +497,7 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
                 {ccroDecision === "return" && (
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Reason for Return</label>
-                    <textarea value={returnComment} onChange={(e) => setReturnComment(e.target.value)} rows={2} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" placeholder="Why is this being returned?" required />
+                    <AutoResizeTextarea value={returnComment} onChange={(e) => setReturnComment(e.target.value)} minRows={2} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" placeholder="Why is this being returned?" required />
                   </div>
                 )}
 
@@ -539,7 +540,7 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Rationale <span className="text-red-500">*</span></label>
-                  <textarea value={approverRationale} onChange={(e) => setApproverRationale(e.target.value)} rows={3} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" placeholder="Reason for your decision..." required />
+                  <AutoResizeTextarea value={approverRationale} onChange={(e) => setApproverRationale(e.target.value)} minRows={3} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" placeholder="Reason for your decision..." required />
                 </div>
                 {approverDecision === "accept" && (
                   <div>

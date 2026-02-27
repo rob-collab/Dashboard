@@ -9,6 +9,7 @@ import { REG_CAL_TYPE_LABELS, REG_CAL_TYPE_COLOURS } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { AutoResizeTextarea } from "@/components/common/AutoResizeTextarea";
 
 const EVENT_TYPES: RegCalEventType[] = ["DEADLINE", "SUBMISSION", "REVIEW", "CONSULTATION", "INTERNAL_DEADLINE"];
 const SOURCES = ["FCA", "PRA", "DORA", "INTERNAL", "OTHER"];
@@ -204,8 +205,8 @@ export default function RegCalEventDetailPanel({ event, onClose }: RegCalEventDe
                 </div>
                 <div className="col-span-2">
                   <label className="text-xs font-medium text-gray-600 block mb-1">Description</label>
-                  <textarea rows={3} value={editForm.description} onChange={(e) => set({ description: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30" />
+                  <AutoResizeTextarea minRows={3} value={editForm.description} onChange={(e) => set({ description: e.target.value })}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30" />
                 </div>
               </div>
               <div className="flex gap-2 pt-2">

@@ -643,6 +643,162 @@ if (isCCROTeam) { /* show admin controls */ }
 
 ---
 
+### D022 — Collapsible Section Pattern
+
+**Component:** `<CollapsibleSection>` — find in `src/components/common/CollapsibleSection.tsx`
+
+**When to use:** Any panel or page that has more content than fits comfortably on screen. Group related fields into named sections; collapse the lower-priority ones by default so the user sees the most important data first without scrolling.
+
+**Standard usage:**
+```tsx
+<CollapsibleSection title="Linked Controls" defaultOpen={linkedControls.length > 0}>
+  {/* content */}
+</CollapsibleSection>
+```
+
+**`defaultOpen` rules:**
+| Condition | defaultOpen |
+|---|---|
+| Section contains critical/primary data (description, status, scores) | `true` |
+| Section contains secondary data (notes, history, metadata) | `false` |
+| Section contains alerts or items requiring action | `true` if items exist, `false` if empty |
+| Section is a long list of linked items | `false` — user expands when needed |
+
+**Auto-expand when items exist:**
+```tsx
+// Expand automatically only if there's something to show
+<CollapsibleSection title="Breaches" defaultOpen={breaches.length > 0}>
+```
+
+**Ordering within a panel (top to bottom):**
+1. Primary identity fields (name, reference, status, owner) — always visible, not collapsible
+2. Key data (scores, dates, description) — `defaultOpen: true`
+3. Linked entities (risks, controls, actions) — `defaultOpen: false` unless count > 0
+4. Workflow / decision sections (approvals, routing) — `defaultOpen: true` only when action required
+5. History / audit trail — `defaultOpen: false`
+
+**Never** put all fields in one flat scroll. If a panel has more than ~6 fields, group them.
+
+---
+
+### D023 — URL State for Panels
+
+**Rule:** Every detail panel that can be navigated to via `EntityLink` **must** be openable directly from a URL. The URL is the persistence layer for panel state — it allows the Back button to restore the exact open panel, and allows users to bookmark or share a deep link.
+
+**Standard URL pattern:**
+```
+/risk-register?risk={id}
+/actions?action={id}
+/controls?tab=library&control={id}
+/compliance?tab=policies&policy={id}
+```
+
+**How to read panel ID from URL on mount:**
+```tsx
+"use client";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Suspense } from "react";
+
+// Inner component (inside Suspense boundary — required for useSearchParams in Next.js App Router)
+function PageInner() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [openId, setOpenId] = useState<string | null>(
+    searchParams.get("risk") // or "action", "control", etc.
+  );
+
+  function openPanel(id: string) {
+    setOpenId(id);
+    // Write back to URL so Back button restores this exact state
+    router.replace(`?risk=${id}`, { scroll: false });
+  }
+
+  function closePanel() {
+    setOpenId(null);
+    router.replace("?", { scroll: false }); // clear param
+  }
+}
+
+// Outer page wraps in Suspense (required)
+export default function Page() {
+  return (
+    <Suspense>
+      <PageInner />
+    </Suspense>
+  );
+}
+```
+
+**Why `router.replace()` not `router.push()`:**
+`replace` updates the URL without adding a new browser history entry. The panel open/close is not itself a "navigation" — it is state within the page. Only the initial arrival at the page is a navigation (which EntityLink's `router.push()` already recorded on the stack).
+
+**EntityLink target URLs** are defined in `src/lib/navigation.ts`. When adding a new panel, add its URL pattern there first so EntityLink can navigate to it correctly.
+
+**What if the URL param references a deleted or missing entity?**
+Silently ignore it — set `openId = null` if the entity is not found in the store after hydration. Do not error or crash.
+
+---
+
+### D024 — Linked Items Section: Chips + Add + Remove
+
+**Rule:** Any panel section that shows a many-to-many relationship (e.g. "Linked Controls on this Risk", "Linked Risks for this Action") must follow this layout. Every linked item is an `<EntityLink>` chip. CCRO Team can add and remove links.
+
+**Standard layout:**
+```tsx
+<CollapsibleSection title="Linked Controls" defaultOpen={linkedControls.length > 0}>
+  <div className="space-y-2">
+    {/* Chip list of EntityLinks */}
+    <div className="flex flex-wrap gap-1.5">
+      {linkedControls.map((ctrl) => (
+        <div key={ctrl.id} className="flex items-center gap-1">
+          <EntityLink type="control" id={ctrl.id} reference={ctrl.reference} label={ctrl.name} />
+          {canEdit && (
+            <button
+              onClick={() => handleUnlink(ctrl.id)}
+              className="rounded p-0.5 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+              aria-label={`Remove ${ctrl.reference}`}
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
+      ))}
+      {linkedControls.length === 0 && (
+        <p className="text-xs text-gray-400 italic">None linked</p>
+      )}
+    </div>
+
+    {/* Add link button — CCRO only */}
+    {canEdit && (
+      <button
+        onClick={() => setLinkPickerOpen(true)}
+        className="flex items-center gap-1.5 text-xs text-updraft-bar hover:text-updraft-deep font-medium mt-1"
+      >
+        <Plus size={13} />
+        Add control
+      </button>
+    )}
+  </div>
+</CollapsibleSection>
+```
+
+**Link picker:** Use `<SearchableSelect>` or a `<Modal size="md">` containing a filtered list of available entities. Show only entities not already linked. On confirm, call the relevant API to create the link.
+
+**API pattern for linking:**
+```tsx
+// Add link
+await api.post(`/api/risks/${riskId}/controls`, { controlId });
+// Remove link
+await api.delete(`/api/risks/${riskId}/controls/${controlId}`);
+// Always update local store optimistically, then sync
+```
+
+**Ordering:** Sort linked items by reference code (alphabetical) for consistency.
+
+**Empty state:** Always show `"None linked"` in italic grey — never render an empty section with no indication. An empty chip list with no label looks broken.
+
+---
+
 ### D014 — Shared File Ownership (for parallel sessions)
 
 These files are HIGH BLAST RADIUS — only ONE session should edit them at a time.
