@@ -113,6 +113,9 @@ body > * {
 /* Bento Card — warm surface with layered depth */
 .bento-card {
   @apply rounded-2xl p-6 relative overflow-hidden transition-all duration-200 ease-in-out;
+  /* H10: container context so @container rules can scale children to card width */
+  container-type: inline-size;
+  container-name: bento;
   background: var(--surface-warm);
   border: 1px solid var(--border-warm);
   box-shadow:
@@ -369,6 +372,64 @@ body > * {
 /* Drag handle cursor */
 .rgl-drag-handle {
   user-select: none;
+}
+
+/* ── H10: Container-query typography — scales text to card width ─────────── */
+/*
+ * Breakpoints (rowHeight=40, margin=10, cols=12 @ ~1280px wide):
+ *   w≤2  →  ~194px     ← very narrow
+ *   w=3  →  ~291px     ← narrow
+ *   w=4  →  ~388px     ← semi-compact
+ *   w=6+ →  ~582px+    ← full size (no scaling)
+ *
+ * Rules inside @container bento apply to descendants of .bento-card.
+ * These come after @tailwind utilities in the cascade, so they win without !important.
+ */
+
+/* Very narrow: < 280px — aggressive compaction */
+@container bento (max-width: 279px) {
+  h2          { font-size: 0.75rem;  line-height: 1rem;    }
+  .text-4xl   { font-size: 1.25rem;  line-height: 1.5rem;  }
+  .text-3xl   { font-size: 1rem;     line-height: 1.25rem; }
+  .text-2xl   { font-size: 0.9rem;   line-height: 1.125rem;}
+  .text-xl    { font-size: 0.85rem;                        }
+  .text-lg    { font-size: 0.8rem;                         }
+  .text-base  { font-size: 0.75rem;                        }
+}
+
+/* Narrow: 280–360px — moderate compaction (w=3 column) */
+@container bento (min-width: 280px) and (max-width: 359px) {
+  h2          { font-size: 0.8rem;   line-height: 1.1rem;  }
+  .text-4xl   { font-size: 1.5rem;   line-height: 1.75rem; }
+  .text-3xl   { font-size: 1.2rem;   line-height: 1.5rem;  }
+  .text-2xl   { font-size: 1rem;     line-height: 1.25rem; }
+  .text-xl    { font-size: 0.9rem;                         }
+  .text-lg    { font-size: 0.875rem;                       }
+}
+
+/* Semi-compact: 360–500px — mild compaction (w=4 column) */
+@container bento (min-width: 360px) and (max-width: 499px) {
+  h2          { font-size: 0.875rem; line-height: 1.1rem;  }
+  .text-4xl   { font-size: 1.875rem; line-height: 2.25rem; }
+  .text-3xl   { font-size: 1.5rem;   line-height: 1.875rem;}
+  .text-2xl   { font-size: 1.125rem;                       }
+}
+
+/* Outer RGL item container — allows scaling bento-card's own padding */
+.rgl-section-item {
+  container-type: inline-size;
+  container-name: rgl-item;
+}
+
+/* Reduce card padding for narrow items so content has more room */
+@container rgl-item (max-width: 279px) {
+  .bento-card { padding: 0.75rem; }
+}
+@container rgl-item (min-width: 280px) and (max-width: 359px) {
+  .bento-card { padding: 1rem; }
+}
+@container rgl-item (min-width: 360px) and (max-width: 499px) {
+  .bento-card { padding: 1.25rem; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

@@ -42,7 +42,7 @@ Last updated: 2026-02-27 (Sprint H: Dashboard Enhancements — bugs, animations,
 - [x] H7: ControlHealthTrendWidget — 6-month pass rate AreaChart from store testingSchedule; trend direction pill; empty state; link to /controls?tab=trend-analysis
 - [x] H8: QuarterlySummaryWidget — per-quarter pass rate bars for last 5 quarters from store; current quarter headline stat; empty state; link to /controls?tab=quarterly-summary
 - [x] H7/H8: Both sections added to DASHBOARD_SECTIONS + DEFAULT_GRID_LAYOUT + ROLE_DEFAULT_HIDDEN (CCRO-only)
-- [ ] H10: Dynamic text resize (pending)
+- [x] H10: Dynamic text resize — CSS container queries on .bento-card + .rgl-section-item; 3 breakpoints (< 280px, 280–360px, 360–500px) scale h2, text-4xl down to text-base; padding also scales via outer rgl-item container
 - [ ] H11–H13: Inner element drag/resize/hide (pending sub-sprint)
 
 ---
