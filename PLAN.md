@@ -43,7 +43,312 @@ Last updated: 2026-02-27 (Sprint H: Dashboard Enhancements — bugs, animations,
 - [x] H8: QuarterlySummaryWidget — per-quarter pass rate bars for last 5 quarters from store; current quarter headline stat; empty state; link to /controls?tab=quarterly-summary
 - [x] H7/H8: Both sections added to DASHBOARD_SECTIONS + DEFAULT_GRID_LAYOUT + ROLE_DEFAULT_HIDDEN (CCRO-only)
 - [x] H10: Dynamic text resize — CSS container queries on .bento-card + .rgl-section-item; 3 breakpoints (< 280px, 280–360px, 360–500px) scale h2, text-4xl down to text-base; padding also scales via outer rgl-item container
-- [ ] H11–H13: Inner element drag/resize/hide (pending sub-sprint)
+- [ ] H11–H13: Inner element drag/resize/hide (see Sprint I below)
+
+---
+
+## UPCOMING SPRINT: Sprint I — Inner Element Control (H11–H13)
+Last updated: 2026-02-27
+
+### Context
+
+Users want to reorder, hide, and resize the individual stat tiles/elements within each
+dashboard card — with the same per-user permission model as the outer grid (users control their
+own; CCRO can override/pin).
+
+**Scope decision:** Phase 1 covers the 5 simplest sections where elements are already
+independent stat tiles (no state lifting needed). Complex sections (ActionRequired, Tasks,
+ProgrammeHealth) are deferred to Phase 2.
+
+**Phase 1 sections:**
+- `compliance-health` — 5 stat buttons (Compliant %, Applicable, Gaps, Assessments, Certs)
+- `controls-library` — 6 stat boxes (Total, Preventative, Detective, Directive, Corrective, Policies)
+- `policy-health` — 4 stat cards (Total, Overdue, Requirements, Control Links)
+- `priority-actions` — 3 cards (P1, P2, P3)
+- `risk-summary` — 4 risk-level stat links (Critical, High, Medium, Low)
+
+**Approach:** Use `@dnd-kit/sortable` (already installed) for within-section drag-reorder.
+No new library installs. True 2D resize within a card is deferred (H10 container queries
+handle the font scaling already). Eye toggle per element mirrors the outer section eye toggle.
+
+**Permission model:**
+- Any user can reorder/hide their own inner elements
+- CCRO can configure any user's inner layout (same as outer)
+- Pinned elements (CCRO-set) cannot be hidden by the user
+
+---
+
+### Conflict Check
+- `@dnd-kit/sortable` was used for the outer grid before being replaced by RGL.
+  It was **not removed** — still in `node_modules`. Re-using it for inner elements is safe
+  and avoids adding a new dependency. ✅
+- The `DashboardLayout` Prisma model gets 2 new nullable JSON columns — non-destructive. ✅
+- The PUT API route is extended additively; no existing fields change. ✅
+- Element IDs use composite key `"sectionKey:elementId"` — no collision with outer section keys. ✅
+
+---
+
+### Implementation Order
+```
+I1 → I2 (data layer)
+I3 (types)
+I4 (API)
+I5 (components — extract 5 sections)
+I6 (page.tsx — inner edit mode, sort + hide)
+I7 (persist + verify)
+```
+
+---
+
+### I1 — Schema: add elementOrder + hiddenElements
+
+```prisma
+model DashboardLayout {
+  // ... existing fields ...
+  elementOrder    Json  @default("{}")   // Record<sectionKey, string[]> — ordered element IDs per section
+  hiddenElements  Json  @default("[]")  // string[] of "sectionKey:elementId" hidden elements
+}
+```
+
+Run: `npx prisma db push`
+
+**Files:** `prisma/schema.prisma`
+
+**Acceptance:**
+- [ ] `elementOrder` and `hiddenElements` added as nullable/defaulted JSON columns
+- [ ] `npx prisma db push` succeeds without data loss
+
+---
+
+### I2 — Types: RGLLayoutItem already exists; add element registry types
+
+**`src/lib/types.ts`** — add:
+```typescript
+export interface DashboardElementDef {
+  id: string;          // "stat-compliant" (without section prefix)
+  label: string;       // "Compliant %" — shown in edit mode
+  description?: string;
+}
+
+// Update DashboardLayoutConfig to include new fields:
+export interface DashboardLayoutConfig {
+  // ... existing fields ...
+  elementOrder: Record<string, string[]> | null;  // NEW
+  hiddenElements: string[];                        // NEW
+}
+```
+
+**`src/lib/dashboard-sections.ts`** — add `SECTION_ELEMENTS` registry:
+```typescript
+export const SECTION_ELEMENTS: Record<string, DashboardElementDef[]> = {
+  "compliance-health": [
+    { id: "stat-compliant",    label: "Compliant %" },
+    { id: "stat-applicable",   label: "Applicable" },
+    { id: "stat-gaps",         label: "Open Gaps" },
+    { id: "stat-assessments",  label: "Overdue Assessments" },
+    { id: "stat-certs",        label: "Pending Certs" },
+  ],
+  "controls-library": [
+    { id: "stat-total",        label: "Total Controls" },
+    { id: "stat-preventative", label: "Preventative" },
+    { id: "stat-detective",    label: "Detective" },
+    { id: "stat-directive",    label: "Directive" },
+    { id: "stat-corrective",   label: "Corrective" },
+    { id: "stat-policies",     label: "Policies Covered" },
+  ],
+  "policy-health": [
+    { id: "stat-total",        label: "Total Policies" },
+    { id: "stat-overdue",      label: "Overdue" },
+    { id: "stat-requirements", label: "Requirements" },
+    { id: "stat-links",        label: "Control Links" },
+  ],
+  "priority-actions": [
+    { id: "card-p1",           label: "P1 Critical" },
+    { id: "card-p2",           label: "P2 Important" },
+    { id: "card-p3",           label: "P3 Routine" },
+  ],
+  "risk-summary": [
+    { id: "stat-critical",     label: "Critical Risks" },
+    { id: "stat-high",         label: "High Risks" },
+    { id: "stat-medium",       label: "Medium Risks" },
+    { id: "stat-low",          label: "Low Risks" },
+  ],
+};
+```
+
+**Files:** `src/lib/types.ts`, `src/lib/dashboard-sections.ts`
+
+**Acceptance:**
+- [ ] `DashboardElementDef` exported from types.ts
+- [ ] `DashboardLayoutConfig` has `elementOrder` + `hiddenElements`
+- [ ] `SECTION_ELEMENTS` exported with all 5 Phase 1 sections
+- [ ] Zero type errors
+
+---
+
+### I3 — API: extend PUT /api/dashboard-layout
+
+Accept `elementOrder` and `hiddenElements` in request body.
+
+```typescript
+// New fields in PUT body:
+elementOrder?: Record<string, string[]>  // validated: each key is a known section, values are element IDs
+hiddenElements?: string[]                 // validated: each is "sectionKey:elementId" format
+
+// Prisma upsert now includes:
+elementOrder:   body.elementOrder   ? JSON.stringify(body.elementOrder)  : Prisma.JsonNull
+hiddenElements: body.hiddenElements ? JSON.stringify(body.hiddenElements) : Prisma.JsonNull
+```
+
+Default layout helper also returns `elementOrder: {}, hiddenElements: []`.
+
+**Files:** `src/app/api/dashboard-layout/route.ts`
+
+**Acceptance:**
+- [ ] PUT with elementOrder + hiddenElements persists correctly
+- [ ] GET returns elementOrder + hiddenElements
+- [ ] No CCRO restriction on elementOrder (any user can edit their own)
+- [ ] hiddenElements round-trips correctly
+
+---
+
+### I4 — Extract 5 sections into element-keyed renders
+
+Each Phase 1 section's JSX is refactored so each inner element is rendered
+via a `sectionElements` helper that respects order + visibility from state.
+
+Pattern for each section:
+```tsx
+// Before (inline hardcoded):
+<div className="grid grid-cols-3 gap-2">
+  {statA}
+  {statB}
+  {statC}
+</div>
+
+// After (order-aware):
+const elementOrder = getElementOrder("compliance-health");  // from effectiveElementOrder
+const hiddenEls = effectiveHiddenElements;
+
+<div className="flex flex-wrap gap-2">
+  {elementOrder
+    .filter(id => !hiddenEls.has(`compliance-health:${id}`))
+    .map(id => {
+      switch (id) {
+        case "stat-compliant": return <CompliantStatTile key={id} />;
+        case "stat-applicable": return <ApplicableStatTile key={id} />;
+        // ...
+      }
+    })
+  }
+</div>
+```
+
+Each stat tile is extracted to a const/component in the same section of page.tsx
+(not a new file — they're tiny).
+
+**Files:** `src/app/page.tsx` (sectionMap entries for 5 sections)
+
+**Acceptance:**
+- [ ] compliance-health renders 5 stat tiles in order, respects hiddenElements
+- [ ] controls-library renders 6 stat tiles in order, respects hiddenElements
+- [ ] policy-health renders 4 stat tiles in order, respects hiddenElements
+- [ ] priority-actions renders 3 cards in order, respects hiddenElements
+- [ ] risk-summary renders 4 stat tiles in order, respects hiddenElements
+- [ ] Default order matches current hardcoded order (no visual regression)
+
+---
+
+### I5 — Inner edit mode: sort + hide per section
+
+In **edit mode**, sections with registered elements show a drag-sortable list
+overlay (using @dnd-kit/sortable) plus eye toggles per element.
+
+**State added to page.tsx:**
+```typescript
+const [editElementOrder, setEditElementOrder] = useState<Record<string, string[]>>({});
+const [editHiddenElements, setEditHiddenElements] = useState<Set<string>>(new Set());
+```
+
+**Edit mode inner toolbar (per section that has elements):**
+- A collapsible "Elements" sub-panel appears inside each editable card
+- Shows draggable element chips (drag handle + label + eye toggle)
+- Same styling as outer section edit (GripVertical, Eye/EyeOff icons)
+- Click eye → toggle `editHiddenElements` set with key `"sectionKey:elementId"`
+- Drag → reorder `editElementOrder[sectionKey]`
+
+**`saveLayout` extended:**
+```typescript
+await api("/api/dashboard-layout", {
+  method: "PUT",
+  body: {
+    // ... existing fields ...
+    elementOrder: editElementOrder,
+    hiddenElements: Array.from(editHiddenElements),
+  },
+});
+```
+
+**Files:** `src/app/page.tsx`
+
+**Acceptance:**
+- [ ] Edit mode shows element chips for all 5 Phase 1 sections
+- [ ] Drag chip → element reorders in live preview
+- [ ] Eye toggle → element hides/shows in live preview
+- [ ] Save → toast, reload confirms persistence
+- [ ] Non-CCRO can only edit their own element order
+- [ ] CCRO can edit any user's element order (via existing user selector in edit toolbar)
+
+---
+
+### I6 — Effective state + view mode integration
+
+In view mode, `effectiveElementOrder` and `effectiveHiddenElements` are derived
+from `dashboardLayout` (same memoisation pattern as `effectiveGrid`):
+
+```typescript
+const effectiveElementOrder = useMemo(() => {
+  const saved = dashboardLayout?.elementOrder ?? {};
+  const result: Record<string, string[]> = {};
+  for (const [sKey, defs] of Object.entries(SECTION_ELEMENTS)) {
+    result[sKey] = saved[sKey] ?? defs.map(d => d.id);  // default = registry order
+  }
+  return result;
+}, [dashboardLayout]);
+
+const effectiveHiddenElements = useMemo(
+  () => new Set(dashboardLayout?.hiddenElements ?? []),
+  [dashboardLayout],
+);
+```
+
+**Files:** `src/app/page.tsx`
+
+**Acceptance:**
+- [ ] View mode renders elements in saved order
+- [ ] Hidden elements do not render
+- [ ] First load (no saved layout) renders default registry order
+- [ ] After save + reload, order and visibility are restored
+
+---
+
+### Key Files
+
+| File | Deliverable |
+|------|-------------|
+| `prisma/schema.prisma` | I1 |
+| `src/lib/types.ts` | I2 |
+| `src/lib/dashboard-sections.ts` | I2 |
+| `src/app/api/dashboard-layout/route.ts` | I3 |
+| `src/app/page.tsx` | I4, I5, I6 |
+
+---
+
+### Out of Scope (Phase 2)
+- Per-element resize handles (Phase 2 — needs nested RGL or custom resize)
+- Sections with complex internal state: action-required, tasks-reviews, programme-health, etc.
+- CCRO "pin element" (pin so user can't hide it) — after Phase 1 ships
+- Mobile inner-element ordering (stack order follows desktop order)
 
 ---
 
