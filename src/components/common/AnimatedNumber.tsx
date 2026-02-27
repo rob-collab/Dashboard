@@ -6,6 +6,8 @@ import { useCountUp } from "@/hooks/useCountUp";
 interface AnimatedNumberProps {
   value: number;
   duration?: number;
+  /** Delay in ms before count-up starts. Use when the container has an entrance animation. */
+  delay?: number;
   className?: string;
 }
 
@@ -16,9 +18,9 @@ interface AnimatedNumberProps {
  * aria-label always reports the final value so screen readers are not
  * confused by intermediate counting values.
  */
-export function AnimatedNumber({ value, duration = 800, className }: AnimatedNumberProps) {
+export function AnimatedNumber({ value, duration = 800, delay = 0, className }: AnimatedNumberProps) {
   const prefersReduced = useReducedMotion();
-  const animated = useCountUp(value, prefersReduced ? 0 : duration);
+  const animated = useCountUp(value, prefersReduced ? 0 : duration, prefersReduced ? 0 : delay);
   return (
     <span className={className} aria-label={String(value)}>
       {animated}

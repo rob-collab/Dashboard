@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { MotionListDiv } from "@/components/motion/MotionList";
 import { MotionDiv } from "@/components/motion/MotionRow";
 import { SkeletonCard } from "@/components/common/SkeletonLoader";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 
 const URGENCY_ORDER: HorizonUrgency[] = ["HIGH", "MEDIUM", "LOW"];
 
@@ -315,7 +316,7 @@ function StatCard({ label, value, icon, valueClass }: { label: string; value: nu
     <div className="bento-card p-4 flex items-center gap-3">
       <div className="shrink-0">{icon}</div>
       <div>
-        <div className={cn("text-2xl font-bold font-poppins text-updraft-deep", valueClass)}>{value}</div>
+        <AnimatedNumber value={value} className={cn("text-2xl font-bold font-poppins text-updraft-deep", valueClass)} />
         <div className="text-xs text-slate-500">{label}</div>
       </div>
     </div>

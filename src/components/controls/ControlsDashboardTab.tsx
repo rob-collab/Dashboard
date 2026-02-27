@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useCallback } from "react";
 import { useAppStore } from "@/lib/store";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 import { cn } from "@/lib/utils";
 import type {
   TestingScheduleEntry,
@@ -121,7 +122,7 @@ function StatCard({ icon, value, label, percentage, accentClass, onClick, active
       )}
     >
       <div className="flex items-center justify-between">
-        <div className={`text-3xl font-bold ${accentClass}`}>{value}</div>
+        <AnimatedNumber value={value} className={`text-3xl font-bold ${accentClass}`} />
         <div className={`p-2 rounded-lg ${accentClass} opacity-20`}>{icon}</div>
       </div>
       <div className="text-sm text-gray-600 font-medium">{label}</div>

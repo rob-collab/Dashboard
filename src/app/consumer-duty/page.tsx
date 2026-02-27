@@ -89,6 +89,8 @@ function ConsumerDutyContent() {
   const [measureRagFilter, setMeasureRagFilter] = useState<RAGStatus | "ALL">("ALL");
   const [metricsRagFilter, setMetricsRagFilter] = useState<RAGStatus | "ALL">("ALL");
   const [selectedMetric, setSelectedMetric] = useState<ConsumerDutyMI | null>(null);
+  // Tracks which stat row was last clicked so the dynamic quick-view knows what to show
+  const [lastClickedSection, setLastClickedSection] = useState<"measures" | "metrics" | null>(null);
 
   // Management dialog state
   const [outcomeDialogOpen, setOutcomeDialogOpen] = useState(false);
@@ -100,22 +102,13 @@ function ConsumerDutyContent() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [riskDetailOutcome, setRiskDetailOutcome] = useState<ConsumerDutyOutcome | null>(null);
 
-  // CD1: Collapsible section state — persisted to localStorage per user
-  const collapsedKey = `cd-sections-${currentUser?.id ?? "anon"}`;
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
-    const defaults: Record<string, boolean> = { measures: true, metrics: true };
-    try {
-      const stored = JSON.parse(localStorage.getItem(collapsedKey) ?? "{}");
-      return { ...defaults, ...stored };
-    }
-    catch { return defaults; }
+  // Collapsible section state — always starts collapsed per user request
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
+    measures: true,
+    metrics: true,
   });
   function toggleSection(key: string) {
-    setCollapsed((prev) => {
-      const next = { ...prev, [key]: !prev[key] };
-      try { localStorage.setItem(collapsedKey, JSON.stringify(next)); } catch {}
-      return next;
-    });
+    setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
   const selectedOutcome = outcomes.find((o) => o.id === selectedOutcomeId);
@@ -564,7 +557,7 @@ function ConsumerDutyContent() {
       {/* Summary cards — measure-level RAG counts */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <button
-          onClick={() => { setMeasureRagFilter("ALL"); handleStatRagClick("ALL"); }}
+          onClick={() => { setMeasureRagFilter("ALL"); handleStatRagClick("ALL"); setLastClickedSection(null); }}
           className={cn(
             "bento-card cursor-pointer text-left",
             measureRagFilter === "ALL" && ragFilter === "ALL" && "ring-2 ring-updraft-bright-purple/30"
@@ -575,7 +568,7 @@ function ConsumerDutyContent() {
           <p className="text-xs text-fca-gray mt-1">{outcomes.length} outcomes tracked</p>
         </button>
         <button
-          onClick={() => { setMeasureRagFilter("GOOD"); handleStatRagClick("ALL"); }}
+          onClick={() => { setMeasureRagFilter("GOOD"); handleStatRagClick("ALL"); setLastClickedSection("measures"); }}
           className={cn(
             "bento-card cursor-pointer text-left border-l-[3px] border-l-risk-green",
             measureRagFilter === "GOOD" && "ring-2 ring-risk-green/40 bg-risk-green/5"
@@ -589,7 +582,7 @@ function ConsumerDutyContent() {
           <p className="text-xs text-fca-gray mt-1">{goodCount} green outcome{goodCount !== 1 ? "s" : ""}</p>
         </button>
         <button
-          onClick={() => { setMeasureRagFilter("WARNING"); handleStatRagClick("ALL"); }}
+          onClick={() => { setMeasureRagFilter("WARNING"); handleStatRagClick("ALL"); setLastClickedSection("measures"); }}
           className={cn(
             "bento-card cursor-pointer text-left border-l-[3px] border-l-risk-amber",
             measureRagFilter === "WARNING" && "ring-2 ring-risk-amber/40 bg-risk-amber/5"
@@ -603,7 +596,7 @@ function ConsumerDutyContent() {
           <p className="text-xs text-fca-gray mt-1">{warningCount} amber outcome{warningCount !== 1 ? "s" : ""}</p>
         </button>
         <button
-          onClick={() => { setMeasureRagFilter("HARM"); handleStatRagClick("ALL"); }}
+          onClick={() => { setMeasureRagFilter("HARM"); handleStatRagClick("ALL"); setLastClickedSection("measures"); }}
           className={cn(
             "bento-card cursor-pointer text-left border-l-[3px] border-l-risk-red",
             measureRagFilter === "HARM" && "ring-2 ring-risk-red/40 bg-risk-red/5"
@@ -638,7 +631,7 @@ function ConsumerDutyContent() {
       {allMetrics.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <button
-            onClick={() => setMetricsRagFilter("ALL")}
+            onClick={() => { setMetricsRagFilter("ALL"); setLastClickedSection(null); }}
             className={cn(
               "bento-card cursor-pointer text-left",
               metricsRagFilter === "ALL" && "ring-2 ring-updraft-bright-purple/30"
@@ -649,7 +642,7 @@ function ConsumerDutyContent() {
             <p className="text-xs text-fca-gray mt-1">{allMeasures.length} measures</p>
           </button>
           <button
-            onClick={() => setMetricsRagFilter(metricsRagFilter === "GOOD" ? "ALL" : "GOOD")}
+            onClick={() => { const next = metricsRagFilter === "GOOD" ? "ALL" : "GOOD"; setMetricsRagFilter(next); setLastClickedSection(next === "ALL" ? null : "metrics"); }}
             className={cn(
               "bento-card cursor-pointer text-left border-l-[3px] border-l-risk-green",
               metricsRagFilter === "GOOD" && "ring-2 ring-risk-green/40 bg-risk-green/5"
@@ -662,7 +655,7 @@ function ConsumerDutyContent() {
             <AnimatedNumber value={metricsGoodCount} className="text-2xl font-bold text-risk-green mt-1" />
           </button>
           <button
-            onClick={() => setMetricsRagFilter(metricsRagFilter === "WARNING" ? "ALL" : "WARNING")}
+            onClick={() => { const next = metricsRagFilter === "WARNING" ? "ALL" : "WARNING"; setMetricsRagFilter(next); setLastClickedSection(next === "ALL" ? null : "metrics"); }}
             className={cn(
               "bento-card cursor-pointer text-left border-l-[3px] border-l-risk-amber",
               metricsRagFilter === "WARNING" && "ring-2 ring-risk-amber/40 bg-risk-amber/5"
@@ -675,7 +668,7 @@ function ConsumerDutyContent() {
             <AnimatedNumber value={metricsWarningCount} className="text-2xl font-bold text-risk-amber mt-1" />
           </button>
           <button
-            onClick={() => setMetricsRagFilter(metricsRagFilter === "HARM" ? "ALL" : "HARM")}
+            onClick={() => { const next = metricsRagFilter === "HARM" ? "ALL" : "HARM"; setMetricsRagFilter(next); setLastClickedSection(next === "ALL" ? null : "metrics"); }}
             className={cn(
               "bento-card cursor-pointer text-left border-l-[3px] border-l-risk-red",
               metricsRagFilter === "HARM" && "ring-2 ring-risk-red/40 bg-risk-red/5"
@@ -690,8 +683,8 @@ function ConsumerDutyContent() {
         </div>
       )}
 
-      {/* Measure-level RAG quick view */}
-      {measureRagFilter !== "ALL" && (
+      {/* Dynamic quick-view — shows directly below stat tiles when a measure or metric card is clicked */}
+      {lastClickedSection === "measures" && measureRagFilter !== "ALL" && (
         <div className="bento-card animate-slide-up">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold text-updraft-deep font-poppins">
@@ -699,7 +692,7 @@ function ConsumerDutyContent() {
               <span className="ml-2 text-xs font-normal text-gray-400">({filteredMeasures.length})</span>
             </h2>
             <button
-              onClick={() => setMeasureRagFilter("ALL")}
+              onClick={() => { setMeasureRagFilter("ALL"); setLastClickedSection(null); }}
               className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
             >
               Clear filter
@@ -718,22 +711,12 @@ function ConsumerDutyContent() {
                   }}
                   className="flex w-full items-center gap-3 rounded-lg bg-gray-50 p-2.5 text-left hover:bg-gray-100 transition-colors"
                 >
-                  <span className={cn(
-                    "h-2.5 w-2.5 shrink-0 rounded-full",
-                    ragBgColor(m.ragStatus),
-                    m.ragStatus === "GOOD" && "rag-glow",
-                    m.ragStatus === "HARM" && "rag-pulse"
-                  )} />
+                  <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", ragBgColor(m.ragStatus), m.ragStatus === "GOOD" && "rag-glow", m.ragStatus === "HARM" && "rag-pulse")} />
                   <span className="text-xs font-mono font-semibold text-updraft-deep shrink-0">{m.measureId}</span>
                   <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{m.name}</span>
                   <span className="text-[10px] text-gray-400 shrink-0">{m.outcomeName}</span>
                   {ownerName && <span className="text-[10px] text-gray-400 shrink-0">{ownerName}</span>}
-                  <span className={cn(
-                    "text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0",
-                    m.ragStatus === "GOOD" && "bg-risk-green/15 text-risk-green",
-                    m.ragStatus === "WARNING" && "bg-risk-amber/10 text-risk-amber",
-                    m.ragStatus === "HARM" && "bg-risk-red/10 text-risk-red"
-                  )}>
+                  <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0", m.ragStatus === "GOOD" && "bg-risk-green/15 text-risk-green", m.ragStatus === "WARNING" && "bg-risk-amber/10 text-risk-amber", m.ragStatus === "HARM" && "bg-risk-red/10 text-risk-red")}>
                     {ragLabelShort(m.ragStatus)}
                   </span>
                 </button>
@@ -741,6 +724,43 @@ function ConsumerDutyContent() {
             })}
             {filteredMeasures.length === 0 && (
               <p className="text-xs text-gray-400 py-4 text-center">No measures with this status</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {lastClickedSection === "metrics" && metricsRagFilter !== "ALL" && (
+        <div className="bento-card animate-slide-up">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold text-updraft-deep font-poppins">
+              {metricsRagFilter === "GOOD" ? "Green" : metricsRagFilter === "WARNING" ? "Amber" : "Red"} Metrics
+              <span className="ml-2 text-xs font-normal text-gray-400">({filteredMetrics.length})</span>
+            </h2>
+            <button
+              onClick={() => { setMetricsRagFilter("ALL"); setLastClickedSection(null); }}
+              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              Clear filter
+            </button>
+          </div>
+          <div className="space-y-1.5 max-h-72 overflow-y-auto">
+            {filteredMetrics.map((mi) => (
+              <button
+                key={mi.id}
+                onClick={() => setSelectedMetric(mi)}
+                className="flex w-full items-center gap-3 rounded-lg bg-gray-50 p-2.5 text-left hover:bg-gray-100 transition-colors"
+              >
+                <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", ragBgColor(mi.ragStatus), mi.ragStatus === "GOOD" && "rag-glow", mi.ragStatus === "HARM" && "rag-pulse")} />
+                <span className="text-xs font-mono font-semibold text-updraft-deep shrink-0">{mi.measureId}</span>
+                <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{mi.metric}</span>
+                <span className="text-[10px] text-gray-400 shrink-0">{mi.measureName}</span>
+                <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0", mi.ragStatus === "GOOD" && "bg-risk-green/15 text-risk-green", mi.ragStatus === "WARNING" && "bg-risk-amber/10 text-risk-amber", mi.ragStatus === "HARM" && "bg-risk-red/10 text-risk-red")}>
+                  {ragLabelShort(mi.ragStatus)}
+                </span>
+              </button>
+            ))}
+            {filteredMetrics.length === 0 && (
+              <p className="text-xs text-gray-400 py-4 text-center">No metrics with this status</p>
             )}
           </div>
         </div>

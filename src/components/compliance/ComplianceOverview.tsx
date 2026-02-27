@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import {
@@ -403,21 +404,21 @@ export default function ComplianceOverview({ onNavigate }: Props) {
           </div>
           <div className="grid grid-cols-3 gap-4">
             <Link href="/consumer-duty?rag=GOOD" className="text-center p-4 rounded-xl bg-green-50 border border-green-100 hover:border-green-300 hover:-translate-y-0.5 transition-all">
-              <p className="text-3xl font-bold font-poppins text-green-700">{cdHealth.good}</p>
+              <AnimatedNumber value={cdHealth.good} className="text-3xl font-bold font-poppins text-green-700" />
               <div className="flex items-center justify-center gap-1.5 mt-1">
                 <div className="w-2 h-2 rounded-full bg-green-500" />
                 <p className="text-xs text-green-700 font-medium">Green</p>
               </div>
             </Link>
             <Link href="/consumer-duty?rag=WARNING" className="text-center p-4 rounded-xl bg-amber-50 border border-amber-100 hover:border-amber-300 hover:-translate-y-0.5 transition-all">
-              <p className="text-3xl font-bold font-poppins text-amber-700">{cdHealth.warning}</p>
+              <AnimatedNumber value={cdHealth.warning} className="text-3xl font-bold font-poppins text-amber-700" />
               <div className="flex items-center justify-center gap-1.5 mt-1">
                 <div className="w-2 h-2 rounded-full bg-amber-500" />
                 <p className="text-xs text-amber-700 font-medium">Amber</p>
               </div>
             </Link>
             <Link href="/consumer-duty?rag=HARM" className={cn("text-center p-4 rounded-xl border hover:-translate-y-0.5 transition-all", cdHealth.harm > 0 ? "bg-red-50 border-red-100 hover:border-red-300" : "bg-gray-50 border-gray-100 hover:border-gray-300")}>
-              <p className={cn("text-3xl font-bold font-poppins", cdHealth.harm > 0 ? "text-red-700" : "text-gray-400")}>{cdHealth.harm}</p>
+              <AnimatedNumber value={cdHealth.harm} className={cn("text-3xl font-bold font-poppins", cdHealth.harm > 0 ? "text-red-700" : "text-gray-400")} />
               <div className="flex items-center justify-center gap-1.5 mt-1">
                 <div className={cn("w-2 h-2 rounded-full", cdHealth.harm > 0 ? "bg-red-500" : "bg-gray-300")} />
                 <p className={cn("text-xs font-medium", cdHealth.harm > 0 ? "text-red-700" : "text-gray-400")}>Red</p>
@@ -474,7 +475,10 @@ function MetricTile({ label, value, colour, onClick }: { label: string; value: s
       {...(onClick ? { onClick, type: "button" as const } : {})}
       className={cn("bento-card p-4 text-center w-full", onClick && "hover:border-updraft-light-purple hover:shadow-sm transition-all cursor-pointer")}
     >
-      <p className={cn("text-2xl font-bold font-poppins", colourClass)}>{value}</p>
+      {typeof value === "number"
+        ? <AnimatedNumber value={value} className={cn("text-2xl font-bold font-poppins", colourClass)} />
+        : <p className={cn("text-2xl font-bold font-poppins", colourClass)}>{value}</p>
+      }
       <p className="text-xs text-gray-500 mt-1">{label}</p>
     </Wrapper>
   );
@@ -510,7 +514,7 @@ function SmcrTile({ label, value, colour, onClick }: { label: string; value: num
       {...(onClick ? { onClick, type: "button" as const } : {})}
       className={cn("text-center p-3 rounded-lg bg-gray-50 w-full", onClick && "hover:bg-gray-100 transition-colors cursor-pointer")}
     >
-      <p className={cn("text-xl font-bold font-poppins", colourClass)}>{value}</p>
+      <AnimatedNumber value={value} className={cn("text-xl font-bold font-poppins", colourClass)} />
       <p className="text-xs text-gray-500 mt-1">{label}</p>
     </Wrapper>
   );

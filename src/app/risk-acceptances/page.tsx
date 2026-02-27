@@ -6,6 +6,7 @@ import { useAppStore } from "@/lib/store";
 import { toast } from "sonner";
 import { formatDate, cn } from "@/lib/utils";
 import { getRiskScore, calculateBreach } from "@/lib/risk-categories";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 import { ChevronRight, Download, Plus, Search, ShieldQuestion, AlertTriangle, Clock, Check, ShieldOff, MessageSquare, Info, X as XIcon } from "lucide-react";
 import { EmptyState } from "@/components/common/EmptyState";
 import EntityLink from "@/components/common/EntityLink";
@@ -261,23 +262,23 @@ export default function RiskAcceptancesPage() {
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <button onClick={() => handleStatClick("")} className="rounded-xl border border-red-200 bg-red-50 p-3 text-left hover:border-red-400 transition-colors">
           <p className="text-xs text-gray-500">Above Appetite</p>
-          <p className="text-2xl font-bold font-poppins text-red-700">{stats.aboveAppetite}</p>
+          <AnimatedNumber value={stats.aboveAppetite} className="text-2xl font-bold font-poppins text-red-700" />
         </button>
         <button onClick={() => { setStatusFilter(""); setTab("needs_action"); }} className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-left hover:border-blue-400 transition-colors">
           <p className="text-xs text-gray-500">Proposed</p>
-          <p className="text-2xl font-bold font-poppins text-blue-700">{stats.proposed}</p>
+          <AnimatedNumber value={stats.proposed} className="text-2xl font-bold font-poppins text-blue-700" />
         </button>
         <button onClick={() => handleStatClick("AWAITING_APPROVAL")} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-left hover:border-amber-400 transition-colors">
           <p className="text-xs text-gray-500">Awaiting Approval</p>
-          <p className="text-2xl font-bold font-poppins text-amber-700">{stats.awaiting}</p>
+          <AnimatedNumber value={stats.awaiting} className="text-2xl font-bold font-poppins text-amber-700" />
         </button>
         <button onClick={() => handleStatClick("APPROVED")} className="rounded-xl border border-green-200 bg-green-50 p-3 text-left hover:border-green-400 transition-colors">
           <p className="text-xs text-gray-500">Accepted</p>
-          <p className="text-2xl font-bold font-poppins text-green-700">{stats.accepted}</p>
+          <AnimatedNumber value={stats.accepted} className="text-2xl font-bold font-poppins text-green-700" />
         </button>
         <button onClick={() => handleStatClick("EXPIRED")} className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-left hover:border-gray-400 transition-colors">
           <p className="text-xs text-gray-500">Expired</p>
-          <p className="text-2xl font-bold font-poppins text-gray-600">{stats.expired}</p>
+          <AnimatedNumber value={stats.expired} className="text-2xl font-bold font-poppins text-gray-600" />
         </button>
       </div>
 
