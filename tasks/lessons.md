@@ -589,6 +589,37 @@ another modal's `children` prop — always check if it should be a sibling inste
 
 ---
 
+### W016 — IIFE pattern for complex sectionMap entries with local variables
+**What happened:** Sprint I needed local variables (`rsOrder`, `rsVisible`, etc.) per section
+inside the `sectionMap` object literal. Using IIFEs `(() => { ... })()` as values in the object
+cleanly scopes these variables without polluting the outer component scope.
+**Rule:** When a sectionMap entry needs computed local variables, use an IIFE rather than
+pre-computing at the top of the component. This keeps the logic colocated with its rendering,
+avoids naming collisions, and is immediately obvious.
+```tsx
+"my-section": (() => {
+  const visible = getOrder("my-section").filter(id => !hidden.has(id));
+  return <div>{visible.map(...)}</div>;
+})(),
+```
+**Trigger:** Any sectionMap entry that needs local variables.
+**Status:** Active.
+
+---
+
+### W017 — Prisma db push does not always regenerate client; run prisma generate explicitly
+**What happened:** Sprint I added `elementOrder` + `hiddenElements` to the schema. Ran
+`npx prisma db push` successfully. Build failed with "Object literal may only specify known
+properties, and 'elementOrder' does not exist in type...". Root cause: `prisma db push`
+did not trigger `prisma generate` in this environment.
+**Rule:** After any schema change (`prisma db push` or `prisma migrate`), always explicitly
+run `npx prisma generate` before `npx next build`. They are not guaranteed to be atomic.
+**Trigger:** Any Prisma schema change.
+**Status:** Active.
+
+
+---
+
 ## Promotion Log
 
 When the Retrospective Agent recommends a promotion and it is carried out, record it here

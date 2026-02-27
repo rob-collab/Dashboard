@@ -1432,6 +1432,8 @@ model DashboardLayout {
   hiddenSections Json     @default("[]") // string[] of hidden keys
   layoutGrid     Json?                   // RGLLayoutItem[]: {i,x,y,w,h}[]
   pinnedSections Json     @default("[]") // string[] of CCRO-pinned section keys
+  elementOrder   Json     @default("{}") // Record<sectionKey, string[]> — ordered element IDs per section
+  hiddenElements Json     @default("[]") // string[] of "sectionKey:elementId" hidden elements
   configuredById String
   configuredBy   User     @relation("DashboardLayoutConfiguredBy", fields: [configuredById], references: [id])
   createdAt      DateTime @default(now())

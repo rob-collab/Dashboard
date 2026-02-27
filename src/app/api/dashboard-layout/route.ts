@@ -13,6 +13,8 @@ function defaultLayout(userId: string) {
     hiddenSections: [] as string[],
     layoutGrid: null,
     pinnedSections: [] as string[],
+    elementOrder: {} as Record<string, string[]>,
+    hiddenElements: [] as string[],
     configuredById: null,
     createdAt: null,
     updatedAt: null,
@@ -72,7 +74,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { userId: targetUserId, sectionOrder, hiddenSections, layoutGrid, pinnedSections } = body;
+    const { userId: targetUserId, sectionOrder, hiddenSections, layoutGrid, pinnedSections, elementOrder, hiddenElements } = body;
 
     if (!targetUserId || typeof targetUserId !== "string") {
       return errorResponse("userId is required", 400);
@@ -119,12 +121,32 @@ export async function PUT(request: NextRequest) {
       return errorResponse("Target user not found", 404);
     }
 
+    // Validate elementOrder if provided — must be Record<string, string[]>
+    let resolvedElementOrder: Record<string, string[]> | null = null;
+    if (elementOrder !== undefined && elementOrder !== null) {
+      if (typeof elementOrder !== "object" || Array.isArray(elementOrder)) {
+        return errorResponse("elementOrder must be an object", 400);
+      }
+      resolvedElementOrder = elementOrder as Record<string, string[]>;
+    }
+
+    // Validate hiddenElements if provided — must be string[]
+    let resolvedHiddenElements: string[] | null = null;
+    if (hiddenElements !== undefined && hiddenElements !== null) {
+      if (!Array.isArray(hiddenElements) || !hiddenElements.every((e: unknown) => typeof e === "string")) {
+        return errorResponse("hiddenElements must be a string array", 400);
+      }
+      resolvedHiddenElements = hiddenElements as string[];
+    }
+
     const updateData: Record<string, unknown> = {
       sectionOrder,
       hiddenSections,
       configuredById: callerUserId,
     };
     if (resolvedGrid !== null) updateData.layoutGrid = resolvedGrid;
+    if (resolvedElementOrder !== null) updateData.elementOrder = resolvedElementOrder;
+    if (resolvedHiddenElements !== null) updateData.hiddenElements = resolvedHiddenElements;
     // Always write pinnedSections in update — non-CCRO gets empty array (no change to existing pins)
     // Only override stored pinnedSections when caller is CCRO (resolvedPinned is non-empty or CCRO explicitly sent [])
     if (isCCRO) updateData.pinnedSections = resolvedPinned;
@@ -138,6 +160,8 @@ export async function PUT(request: NextRequest) {
         hiddenSections,
         layoutGrid: resolvedGrid != null ? (resolvedGrid as unknown as Prisma.InputJsonValue) : undefined,
         pinnedSections: resolvedPinned,
+        elementOrder: resolvedElementOrder != null ? (resolvedElementOrder as unknown as Prisma.InputJsonValue) : Prisma.JsonNull,
+        hiddenElements: resolvedHiddenElements ?? [],
         configuredById: callerUserId,
       },
     });

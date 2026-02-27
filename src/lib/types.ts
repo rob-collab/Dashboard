@@ -1479,11 +1479,20 @@ export interface DashboardLayoutConfig {
   userId: string;
   sectionOrder: string[];
   hiddenSections: string[];
-  layoutGrid: RGLLayoutItem[] | null;    // react-grid-layout positions
-  pinnedSections: string[];              // CCRO-pinned section keys
+  layoutGrid: RGLLayoutItem[] | null;                  // react-grid-layout positions
+  pinnedSections: string[];                             // CCRO-pinned section keys
+  elementOrder: Record<string, string[]> | null;       // ordered element IDs per section
+  hiddenElements: string[];                             // "sectionKey:elementId" hidden elements
   configuredById: string | null;
   createdAt: string | null;
   updatedAt: string | null;
+}
+
+/** A single draggable/hideable element within a dashboard section. */
+export interface DashboardElementDef {
+  id: string;          // e.g. "stat-compliant" (no section prefix)
+  label: string;       // displayed in edit mode chip
+  description?: string;
 }
 
 // ── Operational Resilience Module ─────────────────────────────────────────────

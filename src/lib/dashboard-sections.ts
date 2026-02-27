@@ -4,7 +4,7 @@
  * The DEFAULT_SECTION_ORDER defines the canonical order matching the current hardcoded layout.
  * The DEFAULT_GRID_LAYOUT defines default react-grid-layout positions for each section.
  */
-import type { RGLLayoutItem } from "@/lib/types";
+import type { RGLLayoutItem, DashboardElementDef } from "@/lib/types";
 
 export interface DashboardSectionDef {
   key: string;
@@ -139,3 +139,46 @@ export const DEFAULT_GRID_LAYOUT: RGLLayoutItem[] = [
   { i: "control-health",   x: 0, y: 127, w: 6,  h: 10, minW: 3, minH: 6 },
   { i: "quarterly-summary",x: 6, y: 127, w: 6,  h: 10, minW: 3, minH: 6 },
 ];
+
+/**
+ * Inner element registry — Phase 1 sections only.
+ * Each entry defines the draggable/hideable elements within a section.
+ * Sections not in this map are treated as atomic (no inner element control).
+ *
+ * Element IDs are short strings without section prefix.
+ * The composite key used in hiddenElements is "sectionKey:elementId".
+ */
+export const SECTION_ELEMENTS: Record<string, DashboardElementDef[]> = {
+  "compliance-health": [
+    { id: "stat-compliant",   label: "Compliant %",          description: "Percentage of regulations in compliant status" },
+    { id: "stat-applicable",  label: "Applicable",            description: "Total applicable regulatory requirements" },
+    { id: "stat-gaps",        label: "Open Gaps",             description: "Regulations with identified compliance gaps" },
+    { id: "stat-assessments", label: "Overdue Assessments",   description: "Overdue compliance assessments" },
+    { id: "stat-certs",       label: "Pending Certs",         description: "Pending SMCR certifications" },
+  ],
+  "controls-library": [
+    { id: "stat-total",        label: "Total Controls",       description: "Total controls in the library" },
+    { id: "stat-preventative", label: "Preventative",         description: "Preventative control count" },
+    { id: "stat-detective",    label: "Detective",            description: "Detective control count" },
+    { id: "stat-directive",    label: "Directive",            description: "Directive control count" },
+    { id: "stat-corrective",   label: "Corrective",           description: "Corrective control count" },
+    { id: "stat-policies",     label: "Policies Covered",     description: "Controls linked to at least one policy" },
+  ],
+  "policy-health": [
+    { id: "stat-total",        label: "Total Policies",       description: "Total policies in the register" },
+    { id: "stat-overdue",      label: "Overdue",              description: "Policies past their review date" },
+    { id: "stat-requirements", label: "Requirements",         description: "Total regulatory requirements mapped" },
+    { id: "stat-links",        label: "Control Links",        description: "Controls linked to policies" },
+  ],
+  "priority-actions": [
+    { id: "card-p1",           label: "P1 — Critical",        description: "Critical priority actions" },
+    { id: "card-p2",           label: "P2 — Important",       description: "Important priority actions" },
+    { id: "card-p3",           label: "P3 — Routine",         description: "Routine priority actions" },
+  ],
+  "risk-summary": [
+    { id: "stat-total",        label: "Total Risks",          description: "Total risks in the register" },
+    { id: "stat-low",          label: "Low Risks",            description: "Risks scored as Low" },
+    { id: "stat-medium",       label: "Medium Risks",         description: "Risks scored as Medium" },
+    { id: "stat-high",         label: "High Risks",           description: "Risks scored as High" },
+  ],
+};

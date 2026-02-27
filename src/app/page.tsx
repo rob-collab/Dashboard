@@ -43,11 +43,26 @@ import { getActionLabel } from "@/lib/audit";
 import { getRiskScore } from "@/lib/risk-categories";
 import type { ActionPriority, ActionChange, ControlChange, RiskChange, RGLLayoutItem } from "@/lib/types";
 import { useHasPermission, usePermissionSet } from "@/lib/usePermission";
-import type { ComplianceStatus, DashboardLayoutConfig } from "@/lib/types";
+import type { ComplianceStatus, DashboardLayoutConfig, DashboardElementDef } from "@/lib/types";
 import ScoreBadge from "@/components/risk-register/ScoreBadge";
 import DirectionArrow from "@/components/risk-register/DirectionArrow";
 import { usePageTitle } from "@/lib/usePageTitle";
-import { DASHBOARD_SECTIONS, DEFAULT_SECTION_ORDER, CCRO_DEFAULT_SECTION_ORDER, ROLE_DEFAULT_HIDDEN, DEFAULT_GRID_LAYOUT } from "@/lib/dashboard-sections";
+import { DASHBOARD_SECTIONS, DEFAULT_SECTION_ORDER, CCRO_DEFAULT_SECTION_ORDER, ROLE_DEFAULT_HIDDEN, DEFAULT_GRID_LAYOUT, SECTION_ELEMENTS } from "@/lib/dashboard-sections";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS as DndCSS } from "@dnd-kit/utilities";
 import ReactGridLayout, { WidthProvider, type Layout as RGLLayout } from "react-grid-layout/legacy";
 import "react-grid-layout/css/styles.css";
 const GridLayout = WidthProvider(ReactGridLayout);
@@ -333,6 +348,95 @@ function PendingChangesPanel({
   );
 }
 
+/* ── Inner element editor for Phase 1 sections ───────────────────────── */
+function SortableElementChip({
+  id, label, isHidden, onToggleHidden,
+}: { id: string; label: string; isHidden: boolean; onToggleHidden: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+  const style = { transform: DndCSS.Transform.toString(transform), transition };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      className={cn(
+        "flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium",
+        isHidden
+          ? "border-gray-200 bg-gray-50 text-gray-400 opacity-50"
+          : "border-updraft-light-purple/40 bg-updraft-pale-purple/20 text-updraft-deep"
+      )}
+    >
+      <span
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing shrink-0 text-gray-400 hover:text-gray-600"
+        title="Drag to reorder"
+      >
+        <GripVertical size={9} />
+      </span>
+      <span className="truncate max-w-[80px]">{label}</span>
+      <button
+        onClick={(e) => { e.stopPropagation(); onToggleHidden(); }}
+        className="shrink-0 hover:opacity-70 transition-opacity"
+        title={isHidden ? "Show element" : "Hide element"}
+      >
+        {isHidden
+          ? <EyeOff size={9} className="text-gray-400" />
+          : <Eye size={9} className="text-updraft-bright-purple" />}
+      </button>
+    </div>
+  );
+}
+
+function InnerElementEditor({
+  sectionKey, elements, elementOrder, hiddenElements, onOrderChange, onToggleHidden,
+}: {
+  sectionKey: string;
+  elements: DashboardElementDef[];
+  elementOrder: string[];
+  hiddenElements: Set<string>;
+  onOrderChange: (newOrder: string[]) => void;
+  onToggleHidden: (compositeId: string) => void;
+}) {
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIdx = elementOrder.indexOf(active.id as string);
+      const newIdx = elementOrder.indexOf(over.id as string);
+      if (oldIdx !== -1 && newIdx !== -1) {
+        onOrderChange(arrayMove(elementOrder, oldIdx, newIdx));
+      }
+    }
+  }
+
+  return (
+    <div className="p-2 border-b border-updraft-light-purple/10 bg-updraft-pale-purple/5">
+      <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Elements — drag to reorder, click eye to hide</p>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={elementOrder} strategy={horizontalListSortingStrategy}>
+          <div className="flex flex-wrap gap-1">
+            {elementOrder.map((id) => {
+              const def = elements.find((d) => d.id === id);
+              if (!def) return null;
+              const compositeId = `${sectionKey}:${id}`;
+              return (
+                <SortableElementChip
+                  key={id}
+                  id={id}
+                  label={def.label}
+                  isHidden={hiddenElements.has(compositeId)}
+                  onToggleHidden={() => onToggleHidden(compositeId)}
+                />
+              );
+            })}
+          </div>
+        </SortableContext>
+      </DndContext>
+    </div>
+  );
+}
+
 export default function DashboardHome() {
   usePageTitle("Dashboard");
   const router = useRouter();
@@ -391,6 +495,8 @@ export default function DashboardHome() {
   const [editGrid, setEditGrid] = useState<RGLLayoutItem[]>(DEFAULT_GRID_LAYOUT);
   const [editHidden, setEditHidden] = useState<Set<string>>(new Set());
   const [editPinned, setEditPinned] = useState<Set<string>>(new Set());
+  const [editElementOrder, setEditElementOrder] = useState<Record<string, string[]>>({});
+  const [editHiddenElements, setEditHiddenElements] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
 
   // Per-user editing: which user's layout is being configured
@@ -438,6 +544,28 @@ export default function DashboardHome() {
     return new Set(Array.from(effectiveOrder.hidden).filter((k) => !pinned.has(k)));
   }, [effectiveOrder.hidden, dashboardLayout?.pinnedSections]);
 
+  // Effective element order for view mode — respects saved elementOrder
+  const effectiveElementOrder = useMemo<Record<string, string[]>>(() => {
+    const saved = (dashboardLayout?.elementOrder as Record<string, string[]> | null) ?? {};
+    return Object.fromEntries(
+      Object.entries(SECTION_ELEMENTS).map(([key, defs]) => {
+        const defaultOrder = defs.map((d) => d.id);
+        const savedOrder = saved[key];
+        if (Array.isArray(savedOrder) && savedOrder.length > 0) {
+          const validIds = new Set(defaultOrder);
+          const filtered = savedOrder.filter((id) => validIds.has(id));
+          const extra = defaultOrder.filter((id) => !filtered.includes(id));
+          return [key, [...filtered, ...extra]];
+        }
+        return [key, defaultOrder];
+      })
+    );
+  }, [dashboardLayout?.elementOrder]);
+
+  const effectiveHiddenElements = useMemo<Set<string>>(() => {
+    return new Set((dashboardLayout?.hiddenElements as string[] | null) ?? []);
+  }, [dashboardLayout?.hiddenElements]);
+
   // Fetch a specific user's layout and load into the editor
   const fetchAndLoadUserLayout = useCallback(async (userId: string) => {
     setLoadingTargetLayout(true);
@@ -450,11 +578,28 @@ export default function DashboardHome() {
       setEditGrid([...base, ...extra]);
       setEditHidden(new Set(layout.hiddenSections ?? []));
       setEditPinned(new Set(layout.pinnedSections ?? []));
+      // Load element order + hidden elements
+      const savedEO = (layout.elementOrder as Record<string, string[]> | null) ?? {};
+      setEditElementOrder(Object.fromEntries(
+        Object.entries(SECTION_ELEMENTS).map(([k, defs]) => {
+          const savedOrder = savedEO[k];
+          if (Array.isArray(savedOrder) && savedOrder.length > 0) {
+            const validIds = new Set(defs.map((d) => d.id));
+            const filtered = savedOrder.filter((id) => validIds.has(id));
+            const extra2 = defs.map((d) => d.id).filter((id) => !filtered.includes(id));
+            return [k, [...filtered, ...extra2]];
+          }
+          return [k, defs.map((d) => d.id)];
+        })
+      ));
+      setEditHiddenElements(new Set((layout.hiddenElements as string[]) ?? []));
     } catch {
       // Fallback to defaults
       setEditGrid([...DEFAULT_GRID_LAYOUT]);
       setEditHidden(new Set());
       setEditPinned(new Set());
+      setEditElementOrder(Object.fromEntries(Object.entries(SECTION_ELEMENTS).map(([k, defs]) => [k, defs.map((d) => d.id)])));
+      setEditHiddenElements(new Set());
     } finally {
       setLoadingTargetLayout(false);
     }
@@ -470,6 +615,8 @@ export default function DashboardHome() {
     setEditGrid([...base, ...extra]);
     setEditHidden(new Set(effectiveOrder.hidden));
     setEditPinned(new Set(dashboardLayout?.pinnedSections ?? []));
+    setEditElementOrder({ ...effectiveElementOrder });
+    setEditHiddenElements(new Set(effectiveHiddenElements));
     setEditMode(true);
   }
 
@@ -483,6 +630,8 @@ export default function DashboardHome() {
     setEditGrid([...DEFAULT_GRID_LAYOUT]);
     setEditHidden(new Set());
     setEditPinned(new Set());
+    setEditElementOrder(Object.fromEntries(Object.entries(SECTION_ELEMENTS).map(([k, defs]) => [k, defs.map((d) => d.id)])));
+    setEditHiddenElements(new Set());
   }
 
   async function handleSelectEditTarget(userId: string) {
@@ -514,6 +663,8 @@ export default function DashboardHome() {
         sectionOrder: editGrid.map((i) => i.i),
         hiddenSections: Array.from(editHidden),
         layoutGrid: editGrid,
+        elementOrder: editElementOrder,
+        hiddenElements: Array.from(editHiddenElements),
       };
       if (isCCRO) body.pinnedSections = Array.from(editPinned);
 
@@ -881,6 +1032,10 @@ export default function DashboardHome() {
     }
   }
 
+  // Render-time element order: uses edit state in edit mode, effective state in view mode
+  const elementOrderForRender = editMode ? editElementOrder : effectiveElementOrder;
+  const hiddenElementsForRender = editMode ? editHiddenElements : effectiveHiddenElements;
+
   // Build section map AFTER loading check
   const sectionMap: Record<string, React.ReactNode> = {
     "welcome": (
@@ -1090,51 +1245,58 @@ export default function DashboardHome() {
       return <ActionRequiredSection groups={groups} />;
     })(),
 
-    "priority-actions": (
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {(["P1", "P2", "P3"] as ActionPriority[]).map((p, idx) => {
-          const config = PRIORITY_CONFIG[p];
-          const items = priorityStats[p];
-          return (
-            <Link
-              key={p}
-              href={`/actions?priority=${p}`}
-              className={`card-entrance card-entrance-${idx + 2} rounded-2xl border ${config.border} p-5 transition-all hover:shadow-bento-hover`}
-              style={{ background: `linear-gradient(135deg, ${p === "P1" ? "#FEF2F2" : p === "P2" ? "#FFFBEB" : "#F8FAFC"} 0%, ${p === "P1" ? "#FFF5F5" : p === "P2" ? "#FEFCE8" : "#F1F5F9"} 100%)` }}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <h3 className={`text-sm font-bold ${config.color}`}>{config.label}</h3>
-                <AnimatedNumber value={items.length} delay={(idx + 1) * 60} className={`text-3xl font-bold font-poppins ${config.color}`} />
-              </div>
-              <p className="text-[11px] text-gray-500 mb-3">{config.description}</p>
-              {items.length > 0 ? (
-                <div className="space-y-1.5">
-                  {items.slice(0, 3).map((a) => {
-                    const owner = users.find((u) => u.id === a.assignedTo);
-                    return (
-                      <Link
-                        key={a.id}
-                        href={`/actions?edit=${a.id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center justify-between text-xs hover:text-updraft-bright-purple transition-colors"
-                      >
-                        <span className="text-gray-700 truncate flex-1 min-w-0">{a.title}</span>
-                        <span className="text-gray-400 shrink-0 ml-2">{owner?.name ?? "—"}</span>
-                      </Link>
-                    );
-                  })}
-                  {items.length > 3 && (
-                    <p className="text-[10px] text-gray-400">+{items.length - 3} more</p>
-                  )}
+    "priority-actions": (() => {
+      const paOrder = elementOrderForRender["priority-actions"] ?? ["card-p1", "card-p2", "card-p3"];
+      const paVisible = paOrder.filter((id) => !hiddenElementsForRender.has(`priority-actions:${id}`));
+      const pMap: Record<string, ActionPriority> = { "card-p1": "P1", "card-p2": "P2", "card-p3": "P3" };
+      return (
+        <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.max(1, paVisible.length)}, minmax(0, 1fr))` }}>
+          {paVisible.map((id, idx) => {
+            const p = pMap[id];
+            if (!p) return null;
+            const config = PRIORITY_CONFIG[p];
+            const items = priorityStats[p];
+            return (
+              <Link
+                key={id}
+                href={`/actions?priority=${p}`}
+                className={`card-entrance card-entrance-${idx + 2} rounded-2xl border ${config.border} p-5 transition-all hover:shadow-bento-hover`}
+                style={{ background: `linear-gradient(135deg, ${p === "P1" ? "#FEF2F2" : p === "P2" ? "#FFFBEB" : "#F8FAFC"} 0%, ${p === "P1" ? "#FFF5F5" : p === "P2" ? "#FEFCE8" : "#F1F5F9"} 100%)` }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className={`text-sm font-bold ${config.color}`}>{config.label}</h3>
+                  <AnimatedNumber value={items.length} delay={(idx + 1) * 60} className={`text-3xl font-bold font-poppins ${config.color}`} />
                 </div>
-              ) : (
-                <p className="text-xs text-gray-400">No active actions</p>
-              )}
-            </Link>
-          );
-        })}
-      </div>
-    ),
+                <p className="text-[11px] text-gray-500 mb-3">{config.description}</p>
+                {items.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {items.slice(0, 3).map((a) => {
+                      const owner = users.find((u) => u.id === a.assignedTo);
+                      return (
+                        <Link
+                          key={a.id}
+                          href={`/actions?edit=${a.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center justify-between text-xs hover:text-updraft-bright-purple transition-colors"
+                        >
+                          <span className="text-gray-700 truncate flex-1 min-w-0">{a.title}</span>
+                          <span className="text-gray-400 shrink-0 ml-2">{owner?.name ?? "—"}</span>
+                        </Link>
+                      );
+                    })}
+                    {items.length > 3 && (
+                      <p className="text-[10px] text-gray-400">+{items.length - 3} more</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400">No active actions</p>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      );
+    })(),
 
     "risk-acceptances": riskAcceptances.length > 0 ? (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 card-entrance card-entrance-5">
@@ -1218,77 +1380,119 @@ export default function DashboardHome() {
       </div>
     ) : null,
 
-    "compliance-health": complianceHealth ? (
-      <Link href="/compliance" className="bento-card hover:border-updraft-light-purple transition-colors group block card-entrance card-entrance-5">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Scale className="h-5 w-5 text-updraft-bright-purple" />
-            <h2 className="text-lg font-bold text-updraft-deep font-poppins">Compliance Health</h2>
+    "compliance-health": (() => {
+      if (!complianceHealth) return null;
+      const chOrder = elementOrderForRender["compliance-health"] ?? SECTION_ELEMENTS["compliance-health"].map((d) => d.id);
+      const chVisible = chOrder.filter((id) => !hiddenElementsForRender.has(`compliance-health:${id}`));
+      return (
+        <Link href="/compliance" className="bento-card hover:border-updraft-light-purple transition-colors group block card-entrance card-entrance-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Scale className="h-5 w-5 text-updraft-bright-purple" />
+              <h2 className="text-lg font-bold text-updraft-deep font-poppins">Compliance Health</h2>
+            </div>
+            <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-updraft-bright-purple transition-colors" />
           </div>
-          <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-updraft-bright-purple transition-colors" />
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=regulatory-universe"); }} className="rounded-lg border border-green-100 p-3 text-center hover:opacity-80 transition-opacity" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-            <p className="text-xl font-bold font-poppins text-green-700">{complianceHealth.compliantPct}%</p>
-            <p className="text-[10px] text-gray-500 mt-0.5">Compliant</p>
-          </button>
-          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=regulatory-universe"); }} className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm hover:opacity-80 transition-opacity">
-            <p className="text-xl font-bold font-poppins text-updraft-deep">{complianceHealth.total}</p>
-            <p className="text-[10px] text-gray-500 mt-0.5">Applicable</p>
-          </button>
-          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=regulatory-universe"); }} className={`rounded-lg border p-3 text-center hover:opacity-80 transition-opacity ${complianceHealth.gaps > 0 ? "border-red-100" : "border-green-100"}`} style={{ background: complianceHealth.gaps > 0 ? "linear-gradient(135deg, #FEF2F2, #FFF5F5)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-            <p className={`text-xl font-bold font-poppins ${complianceHealth.gaps > 0 ? "text-red-700" : "text-green-700"}`}>{complianceHealth.gaps}</p>
-            <p className="text-[10px] text-gray-500 mt-0.5">Open Gaps</p>
-          </button>
-          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=assessment-log"); }} className={`rounded-lg border p-3 text-center hover:opacity-80 transition-opacity ${complianceHealth.overdueAssessments > 0 ? "border-amber-100" : "border-green-100"}`} style={{ background: complianceHealth.overdueAssessments > 0 ? "linear-gradient(135deg, #FFFBEB, #FEFCE8)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-            <p className={`text-xl font-bold font-poppins ${complianceHealth.overdueAssessments > 0 ? "text-amber-700" : "text-green-700"}`}>{complianceHealth.overdueAssessments}</p>
-            <p className="text-[10px] text-gray-500 mt-0.5">Overdue Assessments</p>
-          </button>
-          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=smcr"); }} className={`rounded-lg border p-3 text-center hover:opacity-80 transition-opacity ${complianceHealth.pendingCerts > 0 ? "border-amber-100" : "border-green-100"}`} style={{ background: complianceHealth.pendingCerts > 0 ? "linear-gradient(135deg, #FFFBEB, #FEFCE8)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-            <p className={`text-xl font-bold font-poppins ${complianceHealth.pendingCerts > 0 ? "text-amber-700" : "text-green-700"}`}>{complianceHealth.pendingCerts}</p>
-            <p className="text-[10px] text-gray-500 mt-0.5">Pending Certs</p>
-          </button>
-        </div>
-      </Link>
-    ) : null,
+          <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.max(1, chVisible.length)}, minmax(0, 1fr))` }}>
+            {chVisible.map((id) => {
+              switch (id) {
+                case "stat-compliant": return (
+                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=regulatory-universe"); }} className="rounded-lg border border-green-100 p-3 text-center hover:opacity-80 transition-opacity" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+                    <p className="text-xl font-bold font-poppins text-green-700">{complianceHealth.compliantPct}%</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">Compliant</p>
+                  </button>
+                );
+                case "stat-applicable": return (
+                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=regulatory-universe"); }} className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm hover:opacity-80 transition-opacity">
+                    <p className="text-xl font-bold font-poppins text-updraft-deep">{complianceHealth.total}</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">Applicable</p>
+                  </button>
+                );
+                case "stat-gaps": return (
+                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=regulatory-universe"); }} className={`rounded-lg border p-3 text-center hover:opacity-80 transition-opacity ${complianceHealth.gaps > 0 ? "border-red-100" : "border-green-100"}`} style={{ background: complianceHealth.gaps > 0 ? "linear-gradient(135deg, #FEF2F2, #FFF5F5)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+                    <p className={`text-xl font-bold font-poppins ${complianceHealth.gaps > 0 ? "text-red-700" : "text-green-700"}`}>{complianceHealth.gaps}</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">Open Gaps</p>
+                  </button>
+                );
+                case "stat-assessments": return (
+                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=assessment-log"); }} className={`rounded-lg border p-3 text-center hover:opacity-80 transition-opacity ${complianceHealth.overdueAssessments > 0 ? "border-amber-100" : "border-green-100"}`} style={{ background: complianceHealth.overdueAssessments > 0 ? "linear-gradient(135deg, #FFFBEB, #FEFCE8)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+                    <p className={`text-xl font-bold font-poppins ${complianceHealth.overdueAssessments > 0 ? "text-amber-700" : "text-green-700"}`}>{complianceHealth.overdueAssessments}</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">Overdue Assessments</p>
+                  </button>
+                );
+                case "stat-certs": return (
+                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=smcr"); }} className={`rounded-lg border p-3 text-center hover:opacity-80 transition-opacity ${complianceHealth.pendingCerts > 0 ? "border-amber-100" : "border-green-100"}`} style={{ background: complianceHealth.pendingCerts > 0 ? "linear-gradient(135deg, #FFFBEB, #FEFCE8)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+                    <p className={`text-xl font-bold font-poppins ${complianceHealth.pendingCerts > 0 ? "text-amber-700" : "text-green-700"}`}>{complianceHealth.pendingCerts}</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">Pending Certs</p>
+                  </button>
+                );
+                default: return null;
+              }
+            })}
+          </div>
+        </Link>
+      );
+    })(),
 
-    "controls-library": controlsStats ? (
-      <Link href="/controls" className="bento-card hover:border-updraft-light-purple transition-colors group block card-entrance card-entrance-5">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <FlaskConical className="h-5 w-5 text-updraft-bright-purple" />
-            <h2 className="text-lg font-bold text-updraft-deep font-poppins">Controls Library</h2>
+    "controls-library": (() => {
+      if (!controlsStats) return null;
+      const clOrder = elementOrderForRender["controls-library"] ?? SECTION_ELEMENTS["controls-library"].map((d) => d.id);
+      const clVisible = clOrder.filter((id) => !hiddenElementsForRender.has(`controls-library:${id}`));
+      return (
+        <Link href="/controls" className="bento-card hover:border-updraft-light-purple transition-colors group block card-entrance card-entrance-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <FlaskConical className="h-5 w-5 text-updraft-bright-purple" />
+              <h2 className="text-lg font-bold text-updraft-deep font-poppins">Controls Library</h2>
+            </div>
+            <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-updraft-bright-purple transition-colors" />
           </div>
-          <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-updraft-bright-purple transition-colors" />
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
-          <div className="rounded-lg border border-updraft-pale-purple p-3 text-center overflow-hidden" style={{ background: "linear-gradient(135deg, #F3E8FF, #FAF5FF)" }}>
-            <p className="text-xl font-bold font-poppins text-updraft-deep">{controlsStats.total}</p>
-            <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Total Controls">Total</p>
+          <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.max(1, clVisible.length)}, minmax(0, 1fr))` }}>
+            {clVisible.map((id) => {
+              switch (id) {
+                case "stat-total": return (
+                  <div key={id} className="rounded-lg border border-updraft-pale-purple p-3 text-center overflow-hidden" style={{ background: "linear-gradient(135deg, #F3E8FF, #FAF5FF)" }}>
+                    <p className="text-xl font-bold font-poppins text-updraft-deep">{controlsStats.total}</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Total Controls">Total</p>
+                  </div>
+                );
+                case "stat-preventative": return (
+                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=PREVENTATIVE"); }} className="rounded-lg border border-green-100 p-3 text-center hover:opacity-80 transition-opacity overflow-hidden" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+                    <p className="text-xl font-bold font-poppins text-green-700">{controlsStats.preventative}</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Preventative">Prevent.</p>
+                  </button>
+                );
+                case "stat-detective": return (
+                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=DETECTIVE"); }} className="rounded-lg border border-blue-100 p-3 text-center hover:opacity-80 transition-opacity overflow-hidden" style={{ background: "linear-gradient(135deg, #EFF6FF, #F0F9FF)" }}>
+                    <p className="text-xl font-bold font-poppins text-blue-700">{controlsStats.detective}</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Detective">Detect.</p>
+                  </button>
+                );
+                case "stat-directive": return (
+                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=DIRECTIVE"); }} className="rounded-lg border border-amber-100 p-3 text-center hover:opacity-80 transition-opacity overflow-hidden" style={{ background: "linear-gradient(135deg, #FFFBEB, #FEFCE8)" }}>
+                    <p className="text-xl font-bold font-poppins text-amber-700">{controlsStats.directive}</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Directive">Directive</p>
+                  </button>
+                );
+                case "stat-corrective": return (
+                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=CORRECTIVE"); }} className="rounded-lg border border-red-100 p-3 text-center hover:opacity-80 transition-opacity overflow-hidden" style={{ background: "linear-gradient(135deg, #FEF2F2, #FFF5F5)" }}>
+                    <p className="text-xl font-bold font-poppins text-red-700">{controlsStats.corrective}</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Corrective">Correct.</p>
+                  </button>
+                );
+                case "stat-policies": return (
+                  <div key={id} className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm overflow-hidden">
+                    <p className="text-xl font-bold font-poppins text-updraft-deep">{controlsStats.policiesWithControls}/{controlsStats.totalPolicies}</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Policies Covered">Policies</p>
+                  </div>
+                );
+                default: return null;
+              }
+            })}
           </div>
-          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=PREVENTATIVE"); }} className="rounded-lg border border-green-100 p-3 text-center hover:opacity-80 transition-opacity overflow-hidden" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-            <p className="text-xl font-bold font-poppins text-green-700">{controlsStats.preventative}</p>
-            <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Preventative">Prevent.</p>
-          </button>
-          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=DETECTIVE"); }} className="rounded-lg border border-blue-100 p-3 text-center hover:opacity-80 transition-opacity overflow-hidden" style={{ background: "linear-gradient(135deg, #EFF6FF, #F0F9FF)" }}>
-            <p className="text-xl font-bold font-poppins text-blue-700">{controlsStats.detective}</p>
-            <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Detective">Detect.</p>
-          </button>
-          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=DIRECTIVE"); }} className="rounded-lg border border-amber-100 p-3 text-center hover:opacity-80 transition-opacity overflow-hidden" style={{ background: "linear-gradient(135deg, #FFFBEB, #FEFCE8)" }}>
-            <p className="text-xl font-bold font-poppins text-amber-700">{controlsStats.directive}</p>
-            <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Directive">Directive</p>
-          </button>
-          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=CORRECTIVE"); }} className="rounded-lg border border-red-100 p-3 text-center hover:opacity-80 transition-opacity overflow-hidden" style={{ background: "linear-gradient(135deg, #FEF2F2, #FFF5F5)" }}>
-            <p className="text-xl font-bold font-poppins text-red-700">{controlsStats.corrective}</p>
-            <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Corrective">Correct.</p>
-          </button>
-          <div className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm overflow-hidden">
-            <p className="text-xl font-bold font-poppins text-updraft-deep">{controlsStats.policiesWithControls}/{controlsStats.totalPolicies}</p>
-            <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Policies Covered">Policies</p>
-          </div>
-        </div>
-      </Link>
-    ) : null,
+        </Link>
+      );
+    })(),
 
     "cross-entity": crossEntityInsights.hasData ? (
       <div className="bento-card card-entrance card-entrance-5">
@@ -1354,49 +1558,57 @@ export default function DashboardHome() {
       </div>
     ) : null,
 
-    "policy-health": policies.length > 0 ? (
-      <Link href="/policies" className="bento-card hover:border-updraft-light-purple transition-colors group block card-entrance card-entrance-5">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-updraft-bright-purple" />
-            <h2 className="text-lg font-bold text-updraft-deep font-poppins">Policy Health</h2>
+    "policy-health": (() => {
+      if (policies.length === 0) return null;
+      const phOrder = elementOrderForRender["policy-health"] ?? SECTION_ELEMENTS["policy-health"].map((d) => d.id);
+      const phVisible = phOrder.filter((id) => !hiddenElementsForRender.has(`policy-health:${id}`));
+      const now = new Date();
+      const overdueCount = policies.filter(
+        (p) => p.status !== "ARCHIVED" && (p.status === "OVERDUE" || (!!p.nextReviewDate && new Date(p.nextReviewDate) < now))
+      ).length;
+      return (
+        <Link href="/policies" className="bento-card hover:border-updraft-light-purple transition-colors group block card-entrance card-entrance-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-updraft-bright-purple" />
+              <h2 className="text-lg font-bold text-updraft-deep font-poppins">Policy Health</h2>
+            </div>
+            <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-updraft-bright-purple transition-colors" />
           </div>
-          <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-updraft-bright-purple transition-colors" />
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm">
-            <p className="text-xl font-bold font-poppins text-updraft-deep">{policies.length}</p>
-            <p className="text-[10px] text-gray-500 mt-0.5">Total Policies</p>
+          <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.max(1, phVisible.length)}, minmax(0, 1fr))` }}>
+            {phVisible.map((id) => {
+              switch (id) {
+                case "stat-total": return (
+                  <div key={id} className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm">
+                    <p className="text-xl font-bold font-poppins text-updraft-deep">{policies.length}</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">Total Policies</p>
+                  </div>
+                );
+                case "stat-overdue": return (
+                  <div key={id} className={`rounded-lg border p-3 text-center ${overdueCount > 0 ? "border-red-100" : "border-green-100"}`} style={{ background: overdueCount > 0 ? "linear-gradient(135deg, #FEF2F2, #FFF5F5)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+                    <p className={`text-xl font-bold font-poppins ${overdueCount > 0 ? "text-red-700" : "text-green-700"}`}>{overdueCount}</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">Overdue</p>
+                  </div>
+                );
+                case "stat-requirements": return (
+                  <div key={id} className="rounded-lg border border-updraft-pale-purple p-3 text-center" style={{ background: "linear-gradient(135deg, #F3E8FF, #FAF5FF)" }}>
+                    <p className="text-xl font-bold font-poppins text-updraft-deep">{policies.reduce((sum, p) => sum + (p.obligations?.length ?? 0), 0)}</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">Requirements</p>
+                  </div>
+                );
+                case "stat-links": return (
+                  <div key={id} className="rounded-lg border border-blue-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #EFF6FF, #F0F9FF)" }}>
+                    <p className="text-xl font-bold font-poppins text-blue-700">{policies.reduce((sum, p) => sum + (p.controlLinks?.length ?? 0), 0)}</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">Control Links</p>
+                  </div>
+                );
+                default: return null;
+              }
+            })}
           </div>
-          {(() => {
-            const now = new Date();
-            const overdueCount = policies.filter(
-              (p) => p.status !== "ARCHIVED" && (p.status === "OVERDUE" || (!!p.nextReviewDate && new Date(p.nextReviewDate) < now))
-            ).length;
-            return (
-              <div className={`rounded-lg border p-3 text-center ${overdueCount > 0 ? "border-red-100" : "border-green-100"}`} style={{ background: overdueCount > 0 ? "linear-gradient(135deg, #FEF2F2, #FFF5F5)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-                <p className={`text-xl font-bold font-poppins ${overdueCount > 0 ? "text-red-700" : "text-green-700"}`}>
-                  {overdueCount}
-                </p>
-                <p className="text-[10px] text-gray-500 mt-0.5">Overdue</p>
-              </div>
-            );
-          })()}
-          <div className="rounded-lg border border-updraft-pale-purple p-3 text-center" style={{ background: "linear-gradient(135deg, #F3E8FF, #FAF5FF)" }}>
-            <p className="text-xl font-bold font-poppins text-updraft-deep">
-              {policies.reduce((sum, p) => sum + (p.obligations?.length ?? 0), 0)}
-            </p>
-            <p className="text-[10px] text-gray-500 mt-0.5">Requirements</p>
-          </div>
-          <div className="rounded-lg border border-blue-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #EFF6FF, #F0F9FF)" }}>
-            <p className="text-xl font-bold font-poppins text-blue-700">
-              {policies.reduce((sum, p) => sum + (p.controlLinks?.length ?? 0), 0)}
-            </p>
-            <p className="text-[10px] text-gray-500 mt-0.5">Control Links</p>
-          </div>
-        </div>
-      </Link>
-    ) : null,
+        </Link>
+      );
+    })(),
 
     "risks-in-focus": focusRisks.length > 0 ? (
       <div className="bento-card border-2 border-amber-200/60">
@@ -1757,26 +1969,42 @@ export default function DashboardHome() {
 
     "consumer-duty": hasConsumerDutyPage ? <CDRadialRing outcomes={outcomes} /> : null,
 
-    "risk-summary": hasRiskRegisterPage ? (
+    "risk-summary": hasRiskRegisterPage ? (() => {
+      const rsOrder = elementOrderForRender["risk-summary"] ?? SECTION_ELEMENTS["risk-summary"].map((d) => d.id);
+      const rsVisible = rsOrder.filter((id) => !hiddenElementsForRender.has(`risk-summary:${id}`));
+      return (
       <div className="card-entrance card-entrance-5">
         <h2 className="text-lg font-bold text-updraft-deep font-poppins mb-3">Risk Summary</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Link href="/risk-register" className="rounded-xl border border-[#E8E6E1] bg-surface-warm p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all">
-            <p className="text-xs text-text-secondary">Total Risks</p>
-            <AnimatedNumber value={risks.length} delay={240} className="text-2xl font-bold font-poppins text-updraft-deep" />
-          </Link>
-          <Link href="/risk-register?filter=LOW" className="rounded-xl border border-green-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%)" }}>
-            <p className="text-xs text-text-secondary">Low Risk</p>
-            <AnimatedNumber value={risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) <= 4).length} delay={240} className="text-2xl font-bold font-poppins text-green-700" />
-          </Link>
-          <Link href="/risk-register?filter=MEDIUM" className="rounded-xl border border-amber-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEFCE8 100%)" }}>
-            <p className="text-xs text-text-secondary">Medium Risk</p>
-            <AnimatedNumber value={risks.filter((r) => { const s = getRiskScore(r.residualLikelihood, r.residualImpact); return s > 4 && s <= 12; }).length} delay={240} className="text-2xl font-bold font-poppins text-amber-700" />
-          </Link>
-          <Link href="/risk-register?filter=HIGH" className="rounded-xl border border-red-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #FEF2F2 0%, #FFF5F5 100%)" }}>
-            <p className="text-xs text-text-secondary">High Risk</p>
-            <AnimatedNumber value={risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) > 12).length} delay={240} className="text-2xl font-bold font-poppins text-red-700" />
-          </Link>
+        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.max(1, rsVisible.length)}, minmax(0, 1fr))` }}>
+          {rsVisible.map((id) => {
+            switch (id) {
+              case "stat-total": return (
+                <Link key={id} href="/risk-register" className="rounded-xl border border-[#E8E6E1] bg-surface-warm p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all">
+                  <p className="text-xs text-text-secondary">Total Risks</p>
+                  <AnimatedNumber value={risks.length} delay={240} className="text-2xl font-bold font-poppins text-updraft-deep" />
+                </Link>
+              );
+              case "stat-low": return (
+                <Link key={id} href="/risk-register?filter=LOW" className="rounded-xl border border-green-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%)" }}>
+                  <p className="text-xs text-text-secondary">Low Risk</p>
+                  <AnimatedNumber value={risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) <= 4).length} delay={240} className="text-2xl font-bold font-poppins text-green-700" />
+                </Link>
+              );
+              case "stat-medium": return (
+                <Link key={id} href="/risk-register?filter=MEDIUM" className="rounded-xl border border-amber-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEFCE8 100%)" }}>
+                  <p className="text-xs text-text-secondary">Medium Risk</p>
+                  <AnimatedNumber value={risks.filter((r) => { const s = getRiskScore(r.residualLikelihood, r.residualImpact); return s > 4 && s <= 12; }).length} delay={240} className="text-2xl font-bold font-poppins text-amber-700" />
+                </Link>
+              );
+              case "stat-high": return (
+                <Link key={id} href="/risk-register?filter=HIGH" className="rounded-xl border border-red-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #FEF2F2 0%, #FFF5F5 100%)" }}>
+                  <p className="text-xs text-text-secondary">High Risk</p>
+                  <AnimatedNumber value={risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) > 12).length} delay={240} className="text-2xl font-bold font-poppins text-red-700" />
+                </Link>
+              );
+              default: return null;
+            }
+          })}
         </div>
         <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="bento-card">
@@ -1789,7 +2017,8 @@ export default function DashboardHome() {
           </div>
         </div>
       </div>
-    ) : null,
+      );
+    })() : null,
 
     "programme-health": (
       <DomainScorecardRow
@@ -2084,6 +2313,23 @@ export default function DashboardHome() {
                     </div>
                     {/* Scrollable content */}
                     <div className="h-[calc(100%-2rem)] overflow-y-auto">
+                      {SECTION_ELEMENTS[item.i] && (
+                        <InnerElementEditor
+                          sectionKey={item.i}
+                          elements={SECTION_ELEMENTS[item.i]}
+                          elementOrder={editElementOrder[item.i] ?? SECTION_ELEMENTS[item.i].map((d) => d.id)}
+                          hiddenElements={editHiddenElements}
+                          onOrderChange={(newOrder) => setEditElementOrder((prev) => ({ ...prev, [item.i]: newOrder }))}
+                          onToggleHidden={(compositeId) => {
+                            setEditHiddenElements((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(compositeId)) next.delete(compositeId);
+                              else next.add(compositeId);
+                              return next;
+                            });
+                          }}
+                        />
+                      )}
                       {sectionMap[item.i] ?? (
                         <div className="p-4 text-xs text-gray-400 text-center">{def.label}</div>
                       )}

@@ -1,5 +1,5 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-27 (Sprint H: Dashboard Enhancements — bugs, animations, rolling tickers)
+Last updated: 2026-02-27 (Sprint I: Inner Element Control — element order, hide/show per section)
 
 ## CURRENT SPRINT: Sprint H — Dashboard Enhancements
 
@@ -43,11 +43,11 @@ Last updated: 2026-02-27 (Sprint H: Dashboard Enhancements — bugs, animations,
 - [x] H8: QuarterlySummaryWidget — per-quarter pass rate bars for last 5 quarters from store; current quarter headline stat; empty state; link to /controls?tab=quarterly-summary
 - [x] H7/H8: Both sections added to DASHBOARD_SECTIONS + DEFAULT_GRID_LAYOUT + ROLE_DEFAULT_HIDDEN (CCRO-only)
 - [x] H10: Dynamic text resize — CSS container queries on .bento-card + .rgl-section-item; 3 breakpoints (< 280px, 280–360px, 360–500px) scale h2, text-4xl down to text-base; padding also scales via outer rgl-item container
-- [ ] H11–H13: Inner element drag/resize/hide (see Sprint I below)
+- [x] H11–H13: Inner element drag/resize/hide (see Sprint I below)
 
 ---
 
-## UPCOMING SPRINT: Sprint I — Inner Element Control (H11–H13)
+## COMPLETED SPRINT: Sprint I — Inner Element Control (H11–H13) ✅ COMPLETE
 Last updated: 2026-02-27
 
 ### Context
@@ -115,8 +115,8 @@ Run: `npx prisma db push`
 **Files:** `prisma/schema.prisma`
 
 **Acceptance:**
-- [ ] `elementOrder` and `hiddenElements` added as nullable/defaulted JSON columns
-- [ ] `npx prisma db push` succeeds without data loss
+- [x] `elementOrder` and `hiddenElements` added as nullable/defaulted JSON columns
+- [x] `npx prisma db push` succeeds without data loss
 
 ---
 
@@ -179,10 +179,10 @@ export const SECTION_ELEMENTS: Record<string, DashboardElementDef[]> = {
 **Files:** `src/lib/types.ts`, `src/lib/dashboard-sections.ts`
 
 **Acceptance:**
-- [ ] `DashboardElementDef` exported from types.ts
-- [ ] `DashboardLayoutConfig` has `elementOrder` + `hiddenElements`
-- [ ] `SECTION_ELEMENTS` exported with all 5 Phase 1 sections
-- [ ] Zero type errors
+- [x] `DashboardElementDef` exported from types.ts
+- [x] `DashboardLayoutConfig` has `elementOrder` + `hiddenElements`
+- [x] `SECTION_ELEMENTS` exported with all 5 Phase 1 sections
+- [x] Zero type errors
 
 ---
 
@@ -205,10 +205,10 @@ Default layout helper also returns `elementOrder: {}, hiddenElements: []`.
 **Files:** `src/app/api/dashboard-layout/route.ts`
 
 **Acceptance:**
-- [ ] PUT with elementOrder + hiddenElements persists correctly
-- [ ] GET returns elementOrder + hiddenElements
-- [ ] No CCRO restriction on elementOrder (any user can edit their own)
-- [ ] hiddenElements round-trips correctly
+- [x] PUT with elementOrder + hiddenElements persists correctly
+- [x] GET returns elementOrder + hiddenElements (defaultLayout returns {} and [])
+- [x] No CCRO restriction on elementOrder (any user can edit their own)
+- [x] hiddenElements round-trips correctly
 
 ---
 
@@ -250,12 +250,12 @@ Each stat tile is extracted to a const/component in the same section of page.tsx
 **Files:** `src/app/page.tsx` (sectionMap entries for 5 sections)
 
 **Acceptance:**
-- [ ] compliance-health renders 5 stat tiles in order, respects hiddenElements
-- [ ] controls-library renders 6 stat tiles in order, respects hiddenElements
-- [ ] policy-health renders 4 stat tiles in order, respects hiddenElements
-- [ ] priority-actions renders 3 cards in order, respects hiddenElements
-- [ ] risk-summary renders 4 stat tiles in order, respects hiddenElements
-- [ ] Default order matches current hardcoded order (no visual regression)
+- [x] compliance-health renders 5 stat tiles in order, respects hiddenElements
+- [x] controls-library renders 6 stat tiles in order, respects hiddenElements
+- [x] policy-health renders 4 stat tiles in order, respects hiddenElements
+- [x] priority-actions renders 3 cards in order, respects hiddenElements
+- [x] risk-summary renders 4 stat tiles in order, respects hiddenElements
+- [x] Default order matches current hardcoded order (no visual regression)
 
 ---
 
@@ -292,12 +292,12 @@ await api("/api/dashboard-layout", {
 **Files:** `src/app/page.tsx`
 
 **Acceptance:**
-- [ ] Edit mode shows element chips for all 5 Phase 1 sections
-- [ ] Drag chip → element reorders in live preview
-- [ ] Eye toggle → element hides/shows in live preview
-- [ ] Save → toast, reload confirms persistence
-- [ ] Non-CCRO can only edit their own element order
-- [ ] CCRO can edit any user's element order (via existing user selector in edit toolbar)
+- [x] Edit mode shows element chips for all 5 Phase 1 sections
+- [x] Drag chip → element reorders in live preview (dnd-kit/sortable)
+- [x] Eye toggle → element hides/shows in live preview
+- [x] Save → toast, reload confirms persistence
+- [x] Non-CCRO can only edit their own element order
+- [x] CCRO can edit any user's element order (via existing user selector in edit toolbar)
 
 ---
 
@@ -325,10 +325,10 @@ const effectiveHiddenElements = useMemo(
 **Files:** `src/app/page.tsx`
 
 **Acceptance:**
-- [ ] View mode renders elements in saved order
-- [ ] Hidden elements do not render
-- [ ] First load (no saved layout) renders default registry order
-- [ ] After save + reload, order and visibility are restored
+- [x] View mode renders elements in saved order
+- [x] Hidden elements do not render
+- [x] First load (no saved layout) renders default registry order
+- [x] After save + reload, order and visibility are restored
 
 ---
 
