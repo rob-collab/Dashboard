@@ -502,6 +502,57 @@ takes 60 seconds and prevents repetition across sessions. This is non-optional.
 
 ---
 
+### L022 — CSS `forwards` animation with `transform` traps nested `position:fixed` overlays
+**What happened:** `animate-slide-up-fade` on Modal's content div used `animation-fill-mode: forwards`
+with a `to` keyframe of `transform: translateY(0); opacity: 1`. After the 0.25s animation ended,
+`forwards` retained `transform: translateY(0)` on the element. Per CSS spec, any non-none `transform`
+(even one with no visual effect) creates a **new containing block** for `position: fixed` descendants.
+Result: the MetricDrillDown modal's `fixed inset-0` overlay was positioned relative to the content div
+(clipped to its bounds) rather than the viewport — so it appeared trapped and cut off inside MIModal.
+
+**Rule 1 — Never retain `transform` via `forwards` on a container that has fixed-position descendants:**
+In `to` keyframes for entry animations, omit `transform` (or set it to `none`) when the element may contain
+`position: fixed` children. With `forwards`, only the properties declared in `to` are retained — so omitting
+`transform` in `to` means the element returns to its natural transform (`none`) after the animation.
+```css
+/* ❌ traps fixed children after animation */
+@keyframes slide-up-fade {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }  /* ← retained by forwards */
+}
+/* ✅ safe — transform not retained */
+@keyframes slide-up-fade {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { opacity: 1; }  /* ← only opacity retained */
+}
+```
+
+**Rule 2 — Never render a modal/overlay inside another modal's children:**
+Two independent modal overlays must be React siblings (or portaled to `document.body`), never
+parent/child. If a second modal is rendered inside the first's `children`, it inherits any
+transform, overflow, or stacking context from the parent's content wrapper.
+```tsx
+/* ❌ nested — trapped by parent's content div */
+<Modal>
+  <SomeContent />
+  <SecondModal open={...} />  {/* fixed overlay trapped inside first modal */}
+</Modal>
+
+/* ✅ sibling — fixed overlay escapes to viewport */
+<>
+  <Modal><SomeContent /></Modal>
+  <SecondModal open={...} />
+</>
+```
+
+**Trigger:** Any `position: fixed` element (modal, drawer, tooltip portal) rendered inside a container
+that has a CSS animation using `forwards` fill-mode with `transform`. Also: any modal rendered inside
+another modal's `children` prop — always check if it should be a sibling instead.
+
+**Status:** Active.
+
+---
+
 ## Promotion Log
 
 When the Retrospective Agent recommends a promotion and it is carried out, record it here

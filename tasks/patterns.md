@@ -911,6 +911,66 @@ CLAUDE.md — Seed & Migration Rules.
 
 ---
 
+### D027 — Modal Layering: Siblings Not Children; No Retained Transform on Containers
+
+**Rule 1 — Independent modals must always be React siblings, never parent/child.**
+
+Two overlay modals are independent UI surfaces. Rendering one inside the other's `children`
+prop makes the inner modal a descendant of the outer's scrollable content div, which may have
+stacking context or containment constraints (overflow, transform, z-index) that trap the
+inner overlay.
+
+```tsx
+/* ❌ wrong — SecondModal is inside Modal's content div */
+<Modal open={open} onClose={onClose}>
+  <SomeContent />
+  <SecondModal open={!!selected} onClose={() => setSelected(null)} />
+</Modal>
+
+/* ✅ correct — siblings rendered at the same level */
+<>
+  <Modal open={open} onClose={onClose}>
+    <SomeContent />
+  </Modal>
+  <SecondModal open={!!selected} onClose={() => setSelected(null)} />
+</>
+```
+
+**Rule 2 — Never retain a non-none `transform` on a container via `animation-fill-mode: forwards`.**
+
+A CSS `transform` (including `translateY(0)`) creates a new containing block for all
+`position: fixed` descendants, regardless of visual effect. If a container's entry animation
+ends with `transform: translateY(0)` and uses `forwards` fill, it permanently holds that
+transform — trapping any nested fixed overlay inside the container's bounds.
+
+Fix: omit `transform` from the animation's `to` keyframe. The browser interpolates the
+property back to the element's natural value (`none`), and `forwards` only retains properties
+explicitly declared in `to`.
+
+```css
+/* ❌ wrong — forwards retains transform: translateY(0), trapping fixed children */
+@keyframes slide-up-fade {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.animate-slide-up-fade { animation: slide-up-fade 0.25s ease-out forwards; }
+
+/* ✅ correct — only opacity retained; transform returns to none */
+@keyframes slide-up-fade {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-slide-up-fade { animation: slide-up-fade 0.25s ease-out forwards; }
+```
+
+**Applies to:** Any new modal, drawer, tooltip, popover, or other `position: fixed` overlay.
+Before adding one, ask: "Is it a child of anything that has a CSS transform or animation?"
+If yes, move it to be a sibling or portal it to `document.body`.
+
+**Files:** `src/components/common/Modal.tsx`, `src/app/globals.css`
+
+---
+
 ### D014 — Shared File Ownership (for parallel sessions)
 
 These files are HIGH BLAST RADIUS — only ONE session should edit them at a time.
