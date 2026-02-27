@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api } from "@/lib/api-client";
 import { ShieldCheck, AlertTriangle, Clock, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 
 interface IBSStat {
   id: string;
@@ -223,7 +224,10 @@ function StatCard({ icon, label, value, colour, href, hint }: {
       <div className="p-2 bg-white rounded-lg shadow-sm">{icon}</div>
       <div className="flex-1 min-w-0">
         <p className="text-xs text-gray-500">{label}</p>
-        <p className="text-lg font-poppins font-bold text-gray-900">{value}</p>
+        {typeof value === "number"
+          ? <AnimatedNumber value={value} className="text-lg font-poppins font-bold text-gray-900" />
+          : <p className="text-lg font-poppins font-bold text-gray-900">{value}</p>
+        }
         {hint && <p className="text-[10px] text-gray-400 mt-0.5 truncate">{hint}</p>}
       </div>
     </Link>
