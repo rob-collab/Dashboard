@@ -26,9 +26,13 @@ Monday morning — before the 9am ExCo call. Ask yourself:
    (e.g. last reviewed date, next review date, risk owner, control tester)
 5. **Audit trail** — Can I see who changed what, and when? Would this satisfy an FCA audit?
 6. **Navigation logic** — Is the flow sensible for someone managing a live risk framework?
-7. **Status transitions** — Are status labels and workflows consistent with how these processes
+7. **Information timing** — Is time-sensitive data clearly dated? Are stale values flagged?
+   Would I know if I were looking at yesterday's data vs today's? Are filters, sorts, and
+   summaries computed from the data currently visible on-screen, or from a wider dataset
+   that isn't shown yet?
+8. **Status transitions** — Are status labels and workflows consistent with how these processes
    actually work in practice?
-8. **Regulatory readiness** — Could I export or reference this data in a Board report or
+9. **Regulatory readiness** — Could I export or reference this data in a Board report or
    regulatory submission without embarrassment?
 
 ## Output Format

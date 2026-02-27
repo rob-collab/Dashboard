@@ -346,6 +346,9 @@ itself is silently lost unless explicitly preserved.
 ### During a sprint — capture in real time
 
 **When a mistake happens (user corrects, rework required, wrong scope):**
+**STOP IMMEDIATELY and write the L-entry before doing anything else.** Do not finish the
+current task first. Do not defer to sprint end. The entry takes 60 seconds and prevents
+repetition across sessions. This is non-optional.
 1. Identify the root cause class — not the specific instance, the general pattern
 2. Add an `L00N` entry to `tasks/lessons.md` (append to the Mistakes section)
 3. Note the trigger condition and the rule to prevent recurrence

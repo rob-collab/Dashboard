@@ -36,6 +36,8 @@ This application uses the following established conventions:
 ### Tailwind Usage
 - All styling via Tailwind utility classes
 - No hardcoded hex colours or inline styles except where Tailwind cannot express the intent
+- When CSS gradients use hardcoded hex values (e.g. `bg-gradient-to-r from-[#abc123]`), flag
+  as a deviation — gradient stops must use brand colour CSS variables or Tailwind custom colours
 
 ## What to Evaluate
 
@@ -51,6 +53,9 @@ Review the changed or new files and check:
 5. **Spacing and density** — Is the visual density consistent with adjacent screens?
 6. **UK spelling** — Are there any American spelling violations?
 7. **Readability** — Would a new developer understand what design pattern is being used here?
+8. **Interactive element sizing** — Are all clickable/tappable targets at least 24×24px? Smaller
+   targets are accessibility violations and create friction on touch screens. Check buttons, icon
+   buttons, toggle chips, and drag handles.
 
 ## Output Format
 

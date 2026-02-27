@@ -1121,6 +1121,69 @@ Zone 4: Detailed cards — collapsible, collapsed by default
 
 ---
 
+### P011 — IIFE pattern for sectionMap entries with local variables (promoted from W016)
+**Context:** A `sectionMap` object literal where individual entries need computed local
+variables (order arrays, visible counts, derived state).
+**Pattern:** Use an IIFE as the object value — scopes variables without polluting the component:
+```tsx
+const sectionMap: Record<string, React.ReactNode> = {
+  "my-section": (() => {
+    const order = elementOrderForRender["my-section"] ?? defaultOrder;
+    const visible = order.filter(id => !hiddenElementsForRender.has(`my-section:${id}`));
+    return <div style={{ gridTemplateColumns: `repeat(${Math.max(1, visible.length)}, minmax(0, 1fr))` }}>
+      {visible.map(id => <StatTile key={id} ... />)}
+    </div>;
+  })(),
+};
+```
+Keeps logic colocated with its rendering, avoids naming collisions between adjacent sections,
+and is immediately readable. Combine with dynamic `gridTemplateColumns` so tiles always fill
+the available width regardless of how many are visible.
+**Trigger:** Any sectionMap entry that needs local variables (order, visibility, counts).
+
+---
+
+### P012 — Global CSS dark mode strategy: utility remapping without component changes (promoted from W015)
+**Context:** Adding dark mode to a codebase with 260+ `bg-white`/`bg-gray-*` uses — without
+touching individual components.
+**Pattern:**
+1. `darkMode: 'class'` in `tailwind.config.ts`
+2. `next-themes` with `ThemeProvider attribute="class" defaultTheme="system" enableSystem`
+3. `suppressHydrationWarning` on `<html>` (required — next-themes modifies class server/client)
+4. In `globals.css`, a `.dark {}` block with three sections:
+   - **Section A**: CSS variable overrides (handles custom-class components like `.bento-card` automatically)
+   - **Section B**: Tailwind utility remapping — `.dark .bg-white { background-color: ... !important; }` — covers all components without touching them
+   - **Section C**: Component-specific overrides (shadows, inputs, recharts, modals)
+5. Toggle: `useTheme()` in sidebar with `mounted` state guard (avoid SSR mismatch)
+**Why `!important`:** Tailwind utilities are equal specificity — `.dark` prefix alone doesn't win; `!important` ensures the override wins.
+**RAG colours:** Do NOT override — they remain vivid on dark backgrounds.
+**Print styles:** Ensure `background: white !important` in print styles so they win over `.dark`.
+**Applies to:** Any project-wide dark mode implementation without component-level `dark:` variants.
+
+---
+
+### P013 — Dynamic grid columns for variable-count element tiles (promoted from Sprint I)
+**Context:** A section renders N stat tiles, but the user can hide individual tiles. The
+layout must always fill the available width, not leave empty slots.
+**Pattern:** Use inline `gridTemplateColumns` driven by the visible count rather than a
+fixed `grid-cols-N` class:
+```tsx
+const visible = order.filter(id => !hidden.has(`${sectionKey}:${id}`));
+<div
+  className="grid gap-3"
+  style={{ gridTemplateColumns: `repeat(${Math.max(1, visible.length)}, minmax(0, 1fr))` }}
+>
+  {visible.map(id => <StatTile key={id} ... />)}
+</div>
+```
+`Math.max(1, ...)` prevents `repeat(0, ...)` when all tiles are hidden.
+For outer container sizing, use CSS container queries (`@container`) so tiles can reflow
+when the RGL section is resized — pair with `container` / `@container` in `globals.css`.
+**Trigger:** Any grid of stat tiles where the user can show/hide individual tiles, or where
+section width may change (RGL resize, responsive breakpoints).
+
+---
+
 ## API & DATABASE PATTERNS
 
 See `MEMORY.md` for Prisma 7 gotchas, adapter pattern, and multi-column orderBy syntax.
@@ -1150,3 +1213,6 @@ See `tasks/lessons.md` for L-series (mistake rules) and `CLAUDE.md` for mandator
 | L019 | D026 | 2026-02-27 | Sequential ordering — seed upserts must not override position |
 | L020 | D026 | 2026-02-27 | Migration metadata audit — enumerate all fields before delete |
 | House rule | D025 | 2026-02-27 | UK British English throughout |
+| W016 | P011 | 2026-02-27 | IIFE pattern for sectionMap entries with local variables |
+| W015 | P012 | 2026-02-27 | Global CSS dark mode strategy without component changes |
+| Sprint I | P013 | 2026-02-27 | Dynamic grid columns for variable-count element tiles |

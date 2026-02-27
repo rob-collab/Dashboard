@@ -165,13 +165,18 @@ placeholder added to a new module — confirm with the user before writing.
 
 ---
 
-### L013 — TypeScript Map iteration requires Array.from() at older targets
+### L013 — TypeScript Map AND Set iteration requires Array.from() at older targets
 **What happened:** Used `for (const [, items] of byControl)` directly on a `Map<string, T[]>` in
 `export-html-builder.ts`. TypeScript rejected it with: "Type 'Map<...>' can only be iterated
 through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher."
-**Rule:** When iterating a `Map` with `for...of`, always wrap it: `for (const [, items] of Array.from(map))`.
-This works at any target without config changes.
-**Trigger:** Any new `for...of` loop over a `Map` or `Set` in TypeScript.
+Also applies to `Set` spread: `[...new Set(arr)]` fails with the same error (see L017, merged here).
+**Rule:** `Array.from()` required for both `Map` AND `Set` spread/iteration at any target:
+- `for (const [k, v] of Array.from(map))` ✓
+- `Array.from(map.keys())` ✓
+- `Array.from(new Set(arr))` ✓
+- `[...new Set(arr)]` ✗
+- `[...map.entries()]` ✗
+**Trigger:** Any new `for...of` loop or spread over a `Map` or `Set` in TypeScript.
 **Status:** Active.
 
 ---
@@ -202,16 +207,7 @@ item has status "asked user — no response".
 ---
 
 ### L017 — Set spread `[...new Set()]` fails at lower TypeScript targets
-**What happened:** Used `[...new Set(allSnaps.map(...))]` in RiskTrendChart.tsx.
-TypeScript rejected it with the same L013 error: Set can only be iterated at es2015+.
-Applying `Array.from()` from L013's rule fixed it, but L013's wording only mentions `Map`,
-not `Set`. Both are affected by the same downlevelIteration issue.
-**Rule:** `Array.from()` required for both `Map` AND `Set` spread/iteration:
-- `Array.from(map.keys())` ✓
-- `Array.from(new Set(arr))` ✓
-- `[...new Set(arr)]` ✗
-**Trigger:** Any spread or for-of over a `Map` or `Set`.
-**Status:** Active. (Consider updating L013 to mention Set explicitly at retrospective.)
+**Status:** [MERGED → L013] — L013 has been updated to cover both Map and Set.
 
 ### L014 — Motion components must respect prefers-reduced-motion
 **What happened:** UAT flagged that Framer Motion animations in RiskTable, ActionDetailPanel, etc.
@@ -273,7 +269,7 @@ bugs. For any visual change, manually verify in a real browser before pushing to
 **RAG colours (green/amber/red):** Do NOT override. They remain vivid on dark backgrounds and provide better visual pop than overriding.
 **Print styles:** Do NOT include in dark mode overrides. Ensure print styles use `!important` for `background: white` so they win over the `.dark` block.
 **Applies to:** Any project-wide dark mode implementation without component-level `dark:` variants.
-**Status:** Candidate for promotion to patterns.md at sprint retrospective.
+**Status:** [PROMOTED → tasks/patterns.md P012]
 
 ---
 
@@ -534,7 +530,7 @@ CLAUDE.md rule says "capture in real time" but in practice lessons were skipped 
 appears — stop and write the L-entry BEFORE continuing. Do not defer to sprint end. The entry
 takes 60 seconds and prevents repetition across sessions. This is non-optional.
 **Trigger:** Any user correction, any rework, any "that's not right" or "why did you do that".
-**Status:** Active — reviewing whether CLAUDE.md "During a sprint" section needs stronger language.
+**Status:** [PROMOTED → CLAUDE.md "During a sprint" section]
 
 ---
 
@@ -603,7 +599,7 @@ avoids naming collisions, and is immediately obvious.
 })(),
 ```
 **Trigger:** Any sectionMap entry that needs local variables.
-**Status:** Active.
+**Status:** [PROMOTED → tasks/patterns.md P011]
 
 ---
 
@@ -615,7 +611,7 @@ did not trigger `prisma generate` in this environment.
 **Rule:** After any schema change (`prisma db push` or `prisma migrate`), always explicitly
 run `npx prisma generate` before `npx next build`. They are not guaranteed to be atomic.
 **Trigger:** Any Prisma schema change.
-**Status:** Active.
+**Status:** [PROMOTED → MEMORY.md Prisma 7 Gotchas]
 
 
 ---
@@ -631,3 +627,8 @@ so there is a clear trail of what was absorbed into the permanent process.
 | L002 | CLAUDE.md | — | Confirm-intent-first rule |
 | L003 | CLAUDE.md | — | Replan-after-each-step rule |
 | L006 | CLAUDE.md | 2026-02-26 | Decompose multi-task messages before starting |
+| W015 | tasks/patterns.md P012 | 2026-02-27 | Global CSS dark mode strategy |
+| W016 | tasks/patterns.md P011 | 2026-02-27 | IIFE pattern for sectionMap entries |
+| W017 | MEMORY.md Prisma 7 Gotchas | 2026-02-27 | prisma generate after schema changes |
+| L017 | Merged → L013 | 2026-02-27 | Set spread requires Array.from() — same rule as Map |
+| L021 | CLAUDE.md "During a sprint" | 2026-02-27 | Stop immediately to write L-entry |
