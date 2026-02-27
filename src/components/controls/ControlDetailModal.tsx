@@ -296,15 +296,6 @@ export default function ControlDetailModal({
         </div>
       ) : control ? (
         <div className="space-y-5">
-          {/* ── Type badge ── */}
-          {control.controlType && (
-            <div className="flex items-center gap-2">
-              <span className="inline-block rounded-full bg-updraft-pale-purple px-3 py-0.5 text-xs font-semibold text-updraft-deep">
-                {CONTROL_TYPE_LABELS[control.controlType as ControlType]}
-              </span>
-            </div>
-          )}
-
           {/* ── Suggest Change Form (non-CCRO) ── */}
           {suggestFormOpen && !isCCRO && (
             <div className="rounded-lg border border-updraft-light-purple bg-updraft-pale-purple/30 p-4">
@@ -382,12 +373,65 @@ export default function ControlDetailModal({
             </div>
           </div>
 
+          {/* ── Performance Over Time ── */}
+          {chartData.length >= 2 && (
+            <div className="bento-card p-4">
+              <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-3">
+                <TrendingUp size={14} className="text-updraft-bright-purple" />
+                Performance Over Time
+                <span className="text-xs font-normal text-gray-400">({chartData.length} results)</span>
+              </h4>
+              <div className="h-36">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                    <XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="#d1d5db" interval="preserveStartEnd" />
+                    <YAxis domain={[-0.1, 1.1]} ticks={[0, 0.5, 1]} tickFormatter={(v) => v === 1 ? "Pass" : v === 0 ? "Fail" : "Part"} tick={{ fontSize: 9 }} stroke="#d1d5db" />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        if (!active || !payload?.length) return null;
+                        return (
+                          <div className="bg-white border border-gray-200 rounded-lg p-2 shadow text-xs">
+                            <div className="font-semibold text-gray-700">{label}</div>
+                            <div className="text-gray-600">{payload[0]?.payload?.result}</div>
+                          </div>
+                        );
+                      }}
+                    />
+                    <ReferenceLine y={1} stroke="#22c55e" strokeDasharray="4 2" />
+                    <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="4 2" />
+                    <Line
+                      type="monotone"
+                      dataKey="score"
+                      stroke="#7C3AED"
+                      strokeWidth={2}
+                      dot={(props) => {
+                        const { cx, cy, payload } = props;
+                        const fill = payload.score === 1 ? "#22c55e" : payload.score === 0 ? "#ef4444" : "#f59e0b";
+                        return <circle key={`dot-${cx}-${cy}`} cx={cx} cy={cy} r={4} fill={fill} stroke="white" strokeWidth={1} />;
+                      }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
           {/* ── Testing Results ── */}
           <div className="bento-card p-4">
             <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
               Testing Results
               {testingStatus && (
-                <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium", testingStatus.bgColour, testingStatus.colour)}>
+                <span
+                  key={control.id + "-status"}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
+                    testingStatus.bgColour,
+                    testingStatus.colour,
+                    testingStatus.label === "Pass" && "animate-pop-in"
+                  )}
+                >
                   <span className={cn("h-1.5 w-1.5 rounded-full", testingStatus.dotColour)} />
                   {testingStatus.label}
                 </span>
@@ -433,51 +477,6 @@ export default function ControlDetailModal({
               <p className="text-xs text-gray-400">This control is not in the testing schedule.</p>
             )}
           </div>
-
-          {/* ── Performance Over Time ── */}
-          {chartData.length >= 2 && (
-            <div className="bento-card p-4">
-              <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-3">
-                <TrendingUp size={14} className="text-updraft-bright-purple" />
-                Performance Over Time
-                <span className="text-xs font-normal text-gray-400">({chartData.length} results)</span>
-              </h4>
-              <div className="h-36">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                    <XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="#d1d5db" interval="preserveStartEnd" />
-                    <YAxis domain={[-0.1, 1.1]} ticks={[0, 0.5, 1]} tickFormatter={(v) => v === 1 ? "Pass" : v === 0 ? "Fail" : "Part"} tick={{ fontSize: 9 }} stroke="#d1d5db" />
-                    <Tooltip
-                      content={({ active, payload, label }) => {
-                        if (!active || !payload?.length) return null;
-                        return (
-                          <div className="bg-white border border-gray-200 rounded-lg p-2 shadow text-xs">
-                            <div className="font-semibold text-gray-700">{label}</div>
-                            <div className="text-gray-600">{payload[0]?.payload?.result}</div>
-                          </div>
-                        );
-                      }}
-                    />
-                    <ReferenceLine y={1} stroke="#22c55e" strokeDasharray="4 2" />
-                    <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="4 2" />
-                    <Line
-                      type="monotone"
-                      dataKey="score"
-                      stroke="#7C3AED"
-                      strokeWidth={2}
-                      dot={(props) => {
-                        const { cx, cy, payload } = props;
-                        const fill = payload.score === 1 ? "#22c55e" : payload.score === 0 ? "#ef4444" : "#f59e0b";
-                        return <circle key={`dot-${cx}-${cy}`} cx={cx} cy={cy} r={4} fill={fill} stroke="white" strokeWidth={1} />;
-                      }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          )}
 
           {/* ── Linked Risks ── */}
           {(control.riskLinks ?? []).length > 0 && (

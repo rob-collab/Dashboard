@@ -148,7 +148,7 @@ export default function Modal({
         )}
 
         {/* Content */}
-        <div className="px-6 py-4 max-h-[70vh] overflow-y-auto">{children}</div>
+        <div className="px-6 py-4 max-h-[70vh] overflow-y-auto animate-slide-up-fade">{children}</div>
 
         {/* Footer */}
         {footer && (

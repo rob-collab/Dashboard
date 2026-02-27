@@ -1,5 +1,87 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-26 (Sprint 3: UX Polish — Filters, Defaults, Back Button & Consumer Duty CCRO)
+Last updated: 2026-02-27 (Controls & Consumer Duty Deep Polish sprint)
+
+---
+
+## CURRENT SPRINT: Controls & Consumer Duty Deep Polish ✅ COMPLETE
+
+### Context
+Multiple interconnected improvements across Controls, Consumer Duty, Actions, and the Export Centre.
+Key themes: richer data presentation (graphs, timelines), visual polish, usability fixes (scroll, truncation),
+and a significantly expanded export capability.
+
+### Deliverables & Acceptance Criteria
+
+#### D1 — Consumer Duty: Metrics layout restructure + expand/collapse
+- [x] D1-01: Metric stat tiles appear directly below measure stat tiles
+- [x] D1-02: All Measures Summary is collapsed by default; expands on click
+- [x] D1-03: All Metrics is collapsed by default; expands on click
+- [x] D1-04: Clicking a metric row opens MetricDrillDown with correct metric
+- [x] D1-05: MetricDrillDown shows 12-month graph with appetite target line
+- [x] D1-06: Metric stat tiles still filter the metrics table when clicked
+- [x] D1-07: Existing measure tile behaviour (filter outcomes) unchanged
+
+#### D2 — Controls Library: Fix horizontal scroll
+- [x] D2-01: Controls Library table scrolls horizontally when viewport is narrower than 1100px (all roles)
+- [x] D2-02: Columns not cut off on the right for Risk Owner role
+- [x] D2-03: Vertical scroll still works (max-h-[520px] respected)
+
+#### D3 — Controls detail panel: UI changes + entry animation
+- [x] D3-01: Control type badge removed from top of panel
+- [x] D3-02: Control type still visible in the Details Grid section
+- [x] D3-03: Performance Over Time graph appears before Testing Results
+- [x] D3-04: Performance graph still only shows when 2+ test results exist
+- [x] D3-05: PASS status badge has pop-in animation on modal open
+- [x] D3-06: FAIL/PARTIAL badges do not animate
+- [x] D3-07: Modal has subtle slide-up-fade entry
+- [x] D3-08: Animation replays each time the modal opens (key prop ensures remount)
+
+#### D4 — Controls testing: Add trend graph view
+- [x] D4-01: Enter Results / View Trend toggle appears at top of section
+- [x] D4-02: View Trend shows animated AreaChart of pass rate % over 12 months
+- [x] D4-03: Chart uses same purple gradient style as MetricDrillDown
+- [x] D4-04: Chart filters consistently with active tester filter
+- [x] D4-05: Existing Enter Results view unchanged
+
+#### D5 — Controls testing: Record Results redesign
+- [x] D5-01: Record Results opens in card view by default
+- [x] D5-02: Tester filter pill toggle appears above period selector
+- [x] D5-03: Filtering by tester shows only that tester's controls
+- [x] D5-04: Card edit mode shows Date tested, Evidence link, Notes, Result as structured fields
+- [x] D5-05: Saved results persist correctly via existing API
+- [x] D5-06: All Testers shows all controls
+
+#### D6 — Actions page: Visual redesign + Accountability Timeline
+- [x] D6-01: Title wraps to 2 lines in table (no cut-off)
+- [x] D6-02: Priority left stripe on all action rows
+- [x] D6-03: Group headers show mini completion bar
+- [x] D6-04: Due date column colour-coded
+- [x] D6-05: Headline metrics row below page title
+- [x] D6-06: ActionChangePanel replaced by ActionAccountabilityTimeline
+- [x] D6-07: Summary banner shows original due date, change count, delay
+- [x] D6-08: Timeline shows each change with icon, description, proposer, approver
+- [x] D6-09: PENDING changes show approve/reject for CCRO
+- [x] D6-10: Approval/rejection calls PATCH /api/actions/{id}/changes/{changeId}
+- [x] D6-11: Missed deadlines marked ⚠️ where old date had already passed
+- [x] D6-12: Progress updates (isUpdate=true) shown as narrative entries
+
+#### D7 — Export Centre: Expand coverage + per-item deep-dives
+- [x] D7-01: Horizon Scanning section in export centre with status filter
+- [x] D7-02: SMCR section with role type filter
+- [x] D7-03: Policies section with status filter
+- [x] D7-04: Control Test Results section with period filter
+- [x] D7-05: Risk Acceptances section with status filter
+- [x] D7-06: "Include risk deep-dives" toggle on Risk Register section
+- [x] D7-07: HTML includes per-risk spotlight pages when toggled
+- [x] D7-08: "Include action spotlights" toggle on Actions section
+- [x] D7-09: HTML has table of contents with anchor links
+- [x] D7-10: Existing 9 sections unchanged
+
+### Review status
+- Build: ✅ PASS (zero TypeScript errors)
+- D1–D6 UAT: ✅ PASS (all acceptance criteria met)
+- D7 UAT: ✅ PASS — all 10 criteria met; all 9 original sections intact; period filter parsing correct
+- D6 Designer review: ✅ PASS — typography, colour, spacing, responsiveness all on-brand; minor advisory: timeline dot colours (amber-400, red-400) slightly lighter than risk colour tokens — zero visual impact
 
 ---
 

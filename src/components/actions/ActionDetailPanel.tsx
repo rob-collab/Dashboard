@@ -28,7 +28,7 @@ import { cn, formatDateShort } from "@/lib/utils";
 import type { Action, ActionStatus } from "@/lib/types";
 import { toast } from "sonner";
 import ActionUpdateForm from "./ActionUpdateForm";
-import ActionChangePanel from "./ActionChangePanel";
+import ActionAccountabilityTimeline from "./ActionAccountabilityTimeline";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 
@@ -739,20 +739,21 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
             </div>
           )}
 
-          {/* Change History */}
+          {/* Accountability Timeline */}
           <div>
             <div className="flex items-center gap-2 mb-3">
               <History size={14} className="text-gray-500" />
-              <h4 className="text-sm font-semibold text-gray-700">Change History</h4>
+              <h4 className="text-sm font-semibold text-gray-700">Accountability Timeline</h4>
               {(action.changes || []).length > 0 && (
                 <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500">
                   {(action.changes || []).length}
                 </span>
               )}
             </div>
-            <ActionChangePanel
-              changes={action.changes || []}
+            <ActionAccountabilityTimeline
+              action={action}
               isCCRO={isCCRO}
+              users={users}
               onApprove={(changeId, note) => handleApproveChange(changeId, note)}
               onReject={(changeId, note) => handleRejectChange(changeId, note)}
             />

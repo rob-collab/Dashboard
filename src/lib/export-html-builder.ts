@@ -31,6 +31,13 @@ export interface ExportData {
   processes?: ProcessRow[];
   actions?: ActionRow[];
   auditLogs?: AuditRow[];
+  horizonItems?: HorizonItemRow[];
+  smcrRoles?: SmcrRoleRow[];
+  policies?: PolicyRow[];
+  controlTestResults?: ControlTestResultRow[];
+  riskAcceptances?: RiskAcceptanceRow[];
+  riskDeepDives?: RiskDeepDiveRow[];
+  actionSpotlights?: ActionSpotlightRow[];
 }
 
 export interface ExportOptions {
@@ -39,6 +46,8 @@ export interface ExportOptions {
   watermark?: "NONE" | "CONFIDENTIAL" | "DRAFT";
   packTitle?: string;
   interactive?: boolean;
+  includeRiskDeepDives?: boolean;
+  includeActionSpotlights?: boolean;
 }
 
 export type SectionKey =
@@ -50,7 +59,12 @@ export type SectionKey =
   | "or_resilience"
   | "process_library"
   | "actions"
-  | "audit_trail";
+  | "audit_trail"
+  | "horizon_scanning"
+  | "smcr_register"
+  | "policies"
+  | "control_test_results"
+  | "risk_acceptances";
 
 // Minimal row types — only the fields we render
 export interface RiskRow {
@@ -111,6 +125,51 @@ export interface ActionRow {
 export interface AuditRow {
   id: string; timestamp: string; action: string; entityType: string;
   userId: string; userRole: string; changes: Record<string, unknown> | null;
+}
+
+export interface HorizonItemRow {
+  id: string; reference: string; title: string; status: string;
+  category: string; urgency: string; deadline: string | null; summary: string;
+}
+
+export interface SmcrRoleRow {
+  id: string; smfId: string; title: string; status: string;
+  currentHolderName: string | null; mandatory: boolean;
+  responsibilities: { prId: string; title: string; reference: string }[];
+}
+
+export interface PolicyRow {
+  id: string; reference: string; name: string; status: string;
+  version: string; ownerName: string | null;
+  nextReviewDate: string | null; lastReviewedDate: string | null;
+}
+
+export interface ControlTestResultRow {
+  id: string; result: string; periodYear: number; periodMonth: number;
+  controlRef: string; controlName: string;
+  testerName: string | null; testedDate: string;
+}
+
+export interface RiskAcceptanceRow {
+  id: string; reference: string; title: string; status: string;
+  source: string; proposerName: string | null; approverName: string | null;
+  reviewDate: string | null; proposedRationale: string;
+}
+
+export interface RiskDeepDiveRow {
+  id: string; reference: string; name: string; description: string;
+  categoryL1: string; categoryL2: string;
+  inherentLikelihood: number; inherentImpact: number;
+  residualLikelihood: number; residualImpact: number;
+  directionOfTravel: string; riskAppetite: string | null;
+  linkedControls: { controlRef: string; controlName: string }[];
+  recentChanges: { fieldChanged: string; oldValue: string | null; newValue: string | null; proposedAt: string; proposerName: string | null }[];
+}
+
+export interface ActionSpotlightRow {
+  id: string; reference: string; title: string; description: string;
+  status: string; priority: string | null; assignedTo: string; dueDate: string | null;
+  changeCount: number; ownerChanges: number; dateChanges: number;
 }
 
 // ── Colour helpers ────────────────────────────────────────────────────────────
@@ -543,6 +602,226 @@ function renderAuditSection(logs: AuditRow[]): string {
   `);
 }
 
+// ── New section renderers (D7) ────────────────────────────────────────────────
+
+function urgencyBadge(urgency: string): string {
+  if (urgency === "HIGH") return "badge-red";
+  if (urgency === "MEDIUM") return "badge-amber";
+  return "badge-blue";
+}
+
+const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function renderHorizonSection(items: HorizonItemRow[]): string {
+  const rows = items.map((h) => entityRow(h.id, `
+    <div class="row-summary">
+      <span class="mono">${escapeHtml(h.reference)}</span>
+      <span class="entity-name">${escapeHtml(h.title)}</span>
+      <span class="badge badge-gray">${ragLabel(h.category)}</span>
+      <span class="badge ${urgencyBadge(h.urgency)}">${ragLabel(h.urgency)}</span>
+      <span class="badge ${ragBadge(h.status)}">${ragLabel(h.status)}</span>
+      ${h.deadline ? `<span class="badge badge-gray">Due ${fmtDate(h.deadline)}</span>` : ""}
+    </div>
+  `, `
+    <div class="detail-body">
+      <p><strong>Summary:</strong> ${escapeHtml(h.summary)}</p>
+    </div>
+  `));
+  return section("horizon_scanning", "Horizon Scanning", `
+    <div class="search-bar"><input class="section-search" type="text" placeholder="Search horizon items…" /></div>
+    <div class="entity-list">${rows.join("")}</div>
+  `);
+}
+
+function renderSmcrSection(roles: SmcrRoleRow[]): string {
+  const rows = roles.map((r) => {
+    const respRows = r.responsibilities.map((pr) =>
+      `<tr><td class="mono">${escapeHtml(pr.prId)}</td><td>${escapeHtml(pr.title)}</td></tr>`
+    ).join("");
+    const respHtml = r.responsibilities.length > 0
+      ? `<table class="mini-table"><tr><th>Ref</th><th>Prescribed Responsibility</th></tr>${respRows}</table>`
+      : `<p style="color:#9ca3af;font-size:0.8rem">No responsibilities assigned.</p>`;
+    return entityRow(r.id, `
+      <div class="row-summary">
+        <span class="mono">${escapeHtml(r.smfId)}</span>
+        <span class="entity-name">${escapeHtml(r.title)}</span>
+        ${r.mandatory ? `<span class="badge badge-red">Mandatory</span>` : ""}
+        <span class="badge ${ragBadge(r.status)}">${ragLabel(r.status)}</span>
+        ${r.currentHolderName
+          ? `<span class="badge badge-blue">${escapeHtml(r.currentHolderName)}</span>`
+          : `<span class="badge badge-amber">Vacant</span>`}
+      </div>
+    `, `
+      <div class="detail-body">
+        <p><strong>Responsibilities (${r.responsibilities.length})</strong></p>
+        ${respHtml}
+      </div>
+    `);
+  });
+  return section("smcr_register", "SMCR Register", `
+    <div class="search-bar"><input class="section-search" type="text" placeholder="Search SMF roles…" /></div>
+    <div class="entity-list">${rows.join("")}</div>
+  `);
+}
+
+function renderPoliciesSection(policies: PolicyRow[]): string {
+  const rows = policies.map((p) => entityRow(p.id, `
+    <div class="row-summary">
+      <span class="mono">${escapeHtml(p.reference)}</span>
+      <span class="entity-name">${escapeHtml(p.name)}</span>
+      <span class="badge badge-gray">v${escapeHtml(p.version)}</span>
+      <span class="badge ${ragBadge(p.status)}">${ragLabel(p.status)}</span>
+      ${p.ownerName ? `<span class="badge badge-blue">${escapeHtml(p.ownerName)}</span>` : ""}
+    </div>
+  `, `
+    <div class="detail-body">
+      ${p.lastReviewedDate ? `<p><strong>Last Reviewed:</strong> ${fmtDate(p.lastReviewedDate)}</p>` : ""}
+      ${p.nextReviewDate ? `<p><strong>Next Review:</strong> ${fmtDate(p.nextReviewDate)}</p>` : ""}
+    </div>
+  `));
+  return section("policies", "Policies", `
+    <div class="search-bar"><input class="section-search" type="text" placeholder="Search policies…" /></div>
+    <div class="entity-list">${rows.join("")}</div>
+  `);
+}
+
+function renderControlTestResultsSection(results: ControlTestResultRow[]): string {
+  // Group by control ref
+  const byControl = new Map<string, ControlTestResultRow[]>();
+  for (const r of results) {
+    if (!byControl.has(r.controlRef)) byControl.set(r.controlRef, []);
+    byControl.get(r.controlRef)!.push(r);
+  }
+  const rows: string[] = [];
+  for (const [, tests] of Array.from(byControl)) {
+    const passCount = tests.filter((t) => t.result === "PASS").length;
+    const total = tests.length;
+    const scoreCls = passCount === total ? "badge-green" : passCount > 0 ? "badge-amber" : "badge-red";
+    const testRows = tests.map((t) => `<tr>
+      <td>${MONTH_SHORT[(t.periodMonth ?? 1) - 1]} ${t.periodYear}</td>
+      <td><span class="badge ${ragBadge(t.result)}">${ragLabel(t.result)}</span></td>
+      <td>${fmtDate(t.testedDate)}</td>
+      <td>${escapeHtml(t.testerName ?? "Unknown")}</td>
+    </tr>`).join("");
+    rows.push(entityRow(`${tests[0].controlRef}-tests`, `
+      <div class="row-summary">
+        <span class="mono">${escapeHtml(tests[0].controlRef)}</span>
+        <span class="entity-name">${escapeHtml(tests[0].controlName)}</span>
+        <span class="badge ${scoreCls}">${passCount}/${total} pass</span>
+      </div>
+    `, `
+      <div class="detail-body">
+        <table class="mini-table"><tr><th>Period</th><th>Result</th><th>Date Tested</th><th>Tester</th></tr>${testRows}</table>
+      </div>
+    `));
+  }
+  return section("control_test_results", "Control Test Results", `
+    <div class="search-bar"><input class="section-search" type="text" placeholder="Search controls…" /></div>
+    <div class="entity-list">${rows.join("")}</div>
+  `);
+}
+
+function renderRiskAcceptancesSection(acceptances: RiskAcceptanceRow[]): string {
+  const rows = acceptances.map((a) => entityRow(a.id, `
+    <div class="row-summary">
+      <span class="mono">${escapeHtml(a.reference)}</span>
+      <span class="entity-name">${escapeHtml(a.title)}</span>
+      <span class="badge badge-gray">${ragLabel(a.source)}</span>
+      <span class="badge ${ragBadge(a.status)}">${ragLabel(a.status)}</span>
+      ${a.reviewDate ? `<span class="badge badge-gray">Review ${fmtDate(a.reviewDate)}</span>` : ""}
+    </div>
+  `, `
+    <div class="detail-body">
+      <p><strong>Rationale:</strong> ${escapeHtml(a.proposedRationale)}</p>
+      ${a.proposerName ? `<p><strong>Proposed by:</strong> ${escapeHtml(a.proposerName)}</p>` : ""}
+      ${a.approverName ? `<p><strong>Approved by:</strong> ${escapeHtml(a.approverName)}</p>` : ""}
+    </div>
+  `));
+  return section("risk_acceptances", "Risk Acceptances", `
+    <div class="search-bar"><input class="section-search" type="text" placeholder="Search risk acceptances…" /></div>
+    <div class="entity-list">${rows.join("")}</div>
+  `);
+}
+
+function renderRiskDeepDivesSection(risks: RiskDeepDiveRow[]): string {
+  const spotlights = risks.map((r) => {
+    const score = riskScore(r.residualLikelihood, r.residualImpact);
+    const scoreCls = score >= 15 ? "badge-red" : score >= 8 ? "badge-amber" : "badge-green";
+    const controlRows = r.linkedControls.map((c) =>
+      `<tr><td class="mono">${escapeHtml(c.controlRef)}</td><td>${escapeHtml(c.controlName)}</td></tr>`
+    ).join("");
+    const changeRows = r.recentChanges.map((c) =>
+      `<tr><td>${escapeHtml(c.fieldChanged)}</td><td>${escapeHtml(c.oldValue ?? "—")}</td><td>${escapeHtml(c.newValue ?? "—")}</td><td>${escapeHtml(c.proposerName ?? "Unknown")}</td><td>${fmtDate(c.proposedAt)}</td></tr>`
+    ).join("");
+    return `
+      <div class="info-box" style="margin-bottom:1.5rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <div>
+            <span class="mono">${escapeHtml(r.reference)}</span>
+            <strong style="margin-left:0.5rem">${escapeHtml(r.name)}</strong>
+          </div>
+          <span class="badge ${scoreCls}">Score ${score}</span>
+        </div>
+        <p style="font-size:0.82rem;color:#374151;margin-bottom:0.75rem">${escapeHtml(r.description)}</p>
+        <div class="score-grid" style="margin-bottom:0.75rem">
+          <div><span class="label">Inherent</span><span>${r.inherentLikelihood}×${r.inherentImpact} = ${riskScore(r.inherentLikelihood, r.inherentImpact)}</span></div>
+          <div><span class="label">Residual</span><span>${r.residualLikelihood}×${r.residualImpact} = ${score}</span></div>
+          ${r.riskAppetite ? `<div><span class="label">Appetite</span><span>${ragLabel(r.riskAppetite)}</span></div>` : ""}
+        </div>
+        ${r.linkedControls.length > 0 ? `
+          <p style="font-weight:600;font-size:0.8rem;margin-bottom:0.25rem">Linked Controls (${r.linkedControls.length})</p>
+          <table class="mini-table"><tr><th>Ref</th><th>Control Name</th></tr>${controlRows}</table>
+        ` : ""}
+        ${r.recentChanges.length > 0 ? `
+          <p style="font-weight:600;font-size:0.8rem;margin:0.75rem 0 0.25rem">Recent Changes (last 3)</p>
+          <table class="mini-table"><tr><th>Field</th><th>From</th><th>To</th><th>By</th><th>Date</th></tr>${changeRows}</table>
+        ` : ""}
+      </div>`;
+  });
+  return `
+    <section class="content-section" id="sec-risk_deep_dives">
+      <div class="section-header">
+        <h2 class="section-title fold-trigger" data-target="sec-risk_deep_dives-body">Risk Deep-Dives</h2>
+        <span class="fold-icon">▾</span>
+      </div>
+      <div class="section-body" id="sec-risk_deep_dives-body">
+        ${spotlights.join("")}
+      </div>
+    </section>`;
+}
+
+function renderActionSpotlightsSection(actions: ActionSpotlightRow[]): string {
+  const spotlights = actions.map((a) => {
+    return `
+      <div class="info-box" style="margin-bottom:1.5rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem">
+          <div>
+            <span class="mono">${escapeHtml(a.reference)}</span>
+            ${a.priority ? `<span class="badge badge-gray" style="margin-left:0.5rem">${ragLabel(a.priority)}</span>` : ""}
+            <strong style="margin-left:0.5rem">${escapeHtml(a.title)}</strong>
+          </div>
+          <span class="badge ${ragBadge(a.status)}">${ragLabel(a.status)}</span>
+        </div>
+        <p style="font-size:0.82rem;color:#374151;margin-bottom:0.75rem">${escapeHtml(a.description)}</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem;font-size:0.8rem">
+          <div><span style="color:#6b7280">Owner</span><br><strong>${escapeHtml(a.assignedTo)}</strong></div>
+          <div><span style="color:#6b7280">Due</span><br><strong>${fmtDate(a.dueDate)}</strong></div>
+          <div><span style="color:#6b7280">Changes</span><br><strong>${a.changeCount}</strong> (${a.dateChanges} date, ${a.ownerChanges} owner)</div>
+        </div>
+      </div>`;
+  });
+  return `
+    <section class="content-section" id="sec-action_spotlights">
+      <div class="section-header">
+        <h2 class="section-title fold-trigger" data-target="sec-action_spotlights-body">Action Spotlights</h2>
+        <span class="fold-icon">▾</span>
+      </div>
+      <div class="section-body" id="sec-action_spotlights-body">
+        ${spotlights.join("")}
+      </div>
+    </section>`;
+}
+
 // ── Section wrapper ───────────────────────────────────────────────────────────
 
 function section(id: string, title: string, body: string): string {
@@ -780,6 +1059,11 @@ export function generateFullHTMLExport(
     process_library: "Process Library",
     actions: "Actions Register",
     audit_trail: "Audit Trail",
+    horizon_scanning: "Horizon Scanning",
+    smcr_register: "SMCR Register",
+    policies: "Policies",
+    control_test_results: "Control Test Results",
+    risk_acceptances: "Risk Acceptances",
   };
 
   for (const key of opts.sections) {
@@ -815,8 +1099,33 @@ export function generateFullHTMLExport(
       case "audit_trail":
         html = renderAuditSection(data.auditLogs ?? []);
         break;
+      case "horizon_scanning":
+        html = renderHorizonSection(data.horizonItems ?? []);
+        break;
+      case "smcr_register":
+        html = renderSmcrSection(data.smcrRoles ?? []);
+        break;
+      case "policies":
+        html = renderPoliciesSection(data.policies ?? []);
+        break;
+      case "control_test_results":
+        html = renderControlTestResultsSection(data.controlTestResults ?? []);
+        break;
+      case "risk_acceptances":
+        html = renderRiskAcceptancesSection(data.riskAcceptances ?? []);
+        break;
     }
     sectionBodies.push(html);
+
+    // Deep-dive sections — rendered immediately after their parent section
+    if (key === "risk_register" && opts.includeRiskDeepDives && (data.riskDeepDives ?? []).length > 0) {
+      sectionTOCItems.push(`<a class="toc-link" href="#sec-risk_deep_dives">↳ Risk Deep-Dives</a>`);
+      sectionBodies.push(renderRiskDeepDivesSection(data.riskDeepDives!));
+    }
+    if (key === "actions" && opts.includeActionSpotlights && (data.actionSpotlights ?? []).length > 0) {
+      sectionTOCItems.push(`<a class="toc-link" href="#sec-action_spotlights">↳ Action Spotlights</a>`);
+      sectionBodies.push(renderActionSpotlightsSection(data.actionSpotlights!));
+    }
   }
 
   return `<!DOCTYPE html>

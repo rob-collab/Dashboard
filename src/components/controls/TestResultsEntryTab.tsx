@@ -25,11 +25,24 @@ import {
   Upload,
   Plus,
   ShieldQuestion,
+  TrendingUp,
 } from "lucide-react";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ReferenceLine,
+} from "recharts";
 import { naturalCompare } from "@/lib/utils";
 import CardViewTestEntry from "./CardViewTestEntry";
 import BulkHistoricalEntry from "./BulkHistoricalEntry";
 import ActionFormDialog from "@/components/actions/ActionFormDialog";
+
+const MONTH_ABBR_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 /* ── Constants ────────────────────────────────────────────────────────────── */
 
@@ -61,6 +74,8 @@ const RESULT_OPTIONS: TestResultValue[] = [
 interface EditEntry {
   result: TestResultValue;
   notes: string;
+  effectiveDate?: string;
+  evidenceLinks?: string[];
 }
 
 /* ── Component ────────────────────────────────────────────────────────────── */
@@ -93,8 +108,17 @@ export default function TestResultsEntryTab() {
     new Set(),
   );
 
-  /* View mode: grid (table) or card */
-  const [viewMode, setViewMode] = useState<"grid" | "card">("grid");
+  /* View mode: grid (table) or card — default card */
+  const [viewMode, setViewMode] = useState<"grid" | "card">("card");
+
+  /* Top-level mode: enter results or view trend */
+  const [testingViewMode, setTestingViewMode] = useState<"enter" | "trend">("enter");
+
+  /* Trend chart grouping */
+  const [trendGroupBy, setTrendGroupBy] = useState<"overall" | "area">("overall");
+
+  /* Tester filter */
+  const [selectedTesterId, setSelectedTesterId] = useState<string | null>(null);
 
   /* Bulk import dialog */
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
@@ -127,12 +151,27 @@ export default function TestResultsEntryTab() {
     );
   }, [selectedMonth, selectedYear]);
 
-  /* Build grouped data: business area name -> schedule entries */
+  /* Unique testers derived from testingSchedule */
+  const uniqueTesters = useMemo((): { id: string; name: string }[] => {
+    const seen = new Map<string, string>();
+    for (const entry of testingSchedule) {
+      if (!entry.isActive) continue;
+      const id = entry.assignedTesterId;
+      const name = entry.assignedTester?.name ?? users.find((u) => u.id === id)?.name;
+      if (id && name && !seen.has(id)) seen.set(id, name);
+    }
+    return Array.from(seen.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [testingSchedule, users]);
+
+  /* Build grouped data: business area name -> schedule entries (with tester filter) */
   const groupedByArea = useMemo(() => {
     const groups = new Map<string, TestingScheduleEntry[]>();
 
     for (const entry of testingSchedule) {
       if (!entry.isActive) continue;
+      if (selectedTesterId && entry.assignedTesterId !== selectedTesterId) continue;
       const areaName =
         entry.control?.businessArea?.name ?? "Unassigned";
       const existing = groups.get(areaName) ?? [];
@@ -156,7 +195,78 @@ export default function TestResultsEntryTab() {
     );
 
     return sorted;
-  }, [testingSchedule]);
+  }, [testingSchedule, selectedTesterId]);
+
+  /* Trend chart data — last 12 months pass rate */
+  const trendData = useMemo(() => {
+    const filteredEntries = selectedTesterId
+      ? testingSchedule.filter((e) => e.assignedTesterId === selectedTesterId)
+      : testingSchedule;
+
+    if (trendGroupBy === "overall") {
+      const byMonth = new Map<string, { pass: number; total: number }>();
+      for (const entry of filteredEntries) {
+        for (const tr of entry.testResults ?? []) {
+          const key = `${tr.periodYear}-${String(tr.periodMonth).padStart(2, "0")}`;
+          const slot = byMonth.get(key) ?? { pass: 0, total: 0 };
+          slot.total++;
+          if (tr.result === "PASS") slot.pass++;
+          byMonth.set(key, slot);
+        }
+      }
+      return Array.from(byMonth.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .slice(-12)
+        .map(([key, { pass, total }]) => {
+          const [yr, mo] = key.split("-");
+          const label = `${MONTH_ABBR_SHORT[parseInt(mo) - 1]} ${String(yr).slice(2)}`;
+          return { label, passRate: total > 0 ? Math.round((pass / total) * 100) : 0 };
+        });
+    } else {
+      // By business area — collect all unique areas
+      const areas = new Set<string>();
+      for (const entry of filteredEntries) areas.add(entry.control?.businessArea?.name ?? "Unassigned");
+      const areaList = Array.from(areas).sort();
+
+      // Get all unique month keys
+      const allKeys = new Set<string>();
+      for (const entry of filteredEntries) {
+        for (const tr of entry.testResults ?? []) {
+          allKeys.add(`${tr.periodYear}-${String(tr.periodMonth).padStart(2, "0")}`);
+        }
+      }
+      const sortedKeys = Array.from(allKeys).sort().slice(-12);
+
+      // Build per-area pass rate per month
+      return sortedKeys.map((key) => {
+        const [yr, mo] = key.split("-");
+        const label = `${MONTH_ABBR_SHORT[parseInt(mo) - 1]} ${String(yr).slice(2)}`;
+        const row: Record<string, string | number> = { label };
+        for (const area of areaList) {
+          const entries = filteredEntries.filter((e) => (e.control?.businessArea?.name ?? "Unassigned") === area);
+          let pass = 0, total = 0;
+          for (const entry of entries) {
+            const tr = (entry.testResults ?? []).find(
+              (r) => `${r.periodYear}-${String(r.periodMonth).padStart(2, "0")}` === key
+            );
+            if (tr) { total++; if (tr.result === "PASS") pass++; }
+          }
+          row[area] = total > 0 ? Math.round((pass / total) * 100) : 0;
+        }
+        return row;
+      });
+    }
+  }, [testingSchedule, selectedTesterId, trendGroupBy]);
+
+  /* Business areas for trend chart legend */
+  const trendAreas = useMemo(() => {
+    const filteredEntries = selectedTesterId
+      ? testingSchedule.filter((e) => e.assignedTesterId === selectedTesterId)
+      : testingSchedule;
+    const areas = new Set<string>();
+    for (const entry of filteredEntries) areas.add(entry.control?.businessArea?.name ?? "Unassigned");
+    return Array.from(areas).sort();
+  }, [testingSchedule, selectedTesterId]);
 
   /* Resolve an existing test result for a given entry + period */
   const getExistingResult = useCallback(
@@ -344,7 +454,8 @@ export default function TestResultsEntryTab() {
             periodMonth: selectedMonth,
             result: effective.result,
             notes: effective.notes,
-            evidenceLinks: [],
+            evidenceLinks: effective.evidenceLinks ?? [],
+            ...(effective.effectiveDate ? { effectiveDate: effective.effectiveDate } : {}),
           });
         }
       }
@@ -409,6 +520,142 @@ export default function TestResultsEntryTab() {
           </p>
         </div>
       </div>
+
+      {/* Enter Results / View Trend toggle */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
+          <button
+            onClick={() => setTestingViewMode("enter")}
+            className={`inline-flex items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+              testingViewMode === "enter"
+                ? "bg-updraft-deep text-white"
+                : "text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            Enter Results
+          </button>
+          <button
+            onClick={() => setTestingViewMode("trend")}
+            className={`inline-flex items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+              testingViewMode === "trend"
+                ? "bg-updraft-deep text-white"
+                : "text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            <TrendingUp className="w-3.5 h-3.5" />
+            View Trend
+          </button>
+        </div>
+
+        {/* Tester filter pills */}
+        {uniqueTesters.length > 1 && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs text-gray-400">Filter by tester:</span>
+            <button
+              onClick={() => setSelectedTesterId(null)}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                selectedTesterId === null
+                  ? "bg-updraft-deep text-white"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              All Testers
+            </button>
+            {uniqueTesters.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setSelectedTesterId(selectedTesterId === t.id ? null : t.id)}
+                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                  selectedTesterId === t.id
+                    ? "bg-updraft-bright-purple text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {t.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Trend chart view */}
+      {testingViewMode === "trend" && (
+        <div className="bento-card p-5 space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <h3 className="text-base font-semibold text-updraft-deep font-poppins flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-updraft-bright-purple" />
+              Pass Rate Trend (last 12 months)
+            </h3>
+            <select
+              value={trendGroupBy}
+              onChange={(e) => setTrendGroupBy(e.target.value as "overall" | "area")}
+              className="rounded-md border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
+            >
+              <option value="overall">Overall</option>
+              <option value="area">By Business Area</option>
+            </select>
+          </div>
+          {trendData.length === 0 ? (
+            <p className="text-sm text-gray-400 py-8 text-center">No test result data available.</p>
+          ) : (
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trendData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                  <defs>
+                    {trendGroupBy === "overall" ? (
+                      <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#7C3AED" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#7C3AED" stopOpacity={0.02} />
+                      </linearGradient>
+                    ) : (
+                      trendAreas.map((area, i) => (
+                        <linearGradient key={area} id={`grad-${i}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={`hsl(${(i * 60) % 360}, 70%, 50%)`} stopOpacity={0.25} />
+                          <stop offset="95%" stopColor={`hsl(${(i * 60) % 360}, 70%, 50%)`} stopOpacity={0.02} />
+                        </linearGradient>
+                      ))
+                    )}
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                  <XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="#d1d5db" />
+                  <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 10 }} stroke="#d1d5db" />
+                  <Tooltip formatter={((v: number) => `${v}%`) as never} labelStyle={{ fontSize: 11 }} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                  <ReferenceLine y={80} stroke="#22c55e" strokeDasharray="4 2" label={{ value: "80%", position: "right", fontSize: 9 }} />
+                  {trendGroupBy === "overall" ? (
+                    <Area
+                      type="monotone"
+                      dataKey="passRate"
+                      name="Pass Rate"
+                      stroke="#7C3AED"
+                      strokeWidth={2}
+                      fill="url(#trendGrad)"
+                      dot={{ r: 3, fill: "#7C3AED" }}
+                      activeDot={{ r: 5 }}
+                    />
+                  ) : (
+                    trendAreas.map((area, i) => (
+                      <Area
+                        key={area}
+                        type="monotone"
+                        dataKey={area}
+                        name={area}
+                        stroke={`hsl(${(i * 60) % 360}, 70%, 45%)`}
+                        strokeWidth={1.5}
+                        fill={`url(#grad-${i})`}
+                        dot={{ r: 2, fill: `hsl(${(i * 60) % 360}, 70%, 45%)` }}
+                        activeDot={{ r: 4 }}
+                      />
+                    ))
+                  )}
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Enter-mode: period selector, progress bar, entry area */}
+      {testingViewMode === "enter" && (<>
 
       {/* Period selector */}
       <div className="bento-card p-4">
@@ -588,6 +835,22 @@ export default function TestResultsEntryTab() {
           onEditNotes={(entryId, notes) =>
             updateEdit(entryId, "notes", notes)
           }
+          onEditEffectiveDate={(entryId, date) => {
+            setEdits((prev) => {
+              const next = new Map(prev);
+              const cur = next.get(entryId) ?? { result: "" as TestResultValue, notes: "" };
+              next.set(entryId, { ...cur, effectiveDate: date });
+              return next;
+            });
+          }}
+          onEditEvidenceLink={(entryId, link) => {
+            setEdits((prev) => {
+              const next = new Map(prev);
+              const cur = next.get(entryId) ?? { result: "" as TestResultValue, notes: "" };
+              next.set(entryId, { ...cur, evidenceLinks: link ? [link] : [] });
+              return next;
+            });
+          }}
           onCreateAction={handleCreateActionFromEntry}
           onCreateRiskAcceptance={handleCreateRiskAcceptance}
         />
@@ -806,6 +1069,8 @@ export default function TestResultsEntryTab() {
           })}
         </div>
       )}
+
+      </>)}
 
       {/* Bulk Historical Entry dialog */}
       <BulkHistoricalEntry

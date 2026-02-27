@@ -15,6 +15,11 @@ const bodySchema = z.object({
       "process_library",
       "actions",
       "audit_trail",
+      "horizon_scanning",
+      "smcr_register",
+      "policies",
+      "control_test_results",
+      "risk_acceptances",
     ])
   ).min(1),
   filters: z
@@ -28,6 +33,13 @@ const bodySchema = z.object({
       auditTo: z.string().optional(),
       processMinMaturity: z.number().int().min(1).max(5).optional(),
       processCriticality: z.string().optional(),
+      horizonStatus: z.string().optional(),
+      policyStatus: z.string().optional(),
+      testPeriodYear: z.number().int().optional(),
+      testPeriodMonth: z.number().int().optional(),
+      riskAcceptanceStatus: z.string().optional(),
+      includeRiskDeepDives: z.boolean().optional(),
+      includeActionSpotlights: z.boolean().optional(),
     })
     .optional(),
   options: z
@@ -219,6 +231,141 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (sections.includes("horizon_scanning")) {
+      register(
+        "horizonItems",
+        prisma.horizonItem.findMany({
+          where: filters.horizonStatus ? { status: filters.horizonStatus as never } : {},
+          select: {
+            id: true, reference: true, title: true, status: true,
+            category: true, urgency: true, deadline: true, summary: true,
+          },
+          orderBy: [{ urgency: "asc" }, { deadline: "asc" }],
+        })
+      );
+    }
+
+    if (sections.includes("smcr_register")) {
+      register(
+        "smcrRoles",
+        prisma.sMFRole.findMany({
+          select: {
+            id: true, smfId: true, title: true, status: true, mandatory: true,
+            currentHolder: { select: { name: true } },
+            responsibilities: { select: { prId: true, title: true, reference: true } },
+          },
+          orderBy: { smfId: "asc" },
+        })
+      );
+    }
+
+    if (sections.includes("policies")) {
+      register(
+        "policies",
+        prisma.policy.findMany({
+          where: filters.policyStatus ? { status: filters.policyStatus as never } : {},
+          select: {
+            id: true, reference: true, name: true, status: true, version: true,
+            owner: { select: { name: true } },
+            nextReviewDate: true, lastReviewedDate: true,
+          },
+          orderBy: { reference: "asc" },
+        })
+      );
+    }
+
+    if (sections.includes("control_test_results")) {
+      const testWhere: Record<string, unknown> = {};
+      if (filters.testPeriodYear) testWhere.periodYear = filters.testPeriodYear;
+      if (filters.testPeriodMonth) testWhere.periodMonth = filters.testPeriodMonth;
+      register(
+        "controlTestResults",
+        prisma.controlTestResult.findMany({
+          where: testWhere,
+          select: {
+            id: true, result: true, periodYear: true, periodMonth: true, testedDate: true,
+            testedBy: { select: { name: true } },
+            scheduleEntry: {
+              select: {
+                control: { select: { controlRef: true, controlName: true } },
+              },
+            },
+          },
+          orderBy: [{ periodYear: "desc" }, { periodMonth: "desc" }],
+          take: 500,
+        })
+      );
+    }
+
+    if (sections.includes("risk_acceptances")) {
+      register(
+        "riskAcceptances",
+        prisma.riskAcceptance.findMany({
+          where: filters.riskAcceptanceStatus ? { status: filters.riskAcceptanceStatus as never } : {},
+          select: {
+            id: true, reference: true, title: true, status: true, source: true,
+            proposer: { select: { name: true } },
+            approver: { select: { name: true } },
+            reviewDate: true, proposedRationale: true,
+          },
+          orderBy: { reference: "asc" },
+        })
+      );
+    }
+
+    // Deep-dives: fetch richer risk data when includeRiskDeepDives is set
+    if (filters.includeRiskDeepDives && (sections.includes("risk_register") || sections.includes("executive_summary"))) {
+      const riskWhere: Record<string, unknown> = {};
+      if (filters.riskCategory) riskWhere.categoryL1 = filters.riskCategory;
+      register(
+        "riskDeepDives",
+        prisma.risk.findMany({
+          where: riskWhere,
+          select: {
+            id: true, reference: true, name: true, description: true,
+            categoryL1: true, categoryL2: true,
+            inherentLikelihood: true, inherentImpact: true,
+            residualLikelihood: true, residualImpact: true,
+            directionOfTravel: true, riskAppetite: true,
+            controlLinks: {
+              select: {
+                control: { select: { controlRef: true, controlName: true } },
+              },
+            },
+            changes: {
+              select: {
+                fieldChanged: true, oldValue: true, newValue: true, proposedAt: true,
+                proposer: { select: { name: true } },
+              },
+              orderBy: { proposedAt: "desc" },
+              take: 3,
+            },
+          },
+          orderBy: { reference: "asc" },
+        })
+      );
+    }
+
+    // Action spotlights: fetch richer action data when includeActionSpotlights is set
+    if (filters.includeActionSpotlights && sections.includes("actions")) {
+      const actWhere: Record<string, unknown> = {};
+      if (filters.actionStatus) actWhere.status = filters.actionStatus;
+      register(
+        "actionSpotlights",
+        prisma.action.findMany({
+          where: actWhere,
+          select: {
+            id: true, reference: true, title: true, description: true,
+            status: true, priority: true, assignedTo: true, dueDate: true,
+            changes: {
+              select: { fieldChanged: true },
+            },
+          },
+          orderBy: { reference: "asc" },
+        })
+      );
+    }
+
     const results = await Promise.all(fetchers);
     const get = (key: string) => (fetchMap[key] !== undefined ? results[fetchMap[key]] : undefined);
 
@@ -301,6 +448,124 @@ export async function POST(request: NextRequest) {
       nextReviewDate: p.nextReviewDate ? p.nextReviewDate.toISOString() : null,
     }));
 
+    // ── Map Horizon Items ────────────────────────────────────────────────────
+    type RawHorizon = {
+      id: string; reference: string; title: string; status: string;
+      category: string; urgency: string; deadline: Date | null; summary: string;
+    };
+    const rawHorizon = (get("horizonItems") as RawHorizon[] | undefined) ?? [];
+    const horizonRows = rawHorizon.map((h) => ({
+      ...h,
+      deadline: h.deadline ? h.deadline.toISOString() : null,
+    }));
+
+    // ── Map SMCR Roles ───────────────────────────────────────────────────────
+    type RawSmcrRole = {
+      id: string; smfId: string; title: string; status: string; mandatory: boolean;
+      currentHolder: { name: string } | null;
+      responsibilities: { prId: string; title: string; reference: string }[];
+    };
+    const rawSmcrRoles = (get("smcrRoles") as RawSmcrRole[] | undefined) ?? [];
+    const smcrRoleRows = rawSmcrRoles.map((r) => ({
+      id: r.id, smfId: r.smfId, title: r.title, status: r.status, mandatory: r.mandatory,
+      currentHolderName: r.currentHolder?.name ?? null,
+      responsibilities: r.responsibilities,
+    }));
+
+    // ── Map Policies ─────────────────────────────────────────────────────────
+    type RawPolicy = {
+      id: string; reference: string; name: string; status: string; version: string;
+      owner: { name: string } | null;
+      nextReviewDate: Date | null; lastReviewedDate: Date | null;
+    };
+    const rawPolicies = (get("policies") as RawPolicy[] | undefined) ?? [];
+    const policyRows = rawPolicies.map((p) => ({
+      id: p.id, reference: p.reference, name: p.name, status: p.status, version: p.version,
+      ownerName: p.owner?.name ?? null,
+      nextReviewDate: p.nextReviewDate ? p.nextReviewDate.toISOString() : null,
+      lastReviewedDate: p.lastReviewedDate ? p.lastReviewedDate.toISOString() : null,
+    }));
+
+    // ── Map Control Test Results ─────────────────────────────────────────────
+    type RawTestResult = {
+      id: string; result: string; periodYear: number; periodMonth: number;
+      testedDate: Date | string;
+      testedBy: { name: string } | null;
+      scheduleEntry: { control: { controlRef: string; controlName: string } } | null;
+    };
+    const rawTestResults = (get("controlTestResults") as RawTestResult[] | undefined) ?? [];
+    const testResultRows = rawTestResults
+      .filter((r) => r.scheduleEntry?.control)
+      .map((r) => ({
+        id: r.id,
+        result: r.result,
+        periodYear: r.periodYear,
+        periodMonth: r.periodMonth,
+        controlRef: r.scheduleEntry!.control.controlRef,
+        controlName: r.scheduleEntry!.control.controlName,
+        testerName: r.testedBy?.name ?? null,
+        testedDate: r.testedDate instanceof Date ? r.testedDate.toISOString() : String(r.testedDate),
+      }));
+
+    // ── Map Risk Acceptances ─────────────────────────────────────────────────
+    type RawRiskAcceptance = {
+      id: string; reference: string; title: string; status: string; source: string;
+      proposer: { name: string } | null; approver: { name: string } | null;
+      reviewDate: Date | null; proposedRationale: string;
+    };
+    const rawRiskAcceptances = (get("riskAcceptances") as RawRiskAcceptance[] | undefined) ?? [];
+    const riskAcceptanceRows = rawRiskAcceptances.map((a) => ({
+      id: a.id, reference: a.reference, title: a.title, status: a.status, source: a.source,
+      proposerName: a.proposer?.name ?? null,
+      approverName: a.approver?.name ?? null,
+      reviewDate: a.reviewDate ? a.reviewDate.toISOString() : null,
+      proposedRationale: a.proposedRationale,
+    }));
+
+    // ── Map Risk Deep-Dives ──────────────────────────────────────────────────
+    type RawRiskDeepDive = {
+      id: string; reference: string; name: string; description: string;
+      categoryL1: string; categoryL2: string;
+      inherentLikelihood: number; inherentImpact: number;
+      residualLikelihood: number; residualImpact: number;
+      directionOfTravel: string; riskAppetite: string | null;
+      controlLinks: { control: { controlRef: string; controlName: string } }[];
+      changes: { fieldChanged: string; oldValue: string | null; newValue: string | null; proposedAt: Date | string; proposer: { name: string } | null }[];
+    };
+    const rawRiskDeepDives = (get("riskDeepDives") as RawRiskDeepDive[] | undefined) ?? [];
+    const riskDeepDiveRows = rawRiskDeepDives.map((r) => ({
+      ...r,
+      linkedControls: r.controlLinks.map((cl) => ({
+        controlRef: cl.control.controlRef,
+        controlName: cl.control.controlName,
+      })),
+      recentChanges: r.changes.map((c) => ({
+        fieldChanged: c.fieldChanged,
+        oldValue: c.oldValue,
+        newValue: c.newValue,
+        proposedAt: c.proposedAt instanceof Date ? c.proposedAt.toISOString() : String(c.proposedAt),
+        proposerName: c.proposer?.name ?? null,
+      })),
+    }));
+
+    // ── Map Action Spotlights ────────────────────────────────────────────────
+    type RawActionSpotlight = {
+      id: string; reference: string; title: string; description: string;
+      status: string; priority: string | null; assignedTo: string; dueDate: Date | null;
+      changes: { fieldChanged: string }[];
+    };
+    // Fetch user names for assignedTo (reuse users already fetched, or use id as fallback)
+    const rawActionSpotlights = (get("actionSpotlights") as RawActionSpotlight[] | undefined) ?? [];
+    const actionSpotlightRows = rawActionSpotlights.map((a) => ({
+      id: a.id, reference: a.reference, title: a.title, description: a.description,
+      status: a.status, priority: a.priority ?? null,
+      assignedTo: a.assignedTo,
+      dueDate: a.dueDate ? a.dueDate.toISOString() : null,
+      changeCount: a.changes.length,
+      ownerChanges: a.changes.filter((c) => c.fieldChanged === "assignedTo").length,
+      dateChanges: a.changes.filter((c) => c.fieldChanged === "dueDate").length,
+    }));
+
     const data: ExportData = {
       firmName: options.firmName,
       risks: get("risks") as ExportData["risks"],
@@ -313,6 +578,13 @@ export async function POST(request: NextRequest) {
       processes: processRows,
       actions: actionRows,
       auditLogs: auditRows,
+      horizonItems: horizonRows,
+      smcrRoles: smcrRoleRows,
+      policies: policyRows,
+      controlTestResults: testResultRows,
+      riskAcceptances: riskAcceptanceRows,
+      riskDeepDives: riskDeepDiveRows.length > 0 ? riskDeepDiveRows : undefined,
+      actionSpotlights: actionSpotlightRows.length > 0 ? actionSpotlightRows : undefined,
     };
 
     const html = generateFullHTMLExport(
@@ -322,6 +594,8 @@ export async function POST(request: NextRequest) {
         watermark: options.watermark,
         packTitle: options.packTitle,
         interactive: options.interactive,
+        includeRiskDeepDives: filters.includeRiskDeepDives,
+        includeActionSpotlights: filters.includeActionSpotlights,
       },
       data
     );

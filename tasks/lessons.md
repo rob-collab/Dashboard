@@ -165,7 +165,18 @@ placeholder added to a new module — confirm with the user before writing.
 
 ---
 
-<!-- Add new L-series entries here: L013, L014, ... -->
+### L013 — TypeScript Map iteration requires Array.from() at older targets
+**What happened:** Used `for (const [, items] of byControl)` directly on a `Map<string, T[]>` in
+`export-html-builder.ts`. TypeScript rejected it with: "Type 'Map<...>' can only be iterated
+through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher."
+**Rule:** When iterating a `Map` with `for...of`, always wrap it: `for (const [, items] of Array.from(map))`.
+This works at any target without config changes.
+**Trigger:** Any new `for...of` loop over a `Map` or `Set` in TypeScript.
+**Status:** Active.
+
+---
+
+<!-- Add new L-series entries here: L014, L015, ... -->
 
 ---
 
@@ -234,7 +245,43 @@ CCRO Team always defaults to "all" (they're expected to see everything).
 
 ---
 
-<!-- Add W-series entries here: W005, W006, ... -->
+### W005 — Vertical timeline pattern for change history
+**What happened:** Replaced a flat `ActionChangePanel` list with a full `ActionAccountabilityTimeline`
+component. The timeline pattern (node dot + connecting line + coloured card per change) is
+immediately readable, scales to any number of changes, and naturally communicates chronology.
+**Pattern:**
+- Outer container: `relative pl-7` (left padding for nodes)
+- Connecting line: `absolute left-2.5 top-2.5 bottom-8 w-px bg-gray-200` (inside the container)
+- Each node: `absolute -left-7 mt-2.5 h-5 w-5 rounded-full border-2 border-white shadow-sm`
+- Node colour carries status meaning: amber=pending, green=approved, red=rejected, purple=update
+- Summary banner above timeline: amber tint on drift/overdue, grey when clean
+- Creation node pinned at the bottom with `bg-updraft-bar` colour for distinction
+**Applies to:** Any entity that needs an approval workflow history (changes, proposals, reviews).
+
+---
+
+### W006 — Conditional deep-dive sections appended after parent section in HTML exports
+**What happened:** Added per-risk spotlight and per-action spotlight sections to the HTML
+export. Rather than a separate section key (which would require separate checkbox selection),
+the deep-dives are appended immediately after their parent section's content — only when the
+user enables the toggle in the parent section's filter panel.
+**Pattern:**
+```ts
+if (key === "risk_register") {
+  sectionBodies.push(renderRiskRegisterSection(...));
+  if (opts.includeRiskDeepDives && data.riskDeepDives?.length) {
+    sectionTOCItems.push(`<a class="toc-link" href="#sec-risk_deep_dives">↳ Risk Deep-Dives</a>`);
+    sectionBodies.push(renderRiskDeepDivesSection(data.riskDeepDives));
+  }
+}
+```
+This keeps the export flow sequential and avoids users accidentally omitting the deep-dives
+by not selecting a separate section key.
+**Applies to:** Any export where optional detail sections enrich a parent section.
+
+---
+
+<!-- Add W-series entries here: W007, W008, ... -->
 
 ---
 

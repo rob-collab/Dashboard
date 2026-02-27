@@ -14,6 +14,7 @@ import MeasureFormDialog from "@/components/consumer-duty/MeasureFormDialog";
 import CSVUploadDialog from "@/components/consumer-duty/CSVUploadDialog";
 import MIImportDialog from "@/components/consumer-duty/MIImportDialog";
 import RiskDetailModal from "@/components/consumer-duty/RiskDetailModal";
+import MetricDrillDown from "@/components/consumer-duty/MetricDrillDown";
 import { cn, ragBgColor, ragLabelShort, naturalCompare } from "@/lib/utils";
 import type { ConsumerDutyMeasure, ConsumerDutyOutcome, ConsumerDutyMI, RAGStatus } from "@/lib/types";
 import { usePageTitle } from "@/lib/usePageTitle";
@@ -86,6 +87,7 @@ function ConsumerDutyContent() {
   const [viewMode, setViewMode] = useState<"all" | "my">("all");
   const [measureRagFilter, setMeasureRagFilter] = useState<RAGStatus | "ALL">("ALL");
   const [metricsRagFilter, setMetricsRagFilter] = useState<RAGStatus | "ALL">("ALL");
+  const [selectedMetric, setSelectedMetric] = useState<ConsumerDutyMI | null>(null);
 
   // Management dialog state
   const [outcomeDialogOpen, setOutcomeDialogOpen] = useState(false);
@@ -100,8 +102,12 @@ function ConsumerDutyContent() {
   // CD1: Collapsible section state — persisted to localStorage per user
   const collapsedKey = `cd-sections-${currentUser?.id ?? "anon"}`;
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
-    try { return JSON.parse(localStorage.getItem(collapsedKey) ?? "{}"); }
-    catch { return {}; }
+    const defaults: Record<string, boolean> = { measures: true, metrics: true };
+    try {
+      const stored = JSON.parse(localStorage.getItem(collapsedKey) ?? "{}");
+      return { ...defaults, ...stored };
+    }
+    catch { return defaults; }
   });
   function toggleSection(key: string) {
     setCollapsed((prev) => {
@@ -627,6 +633,62 @@ function ConsumerDutyContent() {
         </div>
       </div>
 
+      {/* Metric stat tiles (moved above outcomes grid) */}
+      {allMetrics.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <button
+            onClick={() => setMetricsRagFilter("ALL")}
+            className={cn(
+              "bento-card cursor-pointer text-left",
+              metricsRagFilter === "ALL" && "ring-2 ring-updraft-bright-purple/30"
+            )}
+          >
+            <p className="text-xs text-fca-gray">Total Metrics</p>
+            <p className="text-2xl font-bold text-updraft-deep mt-1">{allMetrics.length}</p>
+            <p className="text-xs text-fca-gray mt-1">{allMeasures.length} measures</p>
+          </button>
+          <button
+            onClick={() => setMetricsRagFilter(metricsRagFilter === "GOOD" ? "ALL" : "GOOD")}
+            className={cn(
+              "bento-card cursor-pointer text-left border-l-[3px] border-l-risk-green",
+              metricsRagFilter === "GOOD" && "ring-2 ring-risk-green/40 bg-risk-green/5"
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <span className={cn("h-3 w-3 rounded-full rag-glow", ragBgColor("GOOD"))} />
+              <p className="text-xs text-fca-gray">Green Metrics</p>
+            </div>
+            <p className="text-2xl font-bold text-risk-green mt-1">{metricsGoodCount}</p>
+          </button>
+          <button
+            onClick={() => setMetricsRagFilter(metricsRagFilter === "WARNING" ? "ALL" : "WARNING")}
+            className={cn(
+              "bento-card cursor-pointer text-left border-l-[3px] border-l-risk-amber",
+              metricsRagFilter === "WARNING" && "ring-2 ring-risk-amber/40 bg-risk-amber/5"
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <span className={cn("h-3 w-3 rounded-full", ragBgColor("WARNING"))} />
+              <p className="text-xs text-fca-gray">Amber Metrics</p>
+            </div>
+            <p className="text-2xl font-bold text-risk-amber mt-1">{metricsWarningCount}</p>
+          </button>
+          <button
+            onClick={() => setMetricsRagFilter(metricsRagFilter === "HARM" ? "ALL" : "HARM")}
+            className={cn(
+              "bento-card cursor-pointer text-left border-l-[3px] border-l-risk-red",
+              metricsRagFilter === "HARM" && "ring-2 ring-risk-red/40 bg-risk-red/5"
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <span className={cn("h-3 w-3 rounded-full rag-pulse", ragBgColor("HARM"))} />
+              <p className="text-xs text-fca-gray">Red Metrics</p>
+            </div>
+            <p className="text-2xl font-bold text-risk-red mt-1">{metricsHarmCount}</p>
+          </button>
+        </div>
+      )}
+
       {/* Measure-level RAG quick view */}
       {measureRagFilter !== "ALL" && (
         <div className="bento-card animate-slide-up">
@@ -903,7 +965,10 @@ function ConsumerDutyContent() {
           {/* All measures table */}
           <div className="bento-card">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-updraft-deep font-poppins">All Measures Summary</h2>
+              <h2 className="text-lg font-bold text-updraft-deep font-poppins">
+                All Measures Summary
+                <span className="ml-2 text-sm font-normal text-gray-400">({totalMeasures})</span>
+              </h2>
               <button
                 onClick={() => toggleSection("measures")}
                 className="p-1 rounded text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
@@ -986,116 +1051,78 @@ function ConsumerDutyContent() {
             </div>}
           </div>
 
-          {/* Metrics Overview — individual MI data points */}
+          {/* All Metrics — collapsible table */}
           {allMetrics.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-bold text-updraft-deep font-poppins">Metrics Overview</h2>
-
-              {/* Stat tiles */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bento-card">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-updraft-deep font-poppins">
+                  All Metrics
+                  <span className="ml-2 text-sm font-normal text-gray-400">({filteredMetrics.length}{metricsRagFilter !== "ALL" ? ` of ${allMetrics.length}` : ""})</span>
+                </h2>
                 <button
-                  onClick={() => setMetricsRagFilter("ALL")}
-                  className={cn(
-                    "bento-card cursor-pointer text-left",
-                    metricsRagFilter === "ALL" && "ring-2 ring-updraft-bright-purple/30"
-                  )}
+                  onClick={() => toggleSection("metrics")}
+                  className="p-1 rounded text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                  aria-label={collapsed.metrics ? "Expand" : "Collapse"}
                 >
-                  <p className="text-xs text-fca-gray">Total Metrics</p>
-                  <p className="text-2xl font-bold text-updraft-deep mt-1">{allMetrics.length}</p>
-                  <p className="text-xs text-fca-gray mt-1">{allMeasures.length} measures</p>
-                </button>
-                <button
-                  onClick={() => setMetricsRagFilter(metricsRagFilter === "GOOD" ? "ALL" : "GOOD")}
-                  className={cn(
-                    "bento-card cursor-pointer text-left border-l-[3px] border-l-risk-green",
-                    metricsRagFilter === "GOOD" && "ring-2 ring-risk-green/40 bg-risk-green/5"
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className={cn("h-3 w-3 rounded-full rag-glow", ragBgColor("GOOD"))} />
-                    <p className="text-xs text-fca-gray">Green Metrics</p>
-                  </div>
-                  <p className="text-2xl font-bold text-risk-green mt-1">{metricsGoodCount}</p>
-                </button>
-                <button
-                  onClick={() => setMetricsRagFilter(metricsRagFilter === "WARNING" ? "ALL" : "WARNING")}
-                  className={cn(
-                    "bento-card cursor-pointer text-left border-l-[3px] border-l-risk-amber",
-                    metricsRagFilter === "WARNING" && "ring-2 ring-risk-amber/40 bg-risk-amber/5"
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className={cn("h-3 w-3 rounded-full", ragBgColor("WARNING"))} />
-                    <p className="text-xs text-fca-gray">Amber Metrics</p>
-                  </div>
-                  <p className="text-2xl font-bold text-risk-amber mt-1">{metricsWarningCount}</p>
-                </button>
-                <button
-                  onClick={() => setMetricsRagFilter(metricsRagFilter === "HARM" ? "ALL" : "HARM")}
-                  className={cn(
-                    "bento-card cursor-pointer text-left border-l-[3px] border-l-risk-red",
-                    metricsRagFilter === "HARM" && "ring-2 ring-risk-red/40 bg-risk-red/5"
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className={cn("h-3 w-3 rounded-full rag-pulse", ragBgColor("HARM"))} />
-                    <p className="text-xs text-fca-gray">Red Metrics</p>
-                  </div>
-                  <p className="text-2xl font-bold text-risk-red mt-1">{metricsHarmCount}</p>
+                  <ChevronDown size={14} className={cn("transition-transform duration-200", collapsed.metrics && "-rotate-180")} />
                 </button>
               </div>
-
-              {/* Metrics table */}
-              <div className="bento-card overflow-x-auto">
-                <table className="w-full text-sm border-collapse">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">Measure</th>
-                      <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">Metric</th>
-                      <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">Current Value</th>
-                      <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">Period</th>
-                      <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">RAG</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredMetrics.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="border border-gray-200 px-3 py-8 text-center text-sm text-gray-400">
-                          No metrics with this status
-                        </td>
+              {!collapsed.metrics && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">Measure</th>
+                        <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">Metric</th>
+                        <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">Current Value</th>
+                        <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">Period</th>
+                        <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">RAG</th>
                       </tr>
-                    )}
-                    {filteredMetrics.map((mi) => {
-                      const latestSnapshot = (mi.snapshots ?? [])
-                        .slice()
-                        .sort((a, b) => b.month.localeCompare(a.month))[0];
-                      const period = latestSnapshot?.month ?? "—";
-                      return (
-                        <tr key={mi.id} className="hover:bg-gray-50/50">
-                          <td className="border border-gray-200 px-3 py-2">
-                            <span className="font-mono text-xs font-semibold text-updraft-deep">{mi.measureId}</span>
-                            <span className="text-xs text-gray-500 ml-1.5">{mi.measureName}</span>
-                          </td>
-                          <td className="border border-gray-200 px-3 py-2 text-gray-800">{mi.metric}</td>
-                          <td className="border border-gray-200 px-3 py-2 font-medium text-gray-800">{mi.current}</td>
-                          <td className="border border-gray-200 px-3 py-2 text-gray-500 text-xs">{period}</td>
-                          <td className="border border-gray-200 px-3 py-2">
-                            <span className={cn(
-                              "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold",
-                              mi.ragStatus === "GOOD" && "bg-risk-green/15 text-risk-green",
-                              mi.ragStatus === "WARNING" && "bg-risk-amber/10 text-risk-amber",
-                              mi.ragStatus === "HARM" && "bg-risk-red/10 text-risk-red"
-                            )}>
-                              <span className={cn("h-1.5 w-1.5 rounded-full", ragBgColor(mi.ragStatus))} />
-                              {ragLabelShort(mi.ragStatus)}
-                            </span>
+                    </thead>
+                    <tbody>
+                      {filteredMetrics.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="border border-gray-200 px-3 py-8 text-center text-sm text-gray-400">
+                            No metrics with this status
                           </td>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                      )}
+                      {filteredMetrics.map((mi) => {
+                        const latestSnapshot = (mi.snapshots ?? [])
+                          .slice()
+                          .sort((a, b) => b.month.localeCompare(a.month))[0];
+                        const period = latestSnapshot?.month ?? "—";
+                        return (
+                          <tr
+                            key={mi.id}
+                            className="hover:bg-gray-50/50 cursor-pointer"
+                            onClick={() => setSelectedMetric(mi)}
+                          >
+                            <td className="border border-gray-200 px-3 py-2">
+                              <span className="font-mono text-xs font-semibold text-updraft-deep">{mi.measureId}</span>
+                              <span className="text-xs text-gray-500 ml-1.5">{mi.measureName}</span>
+                            </td>
+                            <td className="border border-gray-200 px-3 py-2 text-gray-800">{mi.metric}</td>
+                            <td className="border border-gray-200 px-3 py-2 font-medium text-gray-800">{mi.current}</td>
+                            <td className="border border-gray-200 px-3 py-2 text-gray-500 text-xs">{period}</td>
+                            <td className="border border-gray-200 px-3 py-2">
+                              <span className={cn(
+                                "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold",
+                                mi.ragStatus === "GOOD" && "bg-risk-green/15 text-risk-green",
+                                mi.ragStatus === "WARNING" && "bg-risk-amber/10 text-risk-amber",
+                                mi.ragStatus === "HARM" && "bg-risk-red/10 text-risk-red"
+                              )}>
+                                <span className={cn("h-1.5 w-1.5 rounded-full", ragBgColor(mi.ragStatus))} />
+                                {ragLabelShort(mi.ragStatus)}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </>
@@ -1115,6 +1142,26 @@ function ConsumerDutyContent() {
             m.id === miId ? { ...m, appetite, appetiteOperator } : m
           );
           updateMeasureMetrics(selectedMeasure.id, updatedMetrics);
+        }}
+        onCreateAction={(miId, metricName) => {
+          router.push(`/actions?newAction=true&consumerDutyMIId=${encodeURIComponent(miId)}&metricName=${encodeURIComponent(metricName)}&source=Consumer+Duty`);
+        }}
+      />
+
+      {/* Metric Drill-Down Modal (from All Metrics table row click) */}
+      <MetricDrillDown
+        metric={selectedMetric}
+        open={!!selectedMetric}
+        onClose={() => setSelectedMetric(null)}
+        isCCRO={isCCROTeam}
+        onSaveAppetite={(miId, appetite, appetiteOperator) => {
+          const parentMeasure = allMeasures.find((m) => (m.metrics ?? []).some((mi) => mi.id === miId));
+          if (!parentMeasure) return;
+          const updatedMetrics = (parentMeasure.metrics ?? []).map((mi) =>
+            mi.id === miId ? { ...mi, appetite, appetiteOperator } : mi
+          );
+          updateMeasureMetrics(parentMeasure.id, updatedMetrics);
+          setSelectedMetric((prev) => prev?.id === miId ? { ...prev, appetite, appetiteOperator } : prev);
         }}
         onCreateAction={(miId, metricName) => {
           router.push(`/actions?newAction=true&consumerDutyMIId=${encodeURIComponent(miId)}&metricName=${encodeURIComponent(metricName)}&source=Consumer+Duty`);

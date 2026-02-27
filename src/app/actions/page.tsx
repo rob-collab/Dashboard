@@ -68,16 +68,14 @@ function dueDateColor(action: Action): string {
   const days = daysUntilDue(action.dueDate);
   if (days === null) return "text-gray-400";
   if (days <= 0) return "text-red-600 font-semibold";
-  if (days <= 30) return "text-amber-600 font-medium";
+  if (days <= 7) return "text-amber-600 font-medium";
   return "text-gray-600";
 }
 
 function rowBorderColor(action: Action): string {
-  if (action.status === "COMPLETED") return "border-l-blue-400";
-  if (action.status === "OVERDUE") return "border-l-red-400";
-  const days = daysUntilDue(action.dueDate);
-  if (days !== null && days <= 0) return "border-l-red-400";
-  if (days !== null && days <= 30) return "border-l-amber-400";
+  if (action.priority === "P1") return "border-l-red-500";
+  if (action.priority === "P2") return "border-l-amber-400";
+  if (action.priority === "P3") return "border-l-green-400";
   return "border-l-gray-200";
 }
 
@@ -205,7 +203,17 @@ function ActionsPageContent() {
     const p1 = actions.filter((a) => a.priority === "P1" && a.status !== "COMPLETED").length;
     const p2 = actions.filter((a) => a.priority === "P2" && a.status !== "COMPLETED").length;
     const p3 = actions.filter((a) => a.priority === "P3" && a.status !== "COMPLETED").length;
-    return { total, open, overdue, dueThisMonth, completed, p1, p2, p3 };
+    // Headline metrics
+    const overdueItems = actions.filter((a) => a.status !== "COMPLETED" && daysUntilDue(a.dueDate) !== null && daysUntilDue(a.dueDate)! <= 0);
+    const avgDelay = overdueItems.length > 0
+      ? Math.round(overdueItems.reduce((sum, a) => sum + Math.abs(daysUntilDue(a.dueDate)!), 0) / overdueItems.length)
+      : 0;
+    const cutoff30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const ownerChanges30d = actions.reduce((count, a) => {
+      if (!a.changes) return count;
+      return count + a.changes.filter((c) => c.fieldChanged === "assignedTo" && new Date(c.proposedAt) >= cutoff30d).length;
+    }, 0);
+    return { total, open, overdue, dueThisMonth, completed, p1, p2, p3, avgDelay, ownerChanges30d };
   }, [actions]);
 
   // Filtered actions — handles virtual filter values (OPEN, DUE_THIS_MONTH, OVERDUE)
@@ -439,6 +447,21 @@ function ActionsPageContent() {
       )}
 
       {activeTab === "actions" && <>
+
+      {/* Headline metrics row */}
+      <div className="flex flex-wrap items-center gap-1.5 text-sm text-gray-500">
+        <span className="font-semibold text-gray-700">{stats.total}</span>
+        <span>actions</span>
+        <span className="text-gray-300 mx-0.5">·</span>
+        <span className={cn("font-semibold", stats.overdue > 0 ? "text-red-600" : "text-gray-700")}>{stats.overdue}</span>
+        <span className={stats.overdue > 0 ? "text-red-500" : "text-gray-500"}>overdue</span>
+        <span className="text-gray-300 mx-0.5">·</span>
+        <span>Avg delay:</span>
+        <span className={cn("font-semibold", stats.avgDelay > 0 ? "text-amber-600" : "text-gray-700")}>{stats.avgDelay}d</span>
+        <span className="text-gray-300 mx-0.5">·</span>
+        <span className="font-semibold text-gray-700">{stats.ownerChanges30d}</span>
+        <span>owner changes (30d)</span>
+      </div>
 
       {/* My/All toggle */}
       {(() => {
@@ -760,6 +783,28 @@ function ActionsPageContent() {
                     <span className="ml-1 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-600">
                       {groupActions.length}
                     </span>
+                    {/* Mini on-track bar */}
+                    {(() => {
+                      const onTrack = groupActions.filter((a) => {
+                        const days = daysUntilDue(a.dueDate);
+                        return a.status === "COMPLETED" || a.status === "PROPOSED_CLOSED" || days === null || days > 0;
+                      }).length;
+                      const pct = groupActions.length > 0 ? Math.round((onTrack / groupActions.length) * 100) : 0;
+                      return (
+                        <div className="ml-auto flex items-center gap-2 pr-1">
+                          <div className="w-14 h-1.5 rounded-full bg-gray-200 overflow-hidden">
+                            <div
+                              className={cn(
+                                "h-full rounded-full transition-all duration-500",
+                                pct >= 70 ? "bg-green-500" : pct >= 30 ? "bg-amber-500" : "bg-red-500"
+                              )}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-gray-400">{pct}% on track</span>
+                        </div>
+                      );
+                    })()}
                   </button>
                   {!isGroupCollapsed && (
                     <div className="divide-y divide-gray-100">
@@ -815,7 +860,7 @@ function ActionsPageContent() {
                             {action.priority}
                           </span>
                         )}
-                        <p className="text-sm font-medium text-gray-900 truncate">{action.title}</p>
+                        <p className="text-sm font-medium text-gray-900 line-clamp-2">{action.title}</p>
                         {action.source === "Risk Register" && (
                           <span className="inline-flex items-center gap-0.5 rounded-full bg-updraft-pale-purple/40 px-1.5 py-0.5 text-[9px] font-semibold text-updraft-deep shrink-0">
                             Risk

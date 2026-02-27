@@ -91,9 +91,11 @@ interface CardViewTestEntryProps {
   selectedYear: number;
   selectedMonth: number;
   entries: TestingScheduleEntry[];
-  edits: Map<string, { result: TestResultValue; notes: string }>;
+  edits: Map<string, { result: TestResultValue; notes: string; effectiveDate?: string; evidenceLinks?: string[] }>;
   onEditResult: (entryId: string, result: TestResultValue) => void;
   onEditNotes: (entryId: string, notes: string) => void;
+  onEditEffectiveDate?: (entryId: string, date: string) => void;
+  onEditEvidenceLink?: (entryId: string, link: string) => void;
   onCreateAction?: (entry: TestingScheduleEntry) => void;
   onCreateRiskAcceptance?: (entry: TestingScheduleEntry) => void;
 }
@@ -107,6 +109,8 @@ export default function CardViewTestEntry({
   edits,
   onEditResult,
   onEditNotes,
+  onEditEffectiveDate,
+  onEditEvidenceLink,
   onCreateAction,
   onCreateRiskAcceptance,
 }: CardViewTestEntryProps) {
@@ -191,6 +195,24 @@ export default function CardViewTestEntry({
     return getResultForPeriod(entry, selectedYear, selectedMonth);
   }
 
+  function getEffectiveDate(entry: TestingScheduleEntry): string {
+    const edit = edits.get(entry.id);
+    if (edit?.effectiveDate !== undefined) return edit.effectiveDate;
+    const found = (entry.testResults ?? []).find(
+      (r) => r.periodYear === selectedYear && r.periodMonth === selectedMonth,
+    );
+    return found?.effectiveDate ?? "";
+  }
+
+  function getEffectiveEvidenceLink(entry: TestingScheduleEntry): string {
+    const edit = edits.get(entry.id);
+    if (edit?.evidenceLinks !== undefined) return edit.evidenceLinks[0] ?? "";
+    const found = (entry.testResults ?? []).find(
+      (r) => r.periodYear === selectedYear && r.periodMonth === selectedMonth,
+    );
+    return found?.evidenceLinks?.[0] ?? "";
+  }
+
   function getEffectiveNotes(entry: TestingScheduleEntry): string {
     const edit = edits.get(entry.id);
     if (edit) return edit.notes;
@@ -225,6 +247,8 @@ export default function CardViewTestEntry({
         const control = entry.control;
         const effectiveResult = getEffectiveResult(entry);
         const effectiveNotes = getEffectiveNotes(entry);
+        const effectiveDate = getEffectiveDate(entry);
+        const effectiveEvidenceLink = getEffectiveEvidenceLink(entry);
         const attestation = getAttestationForPeriod(entry);
         const isNotesExpanded = expandedNotes.has(entry.id);
         const isHistoryExpanded = expandedHistory.has(entry.id);
@@ -443,27 +467,56 @@ export default function CardViewTestEntry({
               </div>
             </div>
 
-            {/* ── Expanded notes textarea ─────────────────────────── */}
+            {/* ── Expanded edit fields ────────────────────────────── */}
             {isNotesExpanded && (
-              <div>
-                <textarea
-                  value={effectiveNotes}
-                  onChange={(e) => onEditNotes(entry.id, e.target.value)}
-                  placeholder="Enter testing notes, observations, or evidence references..."
-                  rows={3}
-                  className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30 resize-y"
-                />
-                {(effectiveResult === "FAIL" ||
-                  effectiveResult === "PARTIALLY") &&
-                  !effectiveNotes.trim() && (
-                    <p className="mt-1 text-xs text-amber-600">
-                      Notes are required for{" "}
-                      {effectiveResult
-                        ? TEST_RESULT_LABELS[effectiveResult]
-                        : ""}{" "}
-                      results.
-                    </p>
-                  )}
+              <div className="space-y-2">
+                {/* Date tested */}
+                {onEditEffectiveDate && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Date tested</label>
+                    <input
+                      type="date"
+                      value={effectiveDate}
+                      onChange={(e) => onEditEffectiveDate(entry.id, e.target.value)}
+                      className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
+                    />
+                  </div>
+                )}
+                {/* Evidence link */}
+                {onEditEvidenceLink && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Evidence (Google Drive link)</label>
+                    <input
+                      type="url"
+                      value={effectiveEvidenceLink}
+                      onChange={(e) => onEditEvidenceLink(entry.id, e.target.value)}
+                      placeholder="https://drive.google.com/..."
+                      className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
+                    />
+                  </div>
+                )}
+                {/* Notes */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+                  <textarea
+                    value={effectiveNotes}
+                    onChange={(e) => onEditNotes(entry.id, e.target.value)}
+                    placeholder="Enter testing notes, observations, or evidence references..."
+                    rows={3}
+                    className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30 resize-y"
+                  />
+                  {(effectiveResult === "FAIL" ||
+                    effectiveResult === "PARTIALLY") &&
+                    !effectiveNotes.trim() && (
+                      <p className="mt-1 text-xs text-amber-600">
+                        Notes are required for{" "}
+                        {effectiveResult
+                          ? TEST_RESULT_LABELS[effectiveResult]
+                          : ""}{" "}
+                        results.
+                      </p>
+                    )}
+                </div>
               </div>
             )}
 

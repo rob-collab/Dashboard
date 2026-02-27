@@ -14,7 +14,12 @@ type SectionKey =
   | "or_resilience"
   | "process_library"
   | "actions"
-  | "audit_trail";
+  | "audit_trail"
+  | "horizon_scanning"
+  | "smcr_register"
+  | "policies"
+  | "control_test_results"
+  | "risk_acceptances";
 
 interface SectionDef {
   key: SectionKey;
@@ -56,6 +61,11 @@ const SECTIONS: SectionDef[] = [
           { value: "Strategic", label: "Strategic" },
           { value: "Regulatory", label: "Regulatory" },
         ],
+      },
+      {
+        key: "includeRiskDeepDives",
+        label: "Include risk deep-dives",
+        type: "toggle",
       },
     ],
   },
@@ -154,6 +164,11 @@ const SECTIONS: SectionDef[] = [
           { value: "OVERDUE", label: "Overdue" },
         ],
       },
+      {
+        key: "includeActionSpotlights",
+        label: "Include action spotlights",
+        type: "toggle",
+      },
     ],
   },
   {
@@ -164,6 +179,108 @@ const SECTIONS: SectionDef[] = [
     filters: [
       { key: "auditFrom", label: "From date", type: "date" },
       { key: "auditTo", label: "To date", type: "date" },
+    ],
+  },
+  {
+    key: "horizon_scanning",
+    label: "Horizon Scanning",
+    description: "Regulatory and legislative horizon items under monitoring",
+    getCount: () => 0,
+    filters: [
+      {
+        key: "horizonStatus",
+        label: "Status",
+        type: "select",
+        options: [
+          { value: "", label: "All statuses" },
+          { value: "MONITORING", label: "Monitoring" },
+          { value: "ACTION_REQUIRED", label: "Action Required" },
+          { value: "IN_PROGRESS", label: "In Progress" },
+          { value: "COMPLETED", label: "Completed" },
+          { value: "DISMISSED", label: "Dismissed" },
+        ],
+      },
+    ],
+  },
+  {
+    key: "smcr_register",
+    label: "SMCR Register",
+    description: "Senior Manager Function roles and prescribed responsibilities",
+    getCount: () => 0,
+  },
+  {
+    key: "policies",
+    label: "Policies",
+    description: "Policy library with review dates, owners and status",
+    getCount: () => 0,
+    filters: [
+      {
+        key: "policyStatus",
+        label: "Status",
+        type: "select",
+        options: [
+          { value: "", label: "All statuses" },
+          { value: "CURRENT", label: "Current" },
+          { value: "UNDER_REVIEW", label: "Under Review" },
+          { value: "OVERDUE", label: "Overdue Review" },
+          { value: "ARCHIVED", label: "Archived" },
+        ],
+      },
+    ],
+  },
+  {
+    key: "control_test_results",
+    label: "Control Test Results",
+    description: "Testing results by period, grouped by control",
+    getCount: () => 0,
+    filters: [
+      {
+        key: "testPeriodYear",
+        label: "Year",
+        type: "select",
+        options: [
+          { value: "", label: "All years" },
+          { value: "2026", label: "2026" },
+          { value: "2025", label: "2025" },
+          { value: "2024", label: "2024" },
+        ],
+      },
+      {
+        key: "testPeriodMonth",
+        label: "Month",
+        type: "select",
+        options: [
+          { value: "", label: "All months" },
+          { value: "1", label: "January" }, { value: "2", label: "February" },
+          { value: "3", label: "March" }, { value: "4", label: "April" },
+          { value: "5", label: "May" }, { value: "6", label: "June" },
+          { value: "7", label: "July" }, { value: "8", label: "August" },
+          { value: "9", label: "September" }, { value: "10", label: "October" },
+          { value: "11", label: "November" }, { value: "12", label: "December" },
+        ],
+      },
+    ],
+  },
+  {
+    key: "risk_acceptances",
+    label: "Risk Acceptances",
+    description: "Formal risk acceptance records with rationale and approvals",
+    getCount: () => 0,
+    filters: [
+      {
+        key: "riskAcceptanceStatus",
+        label: "Status",
+        type: "select",
+        options: [
+          { value: "", label: "All statuses" },
+          { value: "PROPOSED", label: "Proposed" },
+          { value: "CCRO_REVIEW", label: "CCRO Review" },
+          { value: "AWAITING_APPROVAL", label: "Awaiting Approval" },
+          { value: "APPROVED", label: "Approved" },
+          { value: "REJECTED", label: "Rejected" },
+          { value: "EXPIRED", label: "Expired" },
+        ],
+      },
     ],
   },
 ];
@@ -224,7 +341,7 @@ export default function ExportCentrePage() {
       const processedFilters: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(filters)) {
         if (v === "" || v === null || v === undefined) continue;
-        if (k === "processMinMaturity" && typeof v === "string") {
+        if ((k === "processMinMaturity" || k === "testPeriodYear" || k === "testPeriodMonth") && typeof v === "string") {
           processedFilters[k] = parseInt(v, 10);
         } else {
           processedFilters[k] = v;
