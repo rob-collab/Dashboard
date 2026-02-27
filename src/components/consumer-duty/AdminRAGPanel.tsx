@@ -139,11 +139,13 @@ export default function AdminRAGPanel({
                         Measure
                       </span>
                     </td>
-                    <td className="px-4 py-2 pl-8 text-gray-600">
-                      <span className="font-medium text-gray-500 mr-1.5">
-                        {measure.measureId}
-                      </span>
-                      {measure.name}
+                    <td className="px-4 py-2 pl-8 text-gray-600 max-w-[280px]">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="font-medium text-gray-500 shrink-0">
+                          {measure.measureId}
+                        </span>
+                        <span className="truncate" title={measure.name}>{measure.name}</span>
+                      </div>
                     </td>
                     <td className="px-4 py-2">
                       <div className="flex justify-center">

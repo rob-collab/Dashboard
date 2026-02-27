@@ -799,6 +799,118 @@ await api.delete(`/api/risks/${riskId}/controls/${controlId}`);
 
 ---
 
+### D025 — Language: UK British English Throughout
+
+**Rule:** Every word of UI text, code comments, variable names, field labels, error messages,
+toast copy, aria-labels, and documentation in this codebase must use **UK British English**.
+There are no exceptions — not even for incidental copy, placeholder text, or seed data strings.
+
+**Common differences (US → UK):**
+
+| US (wrong) | UK (correct) |
+|---|---|
+| color | colour |
+| authorize | authorise |
+| authorized | authorised |
+| authorization | authorisation |
+| sanitize | sanitise |
+| recognize | recognise |
+| organize | organise |
+| organization | organisation |
+| analyze | analyse |
+| behavior | behaviour |
+| center | centre |
+| license (verb) | licence (noun) / license (verb) |
+| program | programme (project/scheme) |
+| defense | defence |
+| offense | offence |
+| fulfill | fulfil |
+| labeled | labelled |
+| traveling | travelling |
+| canceled | cancelled |
+
+**In code:** Use British spellings in variable names, interface property names, and comments.
+```tsx
+// ✓ Correct
+const [selectedColour, setSelectedColour] = useState("");
+const isAuthorised = user.role === "CCRO_TEAM";
+interface ColourScheme { primaryColour: string; }
+
+// ✗ Wrong
+const [selectedColor, setSelectedColor] = useState("");
+const isAuthorized = user.role === "CCRO_TEAM";
+```
+
+**In UI copy:** All toast messages, labels, placeholder text, empty state copy, and modal content.
+```tsx
+// ✓ Correct
+toast.success("Changes saved successfully");
+<p className="text-gray-400">No authorised users found</p>
+placeholder="Search by organisation name..."
+
+// ✗ Wrong
+toast.success("Changes saved successfully");  // fine — "saved" is same
+<p className="text-gray-400">No authorized users found</p>  // wrong
+```
+
+**Seed data and DB values:** Narrative strings, status labels, and sample data in `prisma/seed*.ts`
+must also use British English.
+
+**Before shipping any text-bearing component:** do a quick search for the most common
+offenders: `color`, `authorization`, `organize`, `behavior`, `center`.
+
+---
+
+### D026 — Sequential Display Ordering: Never Let Seeds Override It
+
+**Rule:** Anywhere a list is displayed in a specific order, that order is owned by the DB
+(`position` field or equivalent). Seed scripts must NEVER overwrite the `position` field
+on re-run — put `position` in the `create` clause only, never in `update`.
+
+**The problem this prevents:**
+Re-running a seed with `position` in the `update` clause resets positions to seed-time values,
+colliding with any DB-managed ordering done post-migration and producing interleaved display
+(e.g. `1.7, 1.1, 1.8, 1.2...`).
+
+**Correct seed upsert pattern:**
+```typescript
+await prisma.model.upsert({
+  where: { id: item.id },
+  // ✓ update: only content fields
+  update: {
+    name: item.name,
+    description: item.description,
+    // NOTE: position intentionally excluded — DB-managed
+  },
+  // ✓ create: includes position (first insert only)
+  create: {
+    id: item.id,
+    name: item.name,
+    description: item.description,
+    position: item.position,
+  },
+});
+```
+
+**Ordering fields that must NEVER appear in seed `update`:**
+`position`, `order`, `sortIndex`, `sequence`, `displayOrder`, `rank`
+
+**After any migration or seed re-run:** always verify display order in the UI.
+If items appear interleaved, fix with a targeted `UPDATE` query:
+```sql
+UPDATE "your_table"
+SET position = CAST(SPLIT_PART("displayId", '.', 2) AS INTEGER)
+WHERE ...;
+```
+Or re-derive positions from the intended canonical order.
+
+**For migrations specifically:** before running any `DELETE`, enumerate EVERY field on the
+record and check whether any ordering metadata lives on the record itself (not just FK children).
+If yes, copy those values to the destination record BEFORE deleting the source. See also
+CLAUDE.md — Seed & Migration Rules.
+
+---
+
 ### D014 — Shared File Ownership (for parallel sessions)
 
 These files are HIGH BLAST RADIUS — only ONE session should edit them at a time.
@@ -975,3 +1087,6 @@ See `tasks/lessons.md` for L-series (mistake rules) and `CLAUDE.md` for mandator
 | W009 | P008 | 2026-02-27 | SVG arc gauge pattern |
 | W005 | P009 | 2026-02-27 | Vertical timeline pattern |
 | W012 | P010 | 2026-02-27 | 4-zone collapsible page layout |
+| L019 | D026 | 2026-02-27 | Sequential ordering — seed upserts must not override position |
+| L020 | D026 | 2026-02-27 | Migration metadata audit — enumerate all fields before delete |
+| House rule | D025 | 2026-02-27 | UK British English throughout |

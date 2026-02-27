@@ -457,6 +457,49 @@ Wrap the detail cards in a collapsible Zone N rather than removing or replacing 
 **Why it works:** Lazy initialisers run once (no re-render on URL change). `router.replace` is history-entry-preserving, so back/forward still works correctly. `{ scroll: false }` prevents the page jumping to top on each filter change.
 **Applies to:** Any page with filters, tabs, or search that should survive a page refresh or be shareable via URL.
 
+### L019 — Seed/migration upserts must never override DB-managed ordering fields
+**What happened:** Re-running `seed-ceo-prep.ts` to restore outcome metadata also reset the seed
+measures' `position` values back to their original `0–8`. These collided with the original real
+measures at positions `1–6`, producing interleaved display order (`1.7, 1.1, 1.8, 1.2...`).
+**Root cause:** The seed upsert `update` clause included `position: m.position`. Since the seed
+treats position as a static value, any re-run overwrites whatever the DB had.
+**Rule:** Seed `upsert` update clauses must NOT include `position`, `order`, `sequence`, or any
+field whose value is managed post-seed (by migration, user reordering, or re-sequencing logic).
+Only include those fields in the `create` clause (initial placement on fresh seed).
+**Corollary — Verify order after every migration or seed re-run:** After any data migration
+that touches positional data (moving records between parents, re-sequencing, seed re-run),
+always verify the resulting display order in the DB before closing the task.
+**Trigger:** Any `upsert` in a seed file that includes `position`, `order`, `sortOrder`, or similar.
+**Status:** [PROMOTED → CLAUDE.md "Seed & Migration Rules" section]
+
+---
+
+### L020 — Data migration must audit ALL fields on deleted records, not just FK children
+**What happened:** When migrating Consumer Duty measures from `cd-outcome-*` duplicates to real
+`outcome-*` records, I correctly moved the FK children (measures, metrics, snapshots). But I
+deleted the `cd-outcome-*` records without first applying their rich metadata (ragStatus,
+previousRAG, monthlySummary, mitigatingActions, riskOwner, shortDesc, detailedDescription) to
+the real records. Those real records had simpler original data. The rich CEO prep content was
+lost until the seed was re-run to restore it.
+**Rule:** Before deleting any record in a migration, enumerate every field on that record and
+decide: (1) is it a FK child? → move it. (2) is it metadata on the record itself? → apply it
+to the destination record BEFORE deleting the source. Never delete a record until you have
+confirmed all its data has been preserved.
+**Trigger:** Any migration that deletes source records (even "duplicates").
+**Status:** [PROMOTED → CLAUDE.md "Seed & Migration Rules" section]
+
+---
+
+### L021 — Lessons must be written immediately after each mistake, not batched at sprint end
+**What happened:** Multiple mistakes occurred this session (position collision, metadata loss,
+measureId numbering) with no L-entries written until the user explicitly called it out. The
+CLAUDE.md rule says "capture in real time" but in practice lessons were skipped mid-session.
+**Rule:** The moment a user corrects an error, a rework is required, or an unexpected consequence
+appears — stop and write the L-entry BEFORE continuing. Do not defer to sprint end. The entry
+takes 60 seconds and prevents repetition across sessions. This is non-optional.
+**Trigger:** Any user correction, any rework, any "that's not right" or "why did you do that".
+**Status:** Active — reviewing whether CLAUDE.md "During a sprint" section needs stronger language.
+
 ---
 
 ## Promotion Log

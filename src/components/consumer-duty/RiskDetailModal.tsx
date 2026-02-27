@@ -203,9 +203,9 @@ export default function RiskDetailModal({
                     : "cursor-default"
                 )}
               >
-                <div className="min-w-0">
-                  <span className="font-medium text-gray-700">{measure.measureId}</span>
-                  <span className="text-gray-500 ml-2 truncate">{measure.name}</span>
+                <div className="min-w-0 flex items-center gap-1.5">
+                  <span className="font-medium text-gray-700 shrink-0">{measure.measureId}</span>
+                  <span className="text-gray-500 truncate" title={measure.name}>{measure.name}</span>
                 </div>
                 <div className="flex items-center gap-2 shrink-0 ml-3">
                   <span

@@ -107,6 +107,8 @@ For every change request (features, fixes, improvements):
      - Any new route or panel opened by URL → D023 (URL state)
      - Any table or list → D017 (text overflow truncation)
      - Any new stat/summary card → D004 (must be interactive filter)
+     - Any UI text, labels, toast copy, or comments → D025 (UK British English required)
+     - Any seed upsert or data migration → D026 (never override position in update clause)
 
    If a pattern is directly relevant, state it explicitly before writing the plan.
 
@@ -298,6 +300,44 @@ something that conflicts with previous work.
 - [ ] Are all API route handlers still intact?
 - [ ] Are all Zustand store slices still intact?
 - [ ] Does the page/component still render the same sections it did before?
+
+---
+
+## CRITICAL: Seed & Migration Rules
+
+**These rules prevent data ordering corruption and silent metadata loss during seed operations and migrations.**
+
+### Rule 1 — Never include ordering fields in seed upsert `update` clauses
+
+Seed scripts use `prisma.MODEL.upsert({ where: { id }, update: {...}, create: {...} })`.
+The `update` clause runs on every re-seed. If `position`, `order`, `sequence`, or any
+display-ordering field is in the `update` clause, re-running the seed will overwrite
+DB-managed positions and corrupt display order.
+
+**The rule:**
+- `position`, `order`, `sequence`, `sortIndex`, and all ordering fields belong in `create` only
+- Never put them in `update`
+- After any seed re-run or migration, verify display order in the UI before pushing
+
+**Diagnostic:** If items appear interleaved (e.g. `1.7, 1.1, 1.8, 1.2...`), check whether
+the seed reset positions on re-run. Fix with a targeted `UPDATE` query to derive positions
+from the display ID or intended order.
+
+### Rule 2 — Audit ALL fields before deleting records in a migration
+
+Before any `DELETE` in a migration script, enumerate every field on the record and classify each:
+- **FK child rows** (e.g. measures pointing to this outcome) → move them (update FK) BEFORE deletion
+- **Metadata on the record itself** (e.g. ragStatus, narrative, commentary, dates) → copy to the
+  destination record BEFORE deleting the source
+
+Never delete a record assuming only FK children need moving. Rich metadata on the record
+itself is silently lost unless explicitly preserved.
+
+**Checklist before any `DELETE` in a migration:**
+- [ ] Have I listed every column on this model?
+- [ ] Have I identified which columns hold data that must be preserved?
+- [ ] Have I written those values to the destination record BEFORE this DELETE?
+- [ ] Have I verified the destination record has the expected data AFTER the DELETE?
 
 ---
 
