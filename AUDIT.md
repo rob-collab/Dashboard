@@ -600,8 +600,56 @@ The following table summarises all issues by priority for implementation plannin
 
 ---
 
-## AUDIT STATUS: COMPLETE
+## AUDIT STATUS: COMPLETE (original 39-item audit)
 
-All 39 actionable items have been resolved. T5 (dashboard density) was explicitly deferred at user request. B1 and B3 were rejected. Everything else is implemented and live.
+All 39 actionable items from the original audit have been resolved. T5 deferred, B1 and B3 rejected. Everything else implemented and live.
 
 *Audit completed 25 February 2026. All items resolved by 25 February 2026.*
+
+---
+
+## POST-AUDIT FINDINGS — Broad Specialist Review (27 February 2026)
+
+A second pass by specialist agents (security, data integrity, panel UX, navigation) after the original audit identified additional items. All resolved in Sprints A, B, C.
+
+### Security & Data Integrity (Sprint A)
+
+| # | Issue | Severity | Status |
+|---|-------|----------|--------|
+| SEC1 | `GET /api/risks` had no auth check — full risk register readable without login | 🔴 Critical | ✅ FIXED |
+| SEC2 | `GET /api/compliance/smcr/roles` had no auth check — named SMCR roles readable unauthenticated | 🔴 Critical | ✅ FIXED |
+| SEC3 | `GET /api/compliance/smcr/breaches` had no auth check — named individual disciplinary records readable unauthenticated | 🔴 Critical | ✅ FIXED |
+| DATA1 | `POST /api/actions` silently discarded `priority` field — P1/P2/P3 never persisted to DB | 🟠 High | ✅ FIXED |
+| DATA2 | `ConsumerDutyOutcomeType` enum missing `PRICE_AND_VALUE`; outcome-4 seeded with wrong type; outcome-5 GCO missing entirely from DB | 🟠 High | ✅ FIXED |
+
+### Panel UX (Sprint B)
+
+| # | Issue | Severity | Status |
+|---|-------|----------|--------|
+| PANEL1 | `HorizonDetailPanel`: all fields always editable (no edit-lock), 4 fixed-height textareas | 🟡 Medium | ✅ FIXED — edit-unlock pattern, AutoResizeTextarea |
+| PANEL2 | `RiskDetailPanel`: all fields always editable (no edit-lock), fixed description textarea | 🟡 Medium | ✅ FIXED — edit-unlock pattern, AutoResizeTextarea |
+| PANEL3 | `RegulationDetailPanel`: 5 fixed-height textareas clipping long regulatory text | 🟡 Medium | ✅ FIXED — AutoResizeTextarea on all 5 fields |
+| PANEL4 | `ActionDetailPanel`: 2 fixed-height proposal-form textareas clipping justification text | ⚪ Low | ✅ FIXED — AutoResizeTextarea on both |
+
+### Navigation & Animation (Sprint C)
+
+| # | Issue | Severity | Status |
+|---|-------|----------|--------|
+| NAV1 | Horizon Scanning: filters (category, urgency, status, dismissed, search) not URL-persisted — lost on refresh/share | 🟡 Medium | ✅ FIXED — full URL sync via `useSearchParams` + `useEffect` |
+| NAV2 | Controls page: tab read from URL on load but tab changes never written back | 🟡 Medium | ✅ FIXED — `router.replace` on tab click |
+| NAV3 | Settings page: tab read from URL on load but tab changes never written back | 🟡 Medium | ✅ FIXED — `router.replace` on tab click |
+| ANIM1 | `QuarterlySummaryTab`: 7 stat tile numbers using bare `{n}` instead of `<AnimatedNumber>` | ⚪ Low | ✅ FIXED |
+
+### Process Rule (same session)
+
+| # | Issue | Status |
+|---|-------|--------|
+| PROC1 | Context compaction silently dropped open questions; "continue" was treated as permission to skip them | ✅ FIXED — L018 added to lessons.md; Step 0b added to CLAUDE.md |
+
+---
+
+### ⚠️ PENDING — Items from original session lost to compaction
+
+The pre-compaction session included a longer work list and data mapping questions that were never answered before context was lost. These must be re-surfaced to the user before any further work proceeds.
+
+**Status:** Awaiting user to re-provide the original list and answer pending questions.
