@@ -614,6 +614,19 @@ run `npx prisma generate` before `npx next build`. They are not guaranteed to be
 **Status:** [PROMOTED → MEMORY.md Prisma 7 Gotchas]
 
 
+### W018 — Auth guards: additive one-liner; always check imports first
+**What happened:** Sprint J required auth guards on 8 GET endpoints. Each fix was a
+one-liner (`getUserId(request)` + `if (!userId) return errorResponse("Unauthorised", 401)`)
+because the import was already present in most files (since POST handlers already used it).
+Only 2 files needed an import added (`controls/library/route.ts`, `settings/route.ts`).
+**Pattern:** Before adding an auth guard to a GET handler, check if `getUserId` is already
+imported — it usually is if the file also has a POST/PATCH/DELETE. If so, the guard is
+literally 2 lines. Audit for missing GET guards by searching for files with `POST/PATCH/DELETE`
+that check `getUserId` but whose `GET` handler doesn't.
+**Also:** When adding an auth guard to a GET handler that previously had no `request` parameter
+(e.g. `async function GET()`), always add the parameter: `async function GET(request: NextRequest)`.
+**Applies to:** Any security hardening sprint touching API auth.
+
 ---
 
 ## Promotion Log

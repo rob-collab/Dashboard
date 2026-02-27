@@ -3225,6 +3225,13 @@ Review these pages and wire every stat card that shows a count to filter the lis
 - Add MEDIUM and LOW cards — filter logic already works, just missing from `cards` array
 - Tiny change, high visibility for a CRO scanning the register
 
+### K8 — Restrict GET /api/permissions to CCRO role (Sprint J UAT concern)
+- `src/app/api/permissions/route.ts` — GET currently returns the full role+user permission
+  matrix to any authenticated user, including VIEWER role
+- Only CCRO_TEAM should be able to see the full permission matrix (least-privilege)
+- Add `requireCCRORole(request)` check to GET handler
+- Confirm Settings permission UI still loads correctly (no regression for CCRO)
+
 ### Acceptance Criteria
 - [ ] K1: `transition-colours` eliminated; transitions work on settings components
 - [ ] K2: All bento card counts on all pages filter the view on click with active styling
@@ -3233,6 +3240,7 @@ Review these pages and wire every stat card that shows a count to filter the lis
 - [ ] K5: OPEN and COMPLETED action statuses visually distinct (different colours)
 - [ ] K6: User sees error notification if background sync fails after retries
 - [ ] K7: MEDIUM and LOW risk cards present and clickable on risk register
+- [ ] K8: GET /api/permissions returns 403 for non-CCRO authenticated users
 - [ ] Build passes — zero errors
 
 ---
