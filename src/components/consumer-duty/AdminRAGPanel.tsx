@@ -71,8 +71,11 @@ export default function AdminRAGPanel({
                       Outcome
                     </span>
                   </td>
-                  <td className="px-4 py-2.5 font-medium text-gray-800">
-                    {outcome.outcomeId} — {outcome.name}
+                  <td className="px-4 py-2.5 max-w-[280px]">
+                    <div className="flex items-center gap-1.5 min-w-0 font-medium text-gray-800">
+                      <span className="shrink-0">{outcome.outcomeId} —</span>
+                      <span className="truncate" title={outcome.name}>{outcome.name}</span>
+                    </div>
                   </td>
                   <td className="px-4 py-2.5">
                     <div className="flex justify-center">

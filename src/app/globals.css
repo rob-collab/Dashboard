@@ -282,9 +282,13 @@ body > * {
 }
 
 /* Modal content slide-up-fade entry */
+/* NOTE: `to` keyframe deliberately omits `transform` so that `forwards` fill
+   does not retain a non-none transform on the content div. A non-none transform
+   would create a new containing block, trapping any position:fixed descendants
+   (e.g. nested modals) inside the content div instead of the viewport. */
 @keyframes slide-up-fade {
   from { transform: translateY(16px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
+  to   { opacity: 1; }
 }
 .animate-slide-up-fade {
   animation: slide-up-fade 0.25s ease-out forwards;

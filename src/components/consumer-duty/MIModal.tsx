@@ -163,6 +163,7 @@ export default function MIModal({
   const metrics = editable ? editedMetrics : measure.metrics ?? [];
 
   return (
+    <>
     <Modal
       open={open}
       onClose={onClose}
@@ -426,15 +427,20 @@ export default function MIModal({
         </p>
       )}
 
-      {/* Metric Drill-Down */}
-      <MetricDrillDown
-        metric={drillDownMetric}
-        open={!!drillDownMetric}
-        onClose={() => setDrillDownMetric(null)}
-        isCCRO={isCCRO}
-        onSaveAppetite={onSaveAppetite}
-        onCreateAction={onCreateAction}
-      />
     </Modal>
+
+    {/* MetricDrillDown is rendered as a sibling, NOT inside Modal's children.
+        Placing it inside would make it a descendant of the content div which has
+        a CSS transform (from animate-slide-up-fade), creating a new containing
+        block that traps fixed-position overlays within the content area. */}
+    <MetricDrillDown
+      metric={drillDownMetric}
+      open={!!drillDownMetric}
+      onClose={() => setDrillDownMetric(null)}
+      isCCRO={isCCRO}
+      onSaveAppetite={onSaveAppetite}
+      onCreateAction={onCreateAction}
+    />
+    </>
   );
 }
