@@ -1290,29 +1290,29 @@ export default function DashboardHome() {
           <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-updraft-bright-purple transition-colors" />
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
-          <div className="rounded-lg border border-updraft-pale-purple p-3 text-center" style={{ background: "linear-gradient(135deg, #F3E8FF, #FAF5FF)" }}>
+          <div className="rounded-lg border border-updraft-pale-purple p-3 text-center overflow-hidden" style={{ background: "linear-gradient(135deg, #F3E8FF, #FAF5FF)" }}>
             <p className="text-xl font-bold font-poppins text-updraft-deep">{controlsStats.total}</p>
-            <p className="text-[10px] text-gray-500 mt-0.5">Total Controls</p>
+            <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Total Controls">Total</p>
           </div>
-          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=PREVENTATIVE"); }} className="rounded-lg border border-green-100 p-3 text-center hover:opacity-80 transition-opacity" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=PREVENTATIVE"); }} className="rounded-lg border border-green-100 p-3 text-center hover:opacity-80 transition-opacity overflow-hidden" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
             <p className="text-xl font-bold font-poppins text-green-700">{controlsStats.preventative}</p>
-            <p className="text-[10px] text-gray-500 mt-0.5">Preventative</p>
+            <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Preventative">Prevent.</p>
           </button>
-          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=DETECTIVE"); }} className="rounded-lg border border-blue-100 p-3 text-center hover:opacity-80 transition-opacity" style={{ background: "linear-gradient(135deg, #EFF6FF, #F0F9FF)" }}>
+          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=DETECTIVE"); }} className="rounded-lg border border-blue-100 p-3 text-center hover:opacity-80 transition-opacity overflow-hidden" style={{ background: "linear-gradient(135deg, #EFF6FF, #F0F9FF)" }}>
             <p className="text-xl font-bold font-poppins text-blue-700">{controlsStats.detective}</p>
-            <p className="text-[10px] text-gray-500 mt-0.5">Detective</p>
+            <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Detective">Detect.</p>
           </button>
-          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=DIRECTIVE"); }} className="rounded-lg border border-amber-100 p-3 text-center hover:opacity-80 transition-opacity" style={{ background: "linear-gradient(135deg, #FFFBEB, #FEFCE8)" }}>
+          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=DIRECTIVE"); }} className="rounded-lg border border-amber-100 p-3 text-center hover:opacity-80 transition-opacity overflow-hidden" style={{ background: "linear-gradient(135deg, #FFFBEB, #FEFCE8)" }}>
             <p className="text-xl font-bold font-poppins text-amber-700">{controlsStats.directive}</p>
-            <p className="text-[10px] text-gray-500 mt-0.5">Directive</p>
+            <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Directive">Directive</p>
           </button>
-          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=CORRECTIVE"); }} className="rounded-lg border border-red-100 p-3 text-center hover:opacity-80 transition-opacity" style={{ background: "linear-gradient(135deg, #FEF2F2, #FFF5F5)" }}>
+          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=CORRECTIVE"); }} className="rounded-lg border border-red-100 p-3 text-center hover:opacity-80 transition-opacity overflow-hidden" style={{ background: "linear-gradient(135deg, #FEF2F2, #FFF5F5)" }}>
             <p className="text-xl font-bold font-poppins text-red-700">{controlsStats.corrective}</p>
-            <p className="text-[10px] text-gray-500 mt-0.5">Corrective</p>
+            <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Corrective">Correct.</p>
           </button>
-          <div className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm">
+          <div className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm overflow-hidden">
             <p className="text-xl font-bold font-poppins text-updraft-deep">{controlsStats.policiesWithControls}/{controlsStats.totalPolicies}</p>
-            <p className="text-[10px] text-gray-500 mt-0.5">Policies Covered</p>
+            <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Policies Covered">Policies</p>
           </div>
         </div>
       </Link>
@@ -1396,12 +1396,20 @@ export default function DashboardHome() {
             <p className="text-xl font-bold font-poppins text-updraft-deep">{policies.length}</p>
             <p className="text-[10px] text-gray-500 mt-0.5">Total Policies</p>
           </div>
-          <div className={`rounded-lg border p-3 text-center ${policies.filter((p) => p.status === "OVERDUE").length > 0 ? "border-red-100" : "border-green-100"}`} style={{ background: policies.filter((p) => p.status === "OVERDUE").length > 0 ? "linear-gradient(135deg, #FEF2F2, #FFF5F5)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-            <p className={`text-xl font-bold font-poppins ${policies.filter((p) => p.status === "OVERDUE").length > 0 ? "text-red-700" : "text-green-700"}`}>
-              {policies.filter((p) => p.status === "OVERDUE").length}
-            </p>
-            <p className="text-[10px] text-gray-500 mt-0.5">Overdue</p>
-          </div>
+          {(() => {
+            const now = new Date();
+            const overdueCount = policies.filter(
+              (p) => p.status !== "ARCHIVED" && (p.status === "OVERDUE" || (!!p.nextReviewDate && new Date(p.nextReviewDate) < now))
+            ).length;
+            return (
+              <div className={`rounded-lg border p-3 text-center ${overdueCount > 0 ? "border-red-100" : "border-green-100"}`} style={{ background: overdueCount > 0 ? "linear-gradient(135deg, #FEF2F2, #FFF5F5)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
+                <p className={`text-xl font-bold font-poppins ${overdueCount > 0 ? "text-red-700" : "text-green-700"}`}>
+                  {overdueCount}
+                </p>
+                <p className="text-[10px] text-gray-500 mt-0.5">Overdue</p>
+              </div>
+            );
+          })()}
           <div className="rounded-lg border border-updraft-pale-purple p-3 text-center" style={{ background: "linear-gradient(135deg, #F3E8FF, #FAF5FF)" }}>
             <p className="text-xl font-bold font-poppins text-updraft-deep">
               {policies.reduce((sum, p) => sum + (p.obligations?.length ?? 0), 0)}
@@ -1437,14 +1445,14 @@ export default function DashboardHome() {
               <Link
                 key={r.id}
                 href={`/risk-register?risk=${r.id}`}
-                className="flex items-center gap-4 p-3 rounded-lg bg-amber-50/40 hover:bg-amber-50 transition-colors"
+                className="flex items-center gap-2 p-3 rounded-lg bg-amber-50/40 hover:bg-amber-50 transition-colors min-w-0"
               >
                 <Star className="w-4 h-4 text-amber-400 fill-amber-400 shrink-0" />
-                <span className="text-xs font-mono font-bold text-updraft-deep shrink-0">{r.reference}</span>
-                <span className="text-sm text-gray-800 truncate flex-1 min-w-0">{r.name}</span>
-                <ScoreBadge likelihood={r.residualLikelihood} impact={r.residualImpact} size="sm" />
-                <DirectionArrow direction={r.directionOfTravel} />
-                <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/risk-register?q=${encodeURIComponent(ownerName)}`); }} className="text-xs text-gray-500 shrink-0 hover:text-updraft-bright-purple transition-colors">{ownerName}</button>
+                <span className="text-xs font-mono font-bold text-updraft-deep shrink-0 w-14 truncate" title={r.reference}>{r.reference}</span>
+                <span className="text-sm text-gray-800 truncate flex-1 min-w-0" title={r.name}>{r.name}</span>
+                <span className="shrink-0"><ScoreBadge likelihood={r.residualLikelihood} impact={r.residualImpact} size="sm" /></span>
+                <span className="shrink-0"><DirectionArrow direction={r.directionOfTravel} /></span>
+                <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/risk-register?q=${encodeURIComponent(ownerName)}`); }} className="text-xs text-gray-500 shrink-0 hover:text-updraft-bright-purple transition-colors w-10 truncate text-right" title={ownerName}>{ownerName.split(" ")[0]}</button>
               </Link>
             );
           })}
