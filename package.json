@@ -8,6 +8,8 @@
     "build": "prisma generate && next build",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
+    "db:seed:ceo": "npx tsx prisma/seed-ceo-prep.ts",
+    "db:seed:all": "prisma db seed && npx tsx prisma/seed-ceo-prep.ts",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",

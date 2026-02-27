@@ -1,5 +1,39 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-27 (Dashboard Visual Uplift sprint)
+Last updated: 2026-02-27 (CEO Prep + Dashboard Visual Uplift sprints)
+
+---
+
+## CURRENT SPRINT: CEO Prep — Data & Documentation ✅ COMPLETE
+
+### Context
+Three deliverables required before a CEO/Board review of the dashboard:
+1. Requirements document reverse-engineered from the codebase
+2. Comprehensive data seed so all modules show realistic populated data
+3. AWS migration plan for CEO/CTO review
+
+### Files Changed / Created
+- `.planning/REQUIREMENTS.md` — NEW: 16-section requirements spec
+- `.planning/MIGRATION_PLAN.md` — NEW: AWS migration plan (6-week, CEO/CTO audience)
+- `prisma/seed-ceo-prep.ts` — NEW: comprehensive idempotent seed script
+- `package.json` — added `db:seed:ceo` and `db:seed:all` scripts
+
+### Data Seeded (Supabase PostgreSQL)
+- 4 Consumer Duty Outcomes + 24 Measures + 18 MI Metrics + 216 monthly MetricSnapshots
+- 15 Risks + 180 monthly RiskSnapshots + 30 inline RiskControls (2 per risk)
+- 12 additional Controls (UW/CS/COL/FIN/IT/COMP) + TestingSchedules + 12-month TestResults + QuarterlySummaries + Attestations
+- 45 Actions (P1/P2/P3, all statuses, all sources)
+- 25 RiskControlLinks + 33 RiskActionLinks
+- 45 RiskMitigations (3 per risk, OPEN/IN_PROGRESS/COMPLETE mix)
+
+### Checklist
+- [x] `.planning/REQUIREMENTS.md` written (16 sections, reverse-engineered from codebase)
+- [x] `.planning/MIGRATION_PLAN.md` written (6-week AWS plan, cost estimate, risks, FAQ)
+- [x] `prisma/seed-ceo-prep.ts` written and executed — all data persisted to Supabase
+- [x] RAGStatus enum mismatch fixed (HARM not RED)
+- [x] Risk-Action links fixed (look up by reference, not hardcoded ID)
+- [x] RiskMitigations added (45 records, 3 per risk)
+- [x] Main seed re-run to fix CD measure positions + refresh all other data
+- [x] `package.json` updated with `db:seed:ceo` and `db:seed:all` scripts
 
 ---
 
