@@ -15,6 +15,7 @@ import {
   Upload,
   Download,
   Loader2,
+  Star,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAppStore } from "@/lib/store";
@@ -135,6 +136,7 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
   );
   const [showArchived, setShowArchived] = useState(false);
   const [myControlsOnly, setMyControlsOnly] = useState(false);
+  const [watchedOnly, setWatchedOnly] = useState(false);
   const [myControlsInitialized, setMyControlsInitialized] = useState(false);
 
   // My controls count
@@ -206,9 +208,10 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
       if (areaFilter && c.businessAreaId !== areaFilter) return false;
       if (outcomeFilter && c.consumerDutyOutcome !== outcomeFilter) return false;
       if (typeFilter && c.controlType !== typeFilter) return false;
+      if (watchedOnly && !c.isWatched) return false;
       return true;
     });
-  }, [controls, search, areaFilter, outcomeFilter, typeFilter, showArchived, myControlsOnly, currentUser?.id]);
+  }, [controls, search, areaFilter, outcomeFilter, typeFilter, showArchived, myControlsOnly, watchedOnly, currentUser?.id]);
 
   // ── Lookup helpers ─────────────────────────────────────────
   function areaName(id: string): string {
@@ -544,6 +547,17 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
               {area.name}
             </button>
           ))}
+          <button
+            onClick={() => setWatchedOnly((v) => !v)}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors border ${
+              watchedOnly
+                ? "bg-amber-400 text-white border-amber-400"
+                : "bg-white border-gray-200 text-gray-600 hover:bg-amber-50 hover:border-amber-300"
+            }`}
+          >
+            <Star size={11} className={watchedOnly ? "fill-white" : ""} />
+            Watched
+          </button>
         </div>
       )}
 
@@ -589,6 +603,9 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
                 <th className="px-4 py-3 text-center font-medium text-gray-500">
                   Regulations
                 </th>
+                <th className="px-4 py-3 text-center font-medium text-gray-500">
+                  Watch
+                </th>
                 {isCCRO && (
                   <th className="px-4 py-3 text-right font-medium text-gray-500">
                     Actions
@@ -599,7 +616,7 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
             <tbody className="divide-y divide-gray-50">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={isCCRO ? 13 : 12}>
+                  <td colSpan={isCCRO ? 14 : 13}>
                     <EmptyState
                       icon={<ShieldCheck className="h-7 w-7" />}
                       heading={
@@ -698,6 +715,22 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
                         ) : (
                           <span className="text-xs text-gray-400">&mdash;</span>
                         )}
+                      </td>
+                      {/* Watch star */}
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const next = !control.isWatched;
+                            updateControl(control.id, { isWatched: next });
+                            api(`/api/controls/library/${control.id}`, { method: "PATCH", body: { isWatched: next } })
+                              .catch((err) => console.error("[ControlsLibraryTab] star error:", err));
+                          }}
+                          title={control.isWatched ? "Remove from watched" : "Watch this control"}
+                          className="rounded-full p-1 hover:bg-amber-50 transition-colors"
+                        >
+                          <Star size={14} className={control.isWatched ? "fill-amber-400 text-amber-400" : "text-gray-300 hover:text-amber-400"} />
+                        </button>
                       </td>
                       {isCCRO && (
                         <td className="px-4 py-3 text-right">

@@ -492,6 +492,7 @@ export interface ControlRecord {
   internalOrThirdParty: InternalOrThirdParty;
   controlType: ControlType | null;
   isActive: boolean;
+  isWatched: boolean;
   approvalStatus: ApprovalStatus;
   standingComments: string | null;
   createdAt: string;

@@ -1,6 +1,44 @@
 # CCRO Dashboard — Active Development Plan
 Last updated: 2026-02-27 (CEO Prep + Dashboard Visual Uplift sprints)
 
+## CURRENT SPRINT: Controls Section — Full Overhaul ✅ COMPLETE
+Last updated: 2026-02-27
+
+### Context
+9-deliverable overhaul of the Controls section covering detail views, tab restructure,
+effectiveness badges, star/watch feature, test recording UX, schedule improvements, and
+quarterly summary rework.
+
+### Deliverables
+- [x] D1 — Fix Control Detail Inconsistency: Performance chart added to ControlDetailView; full attestation card in ControlDetailModal
+- [x] D2 — Remove ExCo tabs; expose Trend Analysis to all roles; reorder to 8 tabs
+- [x] D3 — Operating Effectiveness Badge in ControlDetailView and ControlDetailModal
+- [x] D4 — Star/Watch Controls: schema (`isWatched`), types, API, Library star column + chip, Dashboard watched section
+- [x] D5 — TestResultRecordModal (new component); purple + button in CardViewTestEntry
+- [x] D6 — Save guard (beforeunload) + unsaved banner; single-note accordion (string | null)
+- [x] D7 — Testing Schedule: clickable control ref → ControlDetailModal; Read-more for long summaries; renamed column
+- [x] D8 — Search in Record Results (filters by name/ref)
+- [x] D9 — Quarterly Summary reworked into 4 zones: Overview (ArcGauge + stat tiles + trend chart), Untested Controls (collapsible), Overall Narrative (localStorage), Per-Control Summaries (collapsible)
+
+### Key Files
+- `prisma/schema.prisma` — D4: `isWatched` field
+- `src/lib/types.ts` — D4
+- `src/app/controls/page.tsx` — D2
+- `src/components/controls/ControlDetailModal.tsx` — D1, D3, D4
+- `src/components/controls/ControlDetailView.tsx` — D1, D3
+- `src/components/controls/ControlsDashboardTab.tsx` — D4
+- `src/components/controls/ControlsLibraryTab.tsx` — D4
+- `src/components/controls/CardViewTestEntry.tsx` — D5, D6
+- `src/components/controls/TestResultsEntryTab.tsx` — D5, D6, D8
+- `src/components/controls/TestResultRecordModal.tsx` — D5 (NEW)
+- `src/components/controls/TestingScheduleTab.tsx` — D7
+- `src/components/controls/QuarterlySummaryTab.tsx` — D9
+- `src/app/api/controls/library/[id]/route.ts` — D4
+
+### Build: ✅ PASSING (zero TypeScript errors, 92/92 pages)
+### UAT: ✅ PASS — all 9 deliverables pass, no blocking issues
+### Designer: ✅ PASS — all deliverables consistent with design system, no rework required
+
 ---
 
 ## CURRENT SPRINT: CEO Prep — Data & Documentation ✅ COMPLETE

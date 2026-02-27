@@ -406,6 +406,23 @@ minimal utility with only the frosted-glass visual properties. Leave radius/padd
 
 ---
 
+### W012 — 4-zone page restructure via collapsible sections (no new routes)
+**What happened:** QuarterlySummaryTab needed to surface coverage analytics (ArcGauge + trend
+chart) above the existing per-control narrative cards without removing any existing feature.
+Wrapping the existing cards in a collapsible Zone 4 (collapsed by default) and adding Zones 1-3
+above gave users the high-level view by default while keeping full per-control access one click
+away — zero information loss, significantly better first impression.
+**Pattern:**
+- Zone 1: always-visible overview (gauge + stat tiles + trend chart)
+- Zone 2: alert section (untested controls), collapsible, auto-expands if items present
+- Zone 3: CCRO-editable narrative (localStorage for demo, upgradeable to DB)
+- Zone 4: existing detailed cards, collapsible, collapsed by default
+`isPerControlExpanded` (false default) + `isUntestedExpanded` (auto-expands when items exist).
+**Applies to:** Any tab/page that contains both high-level dashboard content and detailed card grids.
+Wrap the detail cards in a collapsible Zone N rather than removing or replacing them.
+
+---
+
 ## Promotion Log
 
 When the Retrospective Agent recommends a promotion and it is carried out, record it here

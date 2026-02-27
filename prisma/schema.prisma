@@ -760,6 +760,7 @@ model Control {
   internalOrThirdParty InternalOrThirdParty   @default(INTERNAL)
   controlType          ControlType?
   isActive            Boolean                 @default(true)
+  isWatched           Boolean                 @default(false)
   approvalStatus      ApprovalStatus          @default(APPROVED)
   standingComments    String?                 @db.Text
   createdAt           DateTime                @default(now())

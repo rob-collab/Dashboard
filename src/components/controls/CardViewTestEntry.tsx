@@ -16,7 +16,6 @@ import { useAppStore } from "@/lib/store";
 import {
   ChevronDown,
   ChevronRight,
-  MessageSquare,
   ShieldCheck,
   ShieldQuestion,
   Clock,
@@ -98,6 +97,9 @@ interface CardViewTestEntryProps {
   onEditEvidenceLink?: (entryId: string, link: string) => void;
   onCreateAction?: (entry: TestingScheduleEntry) => void;
   onCreateRiskAcceptance?: (entry: TestingScheduleEntry) => void;
+  onOpenRecordModal?: (entryId: string) => void;
+  expandedNote: string | null;
+  onToggleNote: (entryId: string) => void;
 }
 
 /* ── Component ────────────────────────────────────────────────────────────── */
@@ -113,29 +115,17 @@ export default function CardViewTestEntry({
   onEditEvidenceLink,
   onCreateAction,
   onCreateRiskAcceptance,
+  onOpenRecordModal,
+  expandedNote,
+  onToggleNote,
 }: CardViewTestEntryProps) {
   const users = useAppStore((s) => s.users);
   const controls = useAppStore((s) => s.controls);
-
-  /* Per-card expanded notes state — local to card view */
-  const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
 
   /* Per-card expanded history state */
   const [expandedHistory, setExpandedHistory] = useState<Set<string>>(
     new Set(),
   );
-
-  function toggleNotes(entryId: string) {
-    setExpandedNotes((prev) => {
-      const next = new Set(prev);
-      if (next.has(entryId)) {
-        next.delete(entryId);
-      } else {
-        next.add(entryId);
-      }
-      return next;
-    });
-  }
 
   function toggleHistory(entryId: string) {
     setExpandedHistory((prev) => {
@@ -250,7 +240,7 @@ export default function CardViewTestEntry({
         const effectiveDate = getEffectiveDate(entry);
         const effectiveEvidenceLink = getEffectiveEvidenceLink(entry);
         const attestation = getAttestationForPeriod(entry);
-        const isNotesExpanded = expandedNotes.has(entry.id);
+        const isNotesExpanded = expandedNote === entry.id;
         const isHistoryExpanded = expandedHistory.has(entry.id);
 
         /* Discrepancy: owner attested but test result is FAIL */
@@ -412,16 +402,27 @@ export default function CardViewTestEntry({
 
             {/* ── Action buttons ──────────────────────────────────── */}
             <div className="flex items-center gap-2 mt-auto pt-1 border-t border-gray-100">
+              {/* Quick Record button — opens primary recording modal */}
+              {onOpenRecordModal && (
+                <button
+                  onClick={() => onOpenRecordModal(entry.id)}
+                  title="Record result"
+                  className="h-7 w-7 rounded-full bg-updraft-bright-purple text-white flex items-center justify-center text-base font-semibold hover:bg-updraft-deep transition-colors shrink-0"
+                >
+                  +
+                </button>
+              )}
+              {/* Inline notes toggle */}
               <button
-                onClick={() => toggleNotes(entry.id)}
+                onClick={() => onToggleNote(entry.id)}
                 className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
                   isNotesExpanded
                     ? "bg-updraft-deep/10 text-updraft-deep"
                     : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
                 }`}
               >
-                <MessageSquare className="w-3.5 h-3.5" />
-                {effectiveNotes.trim() ? "Notes" : "+ Notes"}
+                <Plus className="w-3.5 h-3.5" />
+                {effectiveNotes.trim() ? "Notes" : "Notes"}
                 {effectiveNotes.trim() && !isNotesExpanded && (
                   <span className="ml-0.5 w-1.5 h-1.5 rounded-full bg-updraft-bright-purple" />
                 )}

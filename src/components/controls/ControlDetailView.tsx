@@ -15,6 +15,7 @@ import {
   CONTROL_FREQUENCY_LABELS,
 } from "@/lib/types";
 import { naturalCompare } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
   ChevronDown,
@@ -27,7 +28,18 @@ import {
   FileText,
   ThumbsUp,
   ThumbsDown,
+  TrendingUp,
 } from "lucide-react";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  ReferenceLine,
+} from "recharts";
 
 /* ── Result colour maps ──────────────────────────────────────────────────── */
 
@@ -242,6 +254,50 @@ export default function ControlDetailView({
     return entry?.quarterlySummaries ?? [];
   }, [entry]);
 
+  /** Performance chart data — last 24 months, PASS=1, PARTIALLY=0.5, FAIL=0. */
+  const perfChartData = useMemo(() => {
+    const histMonths = buildHistoryMonths(selectedYear, selectedMonth);
+    return histMonths
+      .filter(({ year, month }) => {
+        const r = getResultForPeriod(entry!, year, month);
+        return r !== undefined && r.result !== "NOT_DUE";
+      })
+      .reverse()
+      .map(({ year, month }) => {
+        const r = getResultForPeriod(entry!, year, month)!;
+        return {
+          label: `${SHORT_MONTHS[month - 1]} ${String(year).slice(2)}`,
+          score: r.result === "PASS" ? 1 : r.result === "FAIL" ? 0 : 0.5,
+          result: TEST_RESULT_LABELS[r.result],
+        };
+      });
+  }, [entry, selectedYear, selectedMonth]);
+
+  /** Operating effectiveness badge derived from most recent test result. */
+  const effectivenessBadge = useMemo(() => {
+    if (!entry) return { label: "Not Tested", colour: "gray", pulse: false };
+    const allResults = [...(entry.testResults ?? [])].sort((a, b) => {
+      if (a.periodYear !== b.periodYear) return b.periodYear - a.periodYear;
+      return b.periodMonth - a.periodMonth;
+    });
+    const latestResult = allResults.find((r) => r.result !== "NOT_DUE" && r.result !== "NOT_TESTED")?.result ?? null;
+    if (latestResult === "PASS") return { label: "Effective", colour: "green", pulse: true };
+    if (latestResult === "PARTIALLY") return { label: "Partially Effective", colour: "amber", pulse: true };
+    if (latestResult === "FAIL") return { label: "Not Effective", colour: "red", pulse: true };
+    return { label: "Not Tested", colour: "gray", pulse: false };
+  }, [entry]);
+
+  const lastTestedDate = useMemo(() => {
+    if (!entry) return null;
+    const allResults = [...(entry.testResults ?? [])].sort((a, b) => {
+      if (a.periodYear !== b.periodYear) return b.periodYear - a.periodYear;
+      return b.periodMonth - a.periodMonth;
+    });
+    const latest = allResults.find((r) => r.result !== "NOT_DUE");
+    if (!latest) return null;
+    return `${SHORT_MONTHS[latest.periodMonth - 1]} ${latest.periodYear}`;
+  }, [entry]);
+
   /** Current-period attestation status for the control owner. */
   const ownerAttestation = useMemo(() => {
     if (!control?.attestations) return null;
@@ -330,13 +386,33 @@ export default function ControlDetailView({
               {control?.controlName ?? "Unknown Control"}
             </h2>
           </div>
-          <button
-            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-            title="Edit control"
-          >
-            <Pencil size={14} />
-            Edit
-          </button>
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            {/* Operating Effectiveness Badge */}
+            <div className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold",
+              effectivenessBadge.pulse && "animate-pulse",
+              effectivenessBadge.colour === "green" && "bg-green-50 border-green-200 text-green-700",
+              effectivenessBadge.colour === "amber" && "bg-amber-50 border-amber-200 text-amber-700",
+              effectivenessBadge.colour === "red"   && "bg-red-50 border-red-200 text-red-700",
+              effectivenessBadge.colour === "gray"  && "bg-gray-100 border-gray-200 text-gray-500",
+            )}>
+              <span className={cn("h-2 w-2 rounded-full",
+                effectivenessBadge.colour === "green" && "bg-green-500",
+                effectivenessBadge.colour === "amber" && "bg-amber-500",
+                effectivenessBadge.colour === "red"   && "bg-red-500",
+                effectivenessBadge.colour === "gray"  && "bg-gray-400",
+              )} />
+              {effectivenessBadge.label}
+            </div>
+            <p className="text-[10px] text-gray-400">Last tested: {lastTestedDate ?? "No results"}</p>
+            <button
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+              title="Edit control"
+            >
+              <Pencil size={14} />
+              Edit
+            </button>
+          </div>
         </div>
 
         {/* Detail grid */}
@@ -506,6 +582,51 @@ export default function ControlDetailView({
           </div>
         )}
       </div>
+
+      {/* ── Performance Over Time Chart ──────────────────────────────────── */}
+      {perfChartData.length >= 2 && (
+        <div className="bento-card p-5">
+          <h3 className="text-sm font-poppins font-semibold text-gray-800 flex items-center gap-2 mb-3">
+            <TrendingUp size={16} className="text-updraft-bright-purple" />
+            Performance Over Time
+            <span className="text-xs font-normal text-gray-400">({perfChartData.length} results)</span>
+          </h3>
+          <div className="h-44">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={perfChartData} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="#d1d5db" interval="preserveStartEnd" />
+                <YAxis domain={[-0.1, 1.1]} ticks={[0, 0.5, 1]} tickFormatter={(v) => v === 1 ? "Pass" : v === 0 ? "Fail" : "Part"} tick={{ fontSize: 9 }} stroke="#d1d5db" />
+                <Tooltip
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null;
+                    return (
+                      <div className="bg-white border border-gray-200 rounded-lg p-2 shadow text-xs">
+                        <div className="font-semibold text-gray-700">{label}</div>
+                        <div className="text-gray-600">{payload[0]?.payload?.result}</div>
+                      </div>
+                    );
+                  }}
+                />
+                <ReferenceLine y={1} stroke="#22c55e" strokeDasharray="4 2" />
+                <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="4 2" />
+                <Line
+                  type="monotone"
+                  dataKey="score"
+                  stroke="#7C3AED"
+                  strokeWidth={2}
+                  dot={(props) => {
+                    const { cx, cy, payload } = props;
+                    const fill = payload.score === 1 ? "#22c55e" : payload.score === 0 ? "#ef4444" : "#f59e0b";
+                    return <circle key={`dot-${cx}-${cy}`} cx={cx} cy={cy} r={4} fill={fill} stroke="white" strokeWidth={1} />;
+                  }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       {/* ── 12-Month Trend Timeline ──────────────────────────────────────── */}
       <div className="bento-card p-5">

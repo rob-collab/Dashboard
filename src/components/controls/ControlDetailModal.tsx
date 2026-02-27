@@ -36,6 +36,7 @@ import {
   Scale,
   TrendingUp,
   Layers,
+  Star,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -81,6 +82,7 @@ export default function ControlDetailModal({
   const policies = useAppStore((s) => s.policies);
   const allProcesses = useAppStore((s) => s.processes);
   const addAction = useAppStore((s) => s.addAction);
+  const updateControl = useAppStore((s) => s.updateControl);
   const isCCRO = currentUser?.role === "CCRO_TEAM";
   const canEditActions = currentUser?.role === "CCRO_TEAM" || currentUser?.role === "OWNER";
 
@@ -246,6 +248,18 @@ export default function ControlDetailModal({
   // Attestation
   const latestAttestation = control?.attestations?.[0] ?? null;
 
+  // Operating effectiveness badge
+  const effectivenessBadge = (() => {
+    const latestResult = chartData.at(-1)?.score ?? null;
+    if (latestResult === null) return { label: "Not Tested", colour: "gray", pulse: false };
+    if (latestResult === 1) return { label: "Effective", colour: "green", pulse: true };
+    if (latestResult === 0.5) return { label: "Partially Effective", colour: "amber", pulse: true };
+    return { label: "Not Effective", colour: "red", pulse: true };
+  })();
+  const lastTestedDate = sortedResults.length > 0
+    ? `${MONTH_ABBR[sortedResults[0].periodMonth - 1]} ${sortedResults[0].periodYear}`
+    : null;
+
   return (
     <>
     <Modal
@@ -296,6 +310,42 @@ export default function ControlDetailModal({
         </div>
       ) : control ? (
         <div className="space-y-5">
+          {/* ── Operating Effectiveness Badge + Star ── */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const next = !control.isWatched;
+                updateControl(control.id, { isWatched: next });
+                api(`/api/controls/library/${control.id}`, { method: "PATCH", body: { isWatched: next } })
+                  .catch((err) => console.error("[ControlDetailModal] star error:", err));
+                setControl((prev) => prev ? { ...prev, isWatched: next } : prev);
+              }}
+              title={control.isWatched ? "Remove from watched" : "Watch this control"}
+              className="rounded-full p-1.5 hover:bg-amber-50 transition-colors"
+            >
+              <Star size={16} className={control.isWatched ? "fill-amber-400 text-amber-400" : "text-gray-300 hover:text-amber-400"} />
+            </button>
+            <div className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold",
+              effectivenessBadge.pulse && "animate-pulse",
+              effectivenessBadge.colour === "green" && "bg-green-50 border-green-200 text-green-700",
+              effectivenessBadge.colour === "amber" && "bg-amber-50 border-amber-200 text-amber-700",
+              effectivenessBadge.colour === "red"   && "bg-red-50 border-red-200 text-red-700",
+              effectivenessBadge.colour === "gray"  && "bg-gray-100 border-gray-200 text-gray-500",
+            )}>
+              <span className={cn("h-2 w-2 rounded-full",
+                effectivenessBadge.colour === "green" && "bg-green-500",
+                effectivenessBadge.colour === "amber" && "bg-amber-500",
+                effectivenessBadge.colour === "red"   && "bg-red-500",
+                effectivenessBadge.colour === "gray"  && "bg-gray-400",
+              )} />
+              {effectivenessBadge.label}
+            </div>
+            </div>
+            <p className="text-[10px] text-gray-400">Last tested: {lastTestedDate ?? "No results"}</p>
+          </div>
+
           {/* ── Suggest Change Form (non-CCRO) ── */}
           {suggestFormOpen && !isCCRO && (
             <div className="rounded-lg border border-updraft-light-purple bg-updraft-pale-purple/30 p-4">
@@ -358,17 +408,65 @@ export default function ControlDetailModal({
                 </div>
               )}
 
-              {/* Attestation status */}
-              <div className="flex items-center gap-2 text-sm">
-                <ShieldCheck className={cn("w-4 h-4", latestAttestation?.attested ? "text-green-600" : "text-gray-400")} />
-                <span className="text-xs text-gray-600">
-                  Attestation: {latestAttestation ? (latestAttestation.attested ? "Attested" : "Pending") : "No attestation"}
-                  {latestAttestation?.ccroReviewedById && (
-                    <span className="ml-2 text-gray-400">
-                      (CCRO {latestAttestation.ccroAgreement ? "Agreed" : "Disagreed"})
-                    </span>
-                  )}
-                </span>
+              {/* Attestation status — full card */}
+              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className={cn("w-4 h-4 shrink-0", latestAttestation?.attested ? "text-green-600" : "text-gray-400")} />
+                  <span className="text-xs font-semibold text-gray-700">Owner Attestation</span>
+                  <span className={cn(
+                    "ml-auto inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                    latestAttestation?.attested ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+                  )}>
+                    {latestAttestation ? (latestAttestation.attested ? "Attested" : "Pending") : "No attestation"}
+                  </span>
+                </div>
+                {latestAttestation && (
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-gray-600">
+                    <div>
+                      <span className="font-medium text-gray-500">Attested by:</span>
+                      <span className="ml-1">{latestAttestation.attestedBy?.name ?? "—"}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-500">Date:</span>
+                      <span className="ml-1">{new Date(latestAttestation.attestedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
+                    </div>
+                    {latestAttestation.issuesFlagged && (
+                      <div className="col-span-2">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                          Issues flagged
+                        </span>
+                        {latestAttestation.issueDescription && (
+                          <span className="ml-2 text-gray-600">{latestAttestation.issueDescription}</span>
+                        )}
+                      </div>
+                    )}
+                    {latestAttestation.comments && (
+                      <div className="col-span-2 text-gray-500 italic">{latestAttestation.comments}</div>
+                    )}
+                  </div>
+                )}
+                {latestAttestation?.ccroReviewedById && (
+                  <div className="border-t border-gray-200 pt-2 space-y-1">
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="font-medium text-gray-500">CCRO Review:</span>
+                      <span className={cn(
+                        "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                        latestAttestation.ccroAgreement ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                      )}>
+                        {latestAttestation.ccroAgreement ? "Agreed" : "Disagreed"}
+                      </span>
+                      {latestAttestation.ccroReviewedAt && (
+                        <span className="text-gray-400 ml-auto">
+                          {new Date(latestAttestation.ccroReviewedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                          {latestAttestation.ccroReviewedBy?.name && ` — ${latestAttestation.ccroReviewedBy.name}`}
+                        </span>
+                      )}
+                    </div>
+                    {latestAttestation.ccroComments && (
+                      <p className="text-xs text-gray-600 italic">{latestAttestation.ccroComments}</p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -11,6 +11,7 @@ import type {
 } from "@/lib/types";
 import {
   TEST_RESULT_LABELS,
+  TEST_RESULT_COLOURS,
   CD_OUTCOME_LABELS,
 } from "@/lib/types";
 import {
@@ -35,6 +36,7 @@ import {
   ChevronDown,
   ChevronRight,
   Library,
+  Star,
 } from "lucide-react";
 import BusinessAreaDrillDown from "./BusinessAreaDrillDown";
 import ControlDetailView from "./ControlDetailView";
@@ -491,6 +493,54 @@ export default function ControlsDashboardTab({ onNavigateToLibrary }: { onNaviga
           accentClass="text-indigo-600"
         />
       </div>
+
+      {/* ── Watched Controls ─────────────────────────────────────────────── */}
+      {(() => {
+        const watchedEntries = activeEntries.filter((e) => {
+          const ctrl = controls.find((c) => c.id === e.controlId);
+          return ctrl?.isWatched;
+        });
+        return (
+          <div className="bento-card p-4">
+            <h3 className="text-sm font-poppins font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <Star size={14} className="fill-amber-400 text-amber-400" />
+              Watched Controls
+              {watchedEntries.length > 0 && (
+                <span className="text-xs font-normal text-gray-400">({watchedEntries.length})</span>
+              )}
+            </h3>
+            {watchedEntries.length === 0 ? (
+              <p className="text-sm text-gray-400">
+                No watched controls — star a control from the library to pin it here.
+              </p>
+            ) : (
+              <div className="flex gap-3 overflow-x-auto pb-1">
+                {watchedEntries.map((entry) => {
+                  const ctrl = controls.find((c) => c.id === entry.controlId);
+                  if (!ctrl) return null;
+                  const lastResult = getResultForPeriod(entry, selectedYear, selectedMonth);
+                  const colours = TEST_RESULT_COLOURS[lastResult];
+                  return (
+                    <div
+                      key={entry.id}
+                      className="shrink-0 rounded-lg border border-gray-200 bg-white p-3 min-w-[160px] max-w-[200px]"
+                    >
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="font-mono text-xs font-bold text-updraft-deep">{ctrl.controlRef}</span>
+                        <span className={cn("ml-auto inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold", colours.bg, colours.text)}>
+                          <span className={cn("h-1.5 w-1.5 rounded-full", colours.dot)} />
+                          {TEST_RESULT_LABELS[lastResult]}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-700 line-clamp-2 leading-snug">{ctrl.controlName}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Charts row */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">

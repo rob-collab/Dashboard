@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import type {
@@ -39,6 +39,7 @@ import {
 } from "recharts";
 import { naturalCompare } from "@/lib/utils";
 import CardViewTestEntry from "./CardViewTestEntry";
+import TestResultRecordModal from "./TestResultRecordModal";
 import BulkHistoricalEntry from "./BulkHistoricalEntry";
 import ActionFormDialog from "@/components/actions/ActionFormDialog";
 
@@ -103,10 +104,11 @@ export default function TestResultsEntryTab() {
     new Set(),
   );
 
-  /* Inline notes expansion */
-  const [expandedNotes, setExpandedNotes] = useState<Set<string>>(
-    new Set(),
-  );
+  /* Inline notes expansion — single open at a time */
+  const [expandedNote, setExpandedNote] = useState<string | null>(null);
+
+  /* Search filter for card/grid view */
+  const [search, setSearch] = useState("");
 
   /* View mode: grid (table) or card — default card */
   const [viewMode, setViewMode] = useState<"grid" | "card">("card");
@@ -122,6 +124,9 @@ export default function TestResultsEntryTab() {
 
   /* Bulk import dialog */
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
+
+  /* Primary record modal state */
+  const [recordModalEntryId, setRecordModalEntryId] = useState<string | null>(null);
 
   /* Action creation from test results */
   const [showActionDialog, setShowActionDialog] = useState(false);
@@ -388,16 +393,8 @@ export default function TestResultsEntryTab() {
     });
   }
 
-  function toggleNotes(entryId: string) {
-    setExpandedNotes((prev) => {
-      const next = new Set(prev);
-      if (next.has(entryId)) {
-        next.delete(entryId);
-      } else {
-        next.add(entryId);
-      }
-      return next;
-    });
+  function toggleNote(entryId: string) {
+    setExpandedNote((prev) => prev === entryId ? null : entryId);
   }
 
   function handlePeriodChange() {
@@ -406,6 +403,17 @@ export default function TestResultsEntryTab() {
     setSaveSuccess(false);
     setSaveError(null);
   }
+
+  /* Warn on navigation-away when there are unsaved edits */
+  useEffect(() => {
+    if (edits.size === 0) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [edits.size]);
 
   function handleCreateActionFromEntry(entry: TestingScheduleEntry) {
     const control = entry.control;
@@ -496,6 +504,19 @@ export default function TestResultsEntryTab() {
     const user = users.find((u) => u.id === entry.assignedTesterId);
     return user?.name ?? "Unassigned";
   }
+
+  /* ── Filtered flat entry list for card/search view ────────────────── */
+
+  const filteredEntries = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const all = Array.from(groupedByArea.values()).flat();
+    if (!q) return all;
+    return all.filter(
+      (e) =>
+        e.control?.controlName.toLowerCase().includes(q) ||
+        e.control?.controlRef.toLowerCase().includes(q),
+    );
+  }, [groupedByArea, search]);
 
   /* ── Year range for dropdown ────────────────────────────────────────── */
 
@@ -787,6 +808,14 @@ export default function TestResultsEntryTab() {
         </div>
       </div>
 
+      {/* Unsaved changes banner (D6) */}
+      {edits.size > 0 && !saveSuccess && (
+        <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-700">
+          <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+          {edits.size} unsaved change{edits.size > 1 ? "s" : ""} — click <strong className="mx-1">Save All Results</strong> to persist
+        </div>
+      )}
+
       {/* Error / success messages */}
       {saveError && (
         <div className="flex items-center gap-2 rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
@@ -814,6 +843,22 @@ export default function TestResultsEntryTab() {
         </div>
       )}
 
+      {/* Search input (D8) */}
+      {totalEntries > 0 && viewMode === "card" && (
+        <div className="flex items-center gap-3">
+          <input
+            type="text"
+            placeholder="Search controls by name or ref..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm w-72 focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
+          />
+          {search && (
+            <span className="text-xs text-gray-400">{filteredEntries.length} of {Array.from(groupedByArea.values()).flat().length} shown</span>
+          )}
+        </div>
+      )}
+
       {/* Entry area — Grid or Card view */}
       {totalEntries === 0 ? (
         <div className="bento-card p-8 text-center text-gray-500">
@@ -827,7 +872,7 @@ export default function TestResultsEntryTab() {
         <CardViewTestEntry
           selectedYear={selectedYear}
           selectedMonth={selectedMonth}
-          entries={Array.from(groupedByArea.values()).flat()}
+          entries={filteredEntries}
           edits={edits}
           onEditResult={(entryId, result) =>
             updateEdit(entryId, "result", result)
@@ -853,6 +898,9 @@ export default function TestResultsEntryTab() {
           }}
           onCreateAction={handleCreateActionFromEntry}
           onCreateRiskAcceptance={handleCreateRiskAcceptance}
+          onOpenRecordModal={(id) => setRecordModalEntryId(id)}
+          expandedNote={expandedNote}
+          onToggleNote={toggleNote}
         />
       ) : (
         /* ── Grid view ─────────────────────────────────────────── */
@@ -908,7 +956,7 @@ export default function TestResultsEntryTab() {
                         (effective.result === "FAIL" ||
                           effective.result === "PARTIALLY") &&
                         !effective.notes.trim();
-                      const isNotesExpanded = expandedNotes.has(entry.id);
+                      const isNotesExpanded = expandedNote === entry.id;
 
                       return (
                         <div key={entry.id}>
@@ -965,7 +1013,7 @@ export default function TestResultsEntryTab() {
                             {/* Notes toggle */}
                             <div className="col-span-1 flex justify-center">
                               <button
-                                onClick={() => toggleNotes(entry.id)}
+                                onClick={() => toggleNote(entry.id)}
                                 className={`relative p-1.5 rounded-md transition-colors ${
                                   isNotesExpanded
                                     ? "bg-updraft-deep/10 text-updraft-deep"
@@ -1071,6 +1119,24 @@ export default function TestResultsEntryTab() {
       )}
 
       </>)}
+
+      {/* Primary Test Recording Modal (D5) */}
+      {recordModalEntryId && (() => {
+        const entry = testingSchedule.find((e) => e.id === recordModalEntryId);
+        return (
+          <TestResultRecordModal
+            entry={entry ?? null}
+            year={selectedYear}
+            month={selectedMonth}
+            open={!!recordModalEntryId}
+            onClose={() => setRecordModalEntryId(null)}
+            onSaved={() => {
+              setRecordModalEntryId(null);
+              setSaveSuccess(true);
+            }}
+          />
+        );
+      })()}
 
       {/* Bulk Historical Entry dialog */}
       <BulkHistoricalEntry

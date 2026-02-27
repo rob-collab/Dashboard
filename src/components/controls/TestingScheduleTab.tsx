@@ -24,6 +24,8 @@ import {
 } from "lucide-react";
 import { naturalCompare } from "@/lib/utils";
 import BulkScheduleActions from "./BulkScheduleActions";
+import ControlDetailModal from "./ControlDetailModal";
+import Modal from "@/components/common/Modal";
 
 /* ─── Reusable style constants ────────────────────────────────────────────── */
 
@@ -78,6 +80,11 @@ export default function TestingScheduleTab() {
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<TestingScheduleEntry | null>(null);
   const [removingEntry, setRemovingEntry] = useState<TestingScheduleEntry | null>(null);
+
+  // Control detail modal
+  const [selectedControlId, setSelectedControlId] = useState<string | null>(null);
+  // Read-more modal for long test descriptions
+  const [readMoreEntry, setReadMoreEntry] = useState<TestingScheduleEntry | null>(null);
 
   const ccroUsers = useMemo(
     () => users.filter((u) => u.role === "CCRO_TEAM" && u.isActive),
@@ -291,7 +298,7 @@ export default function TestingScheduleTab() {
                             Ref
                           </th>
                           <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                            Control Name
+                            Testing Detail
                           </th>
                           <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-44">
                             CD Outcome
@@ -345,7 +352,14 @@ export default function TestingScheduleTab() {
                                   )}
                                 </td>
                               )}
-                              <td className="px-4 py-3 font-mono font-bold text-updraft-deep text-xs">
+                              <td
+                                className="px-4 py-3 font-mono font-bold text-updraft-bright-purple text-xs cursor-pointer hover:underline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (entry.controlId) setSelectedControlId(entry.controlId);
+                                }}
+                                title="Open control detail"
+                              >
                                 {entry.control?.controlRef ?? "-"}
                               </td>
                               <td className="px-4 py-3">
@@ -353,8 +367,16 @@ export default function TestingScheduleTab() {
                                   {entry.control?.controlName ?? "-"}
                                 </div>
                                 {entry.summaryOfTest && (
-                                  <div className="text-xs text-gray-400 mt-0.5 line-clamp-1">
-                                    {entry.summaryOfTest}
+                                  <div className="text-xs text-gray-400 mt-0.5">
+                                    <span className="line-clamp-2">{entry.summaryOfTest}</span>
+                                    {entry.summaryOfTest.length > 120 && (
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); setReadMoreEntry(entry); }}
+                                        className="text-updraft-bright-purple hover:underline text-[11px] mt-0.5"
+                                      >
+                                        Read more →
+                                      </button>
+                                    )}
                                   </div>
                                 )}
                               </td>
@@ -458,6 +480,38 @@ export default function TestingScheduleTab() {
             setRemovingEntry(null);
           }}
         />
+      )}
+
+      {/* ── Control Detail Modal ────────────────────────────────────────────── */}
+      <ControlDetailModal
+        controlId={selectedControlId}
+        onClose={() => setSelectedControlId(null)}
+      />
+
+      {/* ── Read-more Modal ─────────────────────────────────────────────────── */}
+      {readMoreEntry && (
+        <Modal
+          open={!!readMoreEntry}
+          onClose={() => setReadMoreEntry(null)}
+          title="Test Description"
+          size="lg"
+          footer={
+            <button
+              onClick={() => setReadMoreEntry(null)}
+              className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              Close
+            </button>
+          }
+        >
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs font-bold text-updraft-deep">{readMoreEntry.control?.controlRef}</span>
+              <span className="text-sm font-medium text-gray-800">{readMoreEntry.control?.controlName}</span>
+            </div>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">{readMoreEntry.summaryOfTest}</p>
+          </div>
+        </Modal>
       )}
     </div>
   );

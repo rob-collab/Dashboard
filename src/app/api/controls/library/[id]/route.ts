@@ -69,6 +69,7 @@ const updateSchema = z.object({
   controlType: z.enum(["PREVENTATIVE", "DETECTIVE", "CORRECTIVE", "DIRECTIVE"]).nullable().optional(),
   standingComments: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
+  isWatched: z.boolean().optional(),
   approvalStatus: z.enum(["APPROVED", "PENDING_APPROVAL", "REJECTED"]).optional(),
 });
 

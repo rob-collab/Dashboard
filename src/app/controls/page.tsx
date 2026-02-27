@@ -11,8 +11,6 @@ import {
   ShieldCheck,
   FileText,
   TrendingUp,
-  Settings,
-  Eye,
   History,
 } from "lucide-react";
 import ControlsLibraryTab from "@/components/controls/ControlsLibraryTab";
@@ -22,8 +20,6 @@ import ControlsDashboardTab from "@/components/controls/ControlsDashboardTab";
 import AttestationTab from "@/components/controls/AttestationTab";
 import QuarterlySummaryTab from "@/components/controls/QuarterlySummaryTab";
 import TrendAnalysisTab from "@/components/controls/TrendAnalysisTab";
-import ExcoConfigTab from "@/components/controls/ExcoConfigTab";
-import ExcoDashboardTab from "@/components/controls/ExcoDashboardTab";
 import HistoryTab from "@/components/common/HistoryTab";
 import { SkeletonTable } from "@/components/common/SkeletonLoader";
 import { usePageTitle } from "@/lib/usePageTitle";
@@ -36,20 +32,16 @@ type Tab =
   | "attestation"
   | "summaries"
   | "trends"
-  | "exco-config"
-  | "exco-dashboard"
   | "history";
 
 const TABS: { id: Tab; label: string; icon: typeof Library; roles: string[] }[] = [
   { id: "dashboard", label: "Dashboard", icon: BarChart3, roles: ["CCRO_TEAM", "OWNER"] },
+  { id: "trends", label: "Trend Analysis", icon: TrendingUp, roles: ["CCRO_TEAM", "OWNER", "CEO", "VIEWER"] },
   { id: "library", label: "Controls Library", icon: Library, roles: ["CCRO_TEAM", "OWNER"] },
   { id: "attestation", label: "Attestation", icon: ShieldCheck, roles: ["CCRO_TEAM", "OWNER"] },
   { id: "testing", label: "Testing Schedule", icon: FlaskConical, roles: ["CCRO_TEAM"] },
   { id: "results", label: "Record Results", icon: ClipboardCheck, roles: ["CCRO_TEAM"] },
   { id: "summaries", label: "Quarterly Summary", icon: FileText, roles: ["CCRO_TEAM"] },
-  { id: "trends", label: "Trend Analysis", icon: TrendingUp, roles: ["CCRO_TEAM"] },
-  { id: "exco-config", label: "ExCo Config", icon: Settings, roles: ["CCRO_TEAM"] },
-  { id: "exco-dashboard", label: "ExCo View", icon: Eye, roles: ["CCRO_TEAM", "VIEWER"] },
   { id: "history", label: "History", icon: History, roles: ["CCRO_TEAM", "OWNER"] },
 ];
 
@@ -70,7 +62,7 @@ function ControlsPageInner() {
   const tabParam = searchParams.get("tab") as Tab | null;
   const initialControlId = searchParams.get("control");
   const initialTypeFilter = searchParams.get("type");
-  const validTabs: Tab[] = ["library", "testing", "results", "dashboard", "attestation", "summaries", "trends", "exco-config", "exco-dashboard", "history"];
+  const validTabs: Tab[] = ["library", "testing", "results", "dashboard", "attestation", "summaries", "trends", "history"];
   const [activeTab, setActiveTab] = useState<Tab>(
     tabParam && validTabs.includes(tabParam)
       ? tabParam
@@ -136,8 +128,6 @@ function ControlsPageInner() {
       {activeTab === "results" && <TestResultsEntryTab />}
       {activeTab === "summaries" && <QuarterlySummaryTab />}
       {activeTab === "trends" && <TrendAnalysisTab />}
-      {activeTab === "exco-config" && <ExcoConfigTab />}
-      {activeTab === "exco-dashboard" && <ExcoDashboardTab />}
       {activeTab === "history" && (
         <HistoryTab
           entityTypes={["control"]}
