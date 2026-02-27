@@ -33,6 +33,7 @@ import {
   ChevronDown,
   Copy,
   Users,
+  Pin,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAppStore } from "@/lib/store";
@@ -40,30 +41,16 @@ import { api, friendlyApiError } from "@/lib/api-client";
 import { formatDate, naturalCompare, cn } from "@/lib/utils";
 import { getActionLabel } from "@/lib/audit";
 import { getRiskScore } from "@/lib/risk-categories";
-import type { ActionPriority, ActionChange, ControlChange, RiskChange } from "@/lib/types";
+import type { ActionPriority, ActionChange, ControlChange, RiskChange, RGLLayoutItem } from "@/lib/types";
 import { useHasPermission, usePermissionSet } from "@/lib/usePermission";
 import type { ComplianceStatus, DashboardLayoutConfig } from "@/lib/types";
 import ScoreBadge from "@/components/risk-register/ScoreBadge";
 import DirectionArrow from "@/components/risk-register/DirectionArrow";
 import { usePageTitle } from "@/lib/usePageTitle";
-import { DASHBOARD_SECTIONS, DEFAULT_SECTION_ORDER, CCRO_DEFAULT_SECTION_ORDER, ROLE_DEFAULT_HIDDEN } from "@/lib/dashboard-sections";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { DASHBOARD_SECTIONS, DEFAULT_SECTION_ORDER, CCRO_DEFAULT_SECTION_ORDER, ROLE_DEFAULT_HIDDEN, DEFAULT_GRID_LAYOUT } from "@/lib/dashboard-sections";
+import ReactGridLayout, { WidthProvider, type Layout as RGLLayout } from "react-grid-layout/legacy";
+import "react-grid-layout/css/styles.css";
+const GridLayout = WidthProvider(ReactGridLayout);
 import WelcomeBanner from "@/components/common/WelcomeBanner";
 import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 import { HorizonDashboardWidget } from "@/components/horizon/HorizonDashboardWidget";
@@ -109,36 +96,7 @@ function fieldLabel(field: string): string {
   return FIELD_LABELS[field] ?? field.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase());
 }
 
-/* ── Sortable Dashboard Section Wrapper ───────────────────────────────── */
-function SortableDashboardSection({ id, label, hidden, onToggleVisibility, children }: { id: string; label: string; hidden: boolean; onToggleVisibility: () => void; children: React.ReactNode }) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
-  const style = { transform: CSS.Transform.toString(transform), transition };
-  return (
-    <div ref={setNodeRef} style={style} className={cn("relative group/section", hidden && "opacity-40")}>
-      <div className={cn(
-        "absolute -left-10 top-4 z-10 flex flex-col gap-1",
-      )}>
-        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing rounded p-1 text-gray-400 hover:text-updraft-bright-purple hover:bg-updraft-pale-purple/20 transition-colors">
-          <GripVertical size={16} />
-        </button>
-        <button onClick={onToggleVisibility} className={cn("rounded p-1 transition-colors", hidden ? "text-red-400 hover:text-red-600 hover:bg-red-50" : "text-gray-400 hover:text-updraft-bright-purple hover:bg-updraft-pale-purple/20")}>
-          {hidden ? <EyeOff size={14} /> : <Eye size={14} />}
-        </button>
-      </div>
-      <div className={cn(
-        "rounded-2xl border-2 border-dashed transition-colors",
-        hidden ? "border-red-300 bg-red-50/30" : "border-updraft-light-purple/40"
-      )}>
-        <div className="flex items-center gap-2 px-4 py-1.5 border-b border-dashed border-inherit">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-updraft-bar/60">{label}</span>
-        </div>
-        <div className="p-0.5">
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-}
+/* ── (SortableDashboardSection removed — replaced by react-grid-layout) ── */
 
 /* ── Pending Changes Panel ───────────────────────────────────────────── */
 type PendingItem = (ActionChange | ControlChange | RiskChange) & {
@@ -426,8 +384,9 @@ export default function DashboardHome() {
 
   // Edit mode state
   const [editMode, setEditMode] = useState(false);
-  const [editOrder, setEditOrder] = useState<string[]>(DEFAULT_SECTION_ORDER);
+  const [editGrid, setEditGrid] = useState<RGLLayoutItem[]>(DEFAULT_GRID_LAYOUT);
   const [editHidden, setEditHidden] = useState<Set<string>>(new Set());
+  const [editPinned, setEditPinned] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
 
   // Per-user editing: which user's layout is being configured
@@ -461,27 +420,37 @@ export default function DashboardHome() {
     return { order, hidden: savedHidden };
   }, [dashboardLayout, role]);
 
-  // dnd-kit sensors
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
+  // Effective grid for view mode — saved layoutGrid with any missing sections appended
+  const effectiveGrid = useMemo<RGLLayoutItem[]>(() => {
+    const base: RGLLayoutItem[] = (dashboardLayout?.layoutGrid as RGLLayoutItem[] | null) ?? DEFAULT_GRID_LAYOUT;
+    const present = new Set(base.map((i) => i.i));
+    const extra = DEFAULT_GRID_LAYOUT.filter((i) => !present.has(i.i));
+    return [...base, ...extra];
+  }, [dashboardLayout]);
+
+  // In view mode, pinned sections cannot be hidden — filter them out of effectiveOrder.hidden
+  const effectiveHidden = useMemo<Set<string>>(() => {
+    const pinned = new Set<string>(dashboardLayout?.pinnedSections ?? []);
+    return new Set(Array.from(effectiveOrder.hidden).filter((k) => !pinned.has(k)));
+  }, [effectiveOrder.hidden, dashboardLayout?.pinnedSections]);
 
   // Fetch a specific user's layout and load into the editor
   const fetchAndLoadUserLayout = useCallback(async (userId: string) => {
     setLoadingTargetLayout(true);
     try {
       const layout = await api<DashboardLayoutConfig>(`/api/dashboard-layout?userId=${userId}`);
-      const order = [...(layout.sectionOrder ?? DEFAULT_SECTION_ORDER)];
-      for (const key of DEFAULT_SECTION_ORDER) {
-        if (!order.includes(key)) order.push(key);
-      }
-      setEditOrder(order);
+      // Build effective grid: use saved layoutGrid or fall back to DEFAULT_GRID_LAYOUT
+      const base: RGLLayoutItem[] = layout.layoutGrid ?? DEFAULT_GRID_LAYOUT;
+      const present = new Set(base.map((i) => i.i));
+      const extra = DEFAULT_GRID_LAYOUT.filter((i) => !present.has(i.i));
+      setEditGrid([...base, ...extra]);
       setEditHidden(new Set(layout.hiddenSections ?? []));
+      setEditPinned(new Set(layout.pinnedSections ?? []));
     } catch {
       // Fallback to defaults
-      setEditOrder([...DEFAULT_SECTION_ORDER]);
+      setEditGrid([...DEFAULT_GRID_LAYOUT]);
       setEditHidden(new Set());
+      setEditPinned(new Set());
     } finally {
       setLoadingTargetLayout(false);
     }
@@ -490,8 +459,13 @@ export default function DashboardHome() {
   function enterEditMode() {
     const targetId = currentUser?.id ?? "";
     setEditTargetUserId(targetId);
-    setEditOrder([...effectiveOrder.order]);
+    // Build effective grid from saved layout or defaults
+    const base: RGLLayoutItem[] = dashboardLayout?.layoutGrid ?? DEFAULT_GRID_LAYOUT;
+    const present = new Set(base.map((i) => i.i));
+    const extra = DEFAULT_GRID_LAYOUT.filter((i) => !present.has(i.i));
+    setEditGrid([...base, ...extra]);
     setEditHidden(new Set(effectiveOrder.hidden));
+    setEditPinned(new Set(dashboardLayout?.pinnedSections ?? []));
     setEditMode(true);
   }
 
@@ -502,8 +476,9 @@ export default function DashboardHome() {
   }
 
   function resetToDefault() {
-    setEditOrder([...DEFAULT_SECTION_ORDER]);
+    setEditGrid([...DEFAULT_GRID_LAYOUT]);
     setEditHidden(new Set());
+    setEditPinned(new Set());
   }
 
   async function handleSelectEditTarget(userId: string) {
@@ -513,9 +488,14 @@ export default function DashboardHome() {
   }
 
   async function handleCopyFrom(sourceUserId: string) {
+    const sourceName = users.find((u) => u.id === sourceUserId)?.name ?? "user";
+    const targetName = users.find((u) => u.id === editTargetUserId)?.name ?? "this user";
+    if (!window.confirm(`Copy layout from ${sourceName} to ${targetName}?\n\nThis will replace all section positions, visibility, and pins in your current edit session. You can still cancel without saving.`)) {
+      return;
+    }
     setCopyFromOpen(false);
     await fetchAndLoadUserLayout(sourceUserId);
-    toast.success(`Copied layout from ${users.find((u) => u.id === sourceUserId)?.name ?? "user"}`);
+    toast.success(`Copied layout from ${sourceName}`);
   }
 
   async function saveLayout() {
@@ -525,9 +505,17 @@ export default function DashboardHome() {
     }
     setSaving(true);
     try {
+      const body: Record<string, unknown> = {
+        userId: editTargetUserId,
+        sectionOrder: editGrid.map((i) => i.i),
+        hiddenSections: Array.from(editHidden),
+        layoutGrid: editGrid,
+      };
+      if (isCCRO) body.pinnedSections = Array.from(editPinned);
+
       const layout = await api<DashboardLayoutConfig>("/api/dashboard-layout", {
         method: "PUT",
-        body: { userId: editTargetUserId, sectionOrder: editOrder, hiddenSections: Array.from(editHidden) },
+        body,
       });
       // If the saved layout is for the currently viewed user, update the store
       if (editTargetUserId === currentUser?.id) {
@@ -544,19 +532,17 @@ export default function DashboardHome() {
     }
   }
 
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      setEditOrder((prev) => {
-        const oldIndex = prev.indexOf(String(active.id));
-        const newIndex = prev.indexOf(String(over.id));
-        return arrayMove(prev, oldIndex, newIndex);
-      });
-    }
-  }
-
   function toggleSectionVisibility(key: string) {
     setEditHidden((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function togglePinned(key: string) {
+    setEditPinned((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
@@ -1957,8 +1943,8 @@ export default function DashboardHome() {
             </div>
           </div>
 
-          {/* Per-user selector row */}
-          <div className="flex items-center gap-3 border-t border-updraft-light-purple/20 pt-3">
+          {/* Per-user selector row — CCRO only (non-CCRO can only edit their own layout) */}
+          {isCCRO && <div className="flex items-center gap-3 border-t border-updraft-light-purple/20 pt-3">
             <div className="flex items-center gap-2 text-xs text-gray-500">
               <Users size={14} />
               <span className="font-medium">Configuring for:</span>
@@ -2040,12 +2026,12 @@ export default function DashboardHome() {
                 </div>
               )}
             </div>
-          </div>
+          </div>}
         </div>
       )}
 
-      {/* Customise button — CCRO only, shown when not in edit mode */}
-      {isCCRO && !editMode && (
+      {/* Customise button — all users can customise their own layout */}
+      {!editMode && (
         <div className="flex justify-end">
           <button onClick={enterEditMode} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:border-updraft-light-purple transition-colors">
             <LayoutGrid size={14} />
@@ -2055,44 +2041,141 @@ export default function DashboardHome() {
       )}
 
       {editMode ? (
-        <div className="pl-10">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={editOrder} strategy={verticalListSortingStrategy}>
-              <div className="space-y-4">
-                {editOrder.map((key) => {
-                  const def = DASHBOARD_SECTIONS.find((s) => s.key === key);
-                  const content = sectionMap[key];
-                  if (!def) return null;
-                  const isHidden = editHidden.has(key);
-                  return (
-                    <SortableDashboardSection
-                      key={key}
-                      id={key}
-                      label={def.label}
-                      hidden={isHidden}
-                      onToggleVisibility={() => toggleSectionVisibility(key)}
-                    >
-                      {content || (
-                        <div className="rounded-xl bg-gray-50 p-6 text-center text-xs text-gray-400">
-                          {def.label} — no data to display
-                        </div>
+        <>
+          {/* Edit mode — desktop: react-grid-layout 2D drag + resize */}
+          <div className="hidden md:block">
+            <GridLayout
+              layout={editGrid}
+              onLayoutChange={(newLayout: RGLLayout) => setEditGrid(Array.from(newLayout) as RGLLayoutItem[])}
+              isDraggable
+              isResizable
+              draggableHandle=".rgl-drag-handle"
+              rowHeight={80}
+              cols={12}
+              margin={[12, 12]}
+              compactType="vertical"
+              autoSize
+            >
+              {editGrid.map((item) => {
+                const def = DASHBOARD_SECTIONS.find((s) => s.key === item.i);
+                if (!def) return null;
+                const isHidden = editHidden.has(item.i);
+                const isPinned = isCCRO && editPinned.has(item.i);
+                return (
+                  <div key={item.i} className={cn(
+                    "rounded-2xl border-2 border-dashed overflow-hidden",
+                    isHidden ? "border-gray-200 opacity-40" : "border-updraft-light-purple/40"
+                  )}>
+                    {/* Drag handle bar */}
+                    <div className="rgl-drag-handle cursor-grab active:cursor-grabbing h-8 flex items-center justify-between px-3 bg-updraft-deep/5 border-b border-updraft-light-purple/20 rounded-t-2xl select-none">
+                      <div className="flex items-center gap-2">
+                        <GripVertical size={14} className="text-gray-400" />
+                        <span className="text-xs font-medium text-gray-500">{def.label}</span>
+                        {isPinned && (
+                          <span className="flex items-center gap-1 text-[10px] font-semibold text-updraft-bar bg-updraft-pale-purple/40 px-1.5 py-0.5 rounded-full">
+                            <Pin size={9} /> Pinned
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        {isCCRO && (
+                          <button
+                            onClick={() => togglePinned(item.i)}
+                            title={isPinned ? "Unpin section" : "Pin section for this user"}
+                            className="rounded p-1 transition-colors hover:bg-updraft-pale-purple/30"
+                          >
+                            <Pin size={12} className={isPinned ? "text-updraft-bar" : "text-gray-300"} />
+                          </button>
+                        )}
+                        {!isPinned && (
+                          <button
+                            onClick={() => toggleSectionVisibility(item.i)}
+                            title={isHidden ? "Show section" : "Hide section"}
+                            className="rounded p-1 transition-colors hover:bg-gray-100"
+                          >
+                            {isHidden ? <EyeOff size={14} className="text-red-400" /> : <Eye size={14} className="text-gray-400" />}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {/* Scrollable content */}
+                    <div className="h-[calc(100%-2rem)] overflow-y-auto">
+                      {sectionMap[item.i] ?? (
+                        <div className="p-4 text-xs text-gray-400 text-center">{def.label}</div>
                       )}
-                    </SortableDashboardSection>
-                  );
-                })}
-              </div>
-            </SortableContext>
-          </DndContext>
-        </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </GridLayout>
+          </div>
+
+          {/* Edit mode — mobile: vertical stacked list (no grid) */}
+          <div className="block md:hidden space-y-4">
+            {editGrid.map((item) => {
+              const def = DASHBOARD_SECTIONS.find((s) => s.key === item.i);
+              if (!def) return null;
+              const isHidden = editHidden.has(item.i);
+              return (
+                <div key={item.i} className={cn(
+                  "rounded-2xl border-2 border-dashed overflow-hidden",
+                  isHidden ? "border-gray-200 opacity-40" : "border-updraft-light-purple/40"
+                )}>
+                  <div className="h-8 flex items-center justify-between px-3 bg-updraft-deep/5 border-b border-updraft-light-purple/20">
+                    <span className="text-xs font-medium text-gray-500">{def.label}</span>
+                    <button onClick={() => toggleSectionVisibility(item.i)} className="rounded p-1 hover:bg-gray-100">
+                      {isHidden ? <EyeOff size={14} className="text-red-400" /> : <Eye size={14} className="text-gray-400" />}
+                    </button>
+                  </div>
+                  <div>{sectionMap[item.i] ?? null}</div>
+                </div>
+              );
+            })}
+          </div>
+        </>
       ) : (
         <>
-          {effectiveOrder.order
-            .filter((key) => !effectiveOrder.hidden.has(key))
-            .map((key) => {
-              const content = sectionMap[key];
-              if (!content) return null;
-              return <div key={key}>{content}</div>;
-            })}
+          {/* View mode — desktop: react-grid-layout (read-only positions) */}
+          <div className="hidden md:block">
+            <GridLayout
+              layout={effectiveGrid.filter((item) => !effectiveHidden.has(item.i))}
+              isDraggable={false}
+              isResizable={false}
+              rowHeight={80}
+              cols={12}
+              margin={[12, 12]}
+              compactType="vertical"
+              autoSize
+            >
+              {effectiveGrid
+                .filter((item) => !effectiveHidden.has(item.i))
+                .map((item) => {
+                  const pinned = (dashboardLayout?.pinnedSections ?? []).includes(item.i);
+                  return (
+                    <div key={item.i} className="h-full overflow-hidden rounded-2xl relative">
+                      {pinned && (
+                        <div
+                          title="This section is required by your CCRO and cannot be hidden"
+                          className="absolute top-2 right-2 z-10 flex items-center gap-1 text-[10px] text-updraft-bar bg-updraft-pale-purple/60 px-2 py-0.5 rounded-full pointer-events-none"
+                        >
+                          <Pin size={8} /> Required
+                        </div>
+                      )}
+                      {sectionMap[item.i] ?? null}
+                    </div>
+                  );
+                })}
+            </GridLayout>
+          </div>
+
+          {/* View mode — mobile: stacked fallback */}
+          <div className="block md:hidden space-y-4">
+            {effectiveGrid
+              .filter((item) => !effectiveHidden.has(item.i))
+              .map((item) => (
+                <div key={item.i}>{sectionMap[item.i] ?? null}</div>
+              ))}
+          </div>
         </>
       )}
     </div>

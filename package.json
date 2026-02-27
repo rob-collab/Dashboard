@@ -47,6 +47,7 @@
     "prisma": "^7.4.0",
     "react": "^18",
     "react-dom": "^18",
+    "react-grid-layout": "^2.2.2",
     "recharts": "^3.7.0",
     "resend": "^6.9.2",
     "sonner": "^2.0.7",

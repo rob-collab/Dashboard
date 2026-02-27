@@ -343,3 +343,30 @@ body > * {
   animation: shimmer 1.4s ease-in-out infinite;
   border-radius: 6px;
 }
+
+/* ── react-grid-layout overrides ─────────────────────────────────────────── */
+
+/* Drop placeholder — brand purple tint instead of default grey */
+.react-grid-item.react-grid-placeholder {
+  background: rgba(123, 31, 162, 0.08) !important;
+  border: 2px dashed rgba(123, 31, 162, 0.25) !important;
+  border-radius: 1rem;
+  opacity: 1 !important;
+}
+
+/* Resize handle — hidden at rest, visible on hover */
+.react-resizable-handle {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.react-grid-item:hover .react-resizable-handle {
+  opacity: 1;
+}
+.react-resizable-handle::after {
+  border-color: #BA68C8 !important;
+}
+
+/* Drag handle cursor */
+.rgl-drag-handle {
+  user-select: none;
+}

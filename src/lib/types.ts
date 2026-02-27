@@ -1464,11 +1464,23 @@ export const MATURITY_COLOURS: Record<number, { bg: string; text: string; bar: s
 
 // ── Dashboard Layout ──────────────────────────────────────────────────────────
 
+export interface RGLLayoutItem {
+  i: string;       // section key
+  x: number;       // column 0–11
+  y: number;       // row
+  w: number;       // width in columns
+  h: number;       // height in rows
+  minW?: number;
+  minH?: number;
+}
+
 export interface DashboardLayoutConfig {
   id: string;
   userId: string;
   sectionOrder: string[];
   hiddenSections: string[];
+  layoutGrid: RGLLayoutItem[] | null;    // react-grid-layout positions
+  pinnedSections: string[];              // CCRO-pinned section keys
   configuredById: string | null;
   createdAt: string | null;
   updatedAt: string | null;

@@ -359,7 +359,7 @@ by not selecting a separate section key.
 
 ---
 
-<!-- Add W-series entries here: W009, W010, ... -->
+<!-- Add W-series entries here: W014, W015, ... -->
 
 ### W010 — Look up by unique reference field, not constructed ID, in seed scripts
 **What happened:** RiskActionLink seed used hardcoded `actionId: "act-030"` — but when actions
@@ -416,6 +416,23 @@ export function AnimatedNumber({ value, duration = 800, className }: Props) {
 <AnimatedNumber value={card.value} className="text-2xl font-bold" />
 ```
 **Applies to:** Any hook that needs to be used inside a list render. Extract into a micro-component.
+
+---
+
+### W014 — react-grid-layout v2: use /legacy subpath for v1-compatible API
+**What happened:** Installed `react-grid-layout@^2.2.2`. v2 is a major breaking change from v1:
+`WidthProvider` no longer exists in the main entry point; `resizable.css` was merged into `styles.css`;
+v2 ships its own TypeScript types so `@types/react-grid-layout` must NOT be installed.
+**Rule:** Always import from `react-grid-layout/legacy` for the v1-compatible API:
+```ts
+import ReactGridLayout, { WidthProvider, type Layout as RGLLayout } from "react-grid-layout/legacy";
+import "react-grid-layout/css/styles.css";  // only this import — no resizable.css
+const GridLayout = WidthProvider(ReactGridLayout);
+```
+And do NOT install `@types/react-grid-layout` — v2 has its own built-in types that will conflict.
+**The `Layout` type is `readonly LayoutItem[]`**: use `Array.from(newLayout)` to convert to mutable
+(follows the same principle as L013/L017 for Map/Set).
+**Applies to:** Any project using `react-grid-layout >= 2.0.0`.
 
 ---
 

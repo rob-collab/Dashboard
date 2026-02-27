@@ -446,6 +446,89 @@ Key themes: clickable filter cards, default "My items" view, back button reliabi
 
 ---
 
+## CURRENT SPRINT: react-grid-layout Dashboard ✅ COMPLETE
+Last updated: 2026-02-27
+
+### Context
+Replaced dnd-kit (vertical-only reorder) with react-grid-layout for true 2D drag, resize,
+and per-user pinning. All users can now self-customise their own dashboard layout. CCRO can
+pin sections for specific users (user cannot hide pinned sections; sees "Required" badge).
+Mobile fallback: stacked view at < md breakpoint.
+
+### Library note
+react-grid-layout v2 is a major breaking change from v1. `WidthProvider` and the v1 prop
+API are in the `/legacy` subpath. v2 ships its own TypeScript types so `@types/react-grid-layout`
+must NOT be installed.
+
+### Deliverables
+
+#### D1 — Install react-grid-layout
+- [x] `react-grid-layout@^2.2.2` in dependencies
+- [x] No `@types/react-grid-layout` (v2 ships own types)
+- [x] `npm install` succeeds, no peer-dep conflicts
+
+#### D2 — Schema: layoutGrid + pinnedSections
+- [x] `layoutGrid Json?` added to `DashboardLayout` model
+- [x] `pinnedSections Json @default("[]")` added to `DashboardLayout` model
+- [x] `npx prisma db push` succeeded without data loss
+- [x] `npx prisma generate` regenerated client
+
+#### D3 — Types: RGLLayoutItem + DashboardLayoutConfig
+- [x] `RGLLayoutItem` interface exported from `src/lib/types.ts`
+- [x] `DashboardLayoutConfig.layoutGrid: RGLLayoutItem[] | null` added
+- [x] `DashboardLayoutConfig.pinnedSections: string[]` added
+- [x] Zero type errors
+
+#### D4 — DEFAULT_GRID_LAYOUT constant
+- [x] `DEFAULT_GRID_LAYOUT` exported from `src/lib/dashboard-sections.ts`
+- [x] All 21 section keys present with explicit x, y, w, h, minW, minH values
+- [x] Side-by-side pairs correctly positioned (e.g. notifications/action-required at y:4)
+- [x] Zero type errors
+
+#### D5 — API route: self-edit permission + new fields
+- [x] Any authenticated user can PUT their own layout (non-CCRO, own userId)
+- [x] Non-CCRO cannot PUT another user's layout (403)
+- [x] Only CCRO can set `pinnedSections`; non-CCRO submits silently receive empty array
+- [x] `layoutGrid` round-trips correctly (null stays null, array stored/returned as JSON)
+- [x] Audit log fires on every PUT
+- [x] `defaultLayout()` returns `layoutGrid: null, pinnedSections: []`
+
+#### D6 — page.tsx: replace dnd-kit with RGL
+- [x] dnd-kit imports removed; `react-grid-layout/legacy` + `WidthProvider` imported
+- [x] `SortableDashboardSection` component removed; `editGrid: RGLLayoutItem[]` state added
+- [x] `editPinned: Set<string>` state added
+- [x] `effectiveGrid` memo: falls back to DEFAULT_GRID_LAYOUT if no saved layout
+- [x] `effectiveHidden` memo: filters out pinned sections so they cannot be hidden
+- [x] View mode: RGL GridLayout with `isDraggable={false}`, `isResizable={false}`
+- [x] Edit mode: RGL GridLayout with drag handles + resize; Eye / Pin controls per section
+- [x] "Customise Layout" button visible to all users (CCRO guard removed)
+- [x] User selector toolbar row wrapped in `{isCCRO && ...}` (non-CCRO sees own-only edit)
+- [x] Save → POST with `layoutGrid` + `pinnedSections` + toast confirmation
+- [x] Pinned sections show "Required" badge in view mode
+- [x] Mobile < md: stacked fallback renders correctly
+- [x] `onLayoutChange` uses `Array.from(newLayout)` (readonly array fix per L013/L017)
+
+#### D7 — CSS: RGL overrides
+- [x] Drop placeholder: brand purple tint (not default grey)
+- [x] Resize handle: hidden at rest, purple on hover
+- [x] Drag cursor: `user-select: none` on `.rgl-drag-handle`
+- [x] No visual conflicts with `.bento-card`
+
+### Build: ✅ PASSING (zero TypeScript errors)
+
+### Key Files
+| File | D# |
+|------|----|
+| `package.json` | D1 |
+| `prisma/schema.prisma` | D2 |
+| `src/lib/types.ts` | D3 |
+| `src/lib/dashboard-sections.ts` | D4 |
+| `src/app/api/dashboard-layout/route.ts` | D5 |
+| `src/app/page.tsx` | D6 |
+| `src/app/globals.css` | D7 |
+
+---
+
 ## PREVIOUSLY COMPLETED
 
 ### Horizon Scanning Module
