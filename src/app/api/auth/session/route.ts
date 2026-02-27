@@ -6,7 +6,8 @@ import { handlers } from "@/lib/auth-config";
 // so useSession() resolves without a real JWT. In all other environments it
 // delegates to the real NextAuth handler so production auth is unaffected.
 export async function GET(req: Request) {
-  if (process.env.DEV_BYPASS_AUTH === "true" && process.env.DEV_SESSION_EMAIL) {
+  // Guard: dev bypass must never run in production
+  if (process.env.NODE_ENV !== "production" && process.env.DEV_BYPASS_AUTH === "true" && process.env.DEV_SESSION_EMAIL) {
     return NextResponse.json({
       user: {
         name: process.env.DEV_SESSION_NAME ?? process.env.DEV_SESSION_EMAIL,

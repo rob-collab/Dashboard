@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, naturalCompare, jsonResponse, errorResponse, validateBody, validateQuery, auditLog, checkPermission } from "@/lib/api-helpers";
+import { prisma, naturalCompare, jsonResponse, errorResponse, getUserId, validateBody, validateQuery, auditLog, checkPermission } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const querySchema = z.object({
@@ -12,6 +12,9 @@ const querySchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    const userId = getUserId(request);
+    if (!userId) return errorResponse("Unauthorised", 401);
+
     const result = validateQuery(querySchema, request.nextUrl.searchParams);
     if ("error" in result) return result.error;
     const { businessAreaId, consumerDutyOutcome, isActive, includeSchedule } = result.data;

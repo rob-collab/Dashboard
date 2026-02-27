@@ -1,8 +1,11 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, errorResponse, jsonResponse, checkPermission } from "@/lib/api-helpers";
+import { prisma, errorResponse, jsonResponse, getUserId, checkPermission, auditLog } from "@/lib/api-helpers";
 
-export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const callerId = getUserId(request);
+  if (!callerId) return errorResponse("Unauthorised", 401);
+
   const { id } = await params;
 
   const perms = await prisma.userPermission.findMany({
@@ -41,6 +44,15 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   });
 
   await Promise.all(ops);
+
+  // Audit: user-level permission overrides are a compliance-critical event
+  auditLog({
+    userId: auth.userId,
+    action: "update_user_permissions",
+    entityType: "user_permission",
+    entityId: id,
+    changes: { permissions },
+  });
 
   return jsonResponse({ ok: true });
 }

@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import RichTextEditor from "@/components/editor/RichTextEditor";
+import { sanitizeHTML } from "@/lib/sanitize";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -39,7 +40,7 @@ export default function TextBlock({ content, editable, onChange }: TextBlockProp
         "[&_td]:border [&_td]:border-gray-300 [&_td]:p-2",
         "[&_th]:border [&_th]:border-gray-300 [&_th]:p-2 [&_th]:bg-gray-100 [&_th]:font-semibold"
       )}
-      dangerouslySetInnerHTML={{ __html: content }}
+      dangerouslySetInnerHTML={{ __html: sanitizeHTML(content).html }}
     />
   );
 }

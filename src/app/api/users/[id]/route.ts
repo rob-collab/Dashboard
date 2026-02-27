@@ -6,8 +6,11 @@ import { Prisma } from "@/generated/prisma";
 
 type Params = { params: Promise<{ id: string }> };
 
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(request: NextRequest, { params }: Params) {
   try {
+    const callerId = getAuthUserId(request);
+    if (!callerId) return errorResponse("Unauthorised", 401);
+
     const { id } = await params;
     const user = await prisma.user.findUnique({ where: { id } });
     if (!user) return errorResponse("User not found", 404);

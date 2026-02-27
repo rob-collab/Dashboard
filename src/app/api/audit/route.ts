@@ -5,6 +5,9 @@ import { getPaginationParams, paginatedResponse } from "@/lib/schemas/pagination
 
 export async function GET(request: NextRequest) {
   try {
+    const userId = getUserId(request);
+    if (!userId) return errorResponse("Unauthorised", 401);
+
     const { searchParams } = new URL(request.url);
     const { skip, take, page, limit } = getPaginationParams(searchParams);
 

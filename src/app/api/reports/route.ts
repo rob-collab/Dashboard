@@ -3,8 +3,11 @@ import { prisma, jsonResponse, errorResponse, getUserId, validateBody } from "@/
 import { serialiseDates } from "@/lib/serialise";
 import { CreateReportSchema } from "@/lib/schemas/reports";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const userId = getUserId(request);
+    if (!userId) return errorResponse("Unauthorised", 401);
+
     const reports = await prisma.report.findMany({
       include: { creator: true },
       orderBy: { createdAt: "desc" },

@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, getUserId, errorResponse, jsonResponse, checkPermission } from "@/lib/api-helpers";
+import { prisma, getUserId, errorResponse, jsonResponse, checkPermission, auditLog } from "@/lib/api-helpers";
 
 export async function GET(request: NextRequest) {
   const userId = getUserId(request);
@@ -43,6 +43,15 @@ export async function PUT(request: NextRequest) {
   );
 
   await Promise.all(ops);
+
+  // Audit: permission matrix changes are a compliance-critical event
+  auditLog({
+    userId: auth.userId,
+    action: "update_role_permissions",
+    entityType: "role_permission",
+    entityId: role,
+    changes: { role, permissions },
+  });
 
   return jsonResponse({ ok: true });
 }

@@ -5,6 +5,9 @@ import { sendActionAssigned } from "@/lib/email";
 import { ActionQuerySchema, CreateActionSchema } from "@/lib/schemas/actions";
 
 export async function GET(request: NextRequest) {
+  const userId = getUserId(request);
+  if (!userId) return errorResponse("Unauthorised", 401);
+
   const { searchParams } = new URL(request.url);
   const validation = validateQuery(ActionQuerySchema, searchParams);
   if ('error' in validation) return validation.error;

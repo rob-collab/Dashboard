@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { sanitizeHTML } from "@/lib/sanitize";
 
 interface AccordionItem {
   id?: string;
@@ -80,7 +81,7 @@ export default function AccordionSection({ content, editable, onChange }: Accord
                 ) : (
                   <div
                     className="prose prose-sm max-w-none text-gray-600"
-                    dangerouslySetInnerHTML={{ __html: item.content }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHTML(item.content).html }}
                   />
                 )}
               </div>

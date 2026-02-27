@@ -6,7 +6,8 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Dev bypass: set DEV_BYPASS_AUTH=true and DEV_USER_ID=<your-db-id> in .env.local
-  if (process.env.DEV_BYPASS_AUTH === "true" && process.env.DEV_USER_ID) {
+  // Guard: this code must never run in production
+  if (process.env.NODE_ENV !== "production" && process.env.DEV_BYPASS_AUTH === "true" && process.env.DEV_USER_ID) {
     const requestHeaders = new Headers(req.headers);
     requestHeaders.set("X-Verified-User-Id", process.env.DEV_USER_ID);
     return NextResponse.next({ request: { headers: requestHeaders } });
@@ -59,7 +60,16 @@ export async function middleware(req: NextRequest) {
   if (dbUserId) {
     requestHeaders.set("X-Verified-User-Id", dbUserId);
   }
-  return NextResponse.next({ request: { headers: requestHeaders } });
+
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+
+  // Security headers — applied to every authenticated response
+  response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("X-Frame-Options", "DENY");
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+
+  return response;
 }
 
 export const config = {
