@@ -117,13 +117,13 @@ export default function Modal({
         ref={panelRef}
         className={cn(
           "relative w-full rounded-xl shadow-xl animate-slide-up",
-          "bg-white",
+          "bg-white flex flex-col max-h-[90vh]",
           SIZE_CLASSES[size]
         )}
       >
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 shrink-0">
             <h2 id="modal-title" className="text-lg font-semibold text-gray-900 font-poppins">
               {title}
             </h2>
@@ -148,12 +148,12 @@ export default function Modal({
           </button>
         )}
 
-        {/* Content */}
-        <div className="px-6 py-4 max-h-[70vh] overflow-y-auto animate-slide-up-fade">{children}</div>
+        {/* Content — flex-1 so it fills available height and scrolls */}
+        <div className="px-6 py-4 flex-1 overflow-y-auto min-h-0 animate-slide-up-fade">{children}</div>
 
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-2 border-t border-gray-200 px-6 py-3 bg-gray-50 rounded-b-xl">
+          <div className="flex items-center justify-end gap-2 border-t border-gray-200 px-6 py-3 bg-gray-50 rounded-b-xl shrink-0">
             {footer}
           </div>
         )}

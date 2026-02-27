@@ -160,7 +160,7 @@ export default function MetricDrillDown({
       open={open}
       onClose={onClose}
       title={metric.metric}
-      size="lg"
+      size="xl"
       footer={
         isCCRO && onSaveAppetite ? (
           <>

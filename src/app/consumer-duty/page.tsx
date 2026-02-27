@@ -1229,6 +1229,10 @@ function ConsumerDutyContent() {
         outcome={riskDetailOutcome}
         open={!!riskDetailOutcome}
         onClose={() => setRiskDetailOutcome(null)}
+        onSelectMeasure={(measure) => {
+          setRiskDetailOutcome(null);
+          setSelectedMeasure(measure);
+        }}
       />
 
       </> /* end activeTab === "dashboard" */ }

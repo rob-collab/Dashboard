@@ -2,15 +2,16 @@
 
 import { useMemo, useState, useEffect } from "react";
 import Modal from "@/components/common/Modal";
-import type { ConsumerDutyOutcome, RAGStatus } from "@/lib/types";
+import type { ConsumerDutyOutcome, ConsumerDutyMeasure, RAGStatus } from "@/lib/types";
 import { cn, ragBgColor, ragLabel, ragLabelShort } from "@/lib/utils";
-import { TrendingUp, TrendingDown, Minus, Shield, Pencil, Check, X } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Shield, Pencil, Check, X, ChevronRight } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 
 interface RiskDetailModalProps {
   outcome: ConsumerDutyOutcome | null;
   open: boolean;
   onClose: () => void;
+  onSelectMeasure?: (measure: ConsumerDutyMeasure) => void;
 }
 
 function getRagMovementIcon(current: RAGStatus, previous: RAGStatus | null | undefined) {
@@ -44,6 +45,7 @@ export default function RiskDetailModal({
   outcome,
   open,
   onClose,
+  onSelectMeasure,
 }: RiskDetailModalProps) {
   const currentUser = useAppStore((s) => s.currentUser);
   const updateOutcome = useAppStore((s) => s.updateOutcome);
@@ -191,26 +193,37 @@ export default function RiskDetailModal({
           </h4>
           <div className="space-y-2">
             {outcome.measures.map((measure) => (
-              <div
+              <button
                 key={measure.id}
-                className="flex items-center justify-between rounded-lg bg-gray-50 p-3 text-sm"
+                onClick={() => onSelectMeasure?.(measure)}
+                className={cn(
+                  "w-full flex items-center justify-between rounded-lg bg-gray-50 p-3 text-sm text-left transition-colors",
+                  onSelectMeasure
+                    ? "hover:bg-updraft-pale-purple/20 hover:border-updraft-light-purple/40 border border-transparent cursor-pointer"
+                    : "cursor-default"
+                )}
               >
-                <div>
+                <div className="min-w-0">
                   <span className="font-medium text-gray-700">{measure.measureId}</span>
-                  <span className="text-gray-500 ml-2">{measure.name}</span>
+                  <span className="text-gray-500 ml-2 truncate">{measure.name}</span>
                 </div>
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold",
-                    measure.ragStatus === "GOOD" && "bg-risk-green/15 text-risk-green",
-                    measure.ragStatus === "WARNING" && "bg-risk-amber/10 text-risk-amber",
-                    measure.ragStatus === "HARM" && "bg-risk-red/10 text-risk-red"
+                <div className="flex items-center gap-2 shrink-0 ml-3">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold",
+                      measure.ragStatus === "GOOD" && "bg-risk-green/15 text-risk-green",
+                      measure.ragStatus === "WARNING" && "bg-risk-amber/10 text-risk-amber",
+                      measure.ragStatus === "HARM" && "bg-risk-red/10 text-risk-red"
+                    )}
+                  >
+                    <span className={cn("h-1.5 w-1.5 rounded-full", ragBgColor(measure.ragStatus))} />
+                    {ragLabelShort(measure.ragStatus)}
+                  </span>
+                  {onSelectMeasure && (
+                    <ChevronRight size={14} className="text-gray-400" />
                   )}
-                >
-                  <span className={cn("h-1.5 w-1.5 rounded-full", ragBgColor(measure.ragStatus))} />
-                  {ragLabelShort(measure.ragStatus)}
-                </span>
-              </div>
+                </div>
+              </button>
             ))}
           </div>
         </div>
