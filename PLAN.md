@@ -3435,6 +3435,36 @@ adequacy.
 - The attestation tab captures 1LoD (first-line) sign-off too
 - Update to "Controls Testing & Attestation" or "1LoD + 2LoD Controls Framework"
 
+### N8 — PDF export from report builder
+From a9ab7c1 compliance domain audit (2026-02-27):
+- `src/app/reports/` — export currently produces HTML only
+- Board papers in UK financial services are universally PDF
+- HTML export → PDF conversion (Puppeteer or react-pdf or browser print-to-PDF API)
+- Minimum viable: `window.print()` with print CSS; preferred: server-side PDF via Puppeteer
+
+### N9 — Consumer Duty leading/lagging indicator type
+From a9ab7c1 compliance domain audit (2026-02-27):
+- FCA Guidance FG22/5 explicitly requires monitoring of both leading and lagging indicators
+- `ConsumerDutyMI` has no `indicatorType` field — add `LEADING | LAGGING | COMPOSITE` enum
+- Filter by indicator type in the metrics view
+- Surface in the Consumer Duty Board report template
+
+### N10 — Horizon scanning: add impact dimension
+From a9ab7c1 compliance domain audit (2026-02-27):
+- `HorizonItem` has `urgency` (HIGH/MEDIUM/LOW) but no `impact` field
+- Standard horizon scanning uses urgency × impact matrix — high urgency + low impact is very
+  different from high urgency + high impact
+- Add `impact: HorizonImpact` enum (HIGH/MEDIUM/LOW) to `HorizonItem`
+- Render as 2×2 matrix view in the horizon scanning page
+
+### N11 — Risk next review date visible and sortable
+From a9ab7c1 compliance domain audit (2026-02-27):
+- `Risk` stores `reviewFrequencyDays` and `lastReviewed` but no computed `nextReviewDate`
+- A CRO cannot quickly see which risks are overdue for review
+- Add computed `nextReviewDate` as a virtual or stored field
+- Surface in risk register table as a sortable column
+- Add "Review Overdue" filter card to the bento row
+
 ### Acceptance Criteria
 - [ ] N1: Nightly cron fires via Vercel; overdue action emails sent to assignees
 - [ ] N2: Risk acceptance status-change emails sent to approver/requestor
@@ -3443,6 +3473,10 @@ adequacy.
 - [ ] N5: HIGH option added to risk appetite scale throughout
 - [ ] N6: RAG labels context-sensitive (HARM only in Consumer Duty)
 - [ ] N7: Controls page heading corrected
+- [ ] N8: Report builder has PDF export option
+- [ ] N9: ConsumerDutyMI has indicatorType (LEADING/LAGGING/COMPOSITE); filterable
+- [ ] N10: HorizonItem has impact field; 2×2 matrix view on horizon scanning page
+- [ ] N11: Risk next review date visible and sortable; overdue filter card present
 - [ ] Build passes
 
 ---
@@ -3554,6 +3588,97 @@ From ad2e22a UX/performance audit (2026-02-27):
 - [ ] O13: Dashboard store selectors consolidated (no unnecessary re-renders)
 - [ ] O14: ControlDetailModal, RiskDetailPanel, ActionDetailPanel wrapped in ErrorBoundary
 - [ ] Build passes
+
+---
+
+---
+
+## SPRINT P — Compliance Infrastructure (FCA Supervisory Grade)
+Last planned: 2026-02-27
+
+### Context
+From a9ab7c1 compliance domain completeness audit. These items address the gap between
+"adequate for a small FinTech" and "sufficient for a directly FCA/PRA authorised firm under
+Section 165 review." Each is a non-trivial schema or workflow addition.
+
+**Risk level:** High — each item below touches Prisma schema, API routes, and UI. Should be
+implemented as a dedicated sprint with care not to disrupt existing data.
+
+### P1 — Tamper-evident audit log (append-only)
+From a9ab7c1 compliance domain audit:
+- Current `AuditLog` table can be DELETE'd by any DB admin — regulatory evidence risk
+- Solution: create a second PostgreSQL role with INSERT-only on `AuditLog` (no UPDATE/DELETE)
+- In Prisma: add `@@deny("delete", true)` or implement via DB trigger / Row Level Security
+- Add export endpoint: GET /api/audit/export with date-range, entity-type, user filters → CSV
+- This is the single most significant technical compliance gap
+
+### P2 — Structured Fitness & Propriety assessment records
+From a9ab7c1 compliance domain audit:
+- `CertifiedPerson.assessmentResult` is a free-text field — FCA expects criterion-level scoring
+- Add `FitAndProperAssessment` model:
+  ```
+  FitAndProperAssessment {
+    id, certifiedPersonId, assessmentDate, assessorId
+    honesty: SATISFACTORY | CONCERN | FAIL
+    competence: SATISFACTORY | CONCERN | FAIL
+    financialSoundness: SATISFACTORY | CONCERN | FAIL
+    overallResult: PASSED | REFERRED | FAILED
+    notes, supportingEvidence, approvedById, approvedAt
+  }
+  ```
+- Surface as a structured form in the SMCR module
+
+### P3 — Obligations non-compliance escalation workflow
+From a9ab7c1 compliance domain audit:
+- When `Regulation.complianceStatus` is set to NON_COMPLIANT or GAP_IDENTIFIED:
+  - Auto-create a linked action (OPEN, P1, assigned to primarySMF holder)
+  - Notify the relevant SMF holder via email
+  - Add an "Unresolved Non-Compliance" banner to the Compliance Overview
+- Prevents silent gaps — currently NON_COMPLIANT status triggers nothing
+
+### P4 — Conduct rules training records
+From a9ab7c1 compliance domain audit:
+- FCA expects records of when each employee received Conduct Rules training and signed
+  acknowledgement — currently absent from the data model
+- Add `ConductRuleTraining` model:
+  ```
+  ConductRuleTraining {
+    id, userId, trainingDate, deliveryMethod, acknowledgementDate
+    conductRuleIds: String[] (array of rule IDs covered)
+    completedById, notes
+  }
+  ```
+- Surface in SMCR module as a training log
+
+### P5 — Consumer Duty customer segment dimension
+From a9ab7c1 compliance domain audit:
+- PS22/9 requires firms to consider outcomes for different customer groups
+  (vulnerable customers, elderly, non-digital, new customers)
+- Add optional `customerSegment: String?` to `ConsumerDutyMeasure` and `ConsumerDutyMI`
+- Allow filtering metrics by segment in the Consumer Duty page
+
+### P6 — Three Lines of Defence: 3LoD (internal audit) assurance recording
+From a9ab7c1 compliance domain audit:
+- Currently 1LoD (attestation) and 2LoD (CCRO testing) are modelled
+- No mechanism for Internal Audit (3LoD) to record independent assurance opinions
+- Add `AuditAssurance` model:
+  ```
+  AuditAssurance {
+    id, controlId, auditId, opinionDate, opinion: EFFECTIVE | NEEDS_IMPROVEMENT | INEFFECTIVE
+    scope, findings, recommendations, managementResponse
+    auditLead: String, nextReviewDate
+  }
+  ```
+- Expose in ControlDetailModal as a third assurance tab
+
+### Acceptance Criteria
+- [ ] P1: AuditLog records cannot be deleted; audit export endpoint returns filtered CSV
+- [ ] P2: Structured F&P assessment form in SMCR; criterion-level scoring; approval workflow
+- [ ] P3: NON_COMPLIANT regulation auto-creates action and notifies SMF holder
+- [ ] P4: Conduct rules training log present in SMCR; per-user training history visible
+- [ ] P5: ConsumerDutyMeasure and ConsumerDutyMI have optional customerSegment field
+- [ ] P6: AuditAssurance model exists; Internal Audit tab in ControlDetailModal
+- [ ] Build passes — zero errors
 
 ---
 
