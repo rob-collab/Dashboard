@@ -83,7 +83,7 @@ export default function ImportComponentDialog({
           <button
             type="button"
             onClick={handleClose}
-            className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colours"
+            className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
           >
             Cancel
           </button>
@@ -91,7 +91,7 @@ export default function ImportComponentDialog({
             type="submit"
             form="import-component-form"
             disabled={!isValid}
-            className="rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colours disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Import
           </button>
@@ -110,7 +110,7 @@ export default function ImportComponentDialog({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. DPO Deep Dive Q2 2025"
-            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple transition-colours"
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple transition-colors"
           />
         </div>
 
@@ -125,7 +125,7 @@ export default function ImportComponentDialog({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Brief description of the component"
-            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple transition-colours"
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple transition-colors"
           />
         </div>
 
@@ -139,7 +139,7 @@ export default function ImportComponentDialog({
               id="comp-category"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple transition-colours"
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple transition-colors"
             >
               {CATEGORY_OPTIONS.map((opt) => (
                 <option key={opt} value={opt}>
@@ -158,7 +158,7 @@ export default function ImportComponentDialog({
               value={version}
               onChange={(e) => setVersion(e.target.value)}
               placeholder="1.0"
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple transition-colours"
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple transition-colors"
             />
           </div>
         </div>
@@ -174,7 +174,7 @@ export default function ImportComponentDialog({
             onChange={(e) => setHtmlContent(e.target.value)}
             placeholder="Paste your HTML here&hellip;"
             rows={10}
-            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-mono outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple transition-colours resize-y"
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-mono outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple transition-colors resize-y"
           />
           <p className="mt-1 text-xs text-gray-400">
             Content will be sanitised before rendering. Scripts and forms are automatically stripped.

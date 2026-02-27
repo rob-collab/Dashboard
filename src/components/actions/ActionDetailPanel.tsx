@@ -41,7 +41,7 @@ const RichTextEditor = dynamic(() => import("@/components/common/RichTextEditor"
 const STATUS_CONFIG: Record<ActionStatus, { label: string; color: string; bgColor: string; icon: typeof Circle }> = {
   OPEN: { label: "Open", color: "text-blue-600", bgColor: "bg-blue-100 text-blue-700", icon: Circle },
   IN_PROGRESS: { label: "In Progress", color: "text-amber-600", bgColor: "bg-amber-100 text-amber-700", icon: Clock },
-  COMPLETED: { label: "Completed", color: "text-blue-600", bgColor: "bg-blue-100 text-blue-700", icon: CheckCircle2 },
+  COMPLETED: { label: "Completed", color: "text-green-600", bgColor: "bg-green-100 text-green-700", icon: CheckCircle2 },
   OVERDUE: { label: "Overdue", color: "text-red-600", bgColor: "bg-red-100 text-red-700", icon: AlertTriangle },
   PROPOSED_CLOSED: { label: "Proposed Closed", color: "text-purple-600", bgColor: "bg-purple-100 text-purple-700", icon: CheckCircle2 },
 };

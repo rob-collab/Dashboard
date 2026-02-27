@@ -128,7 +128,7 @@ function ControlsPageInner() {
       </div>
 
       {/* Tab Content */}
-      {activeTab === "dashboard" && <ControlsDashboardTab onNavigateToLibrary={() => setActiveTab("library")} />}
+      {activeTab === "dashboard" && <ControlsDashboardTab onNavigateToLibrary={() => setActiveTab("library")} onNavigateToSchedule={() => setActiveTab("testing")} />}
       {activeTab === "library" && <ControlsLibraryTab initialControlId={initialControlId} initialTypeFilter={initialTypeFilter} />}
       {activeTab === "attestation" && <AttestationTab />}
       {activeTab === "testing" && <TestingScheduleTab />}

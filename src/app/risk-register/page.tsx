@@ -183,6 +183,14 @@ export default function RiskRegisterPage() {
     () => risks.filter((r) => r.directionOfTravel === "IMPROVING").length,
     [risks]
   );
+  const mediumCount = useMemo(
+    () => risks.filter((r) => getRiskLevel(getScore(r, effectiveMode)).level === "Medium").length,
+    [risks, effectiveMode]
+  );
+  const lowCount = useMemo(
+    () => risks.filter((r) => getRiskLevel(getScore(r, effectiveMode)).level === "Low").length,
+    [risks, effectiveMode]
+  );
   const inFocusCount = useMemo(
     () => risks.filter((r) => r.inFocus).length,
     [risks]
@@ -585,6 +593,8 @@ export default function RiskRegisterPage() {
     { key: "ALL", value: totalRisks, label: "Total Risks", colour: "text-gray-900" },
     { key: "VERY_HIGH", value: veryHighCount, label: `Very High (${scoreModeLabel})`, colour: "text-red-600" },
     { key: "HIGH", value: highCount, label: `High (${scoreModeLabel})`, colour: "text-orange-600" },
+    { key: "MEDIUM", value: mediumCount, label: `Medium (${scoreModeLabel})`, colour: "text-amber-600" },
+    { key: "LOW", value: lowCount, label: `Low (${scoreModeLabel})`, colour: "text-green-600" },
     { key: "WORSENING", value: worseningCount, label: "Worsening", colour: "text-red-500" },
     { key: "IMPROVING", value: improvingCount, label: "Improving", colour: "text-green-600" },
     { key: "IN_FOCUS", value: inFocusCount, label: "In Focus", colour: "text-amber-500" },
@@ -592,7 +602,7 @@ export default function RiskRegisterPage() {
 
   if (!hydrated) return (
     <div className="space-y-6">
-      <SkeletonStatRow count={6} />
+      <SkeletonStatRow count={8} />
       <SkeletonTable rows={8} cols={6} />
     </div>
   );

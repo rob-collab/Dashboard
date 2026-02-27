@@ -49,6 +49,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { cn, formatDateShort } from "@/lib/utils";
+import { toast } from "sonner";
 import ScoreBadge from "@/components/risk-register/ScoreBadge";
 import EntityLink from "@/components/common/EntityLink";
 import MaturityBadge from "@/components/processes/MaturityBadge";
@@ -126,6 +127,7 @@ export default function ControlDetailModal({
       setControl(fresh);
     } catch (err) {
       console.error("[ControlDetailModal] approve error:", err);
+      toast.error("Failed to approve change — please try again.");
     }
   }
 
@@ -140,6 +142,7 @@ export default function ControlDetailModal({
       setControl(fresh);
     } catch (err) {
       console.error("[ControlDetailModal] reject error:", err);
+      toast.error("Failed to reject change — please try again.");
     }
   }
 
@@ -162,6 +165,7 @@ export default function ControlDetailModal({
       setControl(fresh);
     } catch (err) {
       console.error("[ControlDetailModal] unlink action error:", err);
+      toast.error("Failed to unlink action — please try again.");
     }
   }
 
@@ -174,6 +178,7 @@ export default function ControlDetailModal({
       setControl(fresh);
     } catch (err) {
       console.error("[ControlDetailModal] delete action error:", err);
+      toast.error("Failed to delete action — please try again.");
     }
   }
 
@@ -203,6 +208,7 @@ export default function ControlDetailModal({
       setLinkSearch("");
     } catch (err) {
       console.error("[ControlDetailModal] link action error:", err);
+      toast.error("Failed to link action — please try again.");
     }
   }
 

@@ -118,7 +118,7 @@ export default function ComponentsPanel() {
         </div>
         <button
           onClick={() => setImportDialogOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colours"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colors"
         >
           <Plus size={16} /> Import Component
         </button>
@@ -152,7 +152,7 @@ export default function ComponentsPanel() {
           placeholder="Search components..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple transition-colours"
+          className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple transition-colors"
         />
       </div>
 
@@ -201,7 +201,7 @@ export default function ComponentsPanel() {
                         setPreviewId(component.id);
                         setViewMode("preview");
                       }}
-                      className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colours"
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
                       title="Preview"
                     >
                       <Eye size={14} />
@@ -212,7 +212,7 @@ export default function ComponentsPanel() {
                         setPreviewId(component.id);
                         setViewMode("code");
                       }}
-                      className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colours"
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
                       title="View Code"
                     >
                       <Code size={14} />
@@ -222,7 +222,7 @@ export default function ComponentsPanel() {
                         e.stopPropagation();
                         handleDuplicate(component.id);
                       }}
-                      className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colours"
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
                       title="Duplicate"
                     >
                       <Copy size={14} />
@@ -232,7 +232,7 @@ export default function ComponentsPanel() {
                         e.stopPropagation();
                         handleDelete(component.id);
                       }}
-                      className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-risk-red transition-colours"
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-risk-red transition-colors"
                       title="Delete"
                     >
                       <Trash2 size={14} />
@@ -262,7 +262,7 @@ export default function ComponentsPanel() {
                   <button
                     onClick={() => setViewMode("preview")}
                     className={cn(
-                      "rounded-md px-2 py-1 text-xs font-medium transition-colours",
+                      "rounded-md px-2 py-1 text-xs font-medium transition-colors",
                       viewMode === "preview"
                         ? "bg-updraft-pale-purple/40 text-updraft-deep"
                         : "text-gray-500"
@@ -274,7 +274,7 @@ export default function ComponentsPanel() {
                   <button
                     onClick={() => setViewMode("code")}
                     className={cn(
-                      "rounded-md px-2 py-1 text-xs font-medium transition-colours",
+                      "rounded-md px-2 py-1 text-xs font-medium transition-colors",
                       viewMode === "code"
                         ? "bg-updraft-pale-purple/40 text-updraft-deep"
                         : "text-gray-500"

@@ -1,10 +1,11 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, getUserId, errorResponse, jsonResponse, checkPermission, auditLog } from "@/lib/api-helpers";
+import { prisma, errorResponse, jsonResponse, checkPermission, auditLog, requireCCRORole } from "@/lib/api-helpers";
 
 export async function GET(request: NextRequest) {
-  const userId = getUserId(request);
-  if (!userId) return errorResponse("Unauthorised", 401);
+  // Permission matrix is CCRO-only — least-privilege
+  const auth = await requireCCRORole(request);
+  if ("error" in auth) return auth.error;
 
   const [rolePermissions, userPermissions] = await Promise.all([
     prisma.rolePermission.findMany({

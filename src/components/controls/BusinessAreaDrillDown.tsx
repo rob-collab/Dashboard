@@ -206,7 +206,7 @@ export default function BusinessAreaDrillDown({
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colours"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
         >
           <ArrowLeft size={16} />
           Back to Dashboard
@@ -419,7 +419,7 @@ export default function BusinessAreaDrillDown({
 
                 {/* ── View link ──────────────────────────────────────────── */}
                 <div className="flex justify-end">
-                  <span className="inline-flex items-center gap-1 text-xs font-medium text-updraft-bright-purple group-hover:text-updraft-deep transition-colours">
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-updraft-bright-purple group-hover:text-updraft-deep transition-colors">
                     View
                     <ChevronRight
                       size={14}

@@ -144,7 +144,7 @@ type DrillDownView =
   | { type: "business-area"; areaId: string; areaName: string }
   | { type: "control"; entryId: string; backLabel: string; backAreaId?: string; backAreaName?: string };
 
-export default function ControlsDashboardTab({ onNavigateToLibrary }: { onNavigateToLibrary?: () => void }) {
+export default function ControlsDashboardTab({ onNavigateToLibrary, onNavigateToSchedule }: { onNavigateToLibrary?: () => void; onNavigateToSchedule?: () => void }) {
   const testingSchedule = useAppStore((s) => s.testingSchedule);
   const controlBusinessAreas = useAppStore((s) => s.controlBusinessAreas);
   const controls = useAppStore((s) => s.controls);
@@ -368,6 +368,24 @@ export default function ControlsDashboardTab({ onNavigateToLibrary }: { onNaviga
     });
   }, [periodResults, selectedYear, selectedMonth, selectedLabel]);
 
+  // ── Filtered views driven by statusFilter stat card clicks ──────────────
+
+  const filteredAttentionItems = useMemo(() => {
+    if (!statusFilter) return attentionItems;
+    if (statusFilter === "FAIL") return attentionItems.filter((i) => i.reason.toLowerCase().includes("fail"));
+    if (statusFilter === "NOT_TESTED") return attentionItems.filter((i) => i.reason.toLowerCase().includes("not tested"));
+    // PASS / PARTIALLY controls don't generate attention items
+    return [];
+  }, [attentionItems, statusFilter]);
+
+  const filteredBusinessAreaData = useMemo(() => {
+    if (!statusFilter) return businessAreaChartData;
+    const resultLabel = TEST_RESULT_LABELS[statusFilter];
+    return businessAreaChartData.filter(
+      (area) => ((area as Record<string, unknown>)[resultLabel] as number ?? 0) > 0
+    );
+  }, [businessAreaChartData, statusFilter]);
+
   // ── Drill-down renders ───────────────────────────────────────────────────
 
   if (drillDown.type === "business-area") {
@@ -491,6 +509,7 @@ export default function ControlsDashboardTab({ onNavigateToLibrary }: { onNaviga
           label="Tested (6 Months)"
           percentage={`${testedIn6Months.pct} of ${testedIn6Months.total} controls`}
           accentClass="text-indigo-600"
+          onClick={onNavigateToSchedule}
         />
       </div>
 
@@ -647,13 +666,13 @@ export default function ControlsDashboardTab({ onNavigateToLibrary }: { onNaviga
         <h3 className="text-sm font-poppins font-semibold text-gray-800 mb-4">
           Business Areas
         </h3>
-        {businessAreaChartData.length === 0 ? (
+        {filteredBusinessAreaData.length === 0 ? (
           <div className="flex items-center justify-center py-8 text-sm text-gray-400">
-            No business areas with controls on the testing schedule.
+            {statusFilter ? `No business areas with ${TEST_RESULT_LABELS[statusFilter].toLowerCase()} controls.` : "No business areas with controls on the testing schedule."}
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {businessAreaChartData.map((area) => {
+            {filteredBusinessAreaData.map((area) => {
               const total = Object.values(area).reduce<number>(
                 (sum, v) => (typeof v === "number" ? sum + v : sum),
                 0
@@ -703,13 +722,15 @@ export default function ControlsDashboardTab({ onNavigateToLibrary }: { onNaviga
           <AlertTriangle size={16} className="text-amber-500" />
           Attention Required
         </h3>
-        {attentionItems.length === 0 ? (
+        {filteredAttentionItems.length === 0 ? (
           <div className="flex items-center justify-center py-8 text-sm text-gray-400">
-            No items requiring attention for this period.
+            {statusFilter && (statusFilter === "PASS" || statusFilter === "PARTIALLY")
+              ? "No attention items for this status — looking good!"
+              : "No items requiring attention for this period."}
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {attentionItems.map((item) => (
+            {filteredAttentionItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => {

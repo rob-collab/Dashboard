@@ -312,7 +312,7 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
 
   // ── Shared classes ─────────────────────────────────────────
   const inputClasses =
-    "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple transition-colours";
+    "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple transition-colors";
   const labelClasses = "block text-sm font-medium text-gray-700 mb-1";
   const errorClasses = "text-xs text-red-500 mt-1";
 
@@ -350,7 +350,7 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportCSV}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colours"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
           >
             <Download className="h-4 w-4" />
             Export CSV
@@ -358,7 +358,7 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
           {isCCRO && (
             <button
               onClick={() => setShowImportDialog(true)}
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colours"
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
             >
               <Upload className="h-4 w-4" />
               Bulk Import
@@ -370,7 +370,7 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
                 setEditingControl(null);
                 setShowDialog(true);
               }}
-              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colours ${
+              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors ${
                 !canBypassApproval ? "bg-amber-600 hover:bg-amber-700" : "bg-updraft-bright-purple hover:bg-updraft-deep"
               }`}
             >
@@ -430,7 +430,7 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by ref, name, or owner..."
-                className="w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple transition-colours"
+                className="w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple transition-colors"
               />
             </div>
           </div>
@@ -499,7 +499,7 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
           <div className="flex items-center gap-2 pb-0.5">
             <button
               onClick={() => setShowArchived(false)}
-              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colours ${
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                 !showArchived
                   ? "bg-updraft-pale-purple text-updraft-deep"
                   : "bg-white text-gray-500 border border-gray-200 hover:bg-gray-50"
@@ -509,7 +509,7 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
             </button>
             <button
               onClick={() => setShowArchived(true)}
-              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colours ${
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                 showArchived
                   ? "bg-orange-100 text-orange-700"
                   : "bg-white text-gray-500 border border-gray-200 hover:bg-gray-50"
@@ -642,7 +642,7 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
                   return (
                     <tr
                       key={control.id}
-                      className="hover:bg-gray-50/50 transition-colours cursor-pointer"
+                      className="hover:bg-gray-50/50 transition-colors cursor-pointer"
                       onClick={() => setSelectedControlId(control.id)}
                     >
                       <td className="px-4 py-3 font-mono text-xs text-updraft-deep font-semibold whitespace-nowrap">
@@ -741,14 +741,14 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
                                 setEditingControl(control);
                                 setShowDialog(true);
                               }}
-                              className="rounded-lg p-1.5 text-gray-400 hover:bg-updraft-pale-purple hover:text-updraft-deep transition-colours"
+                              className="rounded-lg p-1.5 text-gray-400 hover:bg-updraft-pale-purple hover:text-updraft-deep transition-colors"
                               title="Edit control"
                             >
                               <Pencil className="h-4 w-4" />
                             </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); handleToggleArchive(control); }}
-                              className={`rounded-lg p-1.5 transition-colours ${
+                              className={`rounded-lg p-1.5 transition-colors ${
                                 control.isActive
                                   ? "text-gray-400 hover:bg-orange-100 hover:text-orange-600"
                                   : "text-gray-400 hover:bg-green-100 hover:text-green-600"
@@ -820,7 +820,7 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
                   setShowDialog(false);
                   setEditingControl(null);
                 }}
-                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colours"
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
                 aria-label="Close"
               >
                 <X className="h-5 w-5" />
@@ -1089,14 +1089,14 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
                     setShowDialog(false);
                     setEditingControl(null);
                   }}
-                  className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colours"
+                  className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colours disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                   {saving
