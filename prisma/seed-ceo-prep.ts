@@ -43,7 +43,7 @@ async function main() {
 
   const CD_OUTCOMES = [
     {
-      id: "cd-outcome-1",
+      id: "outcome-823848c2-9387-4515-bbed-f70dc78eaa22",
       outcomeId: "1",
       name: "Products & Services",
       shortDesc: "Products and services designed to meet customer needs",
@@ -60,7 +60,7 @@ async function main() {
       consumerDutyOutcome: "PRODUCTS_AND_SERVICES" as const,
     },
     {
-      id: "cd-outcome-2",
+      id: "outcome-e513c1d6-34ce-436b-8b63-3f22ec9dd381",
       outcomeId: "2",
       name: "Consumer Understanding",
       shortDesc: "Communications that customers can understand and act upon",
@@ -77,7 +77,7 @@ async function main() {
       consumerDutyOutcome: "CONSUMER_UNDERSTANDING" as const,
     },
     {
-      id: "cd-outcome-3",
+      id: "outcome-76308d62-3e8b-4f98-ba0f-552423442321",
       outcomeId: "3",
       name: "Consumer Support",
       shortDesc: "Support that meets customer needs across the lifecycle",
@@ -94,7 +94,7 @@ async function main() {
       consumerDutyOutcome: "CONSUMER_SUPPORT" as const,
     },
     {
-      id: "cd-outcome-4",
+      id: "outcome-eb8360c0-0ded-40b0-87a5-f1a747c51633",
       outcomeId: "4",
       name: "Price & Value",
       shortDesc: "Fair value for money across all products and fees",
@@ -111,7 +111,7 @@ async function main() {
       consumerDutyOutcome: "PRICE_AND_VALUE" as const,
     },
     {
-      id: "cd-outcome-5",
+      id: "outcome-2b2e4093-05c4-41e1-a962-8ddfcc5e9dff",
       outcomeId: "5",
       name: "Governance, Culture and Oversight",
       shortDesc: "Cross-cutting governance, culture and oversight framework",
@@ -165,33 +165,33 @@ async function main() {
 
   const CD_MEASURES = [
     // Outcome 1: Products & Services
-    { id: "cd-m-1-1", outcomeId: "cd-outcome-1", measureId: "1.1", name: "Target Market Definition Accuracy", owner: "user-ash", ragStatus: "GOOD" as const, summary: "% of products with current, board-approved Target Market Definitions reviewed in the last 12 months", position: 0 },
-    { id: "cd-m-1-2", outcomeId: "cd-outcome-1", measureId: "1.2", name: "Affordability Assessment Pass Rate", owner: "user-micha", ragStatus: "GOOD" as const, summary: "% of credit applications that pass the full affordability assessment without manual override", position: 1 },
-    { id: "cd-m-1-3", outcomeId: "cd-outcome-1", measureId: "1.3", name: "Product Feature Complaint Rate", owner: "user-ash", ragStatus: "WARNING" as const, summary: "Complaints about product features as % of active customer base — appetite: ≤ 0.5%", position: 2 },
-    { id: "cd-m-1-4", outcomeId: "cd-outcome-1", measureId: "1.4", name: "Distribution Suitability Review", owner: "user-ash", ragStatus: "GOOD" as const, summary: "% of active distribution channels reviewed for suitability in the last 12 months", position: 3 },
-    { id: "cd-m-1-5", outcomeId: "cd-outcome-1", measureId: "1.5", name: "Product Decline Rate vs Appetite", owner: "user-chris", ragStatus: "GOOD" as const, summary: "Personal loan decline rate for target market customers — appetite: ≤ 35%", position: 4 },
-    { id: "cd-m-1-6", outcomeId: "cd-outcome-1", measureId: "1.6", name: "Credit Model Validation Completion", owner: "user-micha", ragStatus: "GOOD" as const, summary: "% of credit scoring models validated in the last 12 months per model validation policy", position: 5 },
-    { id: "cd-m-1-7", outcomeId: "cd-outcome-1", measureId: "1.7", name: "Vulnerable Customer Application Rate", owner: "user-micha", ragStatus: "WARNING" as const, summary: "% of applications identified as potentially vulnerable that receive enhanced suitability review — appetite: ≥ 95%", position: 6 },
-    { id: "cd-m-1-8", outcomeId: "cd-outcome-1", measureId: "1.8", name: "Third-Party Distribution Oversight", owner: "user-chris", ragStatus: "GOOD" as const, summary: "% of third-party/affiliate distributors with current oversight review completed in last 12 months", position: 7 },
-    { id: "cd-m-1-9", outcomeId: "cd-outcome-1", measureId: "1.9", name: "Annual Fair Value Assessment Completion", owner: "user-cath", ragStatus: "GOOD" as const, summary: "Completion of annual fair value assessment for all products — binary: complete or not complete", position: 8 },
+    { id: "cd-m-1-1", outcomeId: "outcome-823848c2-9387-4515-bbed-f70dc78eaa22", measureId: "1.1", name: "Target Market Definition Accuracy", owner: "user-ash", ragStatus: "GOOD" as const, summary: "% of products with current, board-approved Target Market Definitions reviewed in the last 12 months", position: 0 },
+    { id: "cd-m-1-2", outcomeId: "outcome-823848c2-9387-4515-bbed-f70dc78eaa22", measureId: "1.2", name: "Affordability Assessment Pass Rate", owner: "user-micha", ragStatus: "GOOD" as const, summary: "% of credit applications that pass the full affordability assessment without manual override", position: 1 },
+    { id: "cd-m-1-3", outcomeId: "outcome-823848c2-9387-4515-bbed-f70dc78eaa22", measureId: "1.3", name: "Product Feature Complaint Rate", owner: "user-ash", ragStatus: "WARNING" as const, summary: "Complaints about product features as % of active customer base — appetite: ≤ 0.5%", position: 2 },
+    { id: "cd-m-1-4", outcomeId: "outcome-823848c2-9387-4515-bbed-f70dc78eaa22", measureId: "1.4", name: "Distribution Suitability Review", owner: "user-ash", ragStatus: "GOOD" as const, summary: "% of active distribution channels reviewed for suitability in the last 12 months", position: 3 },
+    { id: "cd-m-1-5", outcomeId: "outcome-823848c2-9387-4515-bbed-f70dc78eaa22", measureId: "1.5", name: "Product Decline Rate vs Appetite", owner: "user-chris", ragStatus: "GOOD" as const, summary: "Personal loan decline rate for target market customers — appetite: ≤ 35%", position: 4 },
+    { id: "cd-m-1-6", outcomeId: "outcome-823848c2-9387-4515-bbed-f70dc78eaa22", measureId: "1.6", name: "Credit Model Validation Completion", owner: "user-micha", ragStatus: "GOOD" as const, summary: "% of credit scoring models validated in the last 12 months per model validation policy", position: 5 },
+    { id: "cd-m-1-7", outcomeId: "outcome-823848c2-9387-4515-bbed-f70dc78eaa22", measureId: "1.7", name: "Vulnerable Customer Application Rate", owner: "user-micha", ragStatus: "WARNING" as const, summary: "% of applications identified as potentially vulnerable that receive enhanced suitability review — appetite: ≥ 95%", position: 6 },
+    { id: "cd-m-1-8", outcomeId: "outcome-823848c2-9387-4515-bbed-f70dc78eaa22", measureId: "1.8", name: "Third-Party Distribution Oversight", owner: "user-chris", ragStatus: "GOOD" as const, summary: "% of third-party/affiliate distributors with current oversight review completed in last 12 months", position: 7 },
+    { id: "cd-m-1-9", outcomeId: "outcome-823848c2-9387-4515-bbed-f70dc78eaa22", measureId: "1.9", name: "Annual Fair Value Assessment Completion", owner: "user-cath", ragStatus: "GOOD" as const, summary: "Completion of annual fair value assessment for all products — binary: complete or not complete", position: 8 },
     // Outcome 2: Consumer Understanding
-    { id: "cd-m-2-1", outcomeId: "cd-outcome-2", measureId: "2.1", name: "Pre-contractual Document Comprehension", owner: "user-micha", ragStatus: "GOOD" as const, summary: "% of tested customers who correctly understood key terms (APR, total repayable, right to cancel) — appetite: ≥ 85%", position: 0 },
-    { id: "cd-m-2-2", outcomeId: "cd-outcome-2", measureId: "2.2", name: "Digital Journey Readability Score", owner: "user-micha", ragStatus: "WARNING" as const, summary: "Average Flesch-Kincaid readability score across all in-journey content — appetite: ≥ 60 (plain English equivalent)", position: 1 },
-    { id: "cd-m-2-3", outcomeId: "cd-outcome-2", measureId: "2.3", name: "Financial Promotions Clarity Score", owner: "user-ash", ragStatus: "GOOD" as const, summary: "% of financial promotions scoring GREEN on the internal promotions clarity checklist — appetite: ≥ 95%", position: 2 },
-    { id: "cd-m-2-4", outcomeId: "cd-outcome-2", measureId: "2.4", name: "Post-Disbursement Customer Understanding", owner: "user-micha", ragStatus: "GOOD" as const, summary: "% of customers passing post-disbursement understanding check (repayment schedule, charges) — appetite: ≥ 90%", position: 3 },
+    { id: "cd-m-2-1", outcomeId: "outcome-e513c1d6-34ce-436b-8b63-3f22ec9dd381", measureId: "2.1", name: "Pre-contractual Document Comprehension", owner: "user-micha", ragStatus: "GOOD" as const, summary: "% of tested customers who correctly understood key terms (APR, total repayable, right to cancel) — appetite: ≥ 85%", position: 0 },
+    { id: "cd-m-2-2", outcomeId: "outcome-e513c1d6-34ce-436b-8b63-3f22ec9dd381", measureId: "2.2", name: "Digital Journey Readability Score", owner: "user-micha", ragStatus: "WARNING" as const, summary: "Average Flesch-Kincaid readability score across all in-journey content — appetite: ≥ 60 (plain English equivalent)", position: 1 },
+    { id: "cd-m-2-3", outcomeId: "outcome-e513c1d6-34ce-436b-8b63-3f22ec9dd381", measureId: "2.3", name: "Financial Promotions Clarity Score", owner: "user-ash", ragStatus: "GOOD" as const, summary: "% of financial promotions scoring GREEN on the internal promotions clarity checklist — appetite: ≥ 95%", position: 2 },
+    { id: "cd-m-2-4", outcomeId: "outcome-e513c1d6-34ce-436b-8b63-3f22ec9dd381", measureId: "2.4", name: "Post-Disbursement Customer Understanding", owner: "user-micha", ragStatus: "GOOD" as const, summary: "% of customers passing post-disbursement understanding check (repayment schedule, charges) — appetite: ≥ 90%", position: 3 },
     // Outcome 3: Consumer Support
-    { id: "cd-m-3-1", outcomeId: "cd-outcome-3", measureId: "3.1", name: "Complaint Resolution Within FCA Timelines", owner: "user-ash", ragStatus: "GOOD" as const, summary: "% of complaints resolved within FCA DISP timelines (3 days for summary, 8 weeks for final) — appetite: ≥ 95%", position: 0 },
-    { id: "cd-m-3-2", outcomeId: "cd-outcome-3", measureId: "3.2", name: "FOS Uphold Rate", owner: "user-ash", ragStatus: "WARNING" as const, summary: "% of FOS-referred complaints upheld against Updraft — appetite: ≤ 20%", position: 1 },
-    { id: "cd-m-3-3", outcomeId: "cd-outcome-3", measureId: "3.3", name: "Vulnerable Customer Identification Rate", owner: "user-chris", ragStatus: "WARNING" as const, summary: "% of customers in financial difficulty who are identified as vulnerable before collections contact — appetite: ≥ 90%", position: 2 },
-    { id: "cd-m-3-4", outcomeId: "cd-outcome-3", measureId: "3.4", name: "Time to First Response (Support)", owner: "user-chris", ragStatus: "GOOD" as const, summary: "Average hours to first substantive response to customer support contacts — appetite: ≤ 4 hours", position: 3 },
-    { id: "cd-m-3-5", outcomeId: "cd-outcome-3", measureId: "3.5", name: "Customer Satisfaction Score (CSAT)", owner: "user-chris", ragStatus: "GOOD" as const, summary: "CSAT score for support interactions — appetite: ≥ 4.0/5.0", position: 4 },
-    { id: "cd-m-3-6", outcomeId: "cd-outcome-3", measureId: "3.6", name: "Forbearance Offer Take-Up Rate", owner: "user-ash", ragStatus: "GOOD" as const, summary: "% of eligible customers in arrears who were offered and accepted a forbearance arrangement — appetite: ≥ 80%", position: 5 },
-    { id: "cd-m-3-7", outcomeId: "cd-outcome-3", measureId: "3.7", name: "Collections Process Compliance Audit", owner: "user-ash", ragStatus: "GOOD" as const, summary: "% pass rate on the quarterly collections process compliance audit — appetite: ≥ 95%", position: 6 },
+    { id: "cd-m-3-1", outcomeId: "outcome-76308d62-3e8b-4f98-ba0f-552423442321", measureId: "3.1", name: "Complaint Resolution Within FCA Timelines", owner: "user-ash", ragStatus: "GOOD" as const, summary: "% of complaints resolved within FCA DISP timelines (3 days for summary, 8 weeks for final) — appetite: ≥ 95%", position: 0 },
+    { id: "cd-m-3-2", outcomeId: "outcome-76308d62-3e8b-4f98-ba0f-552423442321", measureId: "3.2", name: "FOS Uphold Rate", owner: "user-ash", ragStatus: "WARNING" as const, summary: "% of FOS-referred complaints upheld against Updraft — appetite: ≤ 20%", position: 1 },
+    { id: "cd-m-3-3", outcomeId: "outcome-76308d62-3e8b-4f98-ba0f-552423442321", measureId: "3.3", name: "Vulnerable Customer Identification Rate", owner: "user-chris", ragStatus: "WARNING" as const, summary: "% of customers in financial difficulty who are identified as vulnerable before collections contact — appetite: ≥ 90%", position: 2 },
+    { id: "cd-m-3-4", outcomeId: "outcome-76308d62-3e8b-4f98-ba0f-552423442321", measureId: "3.4", name: "Time to First Response (Support)", owner: "user-chris", ragStatus: "GOOD" as const, summary: "Average hours to first substantive response to customer support contacts — appetite: ≤ 4 hours", position: 3 },
+    { id: "cd-m-3-5", outcomeId: "outcome-76308d62-3e8b-4f98-ba0f-552423442321", measureId: "3.5", name: "Customer Satisfaction Score (CSAT)", owner: "user-chris", ragStatus: "GOOD" as const, summary: "CSAT score for support interactions — appetite: ≥ 4.0/5.0", position: 4 },
+    { id: "cd-m-3-6", outcomeId: "outcome-76308d62-3e8b-4f98-ba0f-552423442321", measureId: "3.6", name: "Forbearance Offer Take-Up Rate", owner: "user-ash", ragStatus: "GOOD" as const, summary: "% of eligible customers in arrears who were offered and accepted a forbearance arrangement — appetite: ≥ 80%", position: 5 },
+    { id: "cd-m-3-7", outcomeId: "outcome-76308d62-3e8b-4f98-ba0f-552423442321", measureId: "3.7", name: "Collections Process Compliance Audit", owner: "user-ash", ragStatus: "GOOD" as const, summary: "% pass rate on the quarterly collections process compliance audit — appetite: ≥ 95%", position: 6 },
     // Outcome 4: Price & Value
-    { id: "cd-m-4-1", outcomeId: "cd-outcome-4", measureId: "4.1", name: "Fair Value Assessment Status", owner: "user-cath", ragStatus: "GOOD" as const, summary: "Annual fair value assessment status — binary: COMPLETE / OVERDUE", position: 0 },
-    { id: "cd-m-4-2", outcomeId: "cd-outcome-4", measureId: "4.2", name: "APR Competitiveness vs Sector Median", owner: "user-chris", ragStatus: "GOOD" as const, summary: "Updraft representative APR vs sector median for equivalent risk profile — appetite: ≤ sector median + 5%", position: 1 },
-    { id: "cd-m-4-3", outcomeId: "cd-outcome-4", measureId: "4.3", name: "Fee Transparency Score", owner: "user-ash", ragStatus: "WARNING" as const, summary: "% of customers who correctly identified all fees prior to completion — appetite: ≥ 90%", position: 2 },
-    { id: "cd-m-4-4", outcomeId: "cd-outcome-4", measureId: "4.4", name: "Price & Value Remediation Actions On Track", owner: "user-cath", ragStatus: "WARNING" as const, summary: "% of Price & Value remediation actions on track vs agreed remediation plan — appetite: ≥ 80%", position: 3 },
+    { id: "cd-m-4-1", outcomeId: "outcome-eb8360c0-0ded-40b0-87a5-f1a747c51633", measureId: "4.1", name: "Fair Value Assessment Status", owner: "user-cath", ragStatus: "GOOD" as const, summary: "Annual fair value assessment status — binary: COMPLETE / OVERDUE", position: 0 },
+    { id: "cd-m-4-2", outcomeId: "outcome-eb8360c0-0ded-40b0-87a5-f1a747c51633", measureId: "4.2", name: "APR Competitiveness vs Sector Median", owner: "user-chris", ragStatus: "GOOD" as const, summary: "Updraft representative APR vs sector median for equivalent risk profile — appetite: ≤ sector median + 5%", position: 1 },
+    { id: "cd-m-4-3", outcomeId: "outcome-eb8360c0-0ded-40b0-87a5-f1a747c51633", measureId: "4.3", name: "Fee Transparency Score", owner: "user-ash", ragStatus: "WARNING" as const, summary: "% of customers who correctly identified all fees prior to completion — appetite: ≥ 90%", position: 2 },
+    { id: "cd-m-4-4", outcomeId: "outcome-eb8360c0-0ded-40b0-87a5-f1a747c51633", measureId: "4.4", name: "Price & Value Remediation Actions On Track", owner: "user-cath", ragStatus: "WARNING" as const, summary: "% of Price & Value remediation actions on track vs agreed remediation plan — appetite: ≥ 80%", position: 3 },
   ];
 
   for (const m of CD_MEASURES) {

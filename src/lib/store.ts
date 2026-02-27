@@ -261,11 +261,14 @@ interface AppState {
   propertiesPanelOpen: boolean;
   setPropertiesPanelOpen: (open: boolean) => void;
 
-  // Navigation back-stack (for cross-entity click-through)
+  // Navigation back-stack (for cross-entity click-through + general route history)
   navigationStack: string[];
   pushNavigationStack: (url: string) => void;
   popNavigationStack: () => string | undefined;
   clearNavigationStack: () => void;
+  /** Set true before navigating back to suppress the layout's route-tracking push */
+  _suppressNavPush: boolean;
+  setSuppressNavPush: (v: boolean) => void;
 }
 
 /** Module-level reference to save state setters — assigned after store is created */
@@ -1074,6 +1077,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     return url;
   },
   clearNavigationStack: () => set({ navigationStack: [] }),
+  _suppressNavPush: false,
+  setSuppressNavPush: (v) => set({ _suppressNavPush: v }),
 }));
 
 // Wire up save state setters now that useAppStore is defined

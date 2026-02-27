@@ -1,7 +1,7 @@
 "use client";
 
 import "./globals.css";
-import { useState, useCallback, useEffect, Suspense } from "react";
+import { useState, useCallback, useEffect, useRef, Suspense } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Toaster } from "sonner";
@@ -64,6 +64,36 @@ function AppShell({ children }: { children: React.ReactNode }) {
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, []);
+
+  const pushNavigationStack = useAppStore((s) => s.pushNavigationStack);
+  const _suppressNavPush = useAppStore((s) => s._suppressNavPush);
+  const setSuppressNavPush = useAppStore((s) => s.setSuppressNavPush);
+
+  // Track all route changes and push previous path to navigation stack so the
+  // Back button appears after any navigation (not just EntityLink click-throughs).
+  const prevPathnameRef = useRef<string | null>(null);
+  useEffect(() => {
+    const prev = prevPathnameRef.current;
+    const curr = pathname;
+    prevPathnameRef.current = curr;
+
+    if (!prev || prev === curr) return;
+
+    if (_suppressNavPush) {
+      // We're navigating back — don't push this change to the stack
+      setSuppressNavPush(false);
+      return;
+    }
+
+    // Avoid duplicating a push that EntityLink already made:
+    // EntityLink pushes the full URL (path + query); prev is path-only.
+    // If the last stack item's path component matches prev, EntityLink already handled it.
+    const lastItem = useAppStore.getState().navigationStack.at(-1) ?? "";
+    const lastPath = lastItem.split("?")[0];
+    if (lastPath !== prev) {
+      pushNavigationStack(prev);
+    }
+  }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setAuthUser = useAppStore((s) => s.setAuthUser);
   const setCurrentUser = useAppStore((s) => s.setCurrentUser);

@@ -18,10 +18,14 @@ export default function NavigationBackButton({ sidebarOpen }: Props) {
   const router = useRouter();
   const stackLength = useAppStore((s) => s.navigationStack.length);
   const popNavigationStack = useAppStore((s) => s.popNavigationStack);
+  const setSuppressNavPush = useAppStore((s) => s.setSuppressNavPush);
 
   if (stackLength === 0) return null;
 
   function handleBack() {
+    // Suppress the layout's route-tracking effect so it doesn't re-push
+    // the current path onto the stack when we navigate back.
+    setSuppressNavPush(true);
     const prev = popNavigationStack();
     if (prev) {
       router.push(prev); // soft-nav — no full reload, no white flash

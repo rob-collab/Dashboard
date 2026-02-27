@@ -82,6 +82,46 @@ Last updated: 2026-02-27
 
 ---
 
+## CURRENT SPRINT: UX Foundations — Navigation, Resize & Overflow
+Last updated: 2026-02-27
+
+### Context
+Three cross-cutting UX improvements requested: (1) back button should appear after ALL
+navigation (currently only after EntityLink click-throughs); (2) textareas in detail panels
+still use fixed `rows=N` heights — replace with AutoResizeTextarea throughout; (3) long text
+spills out of table cells across the app — add truncation + tooltip.
+
+### Deliverables
+
+#### E1 — Back button: extend to all navigation
+- [ ] E1-01: Store gains `_suppressNavPush: boolean` + `setSuppressNavPush` action
+- [ ] E1-02: `layout.tsx` tracks pathname changes, pushes prev pathname to `navigationStack` (unless suppressed or EntityLink already pushed same path)
+- [ ] E1-03: `NavigationBackButton` calls `setSuppressNavPush(true)` before navigating back to prevent double-push
+
+#### E2 — AutoResizeTextarea in all detail panels
+- [ ] E2-01: `RiskAcceptanceDetailPanel` — 3 textareas (ccroNote, returnComment, approverRationale)
+- [ ] E2-02: `RegCalEventDetailPanel` — 1 textarea (description)
+- [ ] E2-03: `ConductRulesPanel` — 1 textarea (breach description)
+- [ ] E2-04: `OutcomeFormDialog` — 1 textarea (detailedDescription)
+
+#### E3 — Table text overflow fixed
+- [ ] E3-01: `DataTable` — all read-mode text cells get `truncate` class + `title` tooltip
+- [ ] E3-02: Other tables/views — audit and patch unprotected long-text columns
+
+### Key Files
+| File | Change |
+|------|--------|
+| `src/lib/store.ts` | E1-01 |
+| `src/app/layout.tsx` | E1-02 |
+| `src/components/common/NavigationBackButton.tsx` | E1-03 |
+| `src/components/risk-acceptances/RiskAcceptanceDetailPanel.tsx` | E2-01 |
+| `src/components/or/RegCalEventDetailPanel.tsx` | E2-02 |
+| `src/components/compliance/smcr/ConductRulesPanel.tsx` | E2-03 |
+| `src/components/consumer-duty/OutcomeFormDialog.tsx` | E2-04 |
+| `src/components/sections/DataTable.tsx` | E3-01 |
+
+---
+
 ## CURRENT SPRINT: Controls Section — Full Overhaul ✅ COMPLETE
 Last updated: 2026-02-27
 
