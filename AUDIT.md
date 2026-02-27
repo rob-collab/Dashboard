@@ -1,655 +1,398 @@
 # CCRO Dashboard — Full Audit Report
-**Date:** 25 February 2026
-**Scope:** Code quality, feature regression, UX, persona analysis, recommendations
-**Status:** Assessment only — no code changes made
+Last updated: 2026-02-27
+Audit conducted across: Sprints J and K (this session)
+Prior context: 8 specialist agents ran across the full codebase before this session
 
 ---
 
-## GIT REGRESSION ANALYSIS — METHODOLOGY NOTE
+## 1. Scope and Methodology
 
-Regressions R1–R7 in Part 1 were found primarily by reading the **live code** (permissions.ts, sidebar config, notification logic). After the audit was drafted, a deeper git diff pass was run on the high-deletion commits. Here is what that pass found:
+This audit covered the entire CCRO Dashboard codebase from a security, product-correctness,
+UX, and technical-quality perspective. It was conducted in two phases:
 
-**Confirmed intentional changes (not regressions):**
-- `307d540` — Dashboard Consumer Duty section (verbose outcome list) replaced with `ConsumerDutySummaryWidget` (animated compact widget). The old code showed every outcome + every measure with RAG dots and inline links. The new widget is more visually refined but shows less detail. Whether this is a regression depends on preference — the full detail is still one click away at `/consumer-duty`.
-- `307d540` — OR Dashboard stat cards (`StatCard`) replaced with `Link`-wrapped versions. Same data, now clickable. This is an improvement, not a regression.
-- `988a18c` — History tab added to Controls page. The `exco-dashboard` tab string was present in the old type union and list and was carried forward correctly. No ExCo tabs were removed.
-- `2362126` — Actions page flat `filteredActions.map()` replaced with grouped collapsible sections. All filters, search, bulk ops, and expand-detail were preserved.
-- `RegulatoryCalendarWidget.tsx` — The old simple add-form was replaced with a full inline edit/create/delete accordion UI. No functionality was lost; it was expanded.
+**Phase 1 — Specialist agent sweep (8 agents, all parallel):**
+- Security & API authorisation agent
+- CCRO editability & data-saving completeness agent
+- Many-to-many click-through gaps agent
+- Navigation, back button, and animation agent
+- UX completeness, accessibility, and performance agent
+- Designer + UAT full-codebase pass
+- Compliance domain completeness agent
+- General product completeness and technical debt agent
 
-**Only one file was ever hard-deleted across the entire git history:** `src/lib/demo-data.ts` — replaced by the Prisma seed system. Intentional.
+**Phase 2 — Sprint J (Security Hardening) + Sprint K (Critical UX Fixes):**
+Findings from Phase 1 were triaged and implemented across two focused sprints.
 
-**Conclusion:** No features were accidentally deleted via code changes. The regressions identified (R1–R7) are all **permission configuration gaps** and **missing workflow connections** — they were never built, not removed.
-
----
-
-## HOW TO READ THIS DOCUMENT
-
-Each issue has:
-- **What it is** — a plain description
-- **Why it matters** — who it affects and what the cost is
-- **Proposed fix** — what we would change, in plain English, precise enough to implement
-
-Severity ratings: 🔴 Critical · 🟠 High · 🟡 Medium · ⚪ Low
+All agents read source code directly from the filesystem. No manual test execution
+or browser testing was performed. Findings are code-level, not behaviour-tested.
 
 ---
 
-## PART 1 — FEATURE REGRESSION ANALYSIS
-*What we used to have that we may have accidentally lost*
+## 2. What Was Reviewed
+
+### 2.1 Security Layer
+- All API route handlers (`src/app/api/**/*.ts`) — 20 route files
+- Middleware (`src/middleware.ts`) — JWT validation, session expiry, header injection
+- Dev bypass mechanism (`DEV_BYPASS_AUTH`)
+- XSS exposure points (`dangerouslySetInnerHTML` usage)
+- Audit logging coverage on compliance-critical mutations
+- Permission endpoint access controls
+
+### 2.2 Data Persistence Layer
+- Zustand store (`src/lib/store.ts`) — save state, error state, hydration
+- `SaveStatusIndicator` — background sync error visibility
+- All API route PUT/PATCH/POST/DELETE handlers for entity mutations
+- ControlDetailModal link/unlink/delete operations
+
+### 2.3 UX / Product Correctness
+- All bento/stat cards across all pages — whether they are interactive filters or cosmetic
+- Action status colour system (OPEN/IN_PROGRESS/OVERDUE/COMPLETED/PROPOSED_CLOSED)
+- Risk register bento card completeness (VERY_HIGH/HIGH vs MEDIUM/LOW)
+- Controls Dashboard Tab — stat cards, filter wiring, filtered panel rendering
+- Tailwind class validity (`transition-colours` → `transition-colors`)
+
+### 2.4 Access Control
+- `GET /api/permissions` — permission matrix visibility
+- `GET /api/reports`, `/api/audit`, `/api/settings`, `/api/controls/library`,
+  `/api/actions`, `/api/users/[id]`, `/api/permissions/users/[id]` — auth guards
 
 ---
 
-### R1 — ExCo Dashboard is inaccessible to the VIEWER role
-**Severity:** 🟠 High
+## 3. Findings and What Was Changed
 
-The Controls page has an "ExCo View" tab explicitly configured for the VIEWER role. This was built so that executive-level staff or non-CCRO reviewers could see a curated, read-only controls dashboard. However, the VIEWER role does not have the `page:controls` permission in `src/lib/permissions.ts`. This means any VIEWER who navigates to `/controls` will be redirected by the RoleGuard before they ever see the tab. The ExCo View tab and ExCo Config tab are effectively orphaned.
+### 3.1 CRITICAL — Unauthenticated API Endpoints (Sprint J, J1)
+**Severity:** Critical
+**Status:** Fixed in commit d05d4e9
 
-**Proposed fix:** Add `page:controls` permission for the VIEWER role in `DEFAULT_ROLE_PERMISSIONS`, limited to the ExCo View tab only. The tab-level `roles` array already restricts what they see inside the page — we just need the door to open.
+**Finding:** 8 GET endpoints returned sensitive compliance data without authentication:
+- `GET /api/reports` — full report library (no auth)
+- `GET /api/controls/library` — full controls library (no auth)
+- `GET /api/audit` — full audit log including user actions (no auth)
+- `GET /api/settings` — application settings (no auth)
+- `GET /api/users/[id]` — individual user profile (IDOR: no auth, no ownership check)
+- `GET /api/permissions/users/[id]` — user-specific permission overrides (no auth)
+- `GET /api/actions` — full action list (no auth)
 
----
-
-### R2 — CEO role cannot see Operational Resilience
-**Severity:** 🟠 High
-
-The OR module (IBS registry, scenario testing, self-assessment) is the most regulatory-critical section of the dashboard — it evidences FCA PS21/3 compliance. The CEO role has no `page:operational-resilience` permission. A CEO logging in cannot see whether the firm has passed its scenario tests, what the current self-assessment status is, or whether any IBS has resource gaps. This is precisely the board-level visibility the module was designed to provide.
-
-**Proposed fix:** Add `page:operational-resilience` to the CEO role's permissions. The OR module is read-only for non-CCRO users already (create/edit buttons are gated by `CCRO_TEAM` role checks inside the components), so this is safe to grant.
-
----
-
-### R3 — Change Request badge not shown to non-CCRO users
-**Severity:** 🟡 Medium
-
-The sidebar Change Requests nav item has `badgeKey: "changeRequests"`, but in the badge computation logic, `changeRequests` is only included in the return value for CCRO users (`canViewPending`). A Risk Owner who has proposed a field change gets no badge count indicating their proposal is pending. They have to remember to go check Change Requests manually. The page itself correctly shows their own changes in read-only mode — the badge is just missing.
-
-**Proposed fix:** Include the user's own pending proposed changes in the badge count returned for non-CCRO users. A count of 1 or more pending proposals on the sidebar item would surface this without exposing CCRO-only data.
+**Fix applied:** Each GET handler now calls `getUserId(request)` at the top and returns 401
+if no valid session is present. For `/api/users/[id]`, `getAuthUserId()` (strict variant)
+was used. Pattern: 2 lines per endpoint, consistent with the existing authenticated routes.
 
 ---
 
-### R4 — No feedback to the proposer when a Change Request is approved or rejected
-**Severity:** 🟠 High
+### 3.2 CRITICAL — XSS Vulnerability in Report Sections (Sprint J, J2)
+**Severity:** Critical
+**Status:** Fixed in commit d05d4e9
 
-The change proposal workflow (Risk Owner proposes a field change → CCRO approves or rejects) is complete from the CCRO's perspective. But from the proposer's perspective, once they submit a change, nothing tells them the outcome. There is no notification in the bell drawer, no email, no dashboard widget. They find out by accident the next time they look at the entity. This breaks the collaborative intent of the workflow and is likely to cause repeated submissions or confusion.
+**Finding:** `TextBlock.tsx` and `AccordionSection.tsx` both used `dangerouslySetInnerHTML`
+with raw user-supplied content, with no sanitisation. A user who can edit report content
+could inject script tags that would execute in all sessions viewing that report.
 
-**Proposed fix:** When a change is approved or rejected via `PATCH /api/[entity]/[id]/changes/[changeId]`, trigger a bell notification for the original proposer. The notification should say "Your proposed change to [entity name] was [approved / rejected]" and link to the entity. No email required — the in-app notification is sufficient.
-
----
-
-### R5 — `/templates` and `/components-lib` routes exist but are not linked from the sidebar
-**Severity:** ⚪ Low
-
-Both pages exist as standalone routes. They are now only reachable via Settings tabs. If a user bookmarks the old URL or receives a link to `/templates`, they land on a page that has no sidebar navigation context. The pages themselves work, but the navigation is orphaned. Not a regression that affects core workflows, but worth tidying.
-
-**Proposed fix:** Either redirect `/templates` → `/settings?tab=templates` and `/components-lib` → `/settings?tab=components`, or add them back to the sidebar under Administration. The redirect approach is simpler.
+**Fix applied:** `sanitizeHTML()` from `src/lib/sanitize.ts` (isomorphic-dompurify) applied
+to all `dangerouslySetInnerHTML` calls in both components. This matches the existing pattern
+in `SectionRenderer.tsx`. DOMPurify strips all script tags, event handlers, and `javascript:`
+URLs before the HTML is set on the DOM.
 
 ---
 
-### R6 — Dashboard `riskRegister` badge key is declared but never populated for any role
-**Severity:** ⚪ Low
+### 3.3 HIGH — Dev Auth Bypass Not Gated Behind NODE_ENV (Sprint J, J3)
+**Severity:** High
+**Status:** Fixed in commit d05d4e9
 
-The Risk Register sidebar item has `badgeKey: "riskRegister"`. The badge computation function does not include `riskRegister` in its return value for either CCRO or non-CCRO users. So the badge key exists in the config but always resolves to zero. This is harmless but indicates dead code.
+**Finding:** `DEV_BYPASS_AUTH` check in `src/middleware.ts` and `src/app/api/auth/session/route.ts`
+had no `NODE_ENV !== 'production'` guard. If `DEV_BYPASS_AUTH=true` was accidentally set in a
+production environment (e.g. via an env var copy-paste from dev), all auth would be bypassed.
 
-**Proposed fix:** Either remove `badgeKey: "riskRegister"` from the nav config, or define what should appear there (e.g., count of risks overdue for review, or risks above appetite). The latter would be genuinely useful for CCRO users.
-
----
-
-### R7 — Email action reminders exist but have no UI trigger
-**Severity:** 🟡 Medium
-
-There is a `POST /api/actions/remind` route that sends reminder emails for overdue actions. This was built as a Vercel cron trigger. However, there is no manual "Send Reminders" button on the Actions page that a CCRO user could press. If the cron is not configured on Vercel, reminders never fire. There is no indicator on the actions page that reminders are or are not being sent.
-
-**Proposed fix:** Add a "Send Reminders" button (CCRO only) on the Actions page that calls the remind route. Show a timestamp of "Last sent: X" so the CCRO knows the system is working.
+**Fix applied:** Both files now check `process.env.NODE_ENV !== "production"` before evaluating
+`DEV_BYPASS_AUTH`. Note: uses `!== "production"` (not `=== "development"`) to preserve
+bypass functionality in test/staging environments.
 
 ---
 
-## PART 2 — TECHNICAL CODE QUALITY
+### 3.4 HIGH — Missing Audit Log on Permission Changes (Sprint J, J4)
+**Severity:** High (compliance-critical)
+**Status:** Fixed in commit d05d4e9
+
+**Finding:** Changes to role-level permissions (`PUT /api/permissions`) and user-level
+permission overrides (`PUT /api/permissions/users/[id]`) were not being logged to the audit
+trail. These are the most compliance-sensitive mutations in the system.
+
+**Fix applied:** `auditLog()` added to both PUT handlers after successful `Promise.all(ops)`:
+- `action: "update_role_permissions"` on the role permissions route
+- `action: "update_user_permissions"` on the user permissions route
+Both include the full permissions delta in the `changes` field.
 
 ---
 
-### T1 — Fire-and-forget sync gives users no feedback on failed saves
-**Severity:** 🟠 High
+### 3.5 MEDIUM — Missing Security Response Headers (Sprint J, J5)
+**Severity:** Medium
+**Status:** Fixed in commit d05d4e9
 
-The store uses a pattern where local state is updated optimistically and an API call fires in the background. If the API call fails after retries, a toast appears — but by then the user may have navigated away. More critically, the user has no way to know if a save is in-flight versus completed versus failed at the moment they perform an action. There is no "Saving..." indicator, no "Saved" confirmation, and no "Failed — click to retry" state on individual entities.
+**Finding:** Authenticated responses from the middleware had no security headers.
 
-**Proposed fix:** For high-stakes operations (creating a risk, approving a change, submitting an assessment), show a brief "Saving…" state on the submit button, then confirm "Saved" or surface the error inline. The fire-and-forget pattern can remain for low-stakes updates (reordering, toggling visibility), but entity creates and approvals need confirmed feedback.
-
----
-
-### T2 — No "unsaved changes" guard on form navigation
-**Severity:** 🟡 Medium
-
-Several panels and modals have multi-field forms where the user can edit several fields before saving. If they click away (or press the browser back button), the changes are silently discarded. There is no "You have unsaved changes — are you sure?" prompt.
-
-**Proposed fix:** Add a `useEffect` to forms with editable state that registers a `beforeunload` handler when the form is dirty. For in-app navigation (back button, sidebar click), track dirty state and show a simple confirmation dialog.
+**Fix applied:** Added to every authenticated response in `src/middleware.ts`:
+- `Strict-Transport-Security: max-age=31536000; includeSubDomains`
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: DENY`
+- `Referrer-Policy: strict-origin-when-cross-origin`
 
 ---
 
-### T3 — Loading states are inconsistent across the application
-**Severity:** 🟡 Medium
+### 3.6 MEDIUM — GET /api/permissions Returns Permission Matrix to All Users (Sprint K, K8)
+**Severity:** Medium
+**Status:** Fixed in commit ce1eacb
 
-Some pages show skeleton loaders or spinners while data is hydrating. Others render an empty table immediately, then populate it, causing a jarring layout shift. For example, the Compliance Regulatory Universe table can flash empty before populating. The Processes page has a similar issue. The inconsistency makes the app feel unreliable even when it is not.
+**Finding:** The GET handler for `/api/permissions` returned the full role+user permission
+matrix to any authenticated user (including VIEWER role). While this does not allow changes,
+knowing the full permission structure of all roles and all user overrides is information
+that only CCRO should have access to.
 
-**Proposed fix:** Standardise on a single loading pattern: a skeleton of the eventual layout (not a spinner in the middle of the page) while `_hydrated` is false. The store already exposes `_hydrated` — pages should check this before rendering table content.
-
----
-
-### T4 — The sidebar has too many items, especially under "Compliance & Controls"
-**Severity:** 🟠 High
-
-The "Compliance & Controls" group has seven items: Compliance, Policies, SM&CR, Reg Calendar, Controls, Process Library, Operational Resilience. Policies, SM&CR, and Reg Calendar are sub-sections of Compliance — they navigate directly to a tab within the Compliance page. This creates a confusing mixture of "top-level pages" and "tabs within a page" all looking the same in the sidebar. Users who click "Policies" don't necessarily realise they have just opened the Compliance page on a specific tab.
-
-**Proposed fix:** Remove Policies, SM&CR, and Reg Calendar from the top-level sidebar. Instead, add a chevron/expand on the "Compliance" sidebar item that reveals its tabs inline. The sidebar already supports group labels — this is a natural extension. Alternatively, show these as indented child items under Compliance with a visual distinction (smaller text, indent, no icon).
+**Fix applied:** GET handler now calls `requireCCRORole(request)` — returns 403 for any
+non-CCRO authenticated user. Only the Settings → Permissions UI (which is already CCRO-only)
+calls this endpoint.
 
 ---
 
-### T5 — Dashboard is too dense and the "Edit Layout" experience does not scale
-**Severity:** 🟡 Medium
+### 3.7 MEDIUM — Non-Functional Tailwind Class (Sprint K, K1)
+**Severity:** Medium (silent failure — hover transitions broken)
+**Status:** Fixed in commit ce1eacb
 
-The dashboard has 19 configurable sections. Even after role-based hiding, the CCRO sees 19 sections and can scroll indefinitely. The "Edit Layout" panel lists all 19 sections as a toggleable list. Users have no guidance on what each section is for, which are "must haves" vs "nice to haves", or what order makes sense. In practice, no user is going to curate 19 sections — they accept whatever defaults they get.
+**Finding:** `transition-colours` (British spelling) was used in 39 places across 5 files.
+Tailwind uses American English class names; `transition-colours` does not exist and silently
+does nothing. All hover transitions on those elements were broken with no error.
 
-**Proposed fix:** Reduce the dashboard to a curated set of 6–8 sections per role. The remaining sections should be accessible via dedicated pages, not squashed onto the dashboard. The "Edit Layout" panel should show section descriptions (already in `dashboard-sections.ts`) and offer a "Reset to defaults" button.
-
----
-
-### T6 — The `dashboard` badge key on the sidebar Dashboard item is ambiguous
-**Severity:** ⚪ Low
-
-The Dashboard nav item has `badgeKey: "dashboard"`. For CCRO users, this resolves to a `total` count that aggregates many different categories of pending items. This means the badge on the Dashboard item is a vague count of "things needing attention" — similar to the bell icon count. The two numbers are not always in sync (bell counts live notifications, sidebar badge counts are computed differently). This creates confusion about what "badge = 12" on the dashboard nav actually means.
-
-**Proposed fix:** Remove the `dashboard` badge key from the sidebar Dashboard nav item. The bell icon (notification drawer) already serves this purpose. Having both creates noise.
-
----
-
-### T7 — Regulatory Calendar appears in three places with inconsistent naming
-**Severity:** 🟡 Medium
-
-The Regulatory Calendar is accessible from:
-1. Sidebar → "Reg Calendar" (links to `/compliance?tab=regulatory-calendar`)
-2. Compliance page → "Regulatory Calendar" tab (the full widget)
-3. Compliance Overview section (which links to the tab)
-
-The sidebar calls it "Reg Calendar" (abbreviated). The tab calls it "Regulatory Calendar" (full). The widget has its own heading. This fragmentation makes it hard to explain to users ("Go to Regulatory Calendar" — but which one?). It also means the sidebar has a dedicated entry for something that is just a tab, while more important items (like OR) don't get that treatment.
-
-**Proposed fix:** Remove "Reg Calendar" from the top-level sidebar (as part of T4). Ensure the Compliance → Regulatory Calendar tab is the single canonical place. Mention it on the Compliance Overview so users know it exists.
+**Fix applied:** Mass replacement to `transition-colors` across:
+- `ComponentsPanel.tsx` (8 occurrences)
+- `BusinessAreaDrillDown.tsx` (2 occurrences)
+- `ControlsLibraryTab.tsx` (13 occurrences)
+- `QuarterlySummaryTab.tsx` (9 occurrences)
+- `ImportComponentDialog.tsx` (7 occurrences)
 
 ---
 
-### T8 — History tabs rely on the audit log but not all writes go through audit logging
-**Severity:** 🟡 Medium
+### 3.8 MEDIUM — Controls Dashboard Stat Cards Were Non-Functional Filters (Sprint K, K2)
+**Severity:** Medium (product rule violation)
+**Status:** Fixed in commit ce1eacb
 
-History tabs were added to Controls, Risk Register, Actions, Consumer Duty, and Processes. They pull from the `audit_log` table. The audit log is populated via `logAuditEvent()` calls in API routes. However, not every field update triggers an audit log entry — some updates happen silently (e.g., inline edits to testing schedule entries, resource map updates in OR). Users who look at a History tab and see gaps will distrust the data.
+**Finding:** The 5 status stat cards in `ControlsDashboardTab.tsx` (Pass/Fail/Partial/Not
+Tested/Total) had a `statusFilter` state that was correctly set on click (with active visual
+styling), but was **never applied to any rendered data**. The "active" ring appeared, but
+nothing in the view changed.
 
-**Proposed fix:** Audit the API routes for each entity type and ensure every PATCH/POST/DELETE that represents a meaningful user action writes to the audit log with the before/after values. The `logAuditEvent()` function is already available — it just needs to be called consistently.
+**Fix applied:**
+- Added `filteredAttentionItems` memo — filters the "Attention Required" panel by statusFilter
+- Added `filteredBusinessAreaData` memo — filters the "Business Areas" list to only show areas
+  with at least one control matching the selected status
+- "Tested (6 Months)" card now navigates to the Testing Schedule tab via new
+  `onNavigateToSchedule` prop (wired in `controls/page.tsx`)
 
----
-
-### T9 — The OWNER role can create and edit risks without an approval workflow
-**Severity:** 🟡 Medium
-
-Risks have an `approvalStatus` field (PENDING, APPROVED, REJECTED). New risks submitted by an OWNER show as PENDING and require CCRO approval. However, edits to existing risks by an OWNER go through the change-proposal workflow (propose a field change, wait for CCRO to approve). This is correct. But the system allows an OWNER to create a new risk that immediately appears in the register as PENDING — visible to everyone — before a CCRO has reviewed it. For some organisations this is fine; for others, PENDING risks should be hidden until approved.
-
-**Proposed fix:** Confirm whether PENDING risks should be visible to all users or only the submitter and CCRO. If the latter, add a visibility filter to the risk register that hides PENDING risks for non-owners and non-CCRO users.
-
----
-
-## PART 3 — PERSONA ANALYSIS
-
----
-
-## PERSONA A: CCRO Team
-*Chief Compliance & Risk Officers and their immediate team. Full system access. Responsible for oversight, evidence, and regulatory submissions.*
-
-### What they need to do each morning:
-- What has changed since yesterday? (new risks proposed, actions gone overdue, changes needing approval)
-- What is the regulatory posture right now? (are we compliant, what's red?)
-- What needs my decision today? (pending approvals, change requests, access requests)
-- Is anything going to hit a deadline this week?
-
-### What works well:
-- The notification bell surfaces overdue items
-- The Change Requests page consolidates pending field changes across entities
-- The Compliance page has breadth (Regulatory Universe, Coverage, Roadmap, Assessment Log)
-- The OR module gives a structured view of PS21/3 readiness
-- The Export Centre and report editor are genuinely powerful
-- Audit trail is comprehensive
-
-### What is frustrating:
-
-**Problem 1 — The dashboard is not a briefing**
-The 19-section dashboard is a status board, not a decision surface. A CCRO arriving in the morning wants to know: "What's changed? What do I need to decide?" The "Action Required" widget exists, but it is buried below the Welcome Banner, Notification Banners, and Priority Action Cards. The most decision-critical content is not at the top.
-
-**Proposed fix:** For the CCRO role, restructure the default dashboard layout to show (in order): (1) Action Required — things that need a decision today; (2) Proposed Changes — pending approvals; (3) Compliance Health — current posture; (4) Risk in Focus — board-level visibility. Everything else goes below the fold or onto dedicated pages.
+**Verified not broken:** Consumer Duty RAG cards were already fully wired. Compliance
+Overview MetricTiles navigate to tabs (appropriate for a multi-section summary page).
 
 ---
 
-**Problem 2 — No "what's changed since my last visit" view**
-The audit trail shows everything ever. The history tabs show per-entity history. But there is no "last 24 hours" or "since your last login" feed. The CCRO has to open every area manually to discover if anything changed.
+### 3.9 LOW — Missing Error Toasts in ControlDetailModal (Sprint K, K3)
+**Severity:** Low (UX gap)
+**Status:** Fixed in commit ce1eacb
 
-**Proposed fix:** Add a "Recent Activity" section to the dashboard (it exists already in the section registry) that shows the last 10–15 audit log entries from the past 24 hours, with links to the affected entities. This exists as a section but may not be prominent enough in the default layout.
+**Finding:** `handleLinkAction`, `handleUnlinkAction`, `handleDeleteAction`,
+`handleApproveChange`, `handleRejectChange` in `ControlDetailModal.tsx` had `console.error`
+calls in their catch blocks but no user-visible feedback. A CCRO who encounters a network
+error while linking actions would see nothing happen.
 
----
-
-**Problem 3 — Approving a change requires too many clicks**
-To approve a proposed change, the CCRO must: navigate to Change Requests → find the right entity type tab → find the change card → click Approve → enter a note → confirm. If there are 10 pending changes, this is 50+ clicks. There is no bulk approve for routine changes.
-
-**Proposed fix:** Add a "Bulk Approve" button for CCRO on the Change Requests page that applies to all selected items at once, with a single shared note. Low-risk field changes (status updates, date changes) do not warrant individual review — the CCRO should be able to sweep them.
-
----
-
-**Problem 4 — The OR self-assessment submission workflow is unclear**
-The Self-Assessment tab shows a readiness score and a status (DRAFT / SUBMITTED / APPROVED). But it is not obvious what "Submit for Board Approval" means in practice — does it send an email? Does it notify someone? What does the board approver do? The UI shows a button but gives no process context.
-
-**Proposed fix:** Add a brief help text beside the "Submit for Board Approval" button explaining what happens next ("The Board Approver will receive a notification to review and confirm the assessment"). Make the board approver field mandatory before submission is allowed.
+**Fix applied:** Added `toast.error("Failed to ... — please try again.")` to all 5 catch
+blocks. Added `toast` import from `sonner`.
 
 ---
 
-### What is missing:
-- A "regulator-ready evidence pack" for a single risk or control — something the CCRO could hand to an FCA supervisor showing the full audit trail, test results, links, and narrative for one entity
-- A cross-entity "coverage map" showing: this regulation → these policies → these controls → these processes (the Coverage tab does this, but it is buried in the Compliance section and hard to navigate)
-- An automated "morning briefing" email or in-app digest summarising changes since yesterday
+### 3.10 LOW — OPEN and COMPLETED Actions Visually Identical (Sprint K, K5)
+**Severity:** Low (UX confusion)
+**Status:** Fixed in commit ce1eacb
+
+**Finding:** `STATUS_CONFIG` in both `ActionDetailPanel.tsx` and `actions/page.tsx` assigned
+identical blue styling to OPEN and COMPLETED. A CRO scanning the action list could not
+distinguish open from completed at a glance.
+
+**Fix applied:** COMPLETED status now uses `text-green-600 bg-green-100 text-green-700`.
+OPEN remains blue. Updated in both files to maintain consistency.
 
 ---
 
-## PERSONA B: CEO / Executive
-*Board-level visibility only. Cannot create or edit. Needs to see Red/Amber risks, operational resilience status, Consumer Duty posture at a glance.*
+### 3.11 LOW — MEDIUM and LOW Risk Cards Missing from Risk Register (Sprint K, K7)
+**Severity:** Low (product completeness)
+**Status:** Fixed in commit ce1eacb
 
-### What they need:
-- "Is there anything red I should know about?"
-- "What is our OR readiness status for the next FCA visit?"
-- "Are we meeting our Consumer Duty obligations?"
-- "What risks are in focus for the board?"
+**Finding:** The bento stat cards on the Risk Register showed VERY_HIGH (red) and HIGH
+(orange) but had no MEDIUM or LOW cards. The filter logic already handled MEDIUM and LOW;
+the cards simply were not in the `cards` array.
 
-### What works well:
-- Risk in Focus toggle (can star risks for board-level attention)
-- Risk heatmap gives a visual spread of the register
-- Consumer Duty outcomes page gives a clear RAG view
-- Reports are accessible and well-formatted
-
-### What is frustrating:
-
-**Problem 1 — Cannot see Operational Resilience**
-This is the most significant gap for a CEO persona. The OR module shows FCA PS21/3 compliance status, IBS readiness, and scenario test outcomes. The CEO has no permission to access it. They could ask the CCRO verbally, or wait for a report, but they cannot self-serve the most regulatory-critical module in the system.
-
-**Proposed fix:** Grant CEO read-only access to `/operational-resilience` (see R2 above).
+**Fix applied:** Added `mediumCount` and `lowCount` computed memos and added MEDIUM (amber)
+and LOW (green) bento cards. Skeleton loading count updated 6 → 8.
 
 ---
 
-**Problem 2 — Cannot see Controls**
-A CEO might reasonably want to know whether the firm's controls are passing their tests. The ExCo View tab was built exactly for this purpose — a simplified, curated controls dashboard. But the CEO role has no access to the Controls page.
+### 3.12 NOT APPLICABLE — Dashboard URL State (Sprint K, K4)
+**Status:** No action taken
 
-**Proposed fix:** Grant CEO read-only access to `/controls`, restricted by the tab-level role filter to show only the ExCo View tab (which already enforces `CCRO_TEAM | VIEWER` — update this to include `CEO`).
+**Original finding:** Dashboard has no URL state persistence; filter state lost on
+back-navigation.
 
----
-
-**Problem 3 — The Risk Register default view is too operational**
-The CEO sees the full risk table with all columns, filter chips, the heatmap toggle, and all the same controls a CCRO would use. This is overwhelming for someone who just wants to see "what are the top 5 risks?". The "Risks in Focus" dashboard section helps, but it requires the CCRO to have starred the right risks.
-
-**Proposed fix:** For the CEO role, default the risk register to the Heatmap view (not the table) and hide the filter/search bar. The heatmap gives the visual spread they need without operational noise. They can still click cells to drill into individual risks.
-
----
-
-**Problem 4 — No single executive summary screen**
-Every section of the application has its own page. A CEO wanting a full picture must visit: Dashboard → Risk Register → Consumer Duty → Compliance → OR (currently blocked). There is no single "Board View" that stitches together: 3 key risks, 2 compliance gaps, OR readiness %, Consumer Duty RAG, and any actions overdue.
-
-**Proposed fix:** Add a "Board View" dashboard mode (toggle next to Edit Layout) that shows a fixed, non-customisable one-page summary: Risk in Focus list, Compliance health RAG, Consumer Duty summary, OR readiness score, overdue actions count. This is read-only and always the same layout regardless of user preferences.
+**Investigation result:** The dashboard has no in-page filter state. All bento card
+interactions `router.push()` to other pages which already have URL state persistence.
+The dashboard is a stateless overview by design. No filter state can be "lost" because
+there is none. The audit finding was based on a false premise.
 
 ---
 
-## PERSONA C: Risk Owner (OWNER role)
-*Manages a portfolio of risks. Responsible for accurate risk descriptions, mitigation status, and assigned actions.*
+### 3.13 ALREADY IMPLEMENTED — Background Sync Error Visibility (Sprint K, K6)
+**Status:** No action taken
 
-### What they need:
-- See the risks assigned to me
-- Update my risks (with CCRO approval for material changes)
-- Track actions linked to my risks
-- Understand my approval status — have my proposed changes been reviewed?
+**Original finding:** `_saveError` exists in store but is never rendered to the user.
 
-### What works well:
-- Can create risks and propose changes to existing ones
-- Actions page shows their assigned actions
-- Risk detail panel shows linked actions and controls
-- History tab shows what changed
-
-### What is frustrating:
-
-**Problem 1 — No "My Risks" filter that persists**
-The Risk Register shows all risks. A Risk Owner with 5 risks out of 50 has to filter by owner every time they land on the page. The filter resets on navigation (URL-based persistence should handle this, but if the user clicks the sidebar link fresh, filters reset). There is no "My Risks" quick filter at the top of the page.
-
-**Proposed fix:** Add a "My Risks" toggle/chip at the top of the Risk Register that filters to `ownerId === currentUser.id`. This should be the default view for OWNER role users when no URL filter is set.
+**Investigation result:** `src/components/common/SaveStatusIndicator.tsx` already reads
+`_saveError` from the store and renders a "Could not save" pill (red, WifiOff icon) in the
+bottom-right when the error is non-null. This component is mounted in `layout.tsx`. The
+audit agent missed this existing implementation.
 
 ---
 
-**Problem 2 — No feedback when a proposed change is approved or rejected**
-If I propose a change to a risk's residual score on Monday, I have no idea what happened to it until I go look at the Change Requests page. There is no notification (R4 above). This is the single biggest frustration in the change proposal workflow.
+## 4. False Positives and Near-Misses
 
-**Proposed fix:** See R4.
+The 8-agent sweep produced several findings that turned out to be non-issues:
+- **K4 (Dashboard URL state):** Dashboard has no filter state to persist — correct by design
+- **K6 (Save error visibility):** Already fully implemented in `SaveStatusIndicator`
+- **Compliance Overview MetricTiles "not filtering":** These navigate to tabs, which is
+  appropriate for a multi-section summary page
 
----
-
-**Problem 3 — The change proposal form has no context**
-When an OWNER clicks "Suggest a Change" on a risk field, a small form appears. It asks for the new value and a rationale. But the form does not explain the workflow ("After you submit, the CCRO will review this. Changes typically take X business days."). First-time users do not know what happens next.
-
-**Proposed fix:** Add a brief workflow description to the change proposal form: "Your proposed change will be reviewed by the CCRO team. You will be notified when it is approved or rejected."
+These are documented to prevent wasted re-audit effort in future sprints.
 
 ---
 
-**Problem 4 — Cannot see who the CCRO is**
-If an OWNER's change is stuck pending for a long time, they have no in-app way to know who to contact. The Users page is CCRO-only. There is no "contact your CCRO" info surfaced to OWNERs.
+## 5. Remaining Outstanding Issues
 
-**Proposed fix:** On the Change Requests page (the proposer's read-only view), show a note: "Questions? Contact [CCRO name] at [email]" — using the first active CCRO_TEAM user's contact details.
+The following issues are planned but not yet implemented. See `PLAN.md` for full details.
 
----
+### Sprint L — Click-Through & Navigation (High priority)
+- **L1:** Owner/assignee names are plain text throughout the app — should be clickable
+  filters that set the owner filter on the respective page
+- **L2:** Horizon Item links to risks and actions need verification as EntityLink
+- **L3:** Consumer Duty measure references not navigable
+- **L4:** Native `confirm()` still used in `actions/page.tsx` and others — should use
+  `<ConfirmDialog>` (already built, just not used here)
+- **L5:** ConsumerDutyMeasure.owner is a free-text string, not an FK to User — should
+  align with every other entity that uses FK-based ownership
+- **L6:** Detail panels (Risk, Action, Control, Process, Horizon) missing entrance animations
+- **L7:** ConfirmDialog and NotificationDrawer missing focus traps and ARIA attributes
 
-**Problem 5 — Direction of Travel is not explained**
-The risk form has a "Direction of Travel" field (IMPROVING / STABLE / WORSENING). There is no tooltip or explanation. A new OWNER is likely to set this based on gut feel rather than a defined assessment method.
+### Sprint M — Animation Consistency (Medium priority)
+- **M1:** Reports and Audit pages have no AnimatedNumber on stat tiles
+- **M2:** ScrollReveal (scroll-triggered entrance animations) only used on dashboard —
+  should apply to all long-scroll pages
+- **M3–M7:** Chart animation, stagger, tab fade consistency across pages
 
-**Proposed fix:** Add a `GlossaryTooltip` on the Direction of Travel field explaining: "Is this risk getting better or worse since the last review? Compare today's residual score to the previous quarter."
+### Sprint N — Domain Completeness (Medium priority)
+- **N1:** Reports section — no edit path for published report HTML content
+- **N2:** Audit log — no date range or entity type filter
+- **N3:** Regulatory Calendar — no bulk CSV export
+- **N4:** SMCR — mandatory certification renewal reminder workflow not wired
+- **N5:** Consumer Duty — metric snapshot creation UI missing (data exists, no input form)
+- **N6:** RiskMitigation status changes not surfaced in the Risk detail panel
+- **N7:** Email notification system — documented in PLAN but not implemented
 
----
-
-## PERSONA D: Process Owner
-*Manages a set of business processes. Responsible for process documentation quality, control links, and review cycle.*
-
-### What they need:
-- See the processes I own
-- Keep process documentation up to date (description, steps, links to controls/policies)
-- Understand maturity level and what is needed to improve it
-- Be notified when a process is overdue for review
-
-### What works well:
-- Process Library table with maturity bar gives a visual summary
-- 7-tab Process Detail Panel covers all aspects of a process
-- Maturity card on the Overview tab shows exactly what's needed to reach the next level
-- Process Insights panel gives coverage gap analysis
-- IBS linkage supports PS21/3 evidence
-
-### What is frustrating:
-
-**Problem 1 — No "My Processes" view**
-The Process Library shows all processes. A Process Owner managing 3 processes sees all 20. There is no "My Processes" filter and no dashboard widget telling them which of their processes needs attention.
-
-**Proposed fix:** Add a "My Processes" quick filter on the Process Library page (same pattern as "My Risks" recommendation above). For OWNER role users, default to this filter on page load.
-
----
-
-**Problem 2 — Maturity scoring is explained but not actionable enough**
-The maturity card says "To reach Level 3: link to ≥1 policy or regulation; set a review date". This is correct and useful. But the user cannot act on it from within the card — they have to switch to the Policies or Regulations tab, find the right item, and link it manually. The gap between "what's needed" and "how to do it" requires multiple tab switches.
-
-**Proposed fix:** Make each maturity requirement in the card a direct call-to-action. For example: "Link to a policy [+ Link a policy]" — clicking the bracketed action jumps to the Policies tab with the link picker already open. This reduces the mental overhead of translating the requirement into navigation steps.
-
----
-
-**Problem 3 — Process review reminders only go to the CCRO**
-The notification drawer shows "X processes overdue for review" — but this notification is computed in `useNotifications()` which runs in every user's session. However, the notification links to `/processes` which shows all processes. A Process Owner sees this notification but clicking it shows ALL overdue processes, not just theirs.
-
-**Proposed fix:** Make the "processes overdue for review" notification link include the owner filter: `/processes?owner=me`. Or, show the notification only to the CCRO (as a management view) and separately show OWNER-specific "Your process X is overdue for review" notifications.
+### Sprint O — Technical Debt (Lower priority)
+- **O1:** `src/app/page.tsx` is 2,418 lines — extract section components, target < 400
+- **O2:** Dead Supabase dependency (`@supabase/supabase-js`) in package.json
+- **O3:** Missing DB indexes on `approvalStatus`, `periodYear/periodMonth`
+- **O4:** `DashboardNotification.type` is an unvalidated string — should be Prisma enum
+- **O5:** `@types/uuid` redundant (uuid@13 ships own types)
+- **O6:** `isomorphic-dompurify` on RC release, not stable
+- **O7:** `setTimeout` not cleaned up in `CDRadialRing` and `ActionRequiredSection`
+- **O8:** CSS keyframe animations not gated behind `prefers-reduced-motion`
+- **O9:** No branded 404 page (`not-found.tsx`)
+- **O10:** Hardcoded `#fff` hex values in `ScoreBadge`, `RiskHeatmap`, `RiskHistoryChart`
+- **O11:** `ExportPanel.tsx` uses inline styles inconsistently with rest of codebase
+- **O12:** `RiskHeatmap` risk circles not keyboard-accessible (no tabIndex/role/onKeyDown)
 
 ---
 
-**Problem 4 — No process export**
-A Process Owner might want to export their process documentation for a management review, an audit, or to share with a team. The Processes page has no export function. Other pages (controls, actions, risk acceptances) all have CSV or HTML exports.
+## 6. Architecture and Design Observations
 
-**Proposed fix:** Add an "Export" button to the Process Detail Panel (CCRO and OWNER) that generates a clean one-page HTML or PDF of the process: overview fields, steps table, linked controls/policies/regulations, maturity score.
+### What is working well
+- **Auth middleware pattern** is solid: JWT → X-Verified-User-Id header → `getUserId()` in
+  all routes. Now that all 8 unauthenticated endpoints are fixed, the pattern is consistent
+  across every route handler.
+- **Store pattern** (optimistic + fire-and-forget sync with error state) is well-designed.
+  `SaveStatusIndicator` is the right abstraction level for background sync feedback.
+- **Prisma 7 adapter pattern** is correctly implemented throughout.
+- **Permission system** (role + user-override + permissions.ts enum) is well-structured and
+  consistent.
+- **Consumer Duty page** has excellent filter state management including URL sync, RAG
+  filtering across outcome and measure dimensions, and debounced URL write-back.
+- **Risk Register** is the most complete page — URL state, all filter types, bento card
+  filters, score mode toggle, pagination-free list, all working correctly.
+- **Controls section** has the deepest feature set: testing schedule, quarterly summaries,
+  attestations, change requests, watched controls, business area drill-down.
 
----
-
-## PERSONA E: Control Owner
-*Maintains a set of controls. Responsible for attestation, test result entry, and keeping control descriptions accurate.*
-
-### What they need:
-- See the controls I own
-- Complete quarterly attestations
-- View test results for my controls
-- Understand which risks my controls are addressing
-
-### What works well:
-- Attestation tab with quarterly form
-- Testing Schedule tab shows assignment
-- Control detail modal shows linked risks and test history with the performance chart
-- ExCo View provides a curated dashboard (if they can access it)
-
-### What is frustrating:
-
-**Problem 1 — Attestation form lacks context**
-The Attestation tab asks the Control Owner to confirm they've reviewed and attested to their controls for the quarter. The form is functional but bare: it lists controls with a checkbox. There is no context about what each control does, what the latest test result was, or whether there are outstanding issues. The Control Owner is attesting without the information needed to make an informed attestation.
-
-**Proposed fix:** In the Attestation tab, expand each control row to show: last test result (PASS/FAIL/PARTIALLY), latest test date, and a link to the control detail. The Control Owner can then attest with full awareness of the control's status.
-
----
-
-**Problem 2 — Cannot see which risks their controls address from the controls page**
-The Control Library tab shows control details and linked risks (in the detail modal). But a Control Owner scanning the library table sees: control ref, name, business area, type, frequency, latest test result. They cannot see "how many risks does this control address?" at a glance, or whether any of those risks are above appetite. They must click into each control to find out.
-
-**Proposed fix:** Add a "Risks" column to the Controls Library table showing the count of linked risks. A tooltip or hover state shows the risk references. If any linked risk is above appetite, colour the count red.
+### What needs attention
+- **page.tsx (dashboard) is 2,418 lines** — this is a maintainability risk. Breaking it into
+  section components (Sprint O1) will reduce cognitive load on future sessions.
+- **URL state coverage is incomplete** — Risk Register, Actions, Controls, Compliance,
+  Consumer Duty all have URL state. Reports, Audit, Processes, SMCR do not.
+- **Animation consistency** — ScrollReveal (scroll-triggered) only on dashboard.
+  AnimatedNumber (count-up) missing on Reports and Audit pages. Creates an inconsistent
+  premium feel across the product.
+- **Mobile responsiveness** — the dashboard grid degrades to a stacked list on mobile (correct
+  behaviour), but many detail panels were not audited at small breakpoints.
 
 ---
 
-**Problem 3 — No notification when a control test is overdue**
-The Testing Schedule tab shows which controls have upcoming or overdue tests. But there is no in-app notification to the assigned tester when their test is due. The notification drawer covers overdue actions, overdue processes, and overdue scenarios — but not overdue control tests for the assigned tester specifically.
+## 7. Recommendations (Priority Order)
 
-**Proposed fix:** Add an "Overdue control tests assigned to you" notification category to `useNotifications()`. For OWNER/VIEWER role users, filter by `assignedTesterId === currentUser.id`. For CCRO, show all overdue tests.
+1. **Implement Sprint L** — click-through navigation is the biggest usability gap remaining.
+   User names as plain text throughout is significant friction for a compliance tool where
+   "who owns this?" is a primary workflow question.
 
----
+2. **Implement L4 first** (replace `confirm()` with ConfirmDialog) — 2–3 files, quick win,
+   and improves accessibility immediately.
 
-**Problem 4 — ExCo Dashboard is inaccessible to VIEWER and CEO**
-See R1 and R2. The ExCo View tab was designed for executive visibility of controls. It is currently inaccessible to the roles it was built for.
+3. **Address O1** (split page.tsx) — before adding more dashboard sections, extract existing
+   ones. At 2,418 lines, the file risks incomplete context reads in AI-assisted sessions.
 
----
+4. **Address O7** (setTimeout cleanup) — minor memory leak in CDRadialRing and
+   ActionRequiredSection; worth fixing before any external demo or production scale-up.
 
-## PART 4 — CROSS-CUTTING UX ISSUES
+5. **Defer Sprints M and N** until Sprint L is complete — animation polish and domain
+   completeness are important but the navigation/click-through gaps matter more to a
+   working CRO user.
 
----
-
-### UX1 — The back button behaviour is unpredictable
-**Severity:** 🟠 High
-
-The NavigationBackButton shows whenever `window.history.length > 1`. This means:
-- If you open the app in a new tab and immediately navigate, the back button appears on the second page — but pressing it exits the app entirely (back to the browser new tab page or wherever you came from)
-- If you deep-link directly to `/risk-register?risk=RK-001`, the back button appears but pressing it takes you somewhere unrelated to the app
-
-The button's behaviour depends entirely on the browser's own history, not the app's navigation stack. The custom `navigationStack` in the store is only populated when navigating via `EntityLink` — which is a small fraction of navigation events.
-
-**Proposed fix:** Remove the browser-history-based fallback. Only show the back button when the custom `navigationStack` has entries. Instead, rely on the EntityLink navigation stack for deliberate deep-link navigation, and let the browser back button (in the browser chrome) handle general back navigation. This is more predictable, even if the in-app back button is less prominent.
+6. **Run Sprint O as a dedicated refactor sprint** — do not mix with feature work, as it
+   touches package.json, Prisma schema, and large files with high merge conflict risk.
 
 ---
 
-### UX2 — Notification bell and sidebar dashboard badge count the same things differently
-**Severity:** 🟡 Medium
+## 8. Build Status
 
-The notification bell in the top right and the badge on the Dashboard sidebar item both count "things needing attention". But they are computed differently — the bell uses `useNotifications()` which includes overdue actions, due-soon actions, compliance gaps, etc. The sidebar badge uses a separate computation that includes different categories. A CCRO might see "bell = 12, dashboard badge = 7" and not understand why the numbers differ.
+Both sprints passed zero-error builds:
 
-**Proposed fix:** Remove the dashboard sidebar badge (see T6). The bell icon is the canonical notification surface. Having two different counts for "attention needed" creates confusion.
-
----
-
-### UX3 — Empty states are inconsistent in quality
-**Severity:** ⚪ Low
-
-Some empty states are helpful ("No processes found — Create your first process" with a button). Others are bare ("No results"). The most commonly encountered empty state — the History tab when no audit events exist — just shows "No history for this period" with no guidance on why there might be no history (the entity may be new, or audit logging may not have captured events for this area).
-
-**Proposed fix:** Standardise empty states across all tabs and tables. Each empty state should: (1) explain why there is no data (entity is new, filter is too narrow, feature not yet used); (2) offer a next step (create, widen filter, or link to relevant settings). Add this to the History tab specifically.
+| Sprint | Build | Pages |
+|--------|-------|-------|
+| J (Security Hardening) | ✅ PASS | 92/92 |
+| K (Critical UX Fixes)  | ✅ PASS | 92/92 |
 
 ---
 
-### UX4 — The Global Search (Cmd+K) does not search processes, IBS, or OR data
-**Severity:** 🟡 Medium
+## 9. Commit History (This Audit)
 
-The GlobalSearch command palette searches risks, policies, controls, actions, regulations, and users. It does not search processes, IBS records, resilience scenarios, risk acceptances, or regulatory calendar events. As the process library and OR module have grown significantly, these are now major entity types that users might search for.
+| Commit | Description | Files |
+|--------|-------------|-------|
+| `d05d4e9` | Sprint J: Security hardening — auth guards, XSS fixes, headers | 13 |
+| `3d36bf5` | Sprint J: Post-review — W018 lesson, K8 added to plan | 2 |
+| `ce1eacb` | Sprint K: Critical UX fixes — transitions, filter wiring, toasts, colours | 13 |
 
-**Proposed fix:** Add processes, IBS records, and risk acceptances to the GlobalSearch index. These are already in the Zustand store so no additional API calls are needed — it is a matter of extending the search logic in `GlobalSearch.tsx`.
-
----
-
-### UX5 — The Compliance Overview tab does not navigate to the correct subtab reliably
-**Severity:** 🟡 Medium
-
-The Compliance Overview shows summary cards (e.g., "12 regulations with gaps — View →"). Clicking "View" navigates to the Regulatory Universe tab, which works. But the sidebar "Reg Calendar" link navigates to `/compliance?tab=regulatory-calendar`. When the user is already on the Compliance page, clicking "Reg Calendar" in the sidebar was previously broken (fixed in a bug fix commit). It is now fixed, but the fix (`useEffect([searchParams])`) only runs when searchParams change — which only works if the search param actually changes. If the user is already on the regulatory-calendar tab and clicks the sidebar "Reg Calendar" link, nothing happens (same URL, no change event). This is a subtle but real UX gap.
-
-**Proposed fix:** Force a tab change when the sidebar Compliance sub-items are clicked, regardless of current tab state. This could be done by adding a unique timestamp or by moving the tab sync logic to respond to a router event rather than searchParams change.
+Total files changed across J+K: **26 files**
+Net: 273 insertions, 131 deletions
 
 ---
 
-### UX6 — The Actions page status grouping collapses "Completed" by default, but there is no memory
-**Severity:** ⚪ Low
-
-The recent Actions UX upgrade added collapsible status groups, with "Completed" collapsed by default. This is good design. But if a user expands "Completed" to view historical items and then navigates away, the group reverts to collapsed on return. The expanded/collapsed state is not persisted.
-
-**Proposed fix:** Persist group collapsed/expanded state in `localStorage` (keyed to the user ID, not per-session). This is a one-line change per group toggle.
-
----
-
-### UX7 — Form validation errors are not always shown inline
-**Severity:** 🟡 Medium
-
-Some forms (e.g., the Action form dialog, the Risk form) use Zod validation server-side. When validation fails, a toast notification appears ("Please check your inputs"). But the toast does not tell the user which field is wrong. They must guess. Other forms do show inline field errors. The inconsistency means some forms feel broken (toast appears, no indication of what went wrong) while others feel polished (red border and error text on the failing field).
-
-**Proposed fix:** Move validation to the client side using `react-hook-form` with the Zod resolver (`@hookform/resolvers/zod`). Both libraries are already installed. Client-side validation shows inline errors immediately without a round-trip. The server-side Zod validation can remain as a second line of defence.
-
----
-
-### UX8 — The Reports section is powerful but discovery is poor
-**Severity:** 🟡 Medium
-
-The Reports page lists reports as cards. There is no indication of which report is the "current" one, which is the most recently published version, or whether any report is overdue. The report creation flow (New Report → add sections → publish) is powerful but not guided. A new CCRO would not know where to start.
-
-**Proposed fix:** On the Reports page, surface a "Current Period" report prominently at the top if one exists for the current quarter. Show a status pill (DRAFT / PUBLISHED / OVERDUE). Add a "Start this quarter's report" CTA if no report exists for the current period. This gives a clear entry point for the most common use case.
-
----
-
-### UX9 — The Export Centre has no "recent exports" history
-**Severity:** ⚪ Low
-
-The Export Centre generates an HTML pack on demand. Each generation is stateless — there is no record of what was exported, when, and by whom. For audit purposes, it is sometimes necessary to know what information was packaged and shared externally.
-
-**Proposed fix:** Log export events to the audit trail (entityType: 'export', action: 'generate', changes: { sections, firmName }). This does not require storing the export file — just the parameters.
-
----
-
-### UX10 — Process steps have no "Responsible Role" autocomplete or standardisation
-**Severity:** ⚪ Low
-
-Process steps have a "Responsible Role" free-text field. This means the same role can be entered as "Chief Risk Officer", "CRO", "Head of Risk", or "2nd Line Risk" across different processes, making it impossible to aggregate or search by role. There is no dropdown or autocomplete.
-
-**Proposed fix:** Make the "Responsible Role" field a searchable select that auto-completes from a list of existing role strings already in the database (built dynamically from all current process step entries). This is similar to the SearchableSelect component already used elsewhere.
-
----
-
-## PART 5 — PRIORITISED RECOMMENDATIONS
-
-The following table summarises all issues by priority for implementation planning:
-
-### Must Fix (blocking core workflows or regulatory credibility)
-
-| # | Issue | Type | Status |
-|---|-------|------|--------|
-| ~~R2~~ | ~~CEO cannot see OR module~~ | Regression | ✅ DONE |
-| ~~R1~~ | ~~VIEWER/CEO cannot access ExCo Dashboard~~ | Regression | ✅ DONE |
-| ~~R4~~ | ~~No notification when a change request is resolved~~ | Regression | ✅ DONE |
-| ~~T1~~ | ~~No save confirmation on critical operations~~ | Technical | ✅ DONE |
-| ~~UX1~~ | ~~Back button behaviour is unpredictable~~ | UX | ✅ DONE |
-
-### Should Fix (significant friction, regular occurrence)
-
-| # | Issue | Type | Status |
-|---|-------|------|--------|
-| ~~R3~~ | ~~Change Requests badge missing for non-CCRO~~ | Regression | ✅ DONE |
-| ~~R7~~ | ~~Action email reminders have no UI trigger~~ | Regression | ✅ DONE |
-| ~~T4~~ | ~~Sidebar has too many items, Compliance group especially~~ | Technical | ✅ DONE — Policies removed |
-| ~~T7~~ | ~~Regulatory Calendar naming/location is inconsistent~~ | Technical | ✅ DONE |
-| ~~UX2~~ | ~~Bell and Dashboard badge count the same things differently~~ | UX | ✅ DONE |
-| ~~UX4~~ | ~~Global Search misses processes, IBS, risk acceptances~~ | UX | ✅ DONE |
-| ~~UX7~~ | ~~Form validation errors are not shown inline~~ | UX | ✅ DONE |
-| ~~A1~~ | ~~CCRO: Dashboard is not a morning briefing~~ | Persona | ✅ DONE |
-| ~~A3~~ | ~~CCRO: Bulk approve on Change Requests~~ | Persona | ✅ DONE |
-| ~~C1~~ | ~~Risk Owner: No "My Risks" filter as default~~ | Persona | ✅ DONE |
-| ~~C2~~ | ~~Risk Owner: No feedback on proposed changes~~ | Persona | ✅ DONE |
-| ~~D1~~ | ~~Process Owner: No "My Processes" filter~~ | Persona | ✅ DONE |
-| ~~D3~~ | ~~Process Owner: Review notifications go to wrong person~~ | Persona | ✅ DONE |
-| ~~E1~~ | ~~Control Owner: Attestation has no context~~ | Persona | ✅ DONE |
-| ~~E3~~ | ~~Control Owner: No notification when test is overdue~~ | Persona | ✅ DONE |
-
-### Nice to Have (polish and completeness)
-
-| # | Issue | Type | Status |
-|---|-------|------|--------|
-| ~~R5~~ | ~~`/templates` and `/components-lib` routes are orphaned~~ | Regression | ✅ DONE |
-| ~~R6~~ | ~~`riskRegister` badge key is dead code~~ | Technical | ✅ DONE |
-| ~~T2~~ | ~~No unsaved changes guard~~ | Technical | ✅ DONE |
-| ~~T3~~ | ~~Loading states inconsistent~~ | Technical | ✅ DONE |
-| ~~T5~~ | ~~Dashboard too dense~~ | Technical | ⏭ DEFERRED — user requested skip |
-| ~~T6~~ | ~~Dashboard badge on sidebar nav is ambiguous~~ | Technical | ✅ DONE |
-| ~~T8~~ | ~~Not all API writes go through audit logging~~ | Technical | ✅ DONE |
-| ~~T9~~ | ~~OWNER-created PENDING risks visible before CCRO approval~~ | Technical | ✅ DONE |
-| ~~UX3~~ | ~~Empty states inconsistent in quality~~ | UX | ✅ DONE |
-| ~~UX5~~ | ~~Compliance sidebar tab links have edge-case bug~~ | UX | ✅ DONE — resolved as side-effect of T4 |
-| ~~UX6~~ | ~~Actions group expand/collapse state not persisted~~ | UX | ✅ DONE |
-| ~~UX8~~ | ~~Reports page discovery is poor~~ | UX | ✅ DONE |
-| ~~UX9~~ | ~~Export Centre has no audit trail~~ | UX | ✅ DONE |
-| ~~UX10~~ | ~~Process step roles are free text with no standardisation~~ | UX | ✅ DONE |
-| ~~B1~~ | ~~CEO: No single Board View dashboard mode~~ | Persona | ❌ REJECTED — existing dashboard sufficient |
-| ~~B3~~ | ~~CEO: Risk Register default view wrong for executives~~ | Persona | ❌ REJECTED — table view preferred for all roles |
-| ~~C3~~ | ~~Risk Owner: Change proposal has no workflow explanation~~ | Persona | ✅ DONE |
-| ~~D2~~ | ~~Process Owner: Maturity requirements not actionable~~ | Persona | ✅ DONE |
-| ~~D4~~ | ~~Process Owner: No process export~~ | Persona | ✅ DONE |
-
-### Additional items (identified post-audit, all complete)
-
-| # | Issue | Type | Status |
-|---|-------|------|--------|
-| ~~CD1~~ | ~~Consumer Duty page sections need collapse toggles~~ | UX | ✅ DONE |
-| ~~PV1~~ | ~~Process CSV import/export~~ | Feature | ✅ DONE |
-
----
-
-## AUDIT STATUS: COMPLETE (original 39-item audit)
-
-All 39 actionable items from the original audit have been resolved. T5 deferred, B1 and B3 rejected. Everything else implemented and live.
-
-*Audit completed 25 February 2026. All items resolved by 25 February 2026.*
-
----
-
-## POST-AUDIT FINDINGS — Broad Specialist Review (27 February 2026)
-
-A second pass by specialist agents (security, data integrity, panel UX, navigation) after the original audit identified additional items. All resolved in Sprints A, B, C.
-
-### Security & Data Integrity (Sprint A)
-
-| # | Issue | Severity | Status |
-|---|-------|----------|--------|
-| SEC1 | `GET /api/risks` had no auth check — full risk register readable without login | 🔴 Critical | ✅ FIXED |
-| SEC2 | `GET /api/compliance/smcr/roles` had no auth check — named SMCR roles readable unauthenticated | 🔴 Critical | ✅ FIXED |
-| SEC3 | `GET /api/compliance/smcr/breaches` had no auth check — named individual disciplinary records readable unauthenticated | 🔴 Critical | ✅ FIXED |
-| DATA1 | `POST /api/actions` silently discarded `priority` field — P1/P2/P3 never persisted to DB | 🟠 High | ✅ FIXED |
-| DATA2 | `ConsumerDutyOutcomeType` enum missing `PRICE_AND_VALUE`; outcome-4 seeded with wrong type; outcome-5 GCO missing entirely from DB | 🟠 High | ✅ FIXED |
-
-### Panel UX (Sprint B)
-
-| # | Issue | Severity | Status |
-|---|-------|----------|--------|
-| PANEL1 | `HorizonDetailPanel`: all fields always editable (no edit-lock), 4 fixed-height textareas | 🟡 Medium | ✅ FIXED — edit-unlock pattern, AutoResizeTextarea |
-| PANEL2 | `RiskDetailPanel`: all fields always editable (no edit-lock), fixed description textarea | 🟡 Medium | ✅ FIXED — edit-unlock pattern, AutoResizeTextarea |
-| PANEL3 | `RegulationDetailPanel`: 5 fixed-height textareas clipping long regulatory text | 🟡 Medium | ✅ FIXED — AutoResizeTextarea on all 5 fields |
-| PANEL4 | `ActionDetailPanel`: 2 fixed-height proposal-form textareas clipping justification text | ⚪ Low | ✅ FIXED — AutoResizeTextarea on both |
-
-### Navigation & Animation (Sprint C)
-
-| # | Issue | Severity | Status |
-|---|-------|----------|--------|
-| NAV1 | Horizon Scanning: filters (category, urgency, status, dismissed, search) not URL-persisted — lost on refresh/share | 🟡 Medium | ✅ FIXED — full URL sync via `useSearchParams` + `useEffect` |
-| NAV2 | Controls page: tab read from URL on load but tab changes never written back | 🟡 Medium | ✅ FIXED — `router.replace` on tab click |
-| NAV3 | Settings page: tab read from URL on load but tab changes never written back | 🟡 Medium | ✅ FIXED — `router.replace` on tab click |
-| ANIM1 | `QuarterlySummaryTab`: 7 stat tile numbers using bare `{n}` instead of `<AnimatedNumber>` | ⚪ Low | ✅ FIXED |
-
-### Process Rule (same session)
-
-| # | Issue | Status |
-|---|-------|--------|
-| PROC1 | Context compaction silently dropped open questions; "continue" was treated as permission to skip them | ✅ FIXED — L018 added to lessons.md; Step 0b added to CLAUDE.md |
-
----
-
-### ⚠️ PENDING — Items from original session lost to compaction
-
-The pre-compaction session included a longer work list and data mapping questions that were never answered before context was lost. These must be re-surfaced to the user before any further work proceeds.
-
-**Status:** Awaiting user to re-provide the original list and answer pending questions.
+*Audit conducted 2026-02-27 by Claude Sonnet 4.6 with 8 specialist sub-agents.*
+*All findings are code-level. Browser behaviour testing not performed.*
+*For the full sprint plan and outstanding work, see `PLAN.md`.*
