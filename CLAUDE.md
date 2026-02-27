@@ -34,7 +34,42 @@ the confirmed inventory is done.
 
 ---
 
-## Step 0b: Understand Intent Before Any Work
+## Step 0b: Re-surface Unanswered Questions After Compaction
+
+**This step fires FIRST at every session resume where a compaction summary is present.**
+
+Context compaction silently discards open questions. "Continue" from the user does NOT
+cancel questions that were never answered. Open questions survive compaction and must be
+re-asked before any work begins.
+
+**How to check:**
+1. Read the compaction summary (or the system-reminder context at session start)
+2. Look for any phrase like: "pending questions", "asked the user", "waiting for answers",
+   "3 questions were posed", "no user response", or similar
+3. If found, **stop immediately** — do not read files, do not plan, do not write code
+
+**How to re-surface:**
+> "Before I proceed, I need to re-ask [N] questions from the previous session that were
+> never answered:
+> 1. [exact question]
+> 2. [exact question]
+> ...
+> Please answer these before I continue."
+
+Then wait. Do not interpret "continue" as permission to skip unanswered questions.
+
+**What counts as an open question:**
+- Data mapping decisions ("which field maps to which?")
+- Scope clarifications ("should this affect X or just Y?")
+- User preference choices ("option A or option B?")
+- Any question that, if wrong, would cause the wrong work to be done
+
+**The rule in one sentence:** If a question was asked and never answered, it is still open —
+regardless of compaction, session boundaries, or "continue" instructions.
+
+---
+
+## Step 0c: Understand Intent Before Any Work
 
 **Before writing a single line of code or a plan, ask clarifying questions if ANY of the following are true:**
 

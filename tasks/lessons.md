@@ -176,7 +176,30 @@ This works at any target without config changes.
 
 ---
 
-<!-- Add new L-series entries here: L017, L018, ... -->
+<!-- Add new L-series entries here: L019, ... -->
+
+### L018 — Context compaction silently drops open questions; "continue" does not cancel them
+**What happened:** Open questions were asked of the user in a previous session. The conversation
+was compacted. On resume, the user wrote "continue" — which I interpreted as permission to
+proceed without waiting for answers. I proceeded based on assumptions rather than the user's
+actual intent. The user lost their opportunity to answer and the work done was partly wrong-scoped.
+**Root cause:** Treated compaction + "continue" as a clean slate. It is not. Open questions
+survive compaction and must be re-surfaced.
+**Rule:** At every session start (especially after compaction), check the session summary for
+any open/unanswered questions. If found:
+1. **Stop.** Do not proceed with any work that depends on those answers.
+2. List every unanswered question explicitly, numbered.
+3. Tell the user: "Before I proceed, I need to re-ask [N] questions from the previous session
+   that were never answered:" — then list them.
+4. Wait for answers.
+"Continue" means "don't add new unnecessary delays" — it does NOT cancel open questions.
+Data mapping questions, scope clarification questions, preference questions — all survive compaction.
+**Trigger:** Any session resume where the compaction summary mentions "pending questions",
+"asked the user", "waiting for answers", or any similar phrase. Also: any time a task list
+item has status "asked user — no response".
+**Status:** [PROMOTED → CLAUDE.md Step 0c]
+
+---
 
 ### L017 — Set spread `[...new Set()]` fails at lower TypeScript targets
 **What happened:** Used `[...new Set(allSnaps.map(...))]` in RiskTrendChart.tsx.
