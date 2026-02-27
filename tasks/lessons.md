@@ -338,6 +338,33 @@ by not selecting a separate section key.
 
 <!-- Add W-series entries here: W009, W010, ... -->
 
+### W010 — Look up by unique reference field, not constructed ID, in seed scripts
+**What happened:** RiskActionLink seed used hardcoded `actionId: "act-030"` — but when actions
+are upserted by `reference`, if the record already existed with a cuid, the seed's `create.id`
+is ignored and the cuid is kept. The link's `actionId` then doesn't match any real action, so
+13/33 links were silently skipped.
+**Rule:** In seed scripts that link across entities, always resolve the FK at runtime:
+```typescript
+const action = await prisma.action.findUnique({ where: { reference: link.actionRef } });
+if (!action) { console.warn(`⚠ Action not found: ${link.actionRef}`); continue; }
+// Now use action.id for the FK
+```
+**Applies to:** Any seed that creates cross-entity links where the linked entity is also upserted.
+
+### W011 — Idempotent seed with upsert + try/catch for unique constraints
+**What happened:** CEO prep seed needed to be safe to re-run (data already in DB from prior
+sessions). Every write used `upsert({ where: { id }, update: {...}, create: { id, ... } })`.
+For unique-constrained join tables without a natural ID (RiskControlLink, RiskActionLink),
+wrapped `create` in `try/catch` to silently skip duplicates.
+**Pattern:**
+```typescript
+try {
+  await prisma.riskControlLink.create({ data: { riskId, controlId, linkedBy } });
+  count++;
+} catch (_) { /* duplicate — skip */ }
+```
+**Applies to:** Any seed script that creates join table records with unique constraints.
+
 ### W009 — SVG arc gauge via stroke-dashoffset + CSS transition
 **What happened:** Built ArcGauge entirely in SVG with a single CSS `stroke-dashoffset`
 transition — no JavaScript animation loop, no Framer Motion, no RAF.
