@@ -34,6 +34,8 @@ export const DASHBOARD_SECTIONS: DashboardSectionDef[] = [
   { key: "reports", label: "Reports", description: "Recent and published reports" },
   { key: "recent-activity", label: "Recent Activity", description: "Latest audit log entries" },
   { key: "horizon-scanning", label: "Horizon Scanning", description: "Regulatory & business environment monitor — urgency breakdown and in-focus item" },
+  { key: "control-health", label: "Control Health Trend", description: "6-month pass rate trend for all active controls — trajectory at a glance" },
+  { key: "quarterly-summary", label: "Quarterly Summary", description: "Per-quarter test result pass rates and historical comparison" },
 ];
 
 export const DEFAULT_SECTION_ORDER = DASHBOARD_SECTIONS.map((s) => s.key);
@@ -70,6 +72,8 @@ export const ROLE_DEFAULT_HIDDEN: Record<string, string[]> = {
     "policy-health",       // Policy management is CCRO domain
     "overdue-metrics",     // CCRO oversight of Consumer Duty measure updates
     "programme-health",    // CCRO-level portfolio scorecard
+    "control-health",      // CCRO-level control testing oversight
+    "quarterly-summary",   // CCRO-level quarterly review
   ],
   REVIEWER: [
     "pending-approvals",
@@ -77,6 +81,8 @@ export const ROLE_DEFAULT_HIDDEN: Record<string, string[]> = {
     "cross-entity",
     "overdue-metrics",
     "programme-health",    // CCRO-level portfolio scorecard
+    "control-health",
+    "quarterly-summary",
   ],
 };
 
@@ -130,4 +136,6 @@ export const DEFAULT_GRID_LAYOUT: RGLLayoutItem[] = [
   { i: "reports",           x: 6, y: 101, w: 6,  h: 9,  minW: 3, minH: 6 },
   { i: "recent-activity",   x: 0, y: 110, w: 6,  h: 9,  minW: 3, minH: 6 },
   { i: "horizon-scanning",  x: 0, y: 119, w: 12, h: 8,  minW: 4, minH: 6 },
+  { i: "control-health",   x: 0, y: 127, w: 6,  h: 10, minW: 3, minH: 6 },
+  { i: "quarterly-summary",x: 6, y: 127, w: 6,  h: 10, minW: 3, minH: 6 },
 ];

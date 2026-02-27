@@ -61,6 +61,8 @@ import CDRadialRing from "@/components/dashboard/CDRadialRing";
 import DomainScorecardRow from "@/components/dashboard/DomainScorecardRow";
 import ActionRequiredSection from "@/components/dashboard/ActionRequiredSection";
 import ScrollReveal from "@/components/common/ScrollReveal";
+import ControlHealthTrendWidget from "@/components/dashboard/ControlHealthTrendWidget";
+import QuarterlySummaryWidget from "@/components/dashboard/QuarterlySummaryWidget";
 
 function daysUntilDue(dueDate: string | null): number | null {
   if (!dueDate) return null;
@@ -1881,6 +1883,10 @@ export default function DashboardHome() {
         </div>
       </div>
     ) : null,
+
+    "control-health": <ControlHealthTrendWidget />,
+
+    "quarterly-summary": <QuarterlySummaryWidget />,
   };
 
   // Role badge colour helper

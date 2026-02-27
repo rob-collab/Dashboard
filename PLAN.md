@@ -39,8 +39,9 @@ Last updated: 2026-02-27 (Sprint H: Dashboard Enhancements — bugs, animations,
 - [x] H9: Desktop grid sections wrapped in ScrollReveal
 - [x] H9: Mobile stacked sections wrapped in ScrollReveal
 - [x] Build passes — zero errors, 92/92 pages
-- [ ] H7: Control health trend graph added (pending)
-- [ ] H8: Quarterly Summary table on dashboard (pending)
+- [x] H7: ControlHealthTrendWidget — 6-month pass rate AreaChart from store testingSchedule; trend direction pill; empty state; link to /controls?tab=trend-analysis
+- [x] H8: QuarterlySummaryWidget — per-quarter pass rate bars for last 5 quarters from store; current quarter headline stat; empty state; link to /controls?tab=quarterly-summary
+- [x] H7/H8: Both sections added to DASHBOARD_SECTIONS + DEFAULT_GRID_LAYOUT + ROLE_DEFAULT_HIDDEN (CCRO-only)
 - [ ] H10: Dynamic text resize (pending)
 - [ ] H11–H13: Inner element drag/resize/hide (pending sub-sprint)
 
