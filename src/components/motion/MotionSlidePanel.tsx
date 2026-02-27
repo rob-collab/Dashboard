@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import type { ReactNode } from "react";
 
 const panelVariants = {
@@ -32,16 +32,18 @@ interface MotionSlidePanelProps {
 /**
  * Spring-animated slide-in panel from the right.
  * Wraps its content in AnimatePresence so it animates out on close.
+ * Falls back to instant show/hide when prefers-reduced-motion is set.
  */
 export function MotionSlidePanel({ open, children, className }: MotionSlidePanelProps) {
+  const prefersReduced = useReducedMotion();
   return (
     <AnimatePresence>
       {open && (
         <motion.div
-          variants={panelVariants}
-          initial="hidden"
-          animate="show"
-          exit="exit"
+          variants={prefersReduced ? undefined : panelVariants}
+          initial={prefersReduced ? false : "hidden"}
+          animate={prefersReduced ? false : "show"}
+          exit={prefersReduced ? undefined : "exit"}
           className={className}
           style={{ willChange: "transform" }}
         >

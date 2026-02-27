@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import type { Risk, RiskActionLink, ControlEffectiveness, RiskAppetite, DirectionOfTravel, ActionPriority } from "@/lib/types";
 import { RISK_ACCEPTANCE_STATUS_LABELS, RISK_ACCEPTANCE_STATUS_COLOURS } from "@/lib/types";
@@ -36,6 +36,7 @@ interface RiskDetailPanelProps {
 }
 
 export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete, onViewHistory }: RiskDetailPanelProps) {
+  const prefersReduced = useReducedMotion();
   const router = useRouter();
   const users = useAppStore((s) => s.users);
   const currentUser = useAppStore((s) => s.currentUser);
@@ -324,9 +325,9 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
       {/* Panel */}
       <motion.div
         className="relative w-full max-w-2xl panel-surface shadow-2xl overflow-y-auto"
-        initial={{ x: "100%" }}
-        animate={{ x: 0 }}
-        transition={{ type: "spring", stiffness: 320, damping: 30 }}
+        initial={prefersReduced ? false : { x: "100%" }}
+        animate={prefersReduced ? false : { x: 0 }}
+        transition={prefersReduced ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 30 }}
         style={{ willChange: "transform" }}
       >
         {/* Header */}

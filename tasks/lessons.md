@@ -178,7 +178,24 @@ This works at any target without config changes.
 
 <!-- Add new L-series entries here: L014, L015, ... -->
 
-### L014 — Spreading HTMLAttributes into motion.div causes type conflict
+### L014 — Motion components must respect prefers-reduced-motion
+**What happened:** UAT flagged that Framer Motion animations in RiskTable, ActionDetailPanel, etc.
+do not check `prefers-reduced-motion`. Screen reader and accessibility tool users may find animations
+distracting or disorienting.
+**Rule:** When adding animation to a component, honour the OS accessibility preference. Pattern:
+```ts
+import { useReducedMotion } from "framer-motion";
+const prefersReduced = useReducedMotion();
+// then: transition={prefersReduced ? { duration: 0 } : springConfig}
+```
+Or globally: set `AnimatePresence` and motion component durations to 0 when reduced motion is preferred.
+**Trigger:** Any new Framer Motion component. Add `useReducedMotion` check to MotionList, MotionRow,
+MotionSlidePanel, and page transition in layout.tsx in a future pass.
+**Status:** Active — deferred to Phase 2 polish sprint.
+
+---
+
+### L015 — Spreading HTMLAttributes into motion.div causes type conflict
 **What happened:** `MotionDiv` accepted `HTMLAttributes<HTMLDivElement>` via spread, which includes
 `onDrag` typed as `DragEventHandler<HTMLDivElement>`. Framer Motion's `motion.div` redefines `onDrag`
 with an incompatible signature (takes `MouseEvent | PointerEvent | TouchEvent`). TypeScript build failed.

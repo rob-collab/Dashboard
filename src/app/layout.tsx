@@ -3,7 +3,7 @@
 import "./globals.css";
 import { useState, useCallback, useEffect, Suspense } from "react";
 import { usePathname } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Toaster } from "sonner";
 import { SessionProvider, useSession } from "@/lib/auth";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -21,6 +21,7 @@ import NotificationDrawer, { useNotificationCount } from "@/components/common/No
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const prefersReduced = useReducedMotion();
   const { data: session, status } = useSession();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -213,10 +214,10 @@ function AppShell({ children }: { children: React.ReactNode }) {
               <AnimatePresence mode="wait">
                 <motion.div
                   key={pathname}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15 }}
+                  initial={prefersReduced ? false : { opacity: 0 }}
+                  animate={prefersReduced ? false : { opacity: 1 }}
+                  exit={prefersReduced ? undefined : { opacity: 0 }}
+                  transition={{ duration: prefersReduced ? 0 : 0.15 }}
                   className="p-6 max-w-[1400px] mx-auto"
                 >
                   <Breadcrumb />

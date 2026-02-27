@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   X,
   Info,
@@ -93,6 +93,7 @@ interface ActionDetailPanelProps {
 }
 
 export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDetailPanelProps) {
+  const prefersReduced = useReducedMotion();
   const currentUser = useAppStore((s) => s.currentUser);
   const users = useAppStore((s) => s.users);
   const actions = useAppStore((s) => s.actions);
@@ -293,9 +294,9 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
       {/* Panel */}
       <motion.div
         className="fixed inset-y-0 right-0 z-50 flex w-full flex-col panel-surface shadow-2xl sm:w-[560px] lg:w-[620px]"
-        initial={{ x: "100%" }}
-        animate={{ x: 0 }}
-        transition={{ type: "spring", stiffness: 320, damping: 30 }}
+        initial={prefersReduced ? false : { x: "100%" }}
+        animate={prefersReduced ? false : { x: 0 }}
+        transition={prefersReduced ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 30 }}
         style={{ willChange: "transform" }}
       >
         {/* Purple gradient header */}

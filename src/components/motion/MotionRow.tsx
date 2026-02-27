@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import type { ReactNode } from "react";
 
 const rowVariants = {
@@ -22,8 +22,13 @@ interface MotionRowProps {
   onClick?: () => void;
 }
 
-/** Spring-animated table row — use inside MotionList */
+/** Spring-animated table row — use inside MotionList.
+ *  Falls back to a plain <tr> when prefers-reduced-motion is set. */
 export function MotionTr({ children, className, onClick }: MotionRowProps) {
+  const prefersReduced = useReducedMotion();
+  if (prefersReduced) {
+    return <tr className={className} onClick={onClick}>{children}</tr>;
+  }
   return (
     <motion.tr variants={rowVariants} className={className} onClick={onClick}>
       {children}
@@ -31,8 +36,13 @@ export function MotionTr({ children, className, onClick }: MotionRowProps) {
   );
 }
 
-/** Spring-animated div row — use inside MotionListDiv */
+/** Spring-animated div row — use inside MotionListDiv.
+ *  Falls back to a plain <div> when prefers-reduced-motion is set. */
 export function MotionDiv({ children, className, onClick }: MotionRowProps) {
+  const prefersReduced = useReducedMotion();
+  if (prefersReduced) {
+    return <div className={className} onClick={onClick}>{children}</div>;
+  }
   return (
     <motion.div variants={rowVariants} className={className} onClick={onClick}>
       {children}
