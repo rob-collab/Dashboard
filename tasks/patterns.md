@@ -477,6 +477,172 @@ Use `min()` to cap width on large screens while staying within viewport on small
 
 ---
 
+### D019 — EntityLink: Every Data Reference Must Be Clickable
+
+**Rule:** Any field in a panel, table, card, or list that references an entity that exists elsewhere in the app **must** be rendered as an `<EntityLink>`, not plain text. This applies everywhere — panels, tables, bento cards, timeline entries, badges, linked-item lists.
+
+If a user can see a reference to a risk, action, control, policy, regulation, process, or risk acceptance, they must be able to click through to it directly from where they are.
+
+**Component:** `src/components/common/EntityLink.tsx`
+**URL builders:** `src/lib/navigation.ts`
+
+**Supported entity types:**
+| Type | Navigates to |
+|---|---|
+| `risk` | `/risk-register?risk={id}` |
+| `action` | `/actions?action={id}` |
+| `control` | `/controls?tab=library&control={id}` |
+| `policy` | `/compliance?tab=policies&policy={id}` |
+| `regulation` | `/compliance?tab=regulatory-universe&regulation={id}` |
+| `risk-acceptance` | `/risk-acceptances?acceptance={id}` |
+| `process` | `/processes?process={id}` |
+
+**How to use:**
+```tsx
+import EntityLink from "@/components/common/EntityLink";
+
+// Reference badge with code + name:
+<EntityLink type="risk" id={risk.id} reference={risk.reference} label={risk.title} />
+
+// Reference badge with code only:
+<EntityLink type="control" id={ctrl.id} reference={ctrl.reference} />
+```
+
+**What it does automatically:**
+- Renders a colour-coded badge per entity type (each type has its own bg/text/hover colour in `ENTITY_BADGE_STYLES`)
+- Pushes current URL onto `navigationStack` before navigating → Back button appears
+- Uses `router.push()` (soft nav) — Zustand state preserved
+
+**Many-to-many relationships:**
+When an entity has a list of linked entities (e.g. a Risk has many linked Controls, a Control has many linked Risks), render each linked item as an `<EntityLink>`. Never render linked items as plain text or unclickable badges.
+
+```tsx
+// ✓ Correct — every linked control is clickable
+{risk.linkedControls.map(ctrl => (
+  <EntityLink key={ctrl.id} type="control" id={ctrl.id} reference={ctrl.reference} label={ctrl.name} />
+))}
+
+// ✗ Wrong — plain text, no click-through
+{risk.linkedControls.map(ctrl => (
+  <span key={ctrl.id}>{ctrl.reference}</span>
+))}
+```
+
+**Where EntityLink is NOT yet used but should be (known gaps):** Any newly built feature that displays cross-entity references. Before shipping a new panel or table, check every field: if it references another entity, it must be an EntityLink.
+
+**Adding a new entity type:**
+1. Add the type to `NavigableEntity` in `src/lib/navigation.ts`
+2. Add a URL builder to `URL_BUILDERS`
+3. Add badge styles to `ENTITY_BADGE_STYLES`
+4. The rest (stack push, routing) is automatic
+
+---
+
+### D020 — CCRO Edit Unlock: Pencil Icon in Every Panel and Card
+
+**Rule:** Every panel, slide-out drawer, and data card that displays fields must have an edit path accessible to the CCRO Team. The standard pattern is a **pencil icon in the panel header** that unlocks edit mode. Read-only display for CCRO Team is a bug, not a design choice.
+
+**Standard edit-unlock pattern:**
+```tsx
+const [isEditing, setIsEditing] = useState(false);
+
+{/* Panel header — always has pencil for CCRO */}
+<div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 shrink-0">
+  <h2 className="text-lg font-semibold text-gray-900 font-poppins">{title}</h2>
+  <div className="flex items-center gap-2">
+    {canEdit && !isEditing && (
+      <button
+        onClick={() => setIsEditing(true)}
+        className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+        aria-label="Edit"
+      >
+        <Pencil size={15} />
+      </button>
+    )}
+    {isEditing && (
+      <button
+        onClick={() => { resetFields(); setIsEditing(false); }}
+        className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100"
+        aria-label="Cancel editing"
+      >
+        <X size={15} />
+      </button>
+    )}
+    <button onClick={onClose} className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100">
+      <X size={18} />
+    </button>
+  </div>
+</div>
+
+{/* Fields switch between read and edit mode */}
+{isEditing ? (
+  <AutoResizeTextarea value={description} onChange={...} className="..." />
+) : (
+  <p className="text-sm text-gray-700">{description || "—"}</p>
+)}
+
+{/* Footer save/cancel — only when editing */}
+{isEditing && (
+  <div className="shrink-0 flex items-center justify-end gap-2 border-t border-gray-200 px-6 py-3 bg-gray-50">
+    <button onClick={() => { resetFields(); setIsEditing(false); }} className="...">Cancel</button>
+    <button onClick={handleSave} disabled={isSaving} className="...">
+      {isSaving ? "Saving..." : "Save Changes"}
+    </button>
+  </div>
+)}
+```
+
+**`canEdit` permission check:**
+```tsx
+const isCCROTeam = currentUser?.role === "CCRO_TEAM";
+// or use the permission helper:
+const { can } = usePermissionSet();
+const canEdit = can("edit:risk"); // or relevant permission code
+```
+
+**Rules:**
+- CCRO Team can always edit every field on every screen — no exceptions
+- Other roles follow permissions defined in `src/lib/permissions.ts`
+- All saves must call the relevant API (PATCH/POST) — not just update local store
+- Show a success toast after every save; show an error toast if the API fails
+- If the user has unsaved changes and tries to close the panel, warn them (use `isDirty` check — see P001)
+- `isEditing` state is local (not in the store) — it resets when the panel closes
+
+**Where already implemented:** `RiskDetailPanel`, `HorizonDetailPanel`, `RegulationDetailPanel`, `ActionDetailPanel` (proposal forms).
+
+**Where NOT yet implemented (known gaps):** Any newly built panel. Before shipping, confirm: does CCRO Team have a pencil somewhere? If no, it's incomplete.
+
+---
+
+### D021 — Permission Checking in Components
+
+**Hook:** `usePermissionSet()` from `src/lib/usePermission.ts`
+
+```tsx
+const { can, role, isCCROTeam } = usePermissionSet();
+
+// Check a specific permission:
+const canCreate = can("create:action");
+const canDelete = can("delete:risk");
+
+// Role shorthand:
+if (isCCROTeam) { /* show admin controls */ }
+```
+
+**Permission codes** are defined in `src/lib/permissions.ts`. Check there before writing a new permission guard — the code you need probably already exists.
+
+**Roles in the system** (from `prisma/schema.prisma` Role enum):
+- `CCRO_TEAM` — full access to everything
+- `CEO` — read + limited actions (e.g. can change horizon focus, cannot create items)
+- `OWNER` — owns specific risks/controls, can create actions
+- `VIEWER` — read-only
+
+**Never** assume CEO = OWNER. They are distinct roles with different permission profiles. Always check the Role enum before writing a role guard (L010).
+
+**API routes** use `requireCCRORole(req)` or `checkPermission(req, "code")` — never just `getUserId()` for write endpoints (L007, L009).
+
+---
+
 ### D014 — Shared File Ownership (for parallel sessions)
 
 These files are HIGH BLAST RADIUS — only ONE session should edit them at a time.
