@@ -15,6 +15,7 @@ import RegulatoryChangeLogTab from "@/components/compliance/RegulatoryChangeLogT
 import ComplianceHistoryTab from "@/components/compliance/ComplianceHistoryTab";
 import { cn } from "@/lib/utils";
 import { usePageTitle } from "@/lib/usePageTitle";
+import { MotionTabContent } from "@/components/motion/MotionTabContent";
 
 const TABS = [
   { id: "overview", label: "Overview" },
@@ -100,15 +101,17 @@ export default function CompliancePage() {
           ))}
         </div>
 
-        {/* Tab content */}
-        {activeTab === "overview" && <ComplianceOverview onNavigate={handleTabChange} />}
-        {activeTab === "regulatory-universe" && <RegulatoryUniverseTab initialRegulationId={initialRegulationId} initialDomainFilter={initialDomainFilter} />}
-        {activeTab === "coverage" && <CoverageChainTab />}
-        {activeTab === "roadmap" && <ComplianceRoadmapTab />}
-        {activeTab === "assessment-log" && <RegulatoryChangeLogTab />}
-        {activeTab === "smcr" && <SMCRTab />}
-        {activeTab === "policies" && <PoliciesTab initialPolicyId={initialPolicyId} />}
-        {activeTab === "history" && <ComplianceHistoryTab />}
+        {/* Tab content — cross-fade on tab switch */}
+        <MotionTabContent tabKey={activeTab}>
+          {activeTab === "overview" && <ComplianceOverview onNavigate={handleTabChange} />}
+          {activeTab === "regulatory-universe" && <RegulatoryUniverseTab initialRegulationId={initialRegulationId} initialDomainFilter={initialDomainFilter} />}
+          {activeTab === "coverage" && <CoverageChainTab />}
+          {activeTab === "roadmap" && <ComplianceRoadmapTab />}
+          {activeTab === "assessment-log" && <RegulatoryChangeLogTab />}
+          {activeTab === "smcr" && <SMCRTab />}
+          {activeTab === "policies" && <PoliciesTab initialPolicyId={initialPolicyId} />}
+          {activeTab === "history" && <ComplianceHistoryTab />}
+        </MotionTabContent>
       </div>
     </RoleGuard>
   );

@@ -34,6 +34,7 @@ import {
   Copy,
   Users,
   Pin,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAppStore } from "@/lib/store";
@@ -442,6 +443,7 @@ export default function DashboardHome() {
   usePageTitle("Dashboard");
   const router = useRouter();
   const hydrated = useAppStore((s) => s._hydrated);
+  const hydratedAt = useAppStore((s) => s._hydratedAt);
   const currentUser = useAppStore((s) => s.currentUser);
   const branding = useAppStore((s) => s.branding);
   const siteSettings = useAppStore((s) => s.siteSettings);
@@ -490,6 +492,20 @@ export default function DashboardHome() {
       .then((layout) => setDashboardLayout(layout))
       .catch(() => {}); // graceful fallback — defaults remain
   }, [currentUser?.id, setDashboardLayout]);
+
+  // M6 — Last Refreshed ticker (updates every 30s)
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  const refreshedLabel = useMemo(() => {
+    if (!hydratedAt) return null;
+    const diff = Math.floor((now.getTime() - hydratedAt.getTime()) / 1000);
+    if (diff < 60) return "Refreshed just now";
+    if (diff < 3600) return `Refreshed ${Math.floor(diff / 60)} min ago`;
+    return `Refreshed ${Math.floor(diff / 3600)}h ago`;
+  }, [hydratedAt, now]);
 
   // Edit mode state
   const [editMode, setEditMode] = useState(false);
@@ -2251,9 +2267,15 @@ export default function DashboardHome() {
         </div>
       )}
 
-      {/* Customise button — all users can customise their own layout */}
+      {/* Customise button + Last Refreshed indicator */}
       {!editMode && (
-        <div className="flex justify-end">
+        <div className="flex items-center justify-end gap-3">
+          {refreshedLabel && (
+            <span className="flex items-center gap-1.5 text-xs text-gray-400" title="Time since last data refresh">
+              <RefreshCw size={11} className="text-gray-300" />
+              {refreshedLabel}
+            </span>
+          )}
           <button onClick={enterEditMode} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:border-updraft-light-purple transition-colors">
             <LayoutGrid size={14} />
             Customise Layout

@@ -3331,7 +3331,7 @@ From ad2e22a UX audit (2026-02-27):
 
 ---
 
-## SPRINT M — Animation Consistency & UX Polish
+## SPRINT M — Animation Consistency & UX Polish ✅ COMPLETE
 
 ### Context
 Animation agent found: Reports page and Audit page have NO AnimatedNumber. ScrollReveal is
@@ -3376,14 +3376,14 @@ amber badge "Review Overdue" in the risk row and in the detail panel header.
 Computed client-side, no API change needed.
 
 ### Acceptance Criteria
-- [ ] M1: Reports and Audit pages show AnimatedNumber on all count stats
-- [ ] M2: ScrollReveal applied to all long-scroll page content
-- [ ] M3: Stat card groups cascade in (staggered delay)
-- [ ] M4: AnimatedNumber re-triggers on store data update
-- [ ] M5: Tab switches have cross-fade (AnimatePresence)
-- [ ] M6: Dashboard shows "last refreshed" timestamp
-- [ ] M7: Risk register shows "Review Overdue" badge on stale risks
-- [ ] Build passes
+- [x] M1: Reports and Audit pages show AnimatedNumber on all count stats
+- [x] M2: ScrollReveal applied to all long-scroll page content (Reports, Audit, Risk Acceptances)
+- [x] M3: Stat card groups cascade in (staggered delay — Audit, Risk Register, Actions)
+- [x] M4: AnimatedNumber re-triggers on store data update (Audit page keyed on hydratedAt)
+- [x] M5: Tab switches have cross-fade — MotionTabContent (150ms) on Compliance + Risk Acceptances
+- [x] M6: Dashboard shows "last refreshed" timestamp next to Customise Layout button
+- [x] M7: Risk register shows "Review Overdue" amber badge in table row + detail panel header
+- [x] Build passes — zero errors, 92/92 pages
 
 ---
 

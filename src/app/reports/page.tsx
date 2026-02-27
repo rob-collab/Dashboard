@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Plus, Search, FileText, Send, X } from "lucide-react";
@@ -14,6 +14,8 @@ import { toast } from "sonner";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import Button from "@/components/common/Button";
 import { Calendar, ArrowRight } from "lucide-react";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
+import ScrollReveal from "@/components/common/ScrollReveal";
 
 function ReportsPageContent() {
   const router = useRouter();
@@ -35,6 +37,9 @@ function ReportsPageContent() {
   const [publishNote, setPublishNote] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
   const [deletingReport, setDeletingReport] = useState<Report | null>(null);
+
+  const draftCount = useMemo(() => reports.filter((r) => r.status === "DRAFT").length, [reports]);
+  const publishedCount = useMemo(() => reports.filter((r) => r.status === "PUBLISHED").length, [reports]);
 
   if (!hydrated) {
     return (
@@ -156,17 +161,19 @@ function ReportsPageContent() {
 
       {/* Stats row */}
       <div className="flex items-center gap-4 text-sm">
-        <span className="text-gray-500">{reports.length} report{reports.length !== 1 ? "s" : ""}</span>
-        {isCCROTeam && reports.filter((r) => r.status === "DRAFT").length > 0 && (
+        <span className="text-gray-500">
+          <AnimatedNumber value={reports.length} /> report{reports.length !== 1 ? "s" : ""}
+        </span>
+        {isCCROTeam && draftCount > 0 && (
           <>
             <span className="text-gray-200">|</span>
-            <span className="text-amber-600 font-medium">{reports.filter((r) => r.status === "DRAFT").length} draft</span>
+            <span className="text-amber-600 font-medium"><AnimatedNumber value={draftCount} delay={50} /> draft</span>
           </>
         )}
-        {reports.filter((r) => r.status === "PUBLISHED").length > 0 && (
+        {publishedCount > 0 && (
           <>
             <span className="text-gray-200">|</span>
-            <span className="text-green-600 font-medium">{reports.filter((r) => r.status === "PUBLISHED").length} published</span>
+            <span className="text-green-600 font-medium"><AnimatedNumber value={publishedCount} delay={100} /> published</span>
           </>
         )}
       </div>
@@ -298,16 +305,17 @@ function ReportsPageContent() {
       {/* Reports Grid */}
       {filteredReports.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredReports.map((report) => (
-            <ReportCard
-              key={report.id}
-              report={report}
-              onEdit={handleEdit}
-              onView={handleView}
-              onPublish={handlePublish}
-              onExport={handleExport}
-              onDelete={isCCROTeam ? handleDelete : undefined}
-            />
+          {filteredReports.map((report, idx) => (
+            <ScrollReveal key={report.id} delay={Math.min(idx * 40, 200)}>
+              <ReportCard
+                report={report}
+                onEdit={handleEdit}
+                onView={handleView}
+                onPublish={handlePublish}
+                onExport={handleExport}
+                onDelete={isCCROTeam ? handleDelete : undefined}
+              />
+            </ScrollReveal>
           ))}
         </div>
       ) : (

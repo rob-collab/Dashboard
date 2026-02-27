@@ -629,6 +629,29 @@ that check `getUserId` but whose `GET` handler doesn't.
 
 ---
 
+### W019 — AnimatedNumber is a named export (not default)
+**What happened:** Sprint M — imported `AnimatedNumber` as a default export (`import AnimatedNumber from ...`); build failed with "Module has no default export". Only caught on first build run.
+**Rule:** `AnimatedNumber` uses `export function AnimatedNumber(...)` — always import as `{ AnimatedNumber }`. ScrollReveal uses `export default function ScrollReveal(...)` — import as default.
+**Check:** Before adding AnimatedNumber to a new file, look at one existing usage (e.g., risk-register/page.tsx line 21) to confirm the import form.
+**Applies to:** Any file that adds AnimatedNumber for the first time.
+
+---
+
+### W020 — MotionTabContent reusable pattern for tab cross-fade
+**What happened:** Sprint M — needed tab cross-fade on Compliance and Risk Acceptances pages. Created `src/components/motion/MotionTabContent.tsx` — thin wrapper around `AnimatePresence + motion.div` keyed on `tabKey`. Falls back to plain div for `prefers-reduced-motion`.
+**Pattern:** For any page with `{activeTab === "x" && <Comp />}` block siblings, wrap them all in `<MotionTabContent tabKey={activeTab}>` to get free 150ms cross-fade. No restructuring needed.
+**File:** `src/components/motion/MotionTabContent.tsx`
+**Applies to:** Any tab-based page needing animation polish.
+
+---
+
+### W021 — hydratedAt key pattern for AnimatedNumber on pages without hydration guards
+**What happened:** Sprint M M4 — pages with `if (!hydrated) return <Skeleton>` already re-fire AnimatedNumber naturally on hydration (component unmounts/remounts). For pages WITHOUT a hydration guard (e.g. Audit page), AnimatedNumber fires once on mount then may not re-fire if demo value matches DB value.
+**Pattern:** On pages without hydration guards, add `const hydratedAt = useAppStore((s) => s._hydratedAt)` and pass `key={`stat-${hydratedAt?.getTime() ?? 0}`}` to AnimatedNumber. Causes a forced remount when hydration completes.
+**Applies to:** Any page showing AnimatedNumber that renders immediately with demo data.
+
+---
+
 ## Promotion Log
 
 When the Retrospective Agent recommends a promotion and it is carried out, record it here

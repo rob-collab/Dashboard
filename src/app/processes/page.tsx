@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Layers, BarChart2, ShieldCheck, Library, FileText, Download, Upload, X, Loader2 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
@@ -19,6 +19,7 @@ import IBSRegistryTab from "@/components/or/IBSRegistryTab";
 import ORDashboard from "@/components/or/ORDashboard";
 import SelfAssessmentTab from "@/components/or/SelfAssessmentTab";
 import { cn } from "@/lib/utils";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 
 type Tab = "processes" | "ibs" | "or-overview" | "self-assessment" | "history";
 
@@ -39,6 +40,7 @@ export default function ProcessesPage() {
 
   // My/All toggle — explicit, replaces the silent OWNER-only filter
   const myProcessesCount = processes.filter((p) => p.ownerId === currentUser?.id).length;
+  const activeProcessCount = useMemo(() => processes.filter((p) => p.status !== "RETIRED").length, [processes]);
   const [viewMode, setViewMode] = useState<"all" | "my">("all");
   const [viewModeSet, setViewModeSet] = useState(false);
   useEffect(() => {
@@ -227,7 +229,7 @@ export default function ProcessesPage() {
           <div>
             <h1 className="font-poppins font-semibold text-gray-900 text-lg">Processes &amp; IBS</h1>
             <p className="text-xs text-gray-500">
-              {processes.filter((p) => p.status !== "RETIRED").length} active processes · FCA PS21/3 · CMORG v3
+              <AnimatedNumber value={activeProcessCount} /> active processes · FCA PS21/3 · CMORG v3
             </p>
           </div>
         </div>

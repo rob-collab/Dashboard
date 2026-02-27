@@ -16,6 +16,8 @@ import RiskAcceptanceDetailPanel from "@/components/risk-acceptances/RiskAccepta
 import type { RiskAcceptance, RiskAcceptanceStatus, RiskAcceptanceSource } from "@/lib/types";
 import { RISK_ACCEPTANCE_STATUS_LABELS, RISK_ACCEPTANCE_STATUS_COLOURS, RISK_ACCEPTANCE_SOURCE_LABELS } from "@/lib/types";
 import { usePageTitle } from "@/lib/usePageTitle";
+import ScrollReveal from "@/components/common/ScrollReveal";
+import { MotionTabContent } from "@/components/motion/MotionTabContent";
 
 const ALL_STATUSES: RiskAcceptanceStatus[] = ["PROPOSED", "CCRO_REVIEW", "AWAITING_APPROVAL", "APPROVED", "REJECTED", "RETURNED", "EXPIRED"];
 const ALL_SOURCES: RiskAcceptanceSource[] = ["RISK_REGISTER", "CONTROL_TESTING", "INCIDENT", "AD_HOC"];
@@ -356,7 +358,8 @@ export default function RiskAcceptancesPage() {
         </div>
       )}
 
-      {/* Table or Audit Trail */}
+      {/* Table or Audit Trail — cross-fade on tab switch */}
+      <MotionTabContent tabKey={tab}>
       {tab === "audit" ? (
         <div className="bento-card">
           <div className="relative pl-6 space-y-3">
@@ -389,6 +392,7 @@ export default function RiskAcceptancesPage() {
           </div>
         </div>
       ) : (
+        <ScrollReveal delay={60}>
         <div className="bento-card overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -499,7 +503,9 @@ export default function RiskAcceptancesPage() {
             </tbody>
           </table>
         </div>
+        </ScrollReveal>
       )}
+      </MotionTabContent>
 
       {/* Form Dialog */}
       <RiskAcceptanceFormDialog

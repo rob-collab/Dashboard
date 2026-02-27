@@ -8,7 +8,7 @@ import ScoreBadge from "./ScoreBadge";
 import DirectionArrow from "./DirectionArrow";
 import { EmptyState } from "@/components/common/EmptyState";
 import { naturalCompare } from "@/lib/utils";
-import { ChevronUp, ChevronDown, Search, Filter, ShieldAlert, Star, AlertTriangle } from "lucide-react";
+import { ChevronUp, ChevronDown, Search, Filter, ShieldAlert, Star, AlertTriangle, Clock } from "lucide-react";
 import { useHasPermission } from "@/lib/usePermission";
 import { MotionList } from "@/components/motion/MotionList";
 import { MotionTr } from "@/components/motion/MotionRow";
@@ -237,13 +237,19 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
                     </span>
                   </td>
                   <td className="px-3 py-3 font-medium text-gray-800 max-w-[280px]">
-                    <span className="inline-flex items-center gap-1.5 min-w-0">
+                    <span className="inline-flex items-center gap-1.5 min-w-0 flex-wrap">
                       <span className="truncate">{risk.name}</span>
                       {risk.approvalStatus === "PENDING_APPROVAL" && (
                         <span className="rounded-full bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[9px] font-semibold shrink-0">Pending</span>
                       )}
                       {risk.approvalStatus === "REJECTED" && (
                         <span className="rounded-full bg-red-100 text-red-700 px-1.5 py-0.5 text-[9px] font-semibold shrink-0">Rejected</span>
+                      )}
+                      {getNextReviewDaysRemaining(risk) < 0 && (
+                        <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[9px] font-semibold shrink-0"
+                              title={`Review ${Math.abs(getNextReviewDaysRemaining(risk))}d overdue`}>
+                          <Clock className="w-2.5 h-2.5" /> Review Overdue
+                        </span>
                       )}
                     </span>
                   </td>

@@ -523,7 +523,7 @@ function ActionsPageContent() {
 
       {/* Priority cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {priorityCards.map((p) => (
+        {priorityCards.map((p, idx) => (
           <button
             key={p.filterKey}
             onClick={() => handlePriorityChange(priorityFilter === p.filterKey ? "ALL" : p.filterKey)}
@@ -536,7 +536,7 @@ function ActionsPageContent() {
             )}
           >
             <p className="text-xs text-gray-500">{p.label}</p>
-            <AnimatedNumber value={p.value} className={cn("text-2xl font-bold font-poppins", p.color)} />
+            <AnimatedNumber value={p.value} delay={idx * 50} className={cn("text-2xl font-bold font-poppins", p.color)} />
             <p className="text-[10px] text-gray-400 mt-0.5">active actions</p>
           </button>
         ))}
@@ -544,7 +544,7 @@ function ActionsPageContent() {
 
       {/* Status stats — clickable with active highlight */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        {statCards.map((s) => (
+        {statCards.map((s, idx) => (
           <button
             key={s.label}
             onClick={() => handleStatClick(s.filterKey)}
@@ -557,7 +557,7 @@ function ActionsPageContent() {
             )}
           >
             <p className="text-xs text-gray-500">{s.label}</p>
-            <AnimatedNumber value={s.value} className={cn("text-2xl font-bold font-poppins", s.color)} />
+            <AnimatedNumber value={s.value} delay={idx * 50} className={cn("text-2xl font-bold font-poppins", s.color)} />
           </button>
         ))}
       </div>

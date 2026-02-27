@@ -18,6 +18,8 @@ import { cn, formatDate } from "@/lib/utils";
 import type { Role } from "@/lib/types";
 import { usePageTitle } from "@/lib/usePageTitle";
 import { getEntityUrl, type NavigableEntity } from "@/lib/navigation";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
+import ScrollReveal from "@/components/common/ScrollReveal";
 
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {
   create_report: { label: "Create Report", color: "bg-green-100 text-green-700" },
@@ -84,6 +86,7 @@ function AuditPageContent() {
   const auditLogs = useAppStore((s) => s.auditLogs);
   const reports = useAppStore((s) => s.reports);
   const users = useAppStore((s) => s.users);
+  const hydratedAt = useAppStore((s) => s._hydratedAt);
 
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") ?? "");
   const [actionFilter, setActionFilter] = useState<string>("ALL");
@@ -134,6 +137,12 @@ function AuditPageContent() {
     setPage(1);
   }
 
+  const uniqueUsersCount = useMemo(() => new Set(auditLogs.map((l) => l.userId)).size, [auditLogs]);
+  const reportsAffectedCount = useMemo(
+    () => new Set(auditLogs.filter((l) => l.reportId).map((l) => l.reportId)).size,
+    [auditLogs]
+  );
+
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / pageSize));
   const paginatedLogs = filteredLogs.slice((page - 1) * pageSize, page * pageSize);
 
@@ -166,12 +175,14 @@ function AuditPageContent() {
           )}
         >
           <p className="text-xs text-fca-gray">Total Events</p>
-          <p className="text-2xl font-bold text-updraft-deep mt-1">{auditLogs.length}</p>
+          <p className="text-2xl font-bold text-updraft-deep mt-1">
+            <AnimatedNumber key={`total-${hydratedAt?.getTime() ?? 0}`} value={auditLogs.length} delay={0} />
+          </p>
         </div>
         <div className="bento-card">
           <p className="text-xs text-fca-gray">Unique Users</p>
           <p className="text-2xl font-bold text-updraft-deep mt-1">
-            {new Set(auditLogs.map((l) => l.userId)).size}
+            <AnimatedNumber key={`users-${hydratedAt?.getTime() ?? 0}`} value={uniqueUsersCount} delay={50} />
           </p>
         </div>
         <div
@@ -183,7 +194,7 @@ function AuditPageContent() {
         >
           <p className="text-xs text-fca-gray">Reports Affected</p>
           <p className="text-2xl font-bold text-updraft-deep mt-1">
-            {new Set(auditLogs.filter((l) => l.reportId).map((l) => l.reportId)).size}
+            <AnimatedNumber key={`reports-${hydratedAt?.getTime() ?? 0}`} value={reportsAffectedCount} delay={100} />
           </p>
         </div>
       </div>
@@ -257,6 +268,7 @@ function AuditPageContent() {
       )}
 
       {/* Audit log table */}
+      <ScrollReveal delay={80}>
       <div className="bento-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
@@ -399,6 +411,7 @@ function AuditPageContent() {
           </div>
         )}
       </div>
+      </ScrollReveal>
     </div>
     </RoleGuard>
   );

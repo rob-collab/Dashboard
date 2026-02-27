@@ -344,10 +344,24 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
               {isNew ? "Add New Risk" : `Edit: ${risk?.name ?? risk?.reference}`}
             </h2>
             {risk && !isNew && (
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <span className="inline-block font-mono text-[11px] font-bold bg-white/20 text-white px-1.5 py-0.5 rounded">
                   {risk.reference}
                 </span>
+                {/* Review Overdue badge — M7 */}
+                {(() => {
+                  if (!risk.lastReviewed || !risk.reviewFrequencyDays) return null;
+                  const dueDate = new Date(risk.lastReviewed).getTime() + risk.reviewFrequencyDays * 86_400_000;
+                  if (Date.now() <= dueDate) return null;
+                  const daysOverdue = Math.floor((Date.now() - dueDate) / 86_400_000);
+                  return (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-400/20 text-amber-300 border border-amber-400/30"
+                          title={`Review was due ${daysOverdue}d ago`}>
+                      <Clock className="w-3 h-3 shrink-0" />
+                      Review Overdue
+                    </span>
+                  );
+                })()}
                 {canToggleFocus && (
                   <button
                     onClick={() => toggleRiskInFocus(risk.id, !risk.inFocus)}

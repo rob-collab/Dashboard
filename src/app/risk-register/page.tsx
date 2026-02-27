@@ -736,7 +736,7 @@ export default function RiskRegisterPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        {cards.map((card) => {
+        {cards.map((card, idx) => {
           const isActive = cardFilter === card.key;
           const Icon = card.key === "WORSENING" ? TrendingDown : card.key === "IMPROVING" ? TrendingUp : card.key === "IN_FOCUS" ? Star : null;
           return (
@@ -748,7 +748,7 @@ export default function RiskRegisterPage() {
               }`}
             >
               <div className="flex items-center justify-between">
-                <AnimatedNumber value={card.value} className={`text-2xl font-bold ${card.colour}`} />
+                <AnimatedNumber value={card.value} delay={idx * 50} className={`text-2xl font-bold ${card.colour}`} />
                 {Icon && <Icon className={`w-5 h-5 ${card.colour} opacity-60`} />}
               </div>
               <div className="text-xs text-gray-500 mt-0.5">{card.label}</div>
