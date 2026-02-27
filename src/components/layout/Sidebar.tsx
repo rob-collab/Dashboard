@@ -506,7 +506,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
                 {currentUser.name}
               </p>
               <p className={cn("text-[10px] font-semibold uppercase tracking-wider mt-0.5", dark ? "text-white/40" : "text-gray-400")}>
-                {currentUser.role === "CCRO_TEAM" ? "CCRO" : currentUser.role === "OWNER" ? "Risk Owner" : "Reviewer"}
+                {currentUser.role === "CCRO_TEAM" ? "CCRO" : currentUser.role === "OWNER" ? "Risk Owner" : currentUser.role === "CEO" ? "Boss man" : "Reviewer"}
               </p>
             </div>
             <ChevronDown
