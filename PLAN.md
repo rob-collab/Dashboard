@@ -1,9 +1,69 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-27 (Premium Design Phase 1 sprint)
+Last updated: 2026-02-27 (Dashboard Visual Uplift sprint)
 
 ---
 
-## CURRENT SPRINT: Premium Design — Phase 1 ✅ COMPLETE
+## CURRENT SPRINT: Dashboard Visual Uplift — All Four Visualisations ✅ COMPLETE
+
+### Context
+Visualise rich existing data on the home dashboard with interactive Recharts charts and SVG gauges.
+Recharts v3.7 + Framer Motion already installed — no new dependencies.
+
+### Deliverables
+
+#### D1 — Risk Landscape: 5×5 Matrix + Portfolio Trend Chart
+- [x] D1-01: 5×5 matrix renders with correct zone colours (green/amber/red zones)
+- [x] D1-02: Risks plot at correct residual position; inherent ghost visible
+- [x] D1-03: Circles spring-animate from centre to actual position on mount
+- [x] D1-04: Hovering a circle shows risk reference + name (SVG title element)
+- [x] D1-05: Clicking a circle navigates to /risk-register?risk={id}
+- [x] D1-06: Trend chart renders (graceful fallback if no snapshots)
+- [x] D1-07: Both charts are responsive (fill container width)
+- [x] D1-08: Existing 4 stat tiles still present above
+
+#### D2 — Domain Scorecards (new `programme-health` section)
+- [x] D2-01: 4 scorecard cards visible with arc gauges
+- [x] D2-02: Arc gauges animate to correct % on load (CSS transition)
+- [x] D2-03: Green/amber/red threshold colouring correct
+- [x] D2-04: Sub-stats show accurate numbers from store
+- [x] D2-05: Section appears in dashboard customisation panel
+- [x] D2-06: Hidden by default for OWNER/REVIEWER roles
+
+#### D3 — Action Pipeline (enhances `action-tracking` section)
+- [x] D3-01: 3 priority swimlane bars render and are correctly labelled
+- [x] D3-02: Segment widths are proportional to actual counts
+- [x] D3-03: Bars animate in on mount (CSS transition, skipped if reduced-motion)
+- [x] D3-04: Clicking a segment navigates to filtered actions view
+- [x] D3-05: Recharts bar chart renders below
+- [x] D3-06: Existing 4 stat tiles (Open/Overdue/Due This Month/Completed) still present above
+
+#### D4 — Consumer Duty Radial Ring (replaces `ConsumerDutySummaryWidget`)
+- [x] D4-01: RadarChart renders with axes labelled by outcome name
+- [x] D4-02: Radar polygon animates in on load
+- [x] D4-03: Values are % GREEN measures per outcome
+- [x] D4-04: Compact outcome grid preserved below chart
+- [x] D4-05: Header and "Full dashboard →" link preserved
+- [x] D4-06: Graceful fallback for empty outcomes
+
+### Build: ✅ PASSING (zero TypeScript errors)
+### UAT: ✅ PASS — no FAILs identified
+### Designer: ✅ PASS — brand colour corrected (#7c3aed → #7B1FA2), fonts fixed, reduced-motion explicit in all components
+
+### New Files
+- `src/components/dashboard/RiskMatrix.tsx`
+- `src/components/dashboard/RiskTrendChart.tsx`
+- `src/components/dashboard/ArcGauge.tsx`
+- `src/components/dashboard/DomainScorecardRow.tsx`
+- `src/components/dashboard/ActionPipeline.tsx`
+- `src/components/dashboard/CDRadialRing.tsx`
+
+### Modified Files
+- `src/lib/dashboard-sections.ts` — added `programme-health` section
+- `src/app/page.tsx` — enhanced 3 sections + added programme-health + replaced local widget
+
+---
+
+## PREVIOUSLY COMPLETED: Premium Design — Phase 1 ✅ COMPLETE
 
 ### Context
 Layered premium visual and interaction quality: spring-physics animations (Framer Motion),

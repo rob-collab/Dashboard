@@ -176,7 +176,19 @@ This works at any target without config changes.
 
 ---
 
-<!-- Add new L-series entries here: L014, L015, ... -->
+<!-- Add new L-series entries here: L017, L018, ... -->
+
+### L017 — Set spread `[...new Set()]` fails at lower TypeScript targets
+**What happened:** Used `[...new Set(allSnaps.map(...))]` in RiskTrendChart.tsx.
+TypeScript rejected it with the same L013 error: Set can only be iterated at es2015+.
+Applying `Array.from()` from L013's rule fixed it, but L013's wording only mentions `Map`,
+not `Set`. Both are affected by the same downlevelIteration issue.
+**Rule:** `Array.from()` required for both `Map` AND `Set` spread/iteration:
+- `Array.from(map.keys())` ✓
+- `Array.from(new Set(arr))` ✓
+- `[...new Set(arr)]` ✗
+**Trigger:** Any spread or for-of over a `Map` or `Set`.
+**Status:** Active. (Consider updating L013 to mention Set explicitly at retrospective.)
 
 ### L014 — Motion components must respect prefers-reduced-motion
 **What happened:** UAT flagged that Framer Motion animations in RiskTable, ActionDetailPanel, etc.
@@ -202,6 +214,23 @@ with an incompatible signature (takes `MouseEvent | PointerEvent | TouchEvent`).
 **Rule:** Never spread `HTMLAttributes<HTMLDivElement>` into a `motion.div`. Accept only the specific
 props the component actually needs (e.g. `children`, `className`, `onClick`).
 **Trigger:** Any component that wraps `motion.div` or `motion.tr` and accepts pass-through HTML props.
+**Status:** Active.
+
+---
+
+### L016 — Shared components have app-wide blast radius; UAT agent cannot catch visual rendering bugs
+**What happened:** Applying glassmorphism to `Modal.tsx` changed every modal in the entire app.
+`backdrop-blur` on the inner panel blurred the dark overlay directly behind it, producing a near-black
+unreadable background. The UAT agent (code-reading only) approved it — it cannot render or see visual output.
+The designer agent failed to run. A broken product was deployed to production.
+**Rule 1:** Never apply visual changes to a shared component (`Modal.tsx`, `Sidebar.tsx`, etc.) without
+explicitly listing every screen that uses it and confirming each is acceptable.
+**Rule 2:** `backdrop-filter: blur()` on an element sitting over a dark backdrop (`bg-black/50+`) will
+produce a dark smear, not frosted glass. Frosted glass only works when the element sits directly over
+page content, not over an opaque overlay.
+**Rule 3:** The UAT/designer agents are code reviewers, not browsers. They cannot catch CSS rendering
+bugs. For any visual change, manually verify in a real browser before pushing to production.
+**Trigger:** Any change to a component used in more than one place; any use of `backdrop-filter`.
 **Status:** Active.
 
 ---
@@ -307,7 +336,21 @@ by not selecting a separate section key.
 
 ---
 
-<!-- Add W-series entries here: W007, W008, ... -->
+<!-- Add W-series entries here: W009, W010, ... -->
+
+### W009 — SVG arc gauge via stroke-dashoffset + CSS transition
+**What happened:** Built ArcGauge entirely in SVG with a single CSS `stroke-dashoffset`
+transition — no JavaScript animation loop, no Framer Motion, no RAF.
+**Pattern:**
+- `arcLength = (240/360) * circumference` — the visible 240° sweep
+- `stroke-dasharray: arcLength circumference` — dash covers the full sweep
+- `stroke-dashoffset` starts at `arcLength` (0% fill), transitions to `arcLength * (1 - value/100)`
+- `transform="rotate(150, cx, cy)"` — centres the 120° gap at 6 o'clock
+- `transition: stroke-dashoffset 1s ease-out` — smooth browser animation, zero JS
+- Trigger via `useEffect(() => setTimeout(() => setDisplayed(value), 50))` to defer render
+**Why it works:** The initial render shows no arc; the timeout triggers a re-render with the
+target dashoffset, and the CSS transition runs autonomously. No animation library needed.
+**Applies to:** Any SVG arc/circle gauge, progress ring, or radial indicator.
 
 ### W007 — AnimatedNumber component pattern for useCountUp in .map()
 **What happened:** `useCountUp` is a hook and can't be called inside a `.map()` callback. Created

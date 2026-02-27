@@ -40,7 +40,7 @@ import { api, friendlyApiError } from "@/lib/api-client";
 import { formatDate, naturalCompare, cn } from "@/lib/utils";
 import { getActionLabel } from "@/lib/audit";
 import { getRiskScore } from "@/lib/risk-categories";
-import type { ActionPriority, ActionChange, ControlChange, RiskChange, ConsumerDutyOutcome } from "@/lib/types";
+import type { ActionPriority, ActionChange, ControlChange, RiskChange } from "@/lib/types";
 import { useHasPermission, usePermissionSet } from "@/lib/usePermission";
 import type { ComplianceStatus, DashboardLayoutConfig } from "@/lib/types";
 import ScoreBadge from "@/components/risk-register/ScoreBadge";
@@ -67,6 +67,11 @@ import { CSS } from "@dnd-kit/utilities";
 import WelcomeBanner from "@/components/common/WelcomeBanner";
 import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 import { HorizonDashboardWidget } from "@/components/horizon/HorizonDashboardWidget";
+import RiskMatrix from "@/components/dashboard/RiskMatrix";
+import RiskTrendChart from "@/components/dashboard/RiskTrendChart";
+import ActionPipeline from "@/components/dashboard/ActionPipeline";
+import CDRadialRing from "@/components/dashboard/CDRadialRing";
+import DomainScorecardRow from "@/components/dashboard/DomainScorecardRow";
 
 function daysUntilDue(dueDate: string | null): number | null {
   if (!dueDate) return null;
@@ -1546,6 +1551,9 @@ export default function DashboardHome() {
             <AnimatedNumber value={actionStats.completed} delay={300} className="text-2xl font-bold font-poppins text-blue-700" />
           </Link>
         </div>
+        <div className="mt-4">
+          <ActionPipeline actions={actions} priorityStats={priorityStats} />
+        </div>
       </div>
     ) : null,
 
@@ -1781,7 +1789,7 @@ export default function DashboardHome() {
       </div>
     ) : null,
 
-    "consumer-duty": hasConsumerDutyPage ? <ConsumerDutySummaryWidget outcomes={outcomes} /> : null,
+    "consumer-duty": hasConsumerDutyPage ? <CDRadialRing outcomes={outcomes} /> : null,
 
     "risk-summary": hasRiskRegisterPage ? (
       <div className="card-entrance card-entrance-5">
@@ -1804,8 +1812,27 @@ export default function DashboardHome() {
             <AnimatedNumber value={risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) > 12).length} delay={240} className="text-2xl font-bold font-poppins text-red-700" />
           </Link>
         </div>
+        <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="bento-card">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Risk Landscape</h3>
+            <RiskMatrix risks={risks} onNavigate={(id) => router.push(`/risk-register?risk=${id}`)} />
+          </div>
+          <div className="bento-card">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Portfolio Trend</h3>
+            <RiskTrendChart risks={risks} />
+          </div>
+        </div>
       </div>
     ) : null,
+
+    "programme-health": (
+      <DomainScorecardRow
+        risks={risks}
+        actions={actions}
+        outcomes={outcomes}
+        complianceHealth={complianceHealth}
+      />
+    ),
 
     "reports": hasReportsPage ? (
       <div className="bento-card">
@@ -2072,103 +2099,3 @@ export default function DashboardHome() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Consumer Duty summary widget — compact, animated card for the main dashboard
-// ---------------------------------------------------------------------------
-function ConsumerDutySummaryWidget({ outcomes }: { outcomes: ConsumerDutyOutcome[] }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setMounted(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-
-  const good    = outcomes.filter((o) => o.ragStatus === "GOOD").length;
-  const warning = outcomes.filter((o) => o.ragStatus === "WARNING").length;
-  const harm    = outcomes.filter((o) => o.ragStatus === "HARM").length;
-  const total   = outcomes.length || 1;
-
-  return (
-    <div className="bento-card">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="font-poppins font-semibold text-gray-900">Consumer Duty</h2>
-        <Link
-          href="/consumer-duty"
-          className="text-xs text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1 transition-colors"
-        >
-          Full dashboard <ArrowRight className="h-3 w-3" />
-        </Link>
-      </div>
-
-      {/* Animated RAG distribution bar */}
-      <div className="flex h-2.5 rounded-full overflow-hidden bg-gray-100 mb-1.5">
-        <div
-          className="h-full bg-green-500 transition-all duration-700 ease-out"
-          style={{ width: mounted ? `${(good / total) * 100}%` : "0%", transitionDelay: "0ms" }}
-        />
-        <div
-          className="h-full bg-amber-400 transition-all duration-700 ease-out"
-          style={{ width: mounted ? `${(warning / total) * 100}%` : "0%", transitionDelay: "120ms" }}
-        />
-        <div
-          className="h-full bg-red-500 transition-all duration-700 ease-out"
-          style={{ width: mounted ? `${(harm / total) * 100}%` : "0%", transitionDelay: "240ms" }}
-        />
-      </div>
-
-      {/* RAG legend */}
-      <p className="text-[11px] text-gray-400 mb-4">
-        <span className="text-green-600 font-semibold">{good} Green</span>
-        <span className="mx-1.5 text-gray-300">·</span>
-        <span className="text-amber-600 font-semibold">{warning} Amber</span>
-        <span className="mx-1.5 text-gray-300">·</span>
-        <span className="text-red-600 font-semibold">{harm} Red</span>
-        <span className="mx-1.5 text-gray-300">·</span>
-        <span>{outcomes.length} outcomes</span>
-      </p>
-
-      {/* Compact outcome grid — staggered fade-in */}
-      <div className="grid grid-cols-2 gap-2">
-        {outcomes.map((outcome, i) => {
-          const isGood = outcome.ragStatus === "GOOD";
-          const isWarn = outcome.ragStatus === "WARNING";
-          return (
-            <Link
-              key={outcome.id}
-              href={`/consumer-duty?outcome=${outcome.id}`}
-              className={cn(
-                "rounded-lg pl-3 pr-2 py-2 hover:shadow-md",
-                isGood ? "border-l-[3px] border-green-500 bg-green-50 hover:bg-green-100/60" :
-                isWarn ? "border-l-[3px] border-amber-400 bg-amber-50 hover:bg-amber-100/60" :
-                         "border-l-[3px] border-red-500 bg-red-50 hover:bg-red-100/60"
-              )}
-              style={{
-                opacity: mounted ? 1 : 0,
-                transform: mounted ? "translateY(0)" : "translateY(6px)",
-                transitionProperty: "opacity, transform, box-shadow",
-                transitionDuration: "350ms",
-                transitionTimingFunction: "ease",
-                transitionDelay: `${i * 55}ms`,
-              }}
-            >
-              <p className="text-xs font-medium text-gray-900 leading-tight truncate">{outcome.name}</p>
-              <div className="flex items-center gap-1 mt-0.5">
-                <span className={cn(
-                  "text-[10px] font-semibold",
-                  isGood ? "text-green-700" : isWarn ? "text-amber-700" : "text-red-700"
-                )}>
-                  {isGood ? "Green" : isWarn ? "Amber" : "Red"}
-                </span>
-                {(outcome.measures ?? []).length > 0 && (
-                  <span className="text-[10px] text-gray-400 font-normal">
-                    · {(outcome.measures ?? []).length} measures
-                  </span>
-                )}
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
