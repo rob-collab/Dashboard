@@ -1,7 +1,52 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-27 (Sprint G: Dark Mode MVP)
+Last updated: 2026-02-27 (Sprint H: Dashboard Enhancements — bugs, animations, rolling tickers)
 
-## CURRENT SPRINT: Sprint G — Dark Mode MVP
+## CURRENT SPRINT: Sprint H — Dashboard Enhancements
+
+### Context
+13-item multi-request sprint covering dashboard bug fixes, animated components, and UX improvements:
+- H1–H3: Bug fixes (Policy Health overdue count, Controls Library label overflow, Risks in Focus alignment)
+- H4/H5: Consumer Duty section — replace radar chart with rolling ticker (Outcomes/Measures/Green/Amber/Red)
+- H6: Action Required — animated component with pulsing title and rolling ticker
+- H9: Scroll animations — ScrollReveal wrapper re-fires on both scroll directions
+- H7: Control health trend graph (pending)
+- H8: Quarterly Summary on dashboard (pending)
+- H10: Dynamic text resize as sections resize (pending)
+- H11–H13: Inner element drag/resize/hide within cards (pending — sub-sprint)
+
+### Files Changed (Phase 1 — H1–H6, H9)
+| # | File | Change |
+|---|---|---|
+| 1 | `src/app/page.tsx` | H1 overdue fix, H2 label truncation, H3 shrink guards, H9 ScrollReveal wrapping, imports |
+| 2 | `src/components/dashboard/CDRadialRing.tsx` | H4/H5 — complete rewrite: rolling ticker replaces radar chart |
+| 3 | `src/components/dashboard/ActionRequiredSection.tsx` | H6 — NEW: animated component with pulsing title + rolling ticker |
+| 4 | `src/components/common/ScrollReveal.tsx` | H9 — NEW: IntersectionObserver-based scroll reveal (re-fires bidirectionally) |
+
+### Build: ✅ PASSING (zero TypeScript errors, 92/92 pages)
+
+### Acceptance Criteria — Phase 1
+- [x] H1: Policy Health overdue count uses date-based logic (matches PoliciesTab.tsx)
+- [x] H2: Controls Library tiles have truncated labels + title tooltips + overflow-hidden
+- [x] H3: Risks in Focus row guards — shrink-0 on ScoreBadge/arrow, min-w-0 on row, first-name truncation
+- [x] H4/H5: CDRadialRing has rolling ticker cycling Outcomes → Measures → Green → Amber → Red
+- [x] H4/H5: Ticker fades smoothly, hover-pauses, has dot pager, click-through to /consumer-duty
+- [x] H4/H5: Outcome grid below ticker preserved with RAG colour left-border cards
+- [x] H6: ActionRequiredSection component — AlertTriangle + title pulse via rag-pulse when count > 0
+- [x] H6: Rolling ticker flattens all group items, shows category + fade + dot pager + hover pause
+- [x] H6: Compact group summary row below ticker
+- [x] H9: ScrollReveal.tsx uses native IntersectionObserver (no Framer Motion)
+- [x] H9: Re-fires on both scroll directions (threshold 0.05, rootMargin 30px bottom)
+- [x] H9: Desktop grid sections wrapped in ScrollReveal
+- [x] H9: Mobile stacked sections wrapped in ScrollReveal
+- [x] Build passes — zero errors, 92/92 pages
+- [ ] H7: Control health trend graph added (pending)
+- [ ] H8: Quarterly Summary table on dashboard (pending)
+- [ ] H10: Dynamic text resize (pending)
+- [ ] H11–H13: Inner element drag/resize/hide (pending sub-sprint)
+
+---
+
+## CURRENT SPRINT: Sprint G — Dark Mode MVP ✅ COMPLETE
 
 ### Context
 User requested dark mode. Zero dark-mode prep existed in the codebase (no dark: Tailwind

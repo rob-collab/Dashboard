@@ -59,6 +59,8 @@ import RiskTrendChart from "@/components/dashboard/RiskTrendChart";
 import ActionPipeline from "@/components/dashboard/ActionPipeline";
 import CDRadialRing from "@/components/dashboard/CDRadialRing";
 import DomainScorecardRow from "@/components/dashboard/DomainScorecardRow";
+import ActionRequiredSection from "@/components/dashboard/ActionRequiredSection";
+import ScrollReveal from "@/components/common/ScrollReveal";
 
 function daysUntilDue(dueDate: string | null): number | null {
   if (!dueDate) return null;
@@ -1083,39 +1085,7 @@ export default function DashboardHome() {
         });
       }
 
-      return (
-        <div className="bento-card border-l-4 border-l-red-400">
-          <div className="flex items-center gap-2 mb-4">
-            <AlertTriangle className="h-5 w-5 text-red-500" />
-            <h2 className="text-base font-bold text-updraft-deep font-poppins">Action Required</h2>
-            <span className="ml-auto text-xs text-gray-400">{groups.reduce((s, g) => s + g.count, 0)} item{groups.reduce((s, g) => s + g.count, 0) !== 1 ? "s" : ""} need attention</span>
-          </div>
-          <div className={`grid grid-cols-1 gap-3 ${groups.length > 1 ? "sm:grid-cols-2" : ""}`}>
-            {groups.map((g) => (
-              <div key={g.label} className={`rounded-xl border ${g.colour} p-3`}>
-                <div className="flex items-center gap-1.5 mb-2">
-                  <span className={g.colour.split(" ")[0]}>{g.icon}</span>
-                  <span className={`text-xs font-semibold ${g.colour.split(" ")[0]}`}>{g.label}</span>
-                  <span className={`ml-auto text-xs font-bold ${g.colour.split(" ")[0]}`}>{g.count}</span>
-                </div>
-                <div className="space-y-1">
-                  {g.items.map((item, i) => (
-                    <Link key={i} href={item.href} className="flex items-center justify-between hover:opacity-80 transition-opacity">
-                      <span className="text-xs text-gray-700 truncate flex-1 min-w-0">{item.label}</span>
-                      {item.sub && <span className="text-[10px] text-gray-400 ml-2 shrink-0">{item.sub}</span>}
-                    </Link>
-                  ))}
-                  {g.count > 3 && (
-                    <Link href={g.href} className={`text-[10px] font-medium ${g.colour.split(" ")[0]} hover:underline`}>
-                      +{g.count - 3} more
-                    </Link>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
+      return <ActionRequiredSection groups={groups} />;
     })(),
 
     "priority-actions": (
@@ -2169,7 +2139,9 @@ export default function DashboardHome() {
                           <Pin size={8} /> Required
                         </div>
                       )}
-                      {sectionMap[item.i] ?? null}
+                      <ScrollReveal className="h-full">
+                        {sectionMap[item.i] ?? null}
+                      </ScrollReveal>
                     </div>
                   );
                 })}
@@ -2181,7 +2153,9 @@ export default function DashboardHome() {
             {effectiveGrid
               .filter((item) => !effectiveHidden.has(item.i))
               .map((item) => (
-                <div key={item.i}>{sectionMap[item.i] ?? null}</div>
+                <ScrollReveal key={item.i}>
+                  {sectionMap[item.i] ?? null}
+                </ScrollReveal>
               ))}
           </div>
         </>
