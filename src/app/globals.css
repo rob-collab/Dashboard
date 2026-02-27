@@ -370,3 +370,168 @@ body > * {
 .rgl-drag-handle {
   user-select: none;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DARK MODE — global overrides
+   Strategy: .dark class on <html> (managed by next-themes).
+   Section A — CSS variable overrides (handles bento-card, panel-surface, etc.)
+   Section B — Tailwind utility class remapping (263+ bg-white, bg-gray-*, etc.)
+   Section C — Component-specific overrides
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Section A: CSS variable overrides ──────────────────────────────────── */
+.dark {
+  --background:    #0F0E1A;
+  --foreground:    #EAE8F4;
+  --surface-warm:  #1A1829;
+  --surface-muted: #15141F;
+  --surface-dark:  #0A0914;
+  --border-warm:   #2D2B3D;
+  --text-secondary:#8D8BA3;
+}
+
+.dark body {
+  color: var(--foreground);
+  background: var(--background);
+}
+
+/* ── Section B: Tailwind utility class remapping ────────────────────────── */
+
+/* Backgrounds */
+.dark .bg-white          { background-color: #1A1829 !important; }
+.dark .bg-gray-50        { background-color: #15141F !important; }
+.dark .bg-gray-100       { background-color: #1F1D2E !important; }
+.dark .bg-gray-200       { background-color: #2A2838 !important; }
+.dark .bg-gray-300       { background-color: #353246 !important; }
+.dark .bg-gray-400       { background-color: #403D54 !important; }
+.dark .bg-gray-800       { background-color: #EAE8F4 !important; }
+.dark .bg-gray-900       { background-color: #F0EEF8 !important; }
+
+/* Semi-transparent background variants */
+.dark .bg-white\/50      { background-color: rgba(26,24,41,0.5) !important; }
+.dark .bg-white\/90      { background-color: rgba(26,24,41,0.9) !important; }
+.dark .bg-white\/80      { background-color: rgba(26,24,41,0.8) !important; }
+.dark .bg-white\/70      { background-color: rgba(26,24,41,0.7) !important; }
+.dark .bg-white\/60      { background-color: rgba(26,24,41,0.6) !important; }
+.dark .bg-gray-50\/50    { background-color: rgba(21,20,31,0.5) !important; }
+.dark .bg-gray-50\/80    { background-color: rgba(21,20,31,0.8) !important; }
+.dark .bg-gray-100\/50   { background-color: rgba(31,29,46,0.5) !important; }
+.dark .bg-gray-100\/80   { background-color: rgba(31,29,46,0.8) !important; }
+
+/* Text colours */
+.dark .text-gray-900     { color: #EAE8F4 !important; }
+.dark .text-gray-800     { color: #D4D0E8 !important; }
+.dark .text-gray-700     { color: #B8B4CC !important; }
+.dark .text-gray-600     { color: #9D99B0 !important; }
+.dark .text-gray-500     { color: #7A7690 !important; }
+.dark .text-gray-400     { color: #5C5870 !important; }
+
+/* Borders */
+.dark .border-gray-50    { border-color: #1A1829 !important; }
+.dark .border-gray-100   { border-color: #222032 !important; }
+.dark .border-gray-200   { border-color: #2D2B3D !important; }
+.dark .border-gray-300   { border-color: #3A3750 !important; }
+.dark .border-white      { border-color: #2D2B3D !important; }
+
+/* Hover states */
+.dark .hover\:bg-gray-50:hover   { background-color: #1F1D2E !important; }
+.dark .hover\:bg-gray-100:hover  { background-color: #252335 !important; }
+.dark .hover\:bg-gray-200:hover  { background-color: #2A2838 !important; }
+.dark .hover\:bg-white:hover     { background-color: #252335 !important; }
+
+/* Divide lines */
+.dark .divide-gray-100 > * + * { border-color: #222032 !important; }
+.dark .divide-gray-200 > * + * { border-color: #2D2B3D !important; }
+
+/* ── Section C: Component-specific overrides ────────────────────────────── */
+
+/* bento-card — richer shadow on dark bg */
+.dark .bento-card {
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.3),
+    0 4px 8px rgba(0,0,0,0.25),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+  border-color: #2D2B3D;
+}
+.dark .bento-card:hover {
+  border-color: #453F60;
+  box-shadow:
+    0 2px 4px rgba(0,0,0,0.35),
+    0 8px 16px rgba(0,0,0,0.3),
+    0 0 0 1px rgba(123,31,162,0.2),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+/* panel-surface — frosted glass for slide-out panels */
+.dark .panel-surface {
+  background: rgba(26,24,41,0.97);
+}
+
+/* Noise texture — reduce opacity in dark mode */
+.dark body::before { opacity: 0.08; }
+
+/* Scrollbar dark mode */
+.dark ::-webkit-scrollbar-thumb { background: #453F60; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #673AB7; }
+
+/* Input / textarea / select */
+.dark input:not([type="checkbox"]):not([type="radio"]),
+.dark textarea,
+.dark select {
+  background-color: #15141F !important;
+  border-color: #2D2B3D !important;
+  color: #EAE8F4 !important;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #5C5870 !important;
+}
+
+/* Table headers */
+.dark thead tr { background-color: #15141F !important; }
+
+/* Overdue row highlight — darker tint so text stays readable */
+.dark .row-overdue {
+  background: linear-gradient(90deg, rgba(220,38,38,0.08) 0%, transparent 100%);
+}
+
+/* skeleton shimmer — dark mode colours */
+.dark .skeleton-shimmer {
+  background: linear-gradient(90deg, #1A1829 25%, #252335 50%, #1A1829 75%);
+  background-size: 200% 100%;
+}
+
+/* Mobile hamburger bar — dark bg */
+.dark .bg-white\/90 { background-color: rgba(26,24,41,0.9) !important; }
+
+/* Recharts chart elements */
+.dark .recharts-cartesian-grid-horizontal line,
+.dark .recharts-cartesian-grid-vertical line { stroke: #2A2838; }
+.dark .recharts-text { fill: #7A7690; }
+.dark .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: #1A1829 !important;
+  border-color: #2D2B3D !important;
+  color: #EAE8F4 !important;
+}
+
+/* Modal overlay backdrop — keep dark even in dark mode */
+.dark .bg-black\/50 { background-color: rgba(0,0,0,0.7) !important; }
+.dark .bg-black\/40 { background-color: rgba(0,0,0,0.6) !important; }
+
+/* Tiptap editor dark mode */
+.dark .tiptap {
+  color: #EAE8F4;
+}
+.dark .tiptap table th {
+  background: #15141F;
+}
+.dark .tiptap table th,
+.dark .tiptap table td {
+  border-color: #2D2B3D;
+}
+
+/* react-grid-layout placeholder in dark mode */
+.dark .react-grid-item.react-grid-placeholder {
+  background: rgba(123, 31, 162, 0.12) !important;
+  border-color: rgba(123, 31, 162, 0.3) !important;
+}

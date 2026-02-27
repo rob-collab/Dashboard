@@ -12,6 +12,7 @@ import { ScrollToTop } from "@/components/common/ScrollToTop";
 import NavigationBackButton from "@/components/common/NavigationBackButton";
 import SaveStatusIndicator from "@/components/common/SaveStatusIndicator";
 import Breadcrumb from "@/components/common/Breadcrumb";
+import { ThemeProvider } from "next-themes";
 import { useAppStore } from "@/lib/store";
 import type { User } from "@/lib/types";
 import { Menu, Search, Bell } from "lucide-react";
@@ -291,7 +292,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <title>Updraft CCRO Dashboard</title>
         <meta name="description" content="Chief Compliance & Risk Officer Dashboard — governance, risk and controls management" />
@@ -305,9 +306,11 @@ export default function RootLayout({
         <meta name="theme-color" content="#311B92" />
       </head>
       <body className="font-inter antialiased bg-bg-light text-text-primary">
-        <SessionProvider>
-          <AppShell>{children}</AppShell>
-        </SessionProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <SessionProvider>
+            <AppShell>{children}</AppShell>
+          </SessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

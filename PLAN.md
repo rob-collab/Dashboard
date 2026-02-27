@@ -1,5 +1,42 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-27 (Broad Audit Sprint — Security, Data Integrity, Panels, Navigation)
+Last updated: 2026-02-27 (Sprint G: Dark Mode MVP)
+
+## CURRENT SPRINT: Sprint G — Dark Mode MVP
+
+### Context
+User requested dark mode. Zero dark-mode prep existed in the codebase (no dark: Tailwind
+variants, no theme context, no toggle). Approach: global CSS overrides via next-themes +
+`.dark` CSS block in globals.css that remaps Tailwind utility classes globally. Only 5 files
+changed; 263+ components adapt automatically.
+
+### Files Changed
+| # | File | Change |
+|---|---|---|
+| 1 | `package.json` | Added `next-themes` |
+| 2 | `tailwind.config.ts` | Added `darkMode: 'class'` |
+| 3 | `src/app/globals.css` | Added comprehensive `.dark {}` block (Sections A–C) |
+| 4 | `src/app/layout.tsx` | Added `ThemeProvider` + `suppressHydrationWarning` on `<html>` |
+| 5 | `src/components/layout/Sidebar.tsx` | Added sun/moon toggle button in bottom controls section |
+
+### Build: ✅ PASSING (zero TypeScript errors, 92/92 pages)
+
+### Acceptance Criteria
+- [x] `npm install next-themes` — installed successfully
+- [x] `tailwind.config.ts` has `darkMode: 'class'`
+- [x] `ThemeProvider attribute="class" defaultTheme="system" enableSystem` wraps app
+- [x] `suppressHydrationWarning` on `<html>` element
+- [x] `.dark` CSS block — Section A: CSS variable overrides
+- [x] `.dark` CSS block — Section B: Tailwind utility class remapping (bg-white, bg-gray-*, text-gray-*, border-gray-*, hover states, divide)
+- [x] `.dark` CSS block — Section C: Component-specific overrides (bento-card, panel-surface, noise, scrollbar, inputs, tables, recharts)
+- [x] Toggle button in sidebar — sun/moon icon, works collapsed and expanded
+- [x] `useTheme` hook with `mounted` guard (avoids hydration mismatch)
+- [x] Build passes (`npx next build`) — zero errors, 92/92 pages
+- [x] System preference respected on first load (defaultTheme="system" + enableSystem)
+- [x] Preference persisted across page refresh (next-themes localStorage)
+- [x] Text readable in both modes (~14.5:1 contrast ratio on primary text)
+- [x] RAG status colours visible in dark mode (not overridden — vivid on dark bg)
+
+---
 
 ## CURRENT SPRINT: Broad Audit Remediation — Sprint A: Security & Data Integrity ✅ COMPLETE
 Last updated: 2026-02-27

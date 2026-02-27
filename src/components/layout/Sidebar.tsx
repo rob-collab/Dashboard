@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
+import { useTheme } from "next-themes";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -30,6 +31,8 @@ import {
   Calendar,
   Download,
   Radar,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import type { User } from "@/lib/types";
@@ -100,6 +103,9 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
   const [collapsedInternal, setCollapsedInternal] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const collapsed = collapsedProp ?? collapsedInternal;
+  const { resolvedTheme, setTheme } = useTheme();
+  const [themeMounted, setThemeMounted] = useState(false);
+  useEffect(() => setThemeMounted(true), []);
   const pathname = usePathname();
   const userMenuRef = useRef<HTMLDivElement>(null);
   const storeUsers = useAppStore((s) => s.users);
@@ -460,6 +466,20 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
           {!collapsed && <span>Collapse</span>}
         </button>
+        {themeMounted && (
+          <button
+            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+            className={cn(
+              "flex w-full items-center justify-center gap-2 rounded-lg border py-2 text-xs transition-colors",
+              t.borderBtn, t.textMuted, t.hoverBg, t.hoverTextStrong
+            )}
+            aria-label={resolvedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            title={resolvedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {resolvedTheme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
+            {!collapsed && <span>{resolvedTheme === "dark" ? "Light mode" : "Dark mode"}</span>}
+          </button>
+        )}
       </div>
 
       {/* User Section */}

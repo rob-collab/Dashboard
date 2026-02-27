@@ -176,7 +176,7 @@ This works at any target without config changes.
 
 ---
 
-<!-- Add new L-series entries here: L019, ... -->
+<!-- Add new L-series entries here: L020, ... -->
 
 ### L018 — Context compaction silently drops open questions; "continue" does not cancel them
 **What happened:** Open questions were asked of the user in a previous session. The conversation
@@ -255,6 +255,25 @@ page content, not over an opaque overlay.
 bugs. For any visual change, manually verify in a real browser before pushing to production.
 **Trigger:** Any change to a component used in more than one place; any use of `backdrop-filter`.
 **Status:** Active.
+
+---
+
+### W015 — Global CSS override strategy for dark mode (next-themes + .dark utility remapping)
+**What happened:** Added dark mode MVP to a codebase with 263+ `bg-white` uses and 304+ `bg-gray-*` uses — without touching a single component file.
+**Pattern:**
+1. `darkMode: 'class'` in `tailwind.config.ts`
+2. `next-themes` with `ThemeProvider attribute="class" defaultTheme="system" enableSystem` — adds `.dark` to `<html>`; handles localStorage + system pref + SSR flash
+3. `suppressHydrationWarning` on `<html>` (required — next-themes modifies class server/client)
+4. In `globals.css`, a `.dark {}` block with three sections:
+   - **Section A**: CSS variable overrides (handles custom-class components like `.bento-card`, `.panel-surface` automatically)
+   - **Section B**: Tailwind utility class remapping — `.dark .bg-white { background-color: ... !important; }` — covers all 263+ components without touching them
+   - **Section C**: Component-specific overrides (shadows, inputs, recharts, modals)
+5. Toggle: `useTheme()` from next-themes in the sidebar. Use a `mounted` state guard to avoid SSR mismatch — render the toggle only after `useEffect(() => setMounted(true), [])`.
+**Why `!important` on utility overrides:** Tailwind utilities are all equal specificity. The `.dark` prefix alone doesn't win specificity — `!important` ensures the override always wins.
+**RAG colours (green/amber/red):** Do NOT override. They remain vivid on dark backgrounds and provide better visual pop than overriding.
+**Print styles:** Do NOT include in dark mode overrides. Ensure print styles use `!important` for `background: white` so they win over the `.dark` block.
+**Applies to:** Any project-wide dark mode implementation without component-level `dark:` variants.
+**Status:** Candidate for promotion to patterns.md at sprint retrospective.
 
 ---
 
