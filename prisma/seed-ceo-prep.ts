@@ -198,13 +198,13 @@ async function main() {
     await prisma.consumerDutyMeasure.upsert({
       where: { id: m.id },
       // Do NOT update position — positions are managed by DB migration, not seed
-      update: { name: m.name, owner: m.owner, ragStatus: m.ragStatus, summary: m.summary },
+      update: { name: m.name, ownerId: m.owner, ragStatus: m.ragStatus, summary: m.summary },
       create: {
         id: m.id,
         outcomeId: m.outcomeId,
         measureId: m.measureId,
         name: m.name,
-        owner: m.owner,
+        ownerId: m.owner,
         ragStatus: m.ragStatus,
         summary: m.summary,
         position: m.position,

@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { api } from "@/lib/api-client";
 import { cn, formatDateShort } from "@/lib/utils";
 import type { Action, ActionStatus } from "@/lib/types";
@@ -117,6 +118,7 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
   const [proposalReason, setProposalReason] = useState("");
   const [savingIssue, setSavingIssue] = useState(false);
   const [savingComplete, setSavingComplete] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   // Reset when action changes
   useEffect(() => {
@@ -245,7 +247,12 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
 
   function handleDelete() {
     if (!action) return;
-    if (!confirm("Are you sure you want to delete this action?")) return;
+    setDeleteConfirmOpen(true);
+  }
+
+  function handleDeleteConfirmed() {
+    if (!action) return;
+    setDeleteConfirmOpen(false);
     deleteAction(action.id);
     onClose();
   }
@@ -768,6 +775,14 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
 
         </div>
       </motion.div>
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={handleDeleteConfirmed}
+        title="Delete action"
+        message="Are you sure you want to delete this action? This action cannot be undone."
+        confirmLabel="Delete"
+      />
     </>
   );
 }

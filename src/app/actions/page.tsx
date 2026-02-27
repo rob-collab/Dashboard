@@ -42,6 +42,7 @@ import { MotionListDiv } from "@/components/motion/MotionList";
 import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 import { SkeletonStatRow, SkeletonTable } from "@/components/common/SkeletonLoader";
 import { MotionDiv } from "@/components/motion/MotionRow";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const STATUS_CONFIG: Record<ActionStatus, { label: string; color: string; bgColor: string; icon: typeof Circle }> = {
   OPEN: { label: "Open", color: "text-blue-600", bgColor: "bg-blue-100 text-blue-700", icon: Circle },
@@ -161,6 +162,7 @@ function ActionsPageContent() {
   const [bulkReassignTo, setBulkReassignTo] = useState("");
   const [showBulkReassign, setShowBulkReassign] = useState(false);
   const [reminderSending, setReminderSending] = useState(false);
+  const [bulkCompleteConfirmOpen, setBulkCompleteConfirmOpen] = useState(false);
   const [lastRemindedAt, setLastRemindedAt] = useState<Date | null>(() => {
     try {
       const s = localStorage.getItem("actions-last-reminded");
@@ -299,8 +301,12 @@ function ActionsPageContent() {
   const handleBulkClose = useCallback(async () => {
     const ids = Array.from(selectedIds);
     if (!ids.length) return;
-    const confirmed = confirm(`Mark ${ids.length} action${ids.length === 1 ? "" : "s"} as Completed?`);
-    if (!confirmed) return;
+    setBulkCompleteConfirmOpen(true);
+  }, [selectedIds]);
+
+  const handleBulkCloseConfirmed = useCallback(async () => {
+    setBulkCompleteConfirmOpen(false);
+    const ids = Array.from(selectedIds);
     for (const id of ids) {
       updateAction(id, { status: "COMPLETED", completedAt: new Date().toISOString() });
     }
@@ -882,12 +888,19 @@ function ActionsPageContent() {
                       <p className="text-xs text-gray-400 truncate">{action.reportPeriod || action.source}{action.sectionTitle ? ` → ${action.sectionTitle}` : ""}</p>
                     </div>
 
-                    {/* Owner */}
-                    <div className="hidden sm:flex items-center gap-1.5 shrink-0 w-32">
+                    {/* Owner — click to filter by this assignee */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (action.assignedTo) setOwnerFilter(action.assignedTo);
+                      }}
+                      title={owner ? `Filter by ${owner.name}` : undefined}
+                      className="hidden sm:flex items-center gap-1.5 shrink-0 w-32 rounded-md px-1 -mx-1 hover:bg-gray-100 transition-colors"
+                    >
                       {owner ? (
                         <span
                           className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-updraft-bar text-white text-[9px] font-bold shrink-0"
-                          title={owner.name}
                         >
                           {owner.name.split(" ").map((n: string) => n[0]).slice(0, 2).join("")}
                         </span>
@@ -895,7 +908,7 @@ function ActionsPageContent() {
                         <User size={13} className="text-gray-400" />
                       )}
                       <span className="text-xs text-gray-600 truncate">{owner?.name || "Unassigned"}</span>
-                    </div>
+                    </button>
 
                     {/* Due Date */}
                     <div className={cn("hidden sm:flex items-center gap-1.5 shrink-0 w-28", dueDateColor(action))}>
@@ -983,6 +996,16 @@ function ActionsPageContent() {
         action={selectedAction}
         onClose={() => setSelectedActionId(null)}
         onEdit={(action) => { setEditAction(action); setShowForm(true); }}
+      />
+
+      <ConfirmDialog
+        open={bulkCompleteConfirmOpen}
+        onClose={() => setBulkCompleteConfirmOpen(false)}
+        onConfirm={handleBulkCloseConfirmed}
+        title={`Mark ${selectedIds.size} action${selectedIds.size === 1 ? "" : "s"} as Completed`}
+        message="This will mark all selected actions as Completed. This action cannot be undone in bulk."
+        confirmLabel="Mark as Completed"
+        variant="warning"
       />
     </div>
   );

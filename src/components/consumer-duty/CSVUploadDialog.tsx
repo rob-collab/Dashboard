@@ -151,7 +151,7 @@ export default function CSVUploadDialog({
             outcomeId: m.outcomeId,
             measureId: m.measureId,
             name: m.name,
-            owner: m.owner || null,
+            ownerId: m.owner || null,
             summary: m.summary,
             ragStatus: m.ragStatus,
             position: isNaN(pos) ? 0 : pos,

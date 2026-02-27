@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, Fragment } from "react";
+import Link from "next/link";
 import type { ConsumerDutyOutcome, RAGStatus } from "@/lib/types";
 import { cn, ragBgColor, ragLabelShort } from "@/lib/utils";
 import { Check } from "lucide-react";
@@ -143,12 +144,16 @@ export default function AdminRAGPanel({
                       </span>
                     </td>
                     <td className="px-4 py-2 pl-8 text-gray-600 max-w-[280px]">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="font-medium text-gray-500 shrink-0">
+                      <Link
+                        href={`/consumer-duty?measure=${measure.id}`}
+                        className="flex items-center gap-1.5 min-w-0 group/ml hover:text-updraft-bright-purple transition-colors"
+                        title={`Open ${measure.name} in Consumer Duty`}
+                      >
+                        <span className="font-medium text-gray-500 shrink-0 group-hover/ml:text-updraft-bright-purple transition-colors">
                           {measure.measureId}
                         </span>
-                        <span className="truncate" title={measure.name}>{measure.name}</span>
-                      </div>
+                        <span className="truncate group-hover/ml:underline">{measure.name}</span>
+                      </Link>
                     </td>
                     <td className="px-4 py-2">
                       <div className="flex justify-center">

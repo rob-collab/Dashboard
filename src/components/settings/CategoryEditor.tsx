@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Plus, Trash2, Save, Pencil, X } from "lucide-react";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
 import type { RiskCategoryDB } from "@/lib/types";
@@ -18,6 +19,8 @@ export default function CategoryEditor() {
   const [newName, setNewName] = useState("");
   const [newDefinition, setNewDefinition] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deleteSubcatConfirmOpen, setDeleteSubcatConfirmOpen] = useState(false);
+  const [pendingDeleteSubcatId, setPendingDeleteSubcatId] = useState<string | null>(null);
 
   function toggleL1(id: string) {
     setExpandedL1((prev) => {
@@ -95,8 +98,16 @@ export default function CategoryEditor() {
     }
   }
 
-  async function deleteSubcategory(id: string) {
-    if (!confirm("Delete this subcategory? This cannot be undone.")) return;
+  function deleteSubcategory(id: string) {
+    setPendingDeleteSubcatId(id);
+    setDeleteSubcatConfirmOpen(true);
+  }
+
+  async function deleteSubcategoryConfirmed() {
+    if (!pendingDeleteSubcatId) return;
+    setDeleteSubcatConfirmOpen(false);
+    const id = pendingDeleteSubcatId;
+    setPendingDeleteSubcatId(null);
     setSaving(true);
     try {
       await api(`/api/risk-categories?id=${id}`, { method: "DELETE" });
@@ -317,6 +328,15 @@ export default function CategoryEditor() {
           </div>
         ))}
       </div>
+      <ConfirmDialog
+        open={deleteSubcatConfirmOpen}
+        onClose={() => setDeleteSubcatConfirmOpen(false)}
+        onConfirm={deleteSubcategoryConfirmed}
+        title="Delete subcategory"
+        message="Are you sure you want to delete this subcategory? This action cannot be undone."
+        confirmLabel="Delete"
+        loading={saving}
+      />
     </div>
   );
 }

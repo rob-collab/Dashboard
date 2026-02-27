@@ -10,6 +10,7 @@ import type { TemplateFormData } from "@/components/templates/TemplateFormDialog
 import type { Template } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { logAuditEvent } from "@/lib/audit";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 export default function TemplatesPanel() {
   const router = useRouter();
@@ -20,6 +21,8 @@ export default function TemplatesPanel() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [pendingDeleteTemplate, setPendingDeleteTemplate] = useState<Template | null>(null);
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -83,16 +86,19 @@ export default function TemplatesPanel() {
 
   const handleDelete = useCallback(
     (template: Template) => {
-      const confirmed = window.confirm(
-        `Are you sure you want to delete "${template.name}"? This action cannot be undone.`
-      );
-      if (confirmed) {
-        deleteTemplate(template.id);
-        logAuditEvent({ action: "delete_template", entityType: "template", entityId: template.id, changes: { name: template.name } });
-      }
+      setPendingDeleteTemplate(template);
+      setDeleteConfirmOpen(true);
     },
-    [deleteTemplate]
+    []
   );
+
+  const handleDeleteConfirmed = useCallback(() => {
+    if (!pendingDeleteTemplate) return;
+    setDeleteConfirmOpen(false);
+    deleteTemplate(pendingDeleteTemplate.id);
+    logAuditEvent({ action: "delete_template", entityType: "template", entityId: pendingDeleteTemplate.id, changes: { name: pendingDeleteTemplate.name } });
+    setPendingDeleteTemplate(null);
+  }, [pendingDeleteTemplate, deleteTemplate]);
 
   const handleCreateNew = useCallback(() => {
     setEditingTemplate(undefined);
@@ -266,6 +272,14 @@ export default function TemplatesPanel() {
         onClose={handleDialogClose}
         onSave={handleDialogSave}
         template={editingTemplate}
+      />
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={handleDeleteConfirmed}
+        title="Delete template"
+        message={`Are you sure you want to delete "${pendingDeleteTemplate?.name ?? "this template"}"? This action cannot be undone.`}
+        confirmLabel="Delete"
       />
     </div>
   );

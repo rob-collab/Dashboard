@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { AutoResizeTextarea } from "@/components/common/AutoResizeTextarea";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const EVENT_TYPES: RegCalEventType[] = ["DEADLINE", "SUBMISSION", "REVIEW", "CONSULTATION", "INTERNAL_DEADLINE"];
 const SOURCES = ["FCA", "PRA", "DORA", "INTERNAL", "OTHER"];
@@ -53,6 +54,7 @@ export default function RegCalEventDetailPanel({ event, onClose }: RegCalEventDe
   const [editForm, setEditForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   // Reset when event changes
   useEffect(() => {
@@ -105,8 +107,12 @@ export default function RegCalEventDetailPanel({ event, onClose }: RegCalEventDe
     }
   }
 
-  async function handleDelete() {
-    if (!confirm("Delete this regulatory event?")) return;
+  function handleDelete() {
+    setDeleteConfirmOpen(true);
+  }
+
+  async function handleDeleteConfirmed() {
+    setDeleteConfirmOpen(false);
     setDeleting(true);
     try {
       await api(`/api/or/regulatory-calendar/${event!.id}`, { method: "DELETE" });
@@ -298,6 +304,15 @@ export default function RegCalEventDetailPanel({ event, onClose }: RegCalEventDe
           )}
         </div>
       </div>
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={handleDeleteConfirmed}
+        title="Delete regulatory event"
+        message="Are you sure you want to delete this regulatory event? This action cannot be undone."
+        confirmLabel="Delete event"
+        loading={deleting}
+      />
     </>
   );
 }

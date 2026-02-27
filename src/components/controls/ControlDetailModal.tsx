@@ -54,6 +54,7 @@ import ScoreBadge from "@/components/risk-register/ScoreBadge";
 import EntityLink from "@/components/common/EntityLink";
 import MaturityBadge from "@/components/processes/MaturityBadge";
 import RequestEditAccessButton from "@/components/common/RequestEditAccessButton";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 interface ControlDetailModalProps {
   controlId: string | null;
@@ -94,6 +95,8 @@ export default function ControlDetailModal({
   const [linkPickerOpen, setLinkPickerOpen] = useState(false);
   const [linkSearch, setLinkSearch] = useState("");
   const [createActionOpen, setCreateActionOpen] = useState(false);
+  const [deleteActionConfirmOpen, setDeleteActionConfirmOpen] = useState(false);
+  const [pendingDeleteActionId, setPendingDeleteActionId] = useState<string | null>(null);
 
   // Fetch full control detail when controlId changes
   useEffect(() => {
@@ -171,10 +174,18 @@ export default function ControlDetailModal({
 
   async function handleDeleteAction(actionId: string) {
     if (!control) return;
-    if (!window.confirm("Are you sure you want to permanently delete this action?")) return;
+    setPendingDeleteActionId(actionId);
+    setDeleteActionConfirmOpen(true);
+  }
+
+  async function handleDeleteActionConfirmed() {
+    if (!pendingDeleteActionId) return;
+    setDeleteActionConfirmOpen(false);
+    const actionId = pendingDeleteActionId;
+    setPendingDeleteActionId(null);
     try {
       await api(`/api/actions/${actionId}`, { method: "DELETE" });
-      const fresh = await api<ControlRecord>(`/api/controls/library/${control.id}`);
+      const fresh = await api<ControlRecord>(`/api/controls/library/${control!.id}`);
       setControl(fresh);
     } catch (err) {
       console.error("[ControlDetailModal] delete action error:", err);
@@ -920,6 +931,14 @@ export default function ControlDetailModal({
       prefillControlId={control?.id}
       prefillSource={control ? `Control ${control.controlRef}` : undefined}
       prefillSectionTitle={control?.controlName}
+    />
+    <ConfirmDialog
+      open={deleteActionConfirmOpen}
+      onClose={() => setDeleteActionConfirmOpen(false)}
+      onConfirm={handleDeleteActionConfirmed}
+      title="Delete action"
+      message="Are you sure you want to permanently delete this action? This cannot be undone."
+      confirmLabel="Delete action"
     />
     </>
   );

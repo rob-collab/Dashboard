@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useId } from "react";
 import { ChevronDown, Search, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +38,8 @@ export default function SearchableSelect({
   const [focusIdx, setFocusIdx] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const instanceId = useId();
+  const listboxId = `${id ?? instanceId}-listbox`;
 
   const selected = options.find((o) => o.value === value);
 
@@ -108,6 +110,10 @@ export default function SearchableSelect({
       <button
         id={id}
         type="button"
+        role="combobox"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-controls={listboxId}
         disabled={disabled}
         onClick={() => { setOpen((o) => !o); }}
         className={cn(
@@ -142,7 +148,7 @@ export default function SearchableSelect({
           </div>
 
           {/* Options list */}
-          <ul className="max-h-52 overflow-y-auto py-1" role="listbox">
+          <ul id={listboxId} className="max-h-52 overflow-y-auto py-1" role="listbox">
             {filtered.length === 0 ? (
               <li className="px-3 py-2 text-sm text-gray-400 text-center">No matches</li>
             ) : (

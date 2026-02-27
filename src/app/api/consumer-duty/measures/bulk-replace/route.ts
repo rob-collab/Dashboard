@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
             outcomeId: m.outcomeId,
             measureId: m.measureId,
             name: m.name,
-            owner: m.owner ?? null,
+            ownerId: m.ownerId ?? null,
             summary: m.summary ?? "",
             ragStatus: m.ragStatus || "GOOD",
             position: m.position ?? 0,

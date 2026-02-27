@@ -51,7 +51,7 @@ export default function MeasureFormDialog({
   const [measureId, setMeasureId] = useState("");
   const [name, setName] = useState("");
   const [outcomeId, setOutcomeId] = useState("");
-  const [owner, setOwner] = useState("");
+  const [ownerId, setOwnerId] = useState("");
   const [summary, setSummary] = useState("");
   const [ragStatus, setRagStatus] = useState<RAGStatus>("GOOD");
   const [inlineMetrics, setInlineMetrics] = useState<ConsumerDutyMI[]>([]);
@@ -64,7 +64,7 @@ export default function MeasureFormDialog({
         setMeasureId(measure.measureId);
         setName(measure.name);
         setOutcomeId(measure.outcomeId);
-        setOwner(measure.owner ?? "");
+        setOwnerId(measure.ownerId ?? "");
         setSummary(measure.summary);
         setRagStatus(measure.ragStatus);
         setInlineMetrics((measure.metrics ?? []).map((m) => ({ ...m })));
@@ -72,7 +72,7 @@ export default function MeasureFormDialog({
         setMeasureId("");
         setName("");
         setOutcomeId(defaultOutcomeId ?? outcomes[0]?.id ?? "");
-        setOwner("");
+        setOwnerId("");
         setSummary("");
         setRagStatus("GOOD");
         setInlineMetrics([]);
@@ -119,7 +119,7 @@ export default function MeasureFormDialog({
       outcomeId,
       measureId: measureId.trim(),
       name: name.trim(),
-      owner: owner.trim() || null,
+      ownerId: ownerId || null,
       summary: summary.trim(),
       ragStatus,
       position: measure?.position ?? nextPos,
@@ -245,8 +245,8 @@ export default function MeasureFormDialog({
           <label htmlFor="measure-owner" className={labelClasses}>Owner</label>
           <select
             id="measure-owner"
-            value={owner}
-            onChange={(e) => setOwner(e.target.value)}
+            value={ownerId}
+            onChange={(e) => setOwnerId(e.target.value)}
             className={inputClasses}
           >
             <option value="">— Unassigned —</option>

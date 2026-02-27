@@ -1,7 +1,11 @@
 "use client";
 
+import { useRef, useCallback, useEffect } from "react";
 import { AlertTriangle, Trash2, X } from "lucide-react";
 import Button from "@/components/common/Button";
+
+const FOCUSABLE_SELECTORS =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -24,6 +28,57 @@ export default function ConfirmDialog({
   variant = "danger",
   loading = false,
 }: ConfirmDialogProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !loading) {
+        e.preventDefault();
+        onClose();
+        return;
+      }
+      if (e.key === "Tab" && panelRef.current) {
+        const focusable = Array.from(
+          panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS)
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    },
+    [loading, onClose]
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    previousFocusRef.current = document.activeElement as HTMLElement;
+    document.addEventListener("keydown", handleKeyDown);
+    // Auto-focus first focusable element
+    const frame = requestAnimationFrame(() => {
+      if (panelRef.current) {
+        const focusable = panelRef.current.querySelector<HTMLElement>(FOCUSABLE_SELECTORS);
+        focusable?.focus();
+      }
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("keydown", handleKeyDown);
+      previousFocusRef.current?.focus();
+    };
+  }, [open, handleKeyDown]);
+
   if (!open) return null;
 
   const isDanger = variant === "danger";
@@ -32,17 +87,20 @@ export default function ConfirmDialog({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirm-dialog-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget && !loading) onClose(); }}
     >
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+      <div ref={panelRef} className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
         <div className="flex items-start gap-4">
           <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${iconClass}`}>
             <Icon size={18} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
-              <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+              <h2 id="confirm-dialog-title" className="text-base font-semibold text-gray-900">{title}</h2>
               <button
                 onClick={onClose}
                 disabled={loading}

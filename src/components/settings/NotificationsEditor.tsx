@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Trash2, Bell, ToggleLeft, ToggleRight } from "lucide-react";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { toast } from "sonner";
 import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
@@ -25,6 +26,8 @@ export default function NotificationsEditor() {
   const setNotifications = useAppStore((s) => s.setNotifications);
 
   const [showForm, setShowForm] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [type, setType] = useState<DashboardNotification["type"]>("info");
   const [targetRoles, setTargetRoles] = useState<Role[]>([]);
@@ -79,8 +82,16 @@ export default function NotificationsEditor() {
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("Delete this notification?")) return;
+  function handleDelete(id: string) {
+    setPendingDeleteId(id);
+    setDeleteConfirmOpen(true);
+  }
+
+  async function handleDeleteConfirmed() {
+    if (!pendingDeleteId) return;
+    setDeleteConfirmOpen(false);
+    const id = pendingDeleteId;
+    setPendingDeleteId(null);
     try {
       await api(`/api/notifications/${id}`, { method: "DELETE" });
       setNotifications(notifications.filter((n) => n.id !== id));
@@ -253,6 +264,14 @@ export default function NotificationsEditor() {
           })}
         </div>
       )}
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={handleDeleteConfirmed}
+        title="Delete notification"
+        message="Are you sure you want to delete this announcement banner? This action cannot be undone."
+        confirmLabel="Delete"
+      />
     </div>
   );
 }

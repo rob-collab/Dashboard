@@ -137,6 +137,7 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
   const [showArchived, setShowArchived] = useState(false);
   const [myControlsOnly, setMyControlsOnly] = useState(false);
   const [watchedOnly, setWatchedOnly] = useState(false);
+  const [clickOwnerFilter, setClickOwnerFilter] = useState<string>("");
   const [myControlsInitialized, setMyControlsInitialized] = useState(false);
 
   // My controls count
@@ -197,6 +198,9 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
       // My controls filter
       if (myControlsOnly && c.controlOwnerId !== currentUser?.id) return false;
 
+      // Click-to-filter by specific owner
+      if (clickOwnerFilter && c.controlOwnerId !== clickOwnerFilter) return false;
+
       if (
         searchLower &&
         !c.controlRef.toLowerCase().includes(searchLower) &&
@@ -211,7 +215,7 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
       if (watchedOnly && !c.isWatched) return false;
       return true;
     });
-  }, [controls, search, areaFilter, outcomeFilter, typeFilter, showArchived, myControlsOnly, watchedOnly, currentUser?.id]);
+  }, [controls, search, areaFilter, outcomeFilter, typeFilter, showArchived, myControlsOnly, watchedOnly, clickOwnerFilter, currentUser?.id]);
 
   // ── Lookup helpers ─────────────────────────────────────────
   function areaName(id: string): string {
@@ -654,8 +658,18 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
                         {control.businessArea?.name ?? areaName(control.businessAreaId)}
                       </td>
-                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                        {control.controlOwner?.name ?? ownerName(control.controlOwnerId)}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setClickOwnerFilter(clickOwnerFilter === control.controlOwnerId ? "" : control.controlOwnerId);
+                          }}
+                          title={clickOwnerFilter === control.controlOwnerId ? "Clear owner filter" : `Filter by ${control.controlOwner?.name ?? ownerName(control.controlOwnerId)}`}
+                          className={`text-xs text-left rounded px-1 -mx-1 hover:bg-gray-100 transition-colors ${clickOwnerFilter === control.controlOwnerId ? "font-semibold text-updraft-bright-purple" : "text-gray-600"}`}
+                        >
+                          {control.controlOwner?.name ?? ownerName(control.controlOwnerId)}
+                        </button>
                       </td>
                       <td className="px-4 py-3">
                         <span className="inline-block rounded-full bg-updraft-pale-purple px-2.5 py-0.5 text-xs font-medium text-updraft-deep whitespace-nowrap">

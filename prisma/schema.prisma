@@ -161,6 +161,7 @@ model User {
   ownedRisks      Risk[]          @relation("OwnedRisks")
 
   updatedMeasures ConsumerDutyMeasure[]  @relation("MeasureUpdater")
+  ownedMeasures   ConsumerDutyMeasure[]  @relation("MeasureOwner")
 
   // Risk Acceptance Module
   proposedAcceptances    RiskAcceptance[]        @relation("AcceptanceProposer")
@@ -315,7 +316,8 @@ model ConsumerDutyMeasure {
   outcome       ConsumerDutyOutcome @relation(fields: [outcomeId], references: [id], onDelete: Cascade)
   measureId     String
   name          String
-  owner         String?
+  ownerId       String?
+  owner         User?     @relation("MeasureOwner", fields: [ownerId], references: [id])
   summary       String    @default("")
   ragStatus     RAGStatus @default(GOOD)
   position      Int       @default(0)
@@ -328,6 +330,7 @@ model ConsumerDutyMeasure {
   metrics ConsumerDutyMI[]
 
   @@index([outcomeId])
+  @@index([ownerId])
   @@map("consumer_duty_measures")
 }
 

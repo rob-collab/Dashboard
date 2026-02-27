@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { Download, X } from "lucide-react";
 import { generateProcessHTML } from "@/lib/export-process-html";
 import { useAppStore } from "@/lib/store";
@@ -43,6 +44,7 @@ interface Props {
 export default function ProcessDetailPanel({ process, onUpdate, onClose }: Props) {
   const currentUser = useAppStore((s) => s.currentUser);
   const isCCRO = currentUser?.role === "CCRO_TEAM";
+  const prefersReduced = useReducedMotion();
 
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [showEditForm, setShowEditForm] = useState(false);
@@ -93,7 +95,13 @@ export default function ProcessDetailPanel({ process, onUpdate, onClose }: Props
   return (
     <>
       {/* Panel */}
-      <div className="fixed right-0 top-0 bottom-0 z-40 w-full sm:w-[520px] bg-white border-l border-gray-200 shadow-2xl flex flex-col">
+      <motion.div
+        className="fixed right-0 top-0 bottom-0 z-40 w-full sm:w-[520px] bg-white border-l border-gray-200 shadow-2xl flex flex-col"
+        initial={prefersReduced ? false : { x: "100%" }}
+        animate={prefersReduced ? false : { x: 0 }}
+        transition={prefersReduced ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 30 }}
+        style={{ willChange: "transform" }}
+      >
         {/* Header */}
         <div className="bg-gradient-to-r from-updraft-deep to-updraft-bar px-5 pt-5 pb-4 shrink-0">
           <div className="flex items-start gap-3">
@@ -203,7 +211,7 @@ export default function ProcessDetailPanel({ process, onUpdate, onClose }: Props
             <ProcessIBSTab process={process} onUpdate={onUpdate} isCCRO={isCCRO} />
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Edit dialog */}
       {showEditForm && (

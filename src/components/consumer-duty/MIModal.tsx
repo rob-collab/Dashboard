@@ -208,11 +208,11 @@ export default function MIModal({
           <span className="text-xs font-medium text-gray-500">
             Overall status: {ragLabelShort(measure.ragStatus)}
           </span>
-          {measure.owner && (
+          {measure.owner?.name && (
             <>
               <span className="text-gray-300">|</span>
               <span className="text-xs text-gray-500">
-                Owner: {measure.owner}
+                Owner: {measure.owner.name}
               </span>
             </>
           )}

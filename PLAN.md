@@ -3259,7 +3259,7 @@ Fixed in 5 files (39 total occurrences): `ComponentsPanel.tsx`, `BusinessAreaDri
 
 ---
 
-## SPRINT L — Click-Through & Navigation Polish
+## SPRINT L — Click-Through & Navigation Polish ✅ COMPLETE
 
 ### Context
 User names (owners, assignees, creators) are text-only throughout the entire application —
@@ -3318,16 +3318,16 @@ From ad2e22a UX audit (2026-02-27):
 - Add ARIA attributes matching combobox pattern
 
 ### Acceptance Criteria
-- [ ] L1: Owner/assignee names are clickable filters on risks, actions, and controls pages
-- [ ] L2: Horizon detail panel links to risks and actions as EntityLink
-- [ ] L3: Consumer Duty measure text references converted to clickable links
-- [ ] L4: No `confirm()` calls remain; all use ConfirmDialog
-- [ ] L5: ConsumerDutyMeasure.ownerId FK + migration applied
-- [ ] L6: Detail panel entrance animation on open
-- [ ] L7: ConfirmDialog and NotificationDrawer have focus traps and ARIA attributes
-- [ ] L8: ControlDetailModal and RiskDetailPanel show loading indicator during data fetch
-- [ ] L9: SearchableSelect has correct ARIA combobox attributes
-- [ ] Build passes
+- [x] L1: Owner/assignee names are clickable filters on risks, actions, and controls pages
+- [x] L2: Horizon detail panel links to risks and actions as EntityLink
+- [x] L3: Consumer Duty measure text references converted to clickable links
+- [x] L4: No `confirm()` calls remain; all use ConfirmDialog
+- [x] L5: ConsumerDutyMeasure.ownerId FK + migration applied
+- [x] L6: Detail panel entrance animation on open
+- [x] L7: ConfirmDialog and NotificationDrawer have focus traps and ARIA attributes
+- [x] L8: ControlDetailModal and RiskDetailPanel show loading indicator during data fetch
+- [x] L9: SearchableSelect has correct ARIA combobox attributes
+- [x] Build passes
 
 ---
 

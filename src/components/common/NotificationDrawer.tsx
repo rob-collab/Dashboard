@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useEffect, useState } from "react";
+import { useMemo, useRef, useCallback, useEffect, useState } from "react";
 import { useAppStore } from "@/lib/store";
 import { usePermissionSet } from "@/lib/usePermission";
 import { cn } from "@/lib/utils";
@@ -451,10 +451,14 @@ function useNotifications() {
   return { items };
 }
 
+const FOCUSABLE_SELECTORS =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export default function NotificationDrawer({ open, onClose }: NotificationDrawerProps) {
   const { items } = useNotifications();
   const currentUser = useAppStore((s) => s.currentUser);
   const drawerRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   // Dismissed change notification IDs, persisted in localStorage per user
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
@@ -499,27 +503,68 @@ export default function NotificationDrawer({ open, onClose }: NotificationDrawer
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open, onClose]);
 
-  // Close on Escape
+  // Keyboard: Escape to close; Tab to cycle focus within the drawer
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+        return;
+      }
+      if (e.key === "Tab" && drawerRef.current) {
+        const focusable = Array.from(
+          drawerRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS)
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    },
+    [onClose]
+  );
+
   useEffect(() => {
     if (!open) return;
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [open, onClose]);
+    previousFocusRef.current = document.activeElement as HTMLElement;
+    document.addEventListener("keydown", handleKeyDown);
+    const frame = requestAnimationFrame(() => {
+      if (drawerRef.current) {
+        const focusable = drawerRef.current.querySelector<HTMLElement>(FOCUSABLE_SELECTORS);
+        focusable?.focus();
+      }
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("keydown", handleKeyDown);
+      previousFocusRef.current?.focus();
+    };
+  }, [open, handleKeyDown]);
 
   if (!open) return null;
 
   return (
     <div
       ref={drawerRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="notification-drawer-title"
       className="fixed top-14 right-4 z-[9998] w-96 max-w-[calc(100vw-2rem)] rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden"
     >
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-3.5">
         <Bell size={16} className="text-updraft-bright-purple" />
-        <h2 className="flex-1 text-sm font-semibold text-gray-900">Notifications</h2>
+        <h2 id="notification-drawer-title" className="flex-1 text-sm font-semibold text-gray-900">Notifications</h2>
         {visibleItems.length > 0 && (
           <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
             {visibleItems.length}

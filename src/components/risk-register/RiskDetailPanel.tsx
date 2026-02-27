@@ -138,6 +138,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
   const [riskSaveState, setRiskSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [confirmDeleteRisk, setConfirmDeleteRisk] = useState(false);
 
   // Edit-unlock state — new risks start in edit mode; existing risks start in read mode
   const [isEditing, setIsEditing] = useState(isNew);
@@ -1166,7 +1167,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
           <div>
             {!isNew && onDelete && (
               <button
-                onClick={() => { if (risk && confirm("Delete this risk? This cannot be undone.")) onDelete(risk.id); }}
+                onClick={() => { if (risk) setConfirmDeleteRisk(true); }}
                 className="text-sm text-red-500 hover:text-red-700 transition-colors"
               >
                 Delete risk
@@ -1215,6 +1216,14 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
         message="You have unsaved changes. Discard them and close?"
         confirmLabel="Discard changes"
         variant="warning"
+      />
+      <ConfirmDialog
+        open={confirmDeleteRisk}
+        onClose={() => setConfirmDeleteRisk(false)}
+        onConfirm={() => { setConfirmDeleteRisk(false); if (risk && onDelete) onDelete(risk.id); }}
+        title="Delete risk"
+        message="Are you sure you want to delete this risk? This action cannot be undone."
+        confirmLabel="Delete risk"
       />
     </div>
   );

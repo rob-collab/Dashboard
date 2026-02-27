@@ -23,7 +23,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     const measure = await prisma.consumerDutyMeasure.update({
       where: { id },
       data,
-      include: { metrics: true },
+      include: { metrics: true, owner: { select: { id: true, name: true } } },
     });
     return jsonResponse(serialiseDates(measure));
   } catch (error) {

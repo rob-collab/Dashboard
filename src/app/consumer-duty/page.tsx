@@ -186,7 +186,7 @@ function ConsumerDutyContent() {
             (m) =>
               m.name.toLowerCase().includes(q) ||
               m.measureId.toLowerCase().includes(q) ||
-              (m.owner && users.find((u) => u.id === m.owner)?.name.toLowerCase().includes(q)) ||
+              (m.ownerId && users.find((u) => u.id === m.ownerId)?.name.toLowerCase().includes(q)) ||
               (m.metrics ?? []).some((mi) => mi.metric.toLowerCase().includes(q))
           )
       );
@@ -700,7 +700,7 @@ function ConsumerDutyContent() {
           </div>
           <div className="space-y-1.5 max-h-72 overflow-y-auto">
             {filteredMeasures.map((m) => {
-              const ownerName = m.owner ? users.find((u) => u.id === m.owner)?.name : null;
+              const ownerName = m.ownerId ? users.find((u) => u.id === m.ownerId)?.name : null;
               return (
                 <button
                   key={m.id}
@@ -1027,7 +1027,7 @@ function ConsumerDutyContent() {
                           <span className="font-medium text-gray-800">{measure.measureId}</span>
                           <span className="text-gray-500 ml-2">{measure.name}</span>
                         </td>
-                        <td className="border border-gray-200 px-3 py-2 text-gray-500">{(measure.owner && users.find((u) => u.id === measure.owner)?.name) || measure.owner || "—"}</td>
+                        <td className="border border-gray-200 px-3 py-2 text-gray-500">{(measure.ownerId && users.find((u) => u.id === measure.ownerId)?.name) || measure.ownerId || "—"}</td>
                         <td className="border border-gray-200 px-3 py-2">
                           <span className={cn(
                             "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold",

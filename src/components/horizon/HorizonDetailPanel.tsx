@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { X, Save, Trash2, ExternalLink, Plus, Unlink, Loader2, Network, Zap, ChevronDown, ChevronRight, Pencil, XCircle, ArrowUpRight } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { X, Save, Trash2, ExternalLink, Plus, Unlink, Loader2, Network, Zap, ChevronDown, ChevronRight, Pencil, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import type { HorizonItem, HorizonCategory, HorizonUrgency, HorizonStatus, Risk } from "@/lib/types";
 import { HORIZON_CATEGORY_LABELS, HORIZON_URGENCY_COLOURS, HORIZON_STATUS_LABELS } from "@/lib/types";
@@ -10,6 +10,8 @@ import { api } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
 import { AutoResizeTextarea } from "@/components/common/AutoResizeTextarea";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
+import EntityLink from "@/components/common/EntityLink";
 
 interface Props {
   item: HorizonItem;
@@ -33,7 +35,7 @@ type SectionKey = "details" | "overview" | "deadlineActions" | "source" | "linke
 
 export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, onClose, onUpdated, onDeleted }: Props) {
   const { users, addAction } = useAppStore();
-  const router = useRouter();
+  const prefersReduced = useReducedMotion();
 
   const effectiveCanCreateAction = canCreateAction ?? canManage;
 
@@ -72,6 +74,7 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmUnlinkId, setConfirmUnlinkId] = useState<string | null>(null);
+  const [unsavedConfirmOpen, setUnsavedConfirmOpen] = useState(false);
   const [openSections, setOpenSections] = useState<Set<SectionKey>>(new Set(["details", "overview", "deadlineActions", "linkedItems"] as SectionKey[]));
 
   // Action creation
@@ -114,7 +117,10 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
   }
 
   function handleClose() {
-    if (isEditing && isDirty && !confirm("You have unsaved changes. Close without saving?")) return;
+    if (isEditing && isDirty) {
+      setUnsavedConfirmOpen(true);
+      return;
+    }
     onClose();
   }
 
@@ -224,7 +230,13 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
       <div className="fixed inset-0 bg-black/20 z-40" onClick={handleClose} />
 
       {/* Panel — wider than before; expands left to show data without scrolling */}
-      <div className="fixed right-0 top-0 bottom-0 w-[min(800px,95vw)] bg-white shadow-2xl z-50 flex flex-col">
+      <motion.div
+        className="fixed right-0 top-0 bottom-0 w-[min(800px,95vw)] bg-white shadow-2xl z-50 flex flex-col"
+        initial={prefersReduced ? false : { x: "100%" }}
+        animate={prefersReduced ? false : { x: 0 }}
+        transition={prefersReduced ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 30 }}
+        style={{ willChange: "transform" }}
+      >
         {/* Header */}
         <div className="sticky top-0 z-10 bg-gradient-to-r from-updraft-deep to-updraft-bar px-6 py-4 flex items-start justify-between shrink-0">
           <div className="flex-1 min-w-0 pr-4">
@@ -410,17 +422,14 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
                   <p className="text-xs text-slate-400 italic">No actions linked yet.</p>
                 )}
                 {(item.actionLinks ?? []).map((link) => (
-                  <div key={link.id} className="flex items-center gap-2 py-1.5 border-b border-slate-100 last:border-0 group">
-                    <span className="font-mono text-xs text-slate-400 shrink-0">{link.action?.reference}</span>
-                    <span className="text-xs text-slate-700 flex-1 truncate">{link.action?.title}</span>
-                    <span className="text-xs text-slate-400 shrink-0">{ACTION_STATUS_LABELS[link.action?.status ?? ""] ?? link.action?.status}</span>
-                    <button
-                      onClick={() => router.push("/actions")}
-                      className="shrink-0 opacity-0 group-hover:opacity-100 text-updraft-bright-purple hover:text-updraft-deep transition-all"
-                      title="Go to Actions"
-                    >
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                    </button>
+                  <div key={link.id} className="flex items-center gap-2 py-1.5 border-b border-slate-100 last:border-0">
+                    <EntityLink
+                      type="action"
+                      id={link.actionId}
+                      reference={link.action?.reference}
+                      label={link.action?.title}
+                    />
+                    <span className="text-xs text-slate-400 shrink-0 ml-auto">{ACTION_STATUS_LABELS[link.action?.status ?? ""] ?? link.action?.status}</span>
                   </div>
                 ))}
 
@@ -474,27 +483,26 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
                   <p className="text-xs text-slate-400 italic">No risks linked yet.</p>
                 )}
                 {(item.riskLinks ?? []).map((link) => (
-                  <div key={link.id} className="flex items-center gap-2 py-1.5 border-b border-slate-100 last:border-0 group">
-                    <span className="font-mono text-xs text-slate-400 shrink-0">{link.risk?.reference}</span>
-                    <span className="text-xs text-slate-700 flex-1 truncate">{link.risk?.name}</span>
-                    <button
-                      onClick={() => router.push("/risk-register")}
-                      className="shrink-0 opacity-0 group-hover:opacity-100 text-updraft-bright-purple hover:text-updraft-deep transition-all"
-                      title="Go to Risk Register"
-                    >
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                    </button>
-                    {canManage && confirmUnlinkId === link.riskId ? (
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-xs text-red-600">Unlink?</span>
-                        <button onClick={() => handleConfirmedUnlink(link.riskId)} className="text-xs text-red-600 font-semibold hover:underline">Yes</button>
-                        <button onClick={() => setConfirmUnlinkId(null)} className="text-xs text-slate-400 hover:text-slate-600">No</button>
-                      </div>
-                    ) : canManage ? (
-                      <button onClick={() => setConfirmUnlinkId(link.riskId)} className="text-slate-300 hover:text-red-500 transition-colors">
-                        <Unlink className="w-3.5 h-3.5" />
-                      </button>
-                    ) : null}
+                  <div key={link.id} className="flex items-center gap-2 py-1.5 border-b border-slate-100 last:border-0">
+                    <EntityLink
+                      type="risk"
+                      id={link.riskId}
+                      reference={link.risk?.reference}
+                      label={link.risk?.name}
+                    />
+                    <div className="ml-auto flex items-center gap-1 shrink-0">
+                      {canManage && confirmUnlinkId === link.riskId ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-red-600">Unlink?</span>
+                          <button onClick={() => handleConfirmedUnlink(link.riskId)} className="text-xs text-red-600 font-semibold hover:underline">Yes</button>
+                          <button onClick={() => setConfirmUnlinkId(null)} className="text-xs text-slate-400 hover:text-slate-600">No</button>
+                        </div>
+                      ) : canManage ? (
+                        <button onClick={() => setConfirmUnlinkId(link.riskId)} className="text-slate-300 hover:text-red-500 transition-colors">
+                          <Unlink className="w-3.5 h-3.5" />
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 ))}
 
@@ -582,7 +590,16 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
             )}
           </div>
         )}
-      </div>
+      </motion.div>
+      <ConfirmDialog
+        open={unsavedConfirmOpen}
+        onClose={() => setUnsavedConfirmOpen(false)}
+        onConfirm={() => { setUnsavedConfirmOpen(false); onClose(); }}
+        title="Unsaved changes"
+        message="You have unsaved changes. Are you sure you want to close without saving?"
+        confirmLabel="Discard changes"
+        variant="warning"
+      />
     </>
   );
 }

@@ -15,6 +15,7 @@ import {
 import { useAppStore } from "@/lib/store";
 import { sanitizeHTML } from "@/lib/sanitize";
 import ImportComponentDialog from "@/components/components-lib/ImportComponentDialog";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import type { ImportedComponentPayload } from "@/components/components-lib/ImportComponentDialog";
 import { cn, formatDate } from "@/lib/utils";
 import { logAuditEvent } from "@/lib/audit";
@@ -28,6 +29,8 @@ export default function ComponentsPanel() {
   const [searchQuery, setSearchQuery] = useState("");
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"preview" | "code">("preview");
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [pendingDeleteComponentId, setPendingDeleteComponentId] = useState<string | null>(null);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const filteredComponents = useMemo(() => {
@@ -69,17 +72,24 @@ export default function ComponentsPanel() {
 
   const handleDelete = useCallback(
     (componentId: string) => {
-      const comp = components.find((c) => c.id === componentId);
-      if (window.confirm("Are you sure you want to delete this component?")) {
-        deleteComponent(componentId);
-        logAuditEvent({ action: "delete_component", entityType: "component", entityId: componentId, changes: { name: comp?.name } });
-        if (previewId === componentId) {
-          setPreviewId(null);
-        }
-      }
+      setPendingDeleteComponentId(componentId);
+      setDeleteConfirmOpen(true);
     },
-    [components, deleteComponent, previewId]
+    []
   );
+
+  const handleDeleteConfirmed = useCallback(() => {
+    if (!pendingDeleteComponentId) return;
+    setDeleteConfirmOpen(false);
+    const componentId = pendingDeleteComponentId;
+    setPendingDeleteComponentId(null);
+    const comp = components.find((c) => c.id === componentId);
+    deleteComponent(componentId);
+    logAuditEvent({ action: "delete_component", entityType: "component", entityId: componentId, changes: { name: comp?.name } });
+    if (previewId === componentId) {
+      setPreviewId(null);
+    }
+  }, [pendingDeleteComponentId, components, deleteComponent, previewId]);
 
   const handleImport = useCallback(
     (payload: ImportedComponentPayload) => {
@@ -306,6 +316,14 @@ export default function ComponentsPanel() {
         open={importDialogOpen}
         onClose={() => setImportDialogOpen(false)}
         onImport={handleImport}
+      />
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={handleDeleteConfirmed}
+        title="Delete component"
+        message="Are you sure you want to delete this component? This action cannot be undone."
+        confirmLabel="Delete"
       />
     </div>
   );

@@ -115,7 +115,8 @@ export interface ConsumerDutyMeasure {
   outcomeId: string;
   measureId: string;
   name: string;
-  owner: string | null;
+  ownerId: string | null;
+  owner?: { id: string; name: string } | null;
   summary: string;
   ragStatus: RAGStatus;
   position: number;

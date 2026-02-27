@@ -78,6 +78,7 @@ import ActionRequiredSection from "@/components/dashboard/ActionRequiredSection"
 import ScrollReveal from "@/components/common/ScrollReveal";
 import ControlHealthTrendWidget from "@/components/dashboard/ControlHealthTrendWidget";
 import QuarterlySummaryWidget from "@/components/dashboard/QuarterlySummaryWidget";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 function daysUntilDue(dueDate: string | null): number | null {
   if (!dueDate) return null;
@@ -504,6 +505,8 @@ export default function DashboardHome() {
   const [userSelectorOpen, setUserSelectorOpen] = useState(false);
   const [copyFromOpen, setCopyFromOpen] = useState(false);
   const [loadingTargetLayout, setLoadingTargetLayout] = useState(false);
+  const [copyConfirmOpen, setCopyConfirmOpen] = useState(false);
+  const [pendingCopySourceId, setPendingCopySourceId] = useState<string | null>(null);
 
   const editTargetUser = users.find((u) => u.id === editTargetUserId);
 
@@ -641,11 +644,16 @@ export default function DashboardHome() {
   }
 
   async function handleCopyFrom(sourceUserId: string) {
+    setPendingCopySourceId(sourceUserId);
+    setCopyConfirmOpen(true);
+  }
+
+  async function handleCopyFromConfirmed() {
+    if (!pendingCopySourceId) return;
+    setCopyConfirmOpen(false);
+    const sourceUserId = pendingCopySourceId;
+    setPendingCopySourceId(null);
     const sourceName = users.find((u) => u.id === sourceUserId)?.name ?? "user";
-    const targetName = users.find((u) => u.id === editTargetUserId)?.name ?? "this user";
-    if (!window.confirm(`Copy layout from ${sourceName} to ${targetName}?\n\nThis will replace all section positions, visibility, and pins in your current edit session. You can still cancel without saving.`)) {
-      return;
-    }
     setCopyFromOpen(false);
     await fetchAndLoadUserLayout(sourceUserId);
     toast.success(`Copied layout from ${sourceName}`);
@@ -2412,6 +2420,16 @@ export default function DashboardHome() {
           </div>
         </>
       )}
+
+      <ConfirmDialog
+        open={copyConfirmOpen}
+        onClose={() => setCopyConfirmOpen(false)}
+        onConfirm={handleCopyFromConfirmed}
+        title="Copy layout"
+        message={`This will replace all section positions, visibility, and pins for ${users.find(u => u.id === editTargetUserId)?.name ?? "this user"} with the layout from ${users.find(u => u.id === pendingCopySourceId)?.name ?? "selected user"}. Your current edit session will be overwritten. You can still cancel without saving.`}
+        confirmLabel="Copy layout"
+        variant="warning"
+      />
     </div>
   );
 }

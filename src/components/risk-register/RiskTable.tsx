@@ -255,7 +255,19 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
                       {catColour?.label ?? risk.categoryL1}
                     </span>
                   </td>
-                  <td className="px-3 py-3 text-gray-600 max-w-[120px] truncate">{getOwnerName(risk)}</td>
+                  <td className="px-3 py-3 max-w-[120px]">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFilterOwner(filterOwner === risk.ownerId ? "" : risk.ownerId);
+                      }}
+                      title={filterOwner === risk.ownerId ? "Clear owner filter" : `Filter by ${getOwnerName(risk)}`}
+                      className={`text-xs truncate max-w-full text-left rounded px-1 -mx-1 hover:bg-gray-100 transition-colors ${filterOwner === risk.ownerId ? "font-semibold text-updraft-bright-purple" : "text-gray-600"}`}
+                    >
+                      {getOwnerName(risk)}
+                    </button>
+                  </td>
                   <td className="px-3 py-3">
                     {(() => {
                       const inherentLevel = getRiskLevel(getRiskScore(risk.inherentLikelihood, risk.inherentImpact));
