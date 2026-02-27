@@ -1,5 +1,86 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-27 (CEO Prep + Dashboard Visual Uplift sprints)
+Last updated: 2026-02-27 (Broad Audit Sprint — Security, Data Integrity, Panels, Navigation)
+
+## CURRENT SPRINT: Broad Audit Remediation — Sprint A: Security & Data Integrity ✅ COMPLETE
+Last updated: 2026-02-27
+
+### Context
+Full-codebase audit identified critical security gaps (unauthenticated GET routes exposing the
+full risk register and SMCR data), a silent data-loss bug (action priority never persisted on
+creation), and a Consumer Duty data error (outcome-4 seeded with wrong enum; outcome-5 GCO
+missing entirely). Sprint A fixes all five CRITICAL items before any UI work proceeds.
+
+### Deliverables
+
+#### A1 — Auth guard on GET /api/risks
+- [x] A1-01: `GET /api/risks` checks caller is authenticated (any logged-in user) before returning data
+- [x] A1-02: Unauthenticated requests receive 401
+
+#### A2 — Auth guard on GET /api/compliance/smcr/roles
+- [x] A2-01: `GET /api/compliance/smcr/roles` requires authentication
+- [x] A2-02: Returns 401 without valid session
+
+#### A3 — Auth guard on GET /api/compliance/smcr/breaches
+- [x] A3-01: `GET /api/compliance/smcr/breaches` requires authentication
+- [x] A3-02: Named-individual disciplinary records protected
+
+#### A4 — Action priority persists on creation
+- [x] A4-01: `POST /api/actions` maps `data.priority` to the Prisma create call
+- [x] A4-02: New actions created with P1/P2/P3 retain that priority in the DB
+
+#### A5 — Consumer Duty outcome enum + outcome-5 GCO
+- [x] A5-01: `PRICE_AND_VALUE` added to `ConsumerDutyOutcomeType` enum (schema + types.ts + TrendAnalysisTab palette)
+- [x] A5-02: Outcome-5 "Governance, Culture and Oversight" seeded and persisted to DB
+- [x] A5-03: All 25 existing measures and their metrics/snapshots intact (seed confirmed: 5 outcomes, 24 measures, 18 metrics, 216 snapshots)
+- [x] A5-04: Build passes — zero TypeScript errors
+
+### Build: ✅ PASSING (zero TypeScript errors, 92/92 pages)
+
+### Key Files
+| File | Fix |
+|------|-----|
+| `src/app/api/risks/route.ts` | A1 |
+| `src/app/api/compliance/smcr/roles/route.ts` | A2 |
+| `src/app/api/compliance/smcr/breaches/route.ts` | A3 |
+| `src/app/api/actions/route.ts` | A4 |
+| `prisma/seed-ceo-prep.ts` | A5 (idempotent fix) |
+
+---
+
+## CURRENT SPRINT: Broad Audit — Sprint B: Panel Overhaul ✅ COMPLETE
+Last updated: 2026-02-27
+
+### Deliverables
+- [x] B1 — `AutoResizeTextarea` shared component created at `src/components/common/AutoResizeTextarea.tsx`
+- [x] B2 — `HorizonDetailPanel`: edit-unlock pattern (isEditing state, Pencil/Cancel in header, footer save), AutoResizeTextarea (4 fields), panel width → `w-[min(800px,95vw)]`, linked items clickable
+- [x] B3 — `RiskDetailPanel`: edit-unlock pattern (isEditing state, fieldsLocked boolean, Pencil/Cancel in header), AutoResizeTextarea (description), ScoreSelector disabled prop, panel width → `w-[min(800px,95vw)]`
+- [x] B4 — `RegulationDetailPanel`: AutoResizeTextarea for all 5 edit textareas (description rows={6}, provisions, applicabilityNotes, smfNotes, assessmentNotes). Already had editMode + Pencil.
+- [x] B5 — `ActionDetailPanel`: AutoResizeTextarea for 2 proposal-form textareas (date change reason, reassignment reason). Existing edit patterns preserved.
+
+### Build: ✅ PASSING (zero TypeScript errors, 92/92 pages)
+
+---
+
+## CURRENT SPRINT: Broad Audit — Sprint C: Navigation & Animations ✅ COMPLETE
+Last updated: 2026-02-27
+
+### Deliverables
+- [x] C1 — Horizon Scanning URL state: `Suspense` wrapper added, all 5 filters (category, urgency, status, dismissed, search) initialise from URL params and sync back via `useEffect` + `router.replace({ scroll: false })`
+- [x] C2 — Controls tab URL sync: tab clicks now call `router.replace` to persist active tab in URL
+- [x] C3 — Settings tab URL sync: tab clicks now call `router.replace` to persist active tab in URL
+- [x] C4 — AnimatedNumber: `QuarterlySummaryTab.tsx` updated — all 7 stat tile numbers (passCount, partialCount, failCount, notTestedCount, draftCount, submittedCount, approvedCount) now use `<AnimatedNumber>`. All other surveyed pages (Risk Register, Actions, Risk Acceptances, Controls Dashboard) already had AnimatedNumber in place.
+
+### Build: ✅ PASSING (zero TypeScript errors, 92/92 pages)
+
+### Key Files
+| File | Change |
+|------|--------|
+| `src/app/horizon-scanning/page.tsx` | C1: Suspense wrap + URL sync |
+| `src/app/controls/page.tsx` | C2: Tab URL write-back |
+| `src/app/settings/page.tsx` | C3: Tab URL write-back |
+| `src/components/controls/QuarterlySummaryTab.tsx` | C4: AnimatedNumber on 7 stat tiles |
+
+---
 
 ## CURRENT SPRINT: Controls Section — Full Overhaul ✅ COMPLETE
 Last updated: 2026-02-27

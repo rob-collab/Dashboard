@@ -32,6 +32,7 @@ import ActionUpdateForm from "./ActionUpdateForm";
 import ActionAccountabilityTimeline from "./ActionAccountabilityTimeline";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { AutoResizeTextarea } from "@/components/common/AutoResizeTextarea";
 
 const RichTextEditor = dynamic(() => import("@/components/common/RichTextEditor"), { ssr: false });
 
@@ -627,12 +628,11 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Reason for Change</label>
-                  <textarea
-                    rows={2}
+                  <AutoResizeTextarea
                     value={proposalReason}
                     onChange={(e) => setProposalReason(e.target.value)}
                     placeholder="Explain why the due date needs to change..."
-                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple resize-none"
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple"
                   />
                 </div>
                 <div className="flex items-center justify-end gap-2">
@@ -688,12 +688,11 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Reason for Reassignment</label>
-                  <textarea
-                    rows={2}
+                  <AutoResizeTextarea
                     value={proposalReason}
                     onChange={(e) => setProposalReason(e.target.value)}
                     placeholder="Explain why this action should be reassigned..."
-                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple resize-none"
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple"
                   />
                 </div>
                 <div className="flex items-center justify-end gap-2">

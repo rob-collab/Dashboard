@@ -108,6 +108,23 @@ async function main() {
       mitigatingActions:
         "Complete fee structure simplification by end of Q2 2026. Commission Product Value Report for board pack.",
       position: 3,
+      consumerDutyOutcome: "PRICE_AND_VALUE" as const,
+    },
+    {
+      id: "cd-outcome-5",
+      outcomeId: "5",
+      name: "Governance, Culture and Oversight",
+      shortDesc: "Cross-cutting governance, culture and oversight framework",
+      detailedDescription:
+        "Cross-cutting theme that underpins all four Consumer Duty outcomes. Ensures that Updraft's governance arrangements, firm culture and senior management oversight are designed to embed fair consumer outcomes across the business. Includes board and senior management accountability, cultural indicators, management information and Consumer Duty Champion oversight.",
+      riskOwner: "user-ash",
+      ragStatus: "GOOD" as const,
+      previousRAG: "GOOD" as const,
+      monthlySummary:
+        "Consumer Duty governance framework reviewed and signed off by Board in January 2026. Consumer Duty Champion reports reviewed quarterly. Culture survey results show improving awareness of Consumer Duty obligations across front-line teams.",
+      mitigatingActions:
+        "Embed Consumer Duty considerations into all new product and policy approvals. Ensure quarterly MI packs reach Board Audit & Risk Committee.",
+      position: 4,
       consumerDutyOutcome: "GOVERNANCE_CULTURE_OVERSIGHT" as const,
     },
   ];

@@ -15,6 +15,7 @@ import {
 import { naturalCompare } from "@/lib/utils";
 import GlossaryTooltip from "@/components/common/GlossaryTooltip";
 import ArcGauge from "@/components/dashboard/ArcGauge";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 import {
   ResponsiveContainer,
   LineChart,
@@ -739,19 +740,19 @@ export default function QuarterlySummaryTab() {
 
               <div className="grid grid-cols-2 gap-2 w-full min-w-[200px]">
                 <div className="rounded-lg bg-green-50 border border-green-200 p-2.5 text-center">
-                  <p className="text-xl font-poppins font-bold text-green-700">{passCount}</p>
+                  <AnimatedNumber value={passCount} className="text-xl font-poppins font-bold text-green-700" />
                   <p className="text-xs text-green-600 mt-0.5">Pass</p>
                 </div>
                 <div className="rounded-lg bg-amber-50 border border-amber-200 p-2.5 text-center">
-                  <p className="text-xl font-poppins font-bold text-amber-700">{partialCount}</p>
+                  <AnimatedNumber value={partialCount} className="text-xl font-poppins font-bold text-amber-700" />
                   <p className="text-xs text-amber-600 mt-0.5">Partial</p>
                 </div>
                 <div className="rounded-lg bg-red-50 border border-red-200 p-2.5 text-center">
-                  <p className="text-xl font-poppins font-bold text-red-700">{failCount}</p>
+                  <AnimatedNumber value={failCount} className="text-xl font-poppins font-bold text-red-700" />
                   <p className="text-xs text-red-600 mt-0.5">Fail</p>
                 </div>
                 <div className="rounded-lg bg-gray-50 border border-gray-200 p-2.5 text-center">
-                  <p className="text-xl font-poppins font-bold text-gray-700">{notTestedCount}</p>
+                  <AnimatedNumber value={notTestedCount} className="text-xl font-poppins font-bold text-gray-700" />
                   <p className="text-xs text-gray-500 mt-0.5">Not Tested</p>
                 </div>
               </div>
@@ -817,15 +818,15 @@ export default function QuarterlySummaryTab() {
 
           <div className="grid grid-cols-3 gap-4">
             <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 text-center">
-              <p className="text-2xl font-poppins font-bold text-gray-700">{draftCount}</p>
+              <AnimatedNumber value={draftCount} className="text-2xl font-poppins font-bold text-gray-700" />
               <p className="text-xs text-gray-500 mt-1">Draft</p>
             </div>
             <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-center">
-              <p className="text-2xl font-poppins font-bold text-blue-700">{submittedCount}</p>
+              <AnimatedNumber value={submittedCount} className="text-2xl font-poppins font-bold text-blue-700" />
               <p className="text-xs text-blue-600 mt-1">Awaiting Approval</p>
             </div>
             <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-center">
-              <p className="text-2xl font-poppins font-bold text-green-700">{approvedCount}</p>
+              <AnimatedNumber value={approvedCount} className="text-2xl font-poppins font-bold text-green-700" />
               <p className="text-xs text-green-600 mt-1">Approved</p>
             </div>
           </div>

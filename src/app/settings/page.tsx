@@ -13,7 +13,7 @@ import AccessRequestsPanel from "@/components/settings/AccessRequestsPanel";
 import ConsumerDutySettings from "@/components/settings/ConsumerDutySettings";
 import { cn } from "@/lib/utils";
 import { usePageTitle } from "@/lib/usePageTitle";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Suspense } from "react";
 
 const TABS = [
@@ -35,6 +35,8 @@ const FULL_WIDTH_TABS: TabId[] = ["templates", "components", "regulations", "con
 function SettingsPageContent() {
   usePageTitle("Settings");
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const initialTab = (searchParams.get("tab") as TabId) ?? "branding";
   const [activeTab, setActiveTab] = useState<TabId>(
     TABS.some((t) => t.id === initialTab) ? initialTab : "branding"
@@ -58,7 +60,10 @@ function SettingsPageContent() {
             <button
               key={tab.id}
               type="button"
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                setActiveTab(tab.id);
+                router.replace(`${pathname}?tab=${tab.id}`, { scroll: false });
+              }}
               className={cn(
                 "px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
                 activeTab === tab.id

@@ -16,7 +16,8 @@ import {
   getL2Categories as getFallbackL2,
 } from "@/lib/risk-categories";
 import ScoreBadge from "./ScoreBadge";
-import { X, Plus, Trash2, AlertTriangle, ChevronRight, ChevronDown, History, Link2, ShieldQuestion, Star, Clock, XCircle, Loader2 } from "lucide-react";
+import { X, Plus, Trash2, AlertTriangle, ChevronRight, ChevronDown, History, Link2, ShieldQuestion, Star, Clock, XCircle, Loader2, Pencil } from "lucide-react";
+import { AutoResizeTextarea } from "@/components/common/AutoResizeTextarea";
 import { toast } from "sonner";
 import { api } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
@@ -137,6 +138,10 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
   const [riskSaveState, setRiskSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+
+  // Edit-unlock state — new risks start in edit mode; existing risks start in read mode
+  const [isEditing, setIsEditing] = useState(isNew);
+  const fieldsLocked = !isEditing && !isNew;
 
   const isDirty = !isNew && risk != null && (
     name !== risk.name ||
@@ -324,7 +329,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
 
       {/* Panel */}
       <motion.div
-        className="relative w-full max-w-2xl panel-surface shadow-2xl overflow-y-auto"
+        className="relative w-[min(800px,95vw)] panel-surface shadow-2xl overflow-y-auto"
         initial={prefersReduced ? false : { x: "100%" }}
         animate={prefersReduced ? false : { x: 0 }}
         transition={prefersReduced ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 30 }}
@@ -383,6 +388,25 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
               >
                 <History className="w-4 h-4" />
                 History
+              </button>
+            )}
+            {/* Edit unlock button — visible for saved risks only */}
+            {!isNew && canEditRisk && !isEditing && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-white/70 hover:bg-white/10 rounded-lg transition-colors"
+                title="Edit this risk"
+              >
+                <Pencil className="w-4 h-4" /> Edit
+              </button>
+            )}
+            {!isNew && isEditing && (
+              <button
+                onClick={() => { setIsEditing(false); }}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-white/70 hover:bg-white/10 rounded-lg transition-colors"
+                title="Cancel editing"
+              >
+                <XCircle className="w-4 h-4" /> Cancel
               </button>
             )}
             <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors" aria-label="Close">
@@ -451,18 +475,20 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                 value={name}
                 onChange={(e) => { setName(e.target.value); if (formErrors.name) setFormErrors((p) => ({ ...p, name: "" })); }}
                 placeholder="Short risk title"
-                className={cn("w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2", formErrors.name ? "border-red-300 focus:ring-red-300/30" : "border-gray-200 focus:ring-updraft-bright-purple/30")}
+                disabled={fieldsLocked}
+                className={cn("w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 disabled:bg-gray-50 disabled:text-gray-600", formErrors.name ? "border-red-300 focus:ring-red-300/30" : "border-gray-200 focus:ring-updraft-bright-purple/30")}
               />
               {formErrors.name && <p className="text-xs text-red-500 mt-1">{formErrors.name}</p>}
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Description *</label>
-              <textarea
+              <AutoResizeTextarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Detailed risk description — cause, event, potential impact"
-                rows={3}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30 resize-none"
+                disabled={fieldsLocked}
+                minRows={3}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30 disabled:bg-gray-50 disabled:text-gray-600"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -471,7 +497,8 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                 <select
                   value={categoryL1}
                   onChange={(e) => { setCategoryL1(e.target.value); setCategoryL2(""); if (formErrors.categoryL1) setFormErrors((p) => ({ ...p, categoryL1: "" })); }}
-                  className={cn("w-full px-3 py-2 text-sm border rounded-lg bg-white", formErrors.categoryL1 ? "border-red-300" : "border-gray-200")}
+                  disabled={fieldsLocked}
+                  className={cn("w-full px-3 py-2 text-sm border rounded-lg bg-white disabled:bg-gray-50 disabled:text-gray-600", formErrors.categoryL1 ? "border-red-300" : "border-gray-200")}
                 >
                   <option value="">Select category...</option>
                   {categorySource.map((c) => (
@@ -485,7 +512,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                 <select
                   value={categoryL2}
                   onChange={(e) => { setCategoryL2(e.target.value); if (formErrors.categoryL2) setFormErrors((p) => ({ ...p, categoryL2: "" })); }}
-                  disabled={!categoryL1}
+                  disabled={fieldsLocked || !categoryL1}
                   className={cn("w-full px-3 py-2 text-sm border rounded-lg bg-white disabled:bg-gray-50 disabled:text-gray-400", formErrors.categoryL2 ? "border-red-300" : "border-gray-200")}
                 >
                   <option value="">Select sub-category...</option>
@@ -502,7 +529,8 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                 <select
                   value={ownerId}
                   onChange={(e) => { setOwnerId(e.target.value); if (formErrors.ownerId) setFormErrors((p) => ({ ...p, ownerId: "" })); }}
-                  className={cn("w-full px-3 py-2 text-sm border rounded-lg bg-white focus:outline-none focus:ring-2", formErrors.ownerId ? "border-red-300 focus:ring-red-300/30" : "border-gray-200 focus:ring-updraft-bright-purple/30")}
+                  disabled={fieldsLocked}
+                  className={cn("w-full px-3 py-2 text-sm border rounded-lg bg-white focus:outline-none focus:ring-2 disabled:bg-gray-50 disabled:text-gray-600", formErrors.ownerId ? "border-red-300 focus:ring-red-300/30" : "border-gray-200 focus:ring-updraft-bright-purple/30")}
                 >
                   <option value="">Select owner...</option>
                   {users.filter((u) => u.isActive).map((u) => (
@@ -517,7 +545,8 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                   type="date"
                   value={lastReviewed}
                   onChange={(e) => setLastReviewed(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg"
+                  disabled={fieldsLocked}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg disabled:bg-gray-50 disabled:text-gray-600"
                 />
               </div>
             </div>
@@ -535,12 +564,14 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                 label="Likelihood"
                 value={inherentLikelihood}
                 onChange={setInherentLikelihood}
+                disabled={fieldsLocked}
                 options={LIKELIHOOD_SCALE.map((s) => ({ value: s.score, label: s.label, description: s.description }))}
               />
               <ScoreSelector
                 label="Impact"
                 value={inherentImpact}
                 onChange={setInherentImpact}
+                disabled={fieldsLocked}
                 options={IMPACT_SCALE.map((s) => ({ value: s.score, label: s.label, description: s.description }))}
               />
             </div>
@@ -562,12 +593,14 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                 label="Likelihood"
                 value={residualLikelihood}
                 onChange={setResidualLikelihood}
+                disabled={fieldsLocked}
                 options={LIKELIHOOD_SCALE.map((s) => ({ value: s.score, label: s.label, description: s.description }))}
               />
               <ScoreSelector
                 label="Impact"
                 value={residualImpact}
                 onChange={setResidualImpact}
+                disabled={fieldsLocked}
                 options={IMPACT_SCALE.map((s) => ({ value: s.score, label: s.label, description: s.description }))}
               />
             </div>
@@ -767,7 +800,8 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
               <select
                 value={controlEffectiveness}
                 onChange={(e) => setControlEffectiveness(e.target.value as ControlEffectiveness | "")}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white"
+                disabled={fieldsLocked}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white disabled:bg-gray-50 disabled:text-gray-600"
               >
                 <option value="">Not assessed</option>
                 {(Object.keys(EFFECTIVENESS_DISPLAY) as ControlEffectiveness[]).map((k) => (
@@ -781,7 +815,8 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                 <select
                   value={directionOfTravel}
                   onChange={(e) => setDirectionOfTravel(e.target.value as DirectionOfTravel)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white"
+                  disabled={fieldsLocked}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white disabled:bg-gray-50 disabled:text-gray-600"
                 >
                   {(Object.keys(DIRECTION_DISPLAY) as DirectionOfTravel[]).map((k) => (
                     <option key={k} value={k}>{DIRECTION_DISPLAY[k].icon} {DIRECTION_DISPLAY[k].label}</option>
@@ -795,7 +830,8 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                 <select
                   value={riskAppetite}
                   onChange={(e) => setRiskAppetite(e.target.value as RiskAppetite | "")}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white"
+                  disabled={fieldsLocked}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white disabled:bg-gray-50 disabled:text-gray-600"
                 >
                   <option value="">Not set</option>
                   {(Object.keys(APPETITE_DISPLAY) as RiskAppetite[]).map((k) => (
@@ -810,7 +846,8 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                 <select
                   value={reviewFrequencyDays}
                   onChange={(e) => setReviewFrequencyDays(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white"
+                  disabled={fieldsLocked}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white disabled:bg-gray-50 disabled:text-gray-600"
                 >
                   <option value={30}>Monthly (30 days)</option>
                   <option value={90}>Quarterly (90 days)</option>
@@ -1141,27 +1178,31 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
               onClick={handleCancel}
               className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              Cancel
+              {isEditing ? "Cancel" : "Close"}
             </button>
-            {!isNew && !isCCRO ? (
-              <button
-                onClick={handleProposeUpdate}
-                disabled={!canSave || proposing}
-                className="px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {proposing ? "Proposing..." : "Propose Update"}
-              </button>
-            ) : (
-              <button
-                onClick={handleSave}
-                disabled={!canSave || riskSaveState !== "idle"}
-                className={`inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
-                  isNew && !canBypassApproval ? "bg-amber-600 hover:bg-amber-700" : "bg-updraft-deep hover:bg-updraft-bar"
-                }`}
-              >
-                {riskSaveState === "saving" && <Loader2 size={14} className="animate-spin" />}
-                {riskSaveState === "saving" ? "Saving…" : riskSaveState === "saved" ? "Saved ✓" : isNew && !canBypassApproval ? "Submit for Approval" : isNew ? "Create Risk" : "Save Changes"}
-              </button>
+            {(isEditing || isNew) && (
+              <>
+                {!isNew && !isCCRO ? (
+                  <button
+                    onClick={handleProposeUpdate}
+                    disabled={!canSave || proposing}
+                    className="px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {proposing ? "Proposing..." : "Propose Update"}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSave}
+                    disabled={!canSave || riskSaveState !== "idle"}
+                    className={`inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+                      isNew && !canBypassApproval ? "bg-amber-600 hover:bg-amber-700" : "bg-updraft-deep hover:bg-updraft-bar"
+                    }`}
+                  >
+                    {riskSaveState === "saving" && <Loader2 size={14} className="animate-spin" />}
+                    {riskSaveState === "saving" ? "Saving…" : riskSaveState === "saved" ? "Saved ✓" : isNew && !canBypassApproval ? "Submit for Approval" : isNew ? "Create Risk" : "Save Changes"}
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -1186,14 +1227,16 @@ function ScoreSelector({
   value,
   onChange,
   options,
+  disabled,
 }: {
   label: string;
   value: number;
   onChange: (v: number) => void;
   options: { value: number; label: string; description: string }[];
+  disabled?: boolean;
 }) {
   return (
-    <div>
+    <div className={disabled ? "pointer-events-none opacity-60" : ""}>
       <label className="block text-xs font-medium text-gray-500 mb-1.5">{label}</label>
       <div className="space-y-1">
         {options.map((opt) => {

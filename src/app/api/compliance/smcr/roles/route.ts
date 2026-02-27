@@ -1,8 +1,12 @@
-import { prisma, jsonResponse, errorResponse } from "@/lib/api-helpers";
+import { NextRequest } from "next/server";
+import { prisma, jsonResponse, errorResponse, getUserId } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const userId = getUserId(request);
+    if (!userId) return errorResponse("Unauthorised", 401);
+
     const roles = await prisma.sMFRole.findMany({
       include: {
         currentHolder: true,

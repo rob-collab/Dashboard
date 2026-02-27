@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { X, Save, Trash2, ExternalLink, Plus, Unlink, Loader2, Network, Zap, ChevronDown, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { X, Save, Trash2, ExternalLink, Plus, Unlink, Loader2, Network, Zap, ChevronDown, ChevronRight, Pencil, XCircle, ArrowUpRight } from "lucide-react";
 import { toast } from "sonner";
 import type { HorizonItem, HorizonCategory, HorizonUrgency, HorizonStatus, Risk } from "@/lib/types";
 import { HORIZON_CATEGORY_LABELS, HORIZON_URGENCY_COLOURS, HORIZON_STATUS_LABELS } from "@/lib/types";
 import { api } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
+import { AutoResizeTextarea } from "@/components/common/AutoResizeTextarea";
 
 interface Props {
   item: HorizonItem;
@@ -31,8 +33,12 @@ type SectionKey = "details" | "overview" | "deadlineActions" | "source" | "linke
 
 export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, onClose, onUpdated, onDeleted }: Props) {
   const { users, addAction } = useAppStore();
+  const router = useRouter();
 
   const effectiveCanCreateAction = canCreateAction ?? canManage;
+
+  // Edit-unlock state — CCRO starts in read mode; pencil button unlocks
+  const [isEditing, setIsEditing] = useState(false);
 
   // Edit state
   const [title, setTitle] = useState(item.title);
@@ -91,8 +97,24 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
     });
   }
 
+  function handleCancelEdit() {
+    // Reset all fields to original values
+    setTitle(item.title);
+    setCategory(item.category);
+    setSource(item.source);
+    setUrgency(item.urgency);
+    setStatus(item.status);
+    setSummary(item.summary);
+    setWhyItMatters(item.whyItMatters);
+    setDeadline(item.deadline ? item.deadline.slice(0, 10) : "");
+    setActions(item.actions ?? "");
+    setSourceUrl(item.sourceUrl ?? "");
+    setNotes(item.notes ?? "");
+    setIsEditing(false);
+  }
+
   function handleClose() {
-    if (isDirty && !confirm("You have unsaved changes. Close without saving?")) return;
+    if (isEditing && isDirty && !confirm("You have unsaved changes. Close without saving?")) return;
     onClose();
   }
 
@@ -111,6 +133,7 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
       });
       onUpdated(updated);
       toast.success("Item saved");
+      setIsEditing(false);
     } catch {
       toast.error("Failed to save — please try again");
     } finally {
@@ -200,8 +223,8 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/20 z-40" onClick={handleClose} />
 
-      {/* Panel */}
-      <div className="fixed right-0 top-0 bottom-0 w-full max-w-2xl bg-white shadow-2xl z-50 flex flex-col">
+      {/* Panel — wider than before; expands left to show data without scrolling */}
+      <div className="fixed right-0 top-0 bottom-0 w-[min(800px,95vw)] bg-white shadow-2xl z-50 flex flex-col">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-gradient-to-r from-updraft-deep to-updraft-bar px-6 py-4 flex items-start justify-between shrink-0">
           <div className="flex-1 min-w-0 pr-4">
@@ -210,7 +233,7 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
               <span className={cn("text-xs font-semibold px-1.5 py-0.5 rounded", urgencyStyle.bg, urgencyStyle.text)}>
                 {urgency}
               </span>
-              {isDirty && canManage && (
+              {isEditing && isDirty && (
                 <span className="text-xs font-medium text-amber-300 bg-white/10 px-1.5 py-0.5 rounded border border-amber-300/30">
                   Unsaved changes
                 </span>
@@ -218,9 +241,32 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
             </div>
             <h2 className="font-poppins font-semibold text-white text-sm leading-snug line-clamp-2">{title}</h2>
           </div>
-          <button onClick={handleClose} className="shrink-0 p-1 text-white/70 hover:text-white hover:bg-white/10 rounded transition-colors" aria-label="Close">
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Edit unlock button — CCRO Team only */}
+            {canManage && !isEditing && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                aria-label="Edit this item"
+                title="Edit"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            )}
+            {canManage && isEditing && (
+              <button
+                onClick={handleCancelEdit}
+                className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                aria-label="Cancel editing"
+                title="Cancel edits"
+              >
+                <XCircle className="w-4 h-4" />
+              </button>
+            )}
+            <button onClick={handleClose} className="p-1 text-white/70 hover:text-white hover:bg-white/10 rounded transition-colors" aria-label="Close">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Scrollable body */}
@@ -231,11 +277,11 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
                 <Label>Title</Label>
-                <input className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} disabled={!canManage} />
+                <input className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} disabled={!isEditing} />
               </div>
               <div>
                 <Label>Category</Label>
-                <select className={inputCls} value={category} onChange={(e) => setCategory(e.target.value as HorizonCategory)} disabled={!canManage}>
+                <select className={inputCls} value={category} onChange={(e) => setCategory(e.target.value as HorizonCategory)} disabled={!isEditing}>
                   {(Object.keys(HORIZON_CATEGORY_LABELS) as HorizonCategory[]).map((c) => (
                     <option key={c} value={c}>{HORIZON_CATEGORY_LABELS[c]}</option>
                   ))}
@@ -243,11 +289,11 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
               </div>
               <div>
                 <Label>Source</Label>
-                <input className={inputCls} value={source} onChange={(e) => setSource(e.target.value)} disabled={!canManage} />
+                <input className={inputCls} value={source} onChange={(e) => setSource(e.target.value)} disabled={!isEditing} />
               </div>
               <div>
                 <Label>Urgency</Label>
-                <select className={inputCls} value={urgency} onChange={(e) => setUrgency(e.target.value as HorizonUrgency)} disabled={!canManage}>
+                <select className={inputCls} value={urgency} onChange={(e) => setUrgency(e.target.value as HorizonUrgency)} disabled={!isEditing}>
                   <option value="HIGH">High</option>
                   <option value="MEDIUM">Medium</option>
                   <option value="LOW">Low</option>
@@ -255,7 +301,7 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
               </div>
               <div>
                 <Label>Status</Label>
-                <select className={inputCls} value={status} onChange={(e) => setStatus(e.target.value as HorizonStatus)} disabled={!canManage}>
+                <select className={inputCls} value={status} onChange={(e) => setStatus(e.target.value as HorizonStatus)} disabled={!isEditing}>
                   {(Object.keys(HORIZON_STATUS_LABELS) as HorizonStatus[]).map((s) => (
                     <option key={s} value={s}>{HORIZON_STATUS_LABELS[s]}</option>
                   ))}
@@ -273,11 +319,23 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
             <div className="space-y-3">
               <div>
                 <Label>Summary</Label>
-                <textarea className={cn(inputCls, "h-24 resize-none")} value={summary} onChange={(e) => setSummary(e.target.value)} disabled={!canManage} />
+                <AutoResizeTextarea
+                  className={inputCls}
+                  value={summary}
+                  onChange={(e) => setSummary(e.target.value)}
+                  disabled={!isEditing}
+                  minRows={3}
+                />
               </div>
               <div>
                 <Label>Why It Matters to Updraft</Label>
-                <textarea className={cn(inputCls, "h-32 resize-none")} value={whyItMatters} onChange={(e) => setWhyItMatters(e.target.value)} disabled={!canManage} />
+                <AutoResizeTextarea
+                  className={inputCls}
+                  value={whyItMatters}
+                  onChange={(e) => setWhyItMatters(e.target.value)}
+                  disabled={!isEditing}
+                  minRows={3}
+                />
               </div>
             </div>
           </Section>
@@ -287,11 +345,18 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
             <div className="space-y-3">
               <div>
                 <Label>Deadline</Label>
-                <input type="date" className={inputCls} value={deadline} onChange={(e) => setDeadline(e.target.value)} disabled={!canManage} />
+                <input type="date" className={inputCls} value={deadline} onChange={(e) => setDeadline(e.target.value)} disabled={!isEditing} />
               </div>
               <div>
                 <Label>Recommended Actions</Label>
-                <textarea className={cn(inputCls, "h-28 resize-none")} value={actions} onChange={(e) => setActions(e.target.value)} disabled={!canManage} placeholder="Describe the recommended actions for this item…" />
+                <AutoResizeTextarea
+                  className={inputCls}
+                  value={actions}
+                  onChange={(e) => setActions(e.target.value)}
+                  disabled={!isEditing}
+                  placeholder="Describe the recommended actions for this item…"
+                  minRows={3}
+                />
               </div>
             </div>
           </Section>
@@ -302,7 +367,7 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
               <div>
                 <Label>Source URL</Label>
                 <div className="flex gap-2">
-                  <input className={cn(inputCls, "flex-1")} value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} disabled={!canManage} placeholder="https://…" />
+                  <input className={cn(inputCls, "flex-1")} value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} disabled={!isEditing} placeholder="https://…" />
                   {sourceUrl && (
                     <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="px-2 py-1.5 border border-slate-200 rounded-lg text-slate-500 hover:text-updraft-bright-purple transition-colors">
                       <ExternalLink className="w-4 h-4" />
@@ -313,7 +378,14 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
               {canManage && (
                 <div>
                   <Label>Internal Notes <span className="text-slate-400 font-normal">(CCRO Team only)</span></Label>
-                  <textarea className={cn(inputCls, "h-20 resize-none")} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Internal notes not visible to Owner/Viewer roles…" />
+                  <AutoResizeTextarea
+                    className={inputCls}
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    disabled={!isEditing}
+                    placeholder="Internal notes not visible to Owner/Viewer roles…"
+                    minRows={2}
+                  />
                 </div>
               )}
             </div>
@@ -338,10 +410,17 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
                   <p className="text-xs text-slate-400 italic">No actions linked yet.</p>
                 )}
                 {(item.actionLinks ?? []).map((link) => (
-                  <div key={link.id} className="flex items-center gap-2 py-1.5 border-b border-slate-100 last:border-0">
-                    <span className="font-mono text-xs text-slate-400">{link.action?.reference}</span>
+                  <div key={link.id} className="flex items-center gap-2 py-1.5 border-b border-slate-100 last:border-0 group">
+                    <span className="font-mono text-xs text-slate-400 shrink-0">{link.action?.reference}</span>
                     <span className="text-xs text-slate-700 flex-1 truncate">{link.action?.title}</span>
-                    <span className="text-xs text-slate-400">{ACTION_STATUS_LABELS[link.action?.status ?? ""] ?? link.action?.status}</span>
+                    <span className="text-xs text-slate-400 shrink-0">{ACTION_STATUS_LABELS[link.action?.status ?? ""] ?? link.action?.status}</span>
+                    <button
+                      onClick={() => router.push("/actions")}
+                      className="shrink-0 opacity-0 group-hover:opacity-100 text-updraft-bright-purple hover:text-updraft-deep transition-all"
+                      title="Go to Actions"
+                    >
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 ))}
 
@@ -395,9 +474,16 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
                   <p className="text-xs text-slate-400 italic">No risks linked yet.</p>
                 )}
                 {(item.riskLinks ?? []).map((link) => (
-                  <div key={link.id} className="flex items-center gap-2 py-1.5 border-b border-slate-100 last:border-0">
-                    <span className="font-mono text-xs text-slate-400">{link.risk?.reference}</span>
+                  <div key={link.id} className="flex items-center gap-2 py-1.5 border-b border-slate-100 last:border-0 group">
+                    <span className="font-mono text-xs text-slate-400 shrink-0">{link.risk?.reference}</span>
                     <span className="text-xs text-slate-700 flex-1 truncate">{link.risk?.name}</span>
+                    <button
+                      onClick={() => router.push("/risk-register")}
+                      className="shrink-0 opacity-0 group-hover:opacity-100 text-updraft-bright-purple hover:text-updraft-deep transition-all"
+                      title="Go to Risk Register"
+                    >
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                    </button>
                     {canManage && confirmUnlinkId === link.riskId ? (
                       <div className="flex items-center gap-1.5 shrink-0">
                         <span className="text-xs text-red-600">Unlink?</span>
@@ -443,35 +529,57 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
           </Section>
         </div>
 
-        {/* Footer */}
+        {/* Footer — save controls only visible in edit mode */}
         {canManage && (
           <div className="px-6 py-4 border-t bg-slate-50 shrink-0 flex items-center justify-between gap-3">
             <div>
-              {!confirmDelete ? (
-                <button
-                  onClick={() => setConfirmDelete(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 text-red-500 hover:bg-red-50 text-sm rounded-lg transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" /> Delete
-                </button>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-red-600">Confirm delete?</span>
-                  <button onClick={handleDelete} disabled={deleting} className="px-3 py-1.5 bg-red-500 text-white text-xs font-semibold rounded-lg hover:bg-red-600 disabled:opacity-50">
-                    {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : "Delete"}
-                  </button>
-                  <button onClick={() => setConfirmDelete(false)} className="text-xs text-slate-400 hover:text-slate-600 px-2">Cancel</button>
-                </div>
+              {isEditing && (
+                <>
+                  {!confirmDelete ? (
+                    <button
+                      onClick={() => setConfirmDelete(true)}
+                      className="flex items-center gap-1.5 px-3 py-2 text-red-500 hover:bg-red-50 text-sm rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" /> Delete
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-red-600">Confirm delete?</span>
+                      <button onClick={handleDelete} disabled={deleting} className="px-3 py-1.5 bg-red-500 text-white text-xs font-semibold rounded-lg hover:bg-red-600 disabled:opacity-50">
+                        {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : "Delete"}
+                      </button>
+                      <button onClick={() => setConfirmDelete(false)} className="text-xs text-slate-400 hover:text-slate-600 px-2">Cancel</button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 bg-updraft-bright-purple text-white text-sm font-semibold rounded-lg hover:bg-updraft-light-purple disabled:opacity-60 transition-colors"
-            >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              {saving ? "Saving…" : "Save"}
-            </button>
+            {isEditing ? (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleCancelEdit}
+                  className="px-4 py-2 text-slate-600 border border-slate-200 text-sm font-medium rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving || !isDirty}
+                  className="flex items-center gap-2 px-4 py-2 bg-updraft-bright-purple text-white text-sm font-semibold rounded-lg hover:bg-updraft-light-purple disabled:opacity-60 transition-colors"
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {saving ? "Saving…" : "Save Changes"}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="flex items-center gap-2 px-4 py-2 border border-updraft-bright-purple text-updraft-bright-purple text-sm font-semibold rounded-lg hover:bg-updraft-pale-purple transition-colors"
+              >
+                <Pencil className="w-4 h-4" />
+                Edit
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -481,7 +589,7 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const inputCls = "w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30 bg-white disabled:bg-slate-50 disabled:text-slate-500";
+const inputCls = "w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30 bg-white disabled:bg-slate-50 disabled:text-slate-600";
 
 function Label({ children }: { children: React.ReactNode }) {
   return <label className="block text-xs font-medium text-slate-600 mb-1">{children}</label>;

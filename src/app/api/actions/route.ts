@@ -78,6 +78,7 @@ export async function POST(request: NextRequest) {
       title: data.title,
       description: data.description,
       ...(data.issueDescription !== undefined && { issueDescription: data.issueDescription }),
+      ...(data.priority !== undefined && data.priority !== null && { priority: data.priority }),
       assignedTo: data.assignedTo,
       createdBy: userId,
       ...(data.dueDate && { dueDate: new Date(data.dueDate) }),

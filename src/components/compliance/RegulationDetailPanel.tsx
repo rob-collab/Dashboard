@@ -16,6 +16,7 @@ import {
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { X, ExternalLink, ShieldCheck, FileText, Link2, Plus, Search, Pencil, Loader2, ChevronDown, ChevronRight, History, Layers } from "lucide-react";
+import { AutoResizeTextarea } from "@/components/common/AutoResizeTextarea";
 import EntityLink from "@/components/common/EntityLink";
 import MaturityBadge from "@/components/processes/MaturityBadge";
 import { api } from "@/lib/api-client";
@@ -339,11 +340,11 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
         <section>
           <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Description</h4>
           {editMode ? (
-            <textarea
+            <AutoResizeTextarea
               value={editDescription}
               onChange={(e) => setEditDescription(e.target.value)}
-              rows={6}
-              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple resize-y"
+              minRows={4}
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
               placeholder="Add a description..."
             />
           ) : (
@@ -357,10 +358,10 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
         <section>
           <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Provisions</h4>
           {editMode ? (
-            <textarea
+            <AutoResizeTextarea
               value={editProvisions}
               onChange={(e) => setEditProvisions(e.target.value)}
-              rows={2}
+              minRows={2}
               className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:border-updraft-bright-purple focus:ring-1 focus:ring-updraft-bright-purple"
               placeholder="e.g. CONC 5.2.1R, CONC 5.2.2G"
             />
@@ -392,10 +393,10 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
                   <option key={k} value={k}>{v}</option>
                 ))}
               </select>
-              <textarea
+              <AutoResizeTextarea
                 value={editApplicabilityNotes}
                 onChange={(e) => setEditApplicabilityNotes(e.target.value)}
-                rows={2}
+                minRows={2}
                 className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
                 placeholder="Applicability notes..."
               />
@@ -429,10 +430,10 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
                   />
                 </div>
               </div>
-              <textarea
+              <AutoResizeTextarea
                 value={editSMFNotes}
                 onChange={(e) => setEditSMFNotes(e.target.value)}
-                rows={2}
+                minRows={2}
                 className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
                 placeholder="SMF notes..."
               />
@@ -484,10 +485,10 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Assessment Notes</label>
-                <textarea
+                <AutoResizeTextarea
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
-                  rows={3}
+                  minRows={3}
                   className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
                   placeholder="Add assessment notes..."
                 />

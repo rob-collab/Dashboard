@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Plus, Download, Search, Radar, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { useSession } from "next-auth/react";
@@ -25,6 +26,17 @@ const URGENCY_SECTION_STYLES: Record<HorizonUrgency, { label: string; headerBg: 
 };
 
 export default function HorizonScanningPage() {
+  return (
+    <Suspense>
+      <HorizonScanningPageInner />
+    </Suspense>
+  );
+}
+
+function HorizonScanningPageInner() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
   const { horizonItems, risks } = useAppStore();
   const hydrated = useAppStore((s) => s._hydrated);
@@ -32,11 +44,32 @@ export default function HorizonScanningPage() {
   const [selectedItem, setSelectedItem] = useState<HorizonItem | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showChangeFocus, setShowChangeFocus] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState<HorizonCategory | "ALL">("ALL");
-  const [urgencyFilter, setUrgencyFilter] = useState<HorizonUrgency | "ALL">("ALL");
-  const [statusFilter, setStatusFilter] = useState<HorizonStatus | "ALL">("ALL");
-  const [showDismissed, setShowDismissed] = useState(false);
-  const [search, setSearch] = useState("");
+
+  // Initialise filters from URL (run once on mount)
+  const [categoryFilter, setCategoryFilter] = useState<HorizonCategory | "ALL">(() =>
+    (searchParams.get("category") as HorizonCategory) || "ALL"
+  );
+  const [urgencyFilter, setUrgencyFilter] = useState<HorizonUrgency | "ALL">(() =>
+    (searchParams.get("urgency") as HorizonUrgency) || "ALL"
+  );
+  const [statusFilter, setStatusFilter] = useState<HorizonStatus | "ALL">(() =>
+    (searchParams.get("status") as HorizonStatus) || "ALL"
+  );
+  const [showDismissed, setShowDismissed] = useState(() => searchParams.get("dismissed") === "1");
+  const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
+
+  // Sync filter state → URL (replaces current history entry, no scroll)
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (categoryFilter !== "ALL") params.set("category", categoryFilter);
+    if (urgencyFilter !== "ALL") params.set("urgency", urgencyFilter);
+    if (statusFilter !== "ALL") params.set("status", statusFilter);
+    if (showDismissed) params.set("dismissed", "1");
+    if (search.trim()) params.set("q", search.trim());
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoryFilter, urgencyFilter, statusFilter, showDismissed, search]);
 
   const userRole = (session?.user as { role?: string } | undefined)?.role ?? "";
   const canManage = userRole === "CCRO_TEAM";

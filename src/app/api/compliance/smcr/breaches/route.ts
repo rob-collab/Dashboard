@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma, jsonResponse, errorResponse, validateBody, auditLog, checkPermission, generateReference } from "@/lib/api-helpers";
+import { prisma, jsonResponse, errorResponse, validateBody, auditLog, checkPermission, generateReference, getUserId } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
 
 const createSchema = z.object({
@@ -12,8 +12,11 @@ const createSchema = z.object({
   status: z.enum(["IDENTIFIED", "UNDER_INVESTIGATION", "CLOSED_NO_ACTION", "CLOSED_DISCIPLINARY", "REPORTED_TO_FCA"]).optional(),
 });
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const userId = getUserId(request);
+    if (!userId) return errorResponse("Unauthorised", 401);
+
     const breaches = await prisma.conductRuleBreach.findMany({
       include: {
         conductRule: true,

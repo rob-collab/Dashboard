@@ -419,7 +419,7 @@ export type ControlFrequency = "DAILY" | "WEEKLY" | "MONTHLY" | "QUARTERLY" | "B
 export type TestingFrequency = "MONTHLY" | "QUARTERLY" | "BI_ANNUAL" | "ANNUAL";
 export type TestResultValue = "PASS" | "FAIL" | "PARTIALLY" | "NOT_TESTED" | "NOT_DUE";
 export type QuarterlySummaryStatus = "DRAFT" | "SUBMITTED" | "APPROVED";
-export type ConsumerDutyOutcomeType = "PRODUCTS_AND_SERVICES" | "CONSUMER_UNDERSTANDING" | "CONSUMER_SUPPORT" | "GOVERNANCE_CULTURE_OVERSIGHT";
+export type ConsumerDutyOutcomeType = "PRODUCTS_AND_SERVICES" | "PRICE_AND_VALUE" | "CONSUMER_UNDERSTANDING" | "CONSUMER_SUPPORT" | "GOVERNANCE_CULTURE_OVERSIGHT";
 export type InternalOrThirdParty = "INTERNAL" | "THIRD_PARTY";
 export type ControlType = "PREVENTATIVE" | "DETECTIVE" | "CORRECTIVE" | "DIRECTIVE";
 
@@ -432,6 +432,7 @@ export const CONTROL_TYPE_LABELS: Record<ControlType, string> = {
 
 export const CD_OUTCOME_LABELS: Record<ConsumerDutyOutcomeType, string> = {
   PRODUCTS_AND_SERVICES: "Products and Services",
+  PRICE_AND_VALUE: "Price and Value",
   CONSUMER_UNDERSTANDING: "Consumer Understanding",
   CONSUMER_SUPPORT: "Consumer Support",
   GOVERNANCE_CULTURE_OVERSIGHT: "Governance, Culture and Oversight",

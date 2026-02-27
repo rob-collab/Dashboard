@@ -39,6 +39,9 @@ const createSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    const userId = getUserId(request);
+    if (!userId) return errorResponse("Unauthorised", 401);
+
     const result = validateQuery(querySchema, request.nextUrl.searchParams);
     if ("error" in result) return result.error;
     const { categoryL1, ownerId, directionOfTravel } = result.data;

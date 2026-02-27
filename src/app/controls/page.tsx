@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import {
   Library,
@@ -56,6 +56,8 @@ export default function ControlsPage() {
 function ControlsPageInner() {
   usePageTitle("Controls Testing");
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const hydrated = useAppStore((s) => s._hydrated);
   const currentUser = useAppStore((s) => s.currentUser);
 
@@ -105,7 +107,12 @@ function ControlsPageInner() {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  const params = new URLSearchParams(searchParams.toString());
+                  params.set("tab", tab.id);
+                  router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+                }}
                 className={`flex items-center gap-2 px-1 pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                   isActive
                     ? "border-updraft-bright-purple text-updraft-deep"

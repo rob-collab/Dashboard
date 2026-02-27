@@ -423,6 +423,19 @@ Wrap the detail cards in a collapsible Zone N rather than removing or replacing 
 
 ---
 
+### W013 — URL filter state: Suspense wrap + lazy initialiser + useEffect sync
+**What happened:** Added full URL persistence to Horizon Scanning (5 filters) and tab write-back to Controls + Settings.
+**Pattern:**
+1. Wrap the page default export in `<Suspense><PageInner /></Suspense>` (required by Next.js 14 for `useSearchParams`)
+2. Initialise each state with a lazy initialiser reading from `useSearchParams()`:
+   `useState<T>(() => (searchParams.get("key") as T) || default)`
+3. Sync all state → URL in a single `useEffect` with `router.replace(..., { scroll: false })` — no push (avoids creating history entries)
+4. For tab-only pages (Controls, Settings): skip useEffect, just call `router.replace` directly inside the click handler
+**Why it works:** Lazy initialisers run once (no re-render on URL change). `router.replace` is history-entry-preserving, so back/forward still works correctly. `{ scroll: false }` prevents the page jumping to top on each filter change.
+**Applies to:** Any page with filters, tabs, or search that should survive a page refresh or be shareable via URL.
+
+---
+
 ## Promotion Log
 
 When the Retrospective Agent recommends a promotion and it is carried out, record it here
