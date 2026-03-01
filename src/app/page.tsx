@@ -987,7 +987,7 @@ export default function DashboardHome() {
                 .map((item) => {
                   const pinned = (dashboardLayout?.pinnedSections ?? []).includes(item.i);
                   return (
-                    <div key={item.i} className="rgl-section-item h-full overflow-hidden rounded-2xl relative">
+                    <div key={item.i} className="rgl-section-item h-full relative">
                       {pinned && (
                         <div
                           title="This section is required by your CCRO and cannot be hidden"

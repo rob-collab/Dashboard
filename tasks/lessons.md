@@ -712,6 +712,22 @@ so there is a clear trail of what was absorbed into the permanent process.
 
 ---
 
+### L023 — IntersectionObserver `root: null` breaks when `<main>` is the scroll container
+**What happened:** ScrollReveal used `root: null` (viewport) for IntersectionObserver. The app shell has `<div class="h-screen overflow-hidden">` wrapping a `<main class="overflow-y-auto">`. The scroll happens on `<main>`, not `<body>`. With `root: null`, the IO observes all elements against the viewport. Because `<main>` fills the entire viewport, the IO reports ALL elements as intersecting on first observation — even those below the fold. Result: `setInView(true)` fires for everything on page load, no scroll animations occur, all elements appear statically in their final visible state.
+
+**Additional issue:** `overflow-hidden` on the RGL wrapper `rgl-section-item` clipped the `translateY(12px)` starting position of ScrollReveal's slide-up animation, suppressing the visual effect even in cases where the IO did fire correctly.
+
+**Rule:** When the page scroll container is NOT `<body>` or `<html>`, IntersectionObserver MUST use the actual scroll container as its `root`. Use `findScrollParent()` to walk up the DOM and find the nearest `overflow-y: auto/scroll` ancestor. Never use `root: null` in an app shell where an inner element does the scrolling.
+
+**Rule 2:** Never put `overflow-hidden` on a wrapper that also wraps a `ScrollReveal` component using `translateY`. The overflow clips the element's shifted starting position, making the slide animation invisible.
+
+**Fix applied:**
+- `ScrollReveal.tsx`: added `findScrollParent()` function; passes `root: scrollRoot` to IntersectionObserver
+- `page.tsx` `rgl-section-item`: removed `overflow-hidden rounded-2xl`
+**Status:** Active.
+
+---
+
 ### W025 — useDashboardSectionMap hook pattern for large sectionMaps
 **What happened:** Sprint O O1 — page.tsx had a 1079-line sectionMap inline. Extracted to `_useDashboardSectionMap.tsx` as a plain function (not a real hook) that takes all needed state as a props object and returns `Record<string, React.ReactNode>`.
 **Pattern:**
