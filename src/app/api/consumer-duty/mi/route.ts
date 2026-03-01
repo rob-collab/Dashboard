@@ -10,6 +10,7 @@ const metricSchema = z.object({
   previous: z.string().default(""),
   change: z.string().default(""),
   ragStatus: z.enum(["GOOD", "WARNING", "HARM"]).default("GOOD"),
+  indicatorType: z.enum(["LEADING", "LAGGING", "COMPOSITE"]).default("LAGGING"),
   appetite: z.string().nullable().default(null),
   appetiteOperator: z.string().nullable().default(null),
 });
@@ -49,6 +50,7 @@ export async function PUT(request: NextRequest) {
             previous: m.previous,
             change: m.change,
             ragStatus: m.ragStatus,
+            indicatorType: m.indicatorType,
             appetite: m.appetite,
             appetiteOperator: m.appetiteOperator,
           },

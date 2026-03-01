@@ -203,3 +203,101 @@ export async function sendActionReminder(
     return { success: false, error: msg };
   }
 }
+
+// ── Risk Acceptance Email Notifications ──────────────────────────────────────
+
+interface RiskAcceptanceEmailData {
+  reference: string;
+  title: string;
+  acceptanceId: string;
+}
+
+export async function sendRiskAcceptanceApprovalRequest(
+  data: RiskAcceptanceEmailData,
+  approver: Assignee,
+  proposerName: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping risk acceptance email");
+    return { success: false, error: "RESEND_API_KEY not configured" };
+  }
+
+  const url = `${baseUrl()}/risk-acceptances?highlight=${data.acceptanceId}`;
+
+  try {
+    await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: approver.email,
+      subject: `Action Required: Risk Acceptance ${data.reference} awaiting your approval`,
+      html: `
+        <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+          <div style="background: linear-gradient(135deg, #311B92, #673AB7); padding: 20px 24px; border-radius: 12px 12px 0 0;">
+            <h1 style="color: white; font-size: 18px; margin: 0;">CCRO Dashboard — Approval Required</h1>
+          </div>
+          <div style="border: 1px solid #e5e7eb; border-top: none; padding: 24px; border-radius: 0 0 12px 12px;">
+            <p style="color: #374151; font-size: 14px;">Hi ${approver.name},</p>
+            <p style="color: #374151; font-size: 14px;">
+              ${proposerName} has submitted a risk acceptance for your approval.
+            </p>
+            <div style="background: #f9fafb; border-left: 4px solid #673AB7; padding: 16px; margin: 16px 0; border-radius: 0 8px 8px 0;">
+              <p style="color: #6B7280; font-size: 12px; margin: 0 0 4px 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">${data.reference}</p>
+              <h2 style="color: #1a1060; font-size: 16px; margin: 0;">${data.title}</h2>
+            </div>
+            <a href="${url}" style="display: inline-block; background: #673AB7; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 500;">Review &amp; Decide</a>
+          </div>
+        </div>
+      `,
+    });
+    return { success: true };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[email] Failed to send risk acceptance approval request:", msg);
+    return { success: false, error: msg };
+  }
+}
+
+export async function sendRiskAcceptanceDecision(
+  data: RiskAcceptanceEmailData,
+  proposer: Assignee,
+  decision: "APPROVED" | "REJECTED",
+  deciderName: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping risk acceptance email");
+    return { success: false, error: "RESEND_API_KEY not configured" };
+  }
+
+  const url = `${baseUrl()}/risk-acceptances?highlight=${data.acceptanceId}`;
+  const approved = decision === "APPROVED";
+
+  try {
+    await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: proposer.email,
+      subject: `Risk Acceptance ${data.reference} has been ${approved ? "approved" : "rejected"}`,
+      html: `
+        <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+          <div style="background: linear-gradient(135deg, ${approved ? "#065F46, #059669" : "#7F1D1D, #DC2626"}); padding: 20px 24px; border-radius: 12px 12px 0 0;">
+            <h1 style="color: white; font-size: 18px; margin: 0;">CCRO Dashboard — Risk Acceptance ${approved ? "Approved" : "Rejected"}</h1>
+          </div>
+          <div style="border: 1px solid #e5e7eb; border-top: none; padding: 24px; border-radius: 0 0 12px 12px;">
+            <p style="color: #374151; font-size: 14px;">Hi ${proposer.name},</p>
+            <p style="color: #374151; font-size: 14px;">
+              ${deciderName} has <strong>${approved ? "approved" : "rejected"}</strong> your risk acceptance.
+            </p>
+            <div style="background: #f9fafb; border-left: 4px solid ${approved ? "#059669" : "#DC2626"}; padding: 16px; margin: 16px 0; border-radius: 0 8px 8px 0;">
+              <p style="color: #6B7280; font-size: 12px; margin: 0 0 4px 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">${data.reference}</p>
+              <h2 style="color: #1a1060; font-size: 16px; margin: 0;">${data.title}</h2>
+            </div>
+            <a href="${url}" style="display: inline-block; background: ${approved ? "#059669" : "#DC2626"}; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 500;">View Details</a>
+          </div>
+        </div>
+      `,
+    });
+    return { success: true };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[email] Failed to send risk acceptance decision email:", msg);
+    return { success: false, error: msg };
+  }
+}

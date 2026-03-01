@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { X, Save, Trash2, ExternalLink, Plus, Unlink, Loader2, Network, Zap, ChevronDown, ChevronRight, Pencil, XCircle } from "lucide-react";
 import { toast } from "sonner";
-import type { HorizonItem, HorizonCategory, HorizonUrgency, HorizonStatus, Risk } from "@/lib/types";
+import type { HorizonItem, HorizonCategory, HorizonUrgency, HorizonStatus, HorizonImpact, Risk } from "@/lib/types";
 import { HORIZON_CATEGORY_LABELS, HORIZON_URGENCY_COLOURS, HORIZON_STATUS_LABELS } from "@/lib/types";
 import { api } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
@@ -47,6 +47,7 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
   const [category, setCategory] = useState<HorizonCategory>(item.category);
   const [source, setSource] = useState(item.source);
   const [urgency, setUrgency] = useState<HorizonUrgency>(item.urgency);
+  const [impact, setImpact] = useState<HorizonImpact>(item.impact ?? "MEDIUM");
   const [status, setStatus] = useState<HorizonStatus>(item.status);
   const [summary, setSummary] = useState(item.summary);
   const [whyItMatters, setWhyItMatters] = useState(item.whyItMatters);
@@ -61,6 +62,7 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
     category !== item.category ||
     source !== item.source ||
     urgency !== item.urgency ||
+    impact !== (item.impact ?? "MEDIUM") ||
     status !== item.status ||
     summary !== item.summary ||
     whyItMatters !== item.whyItMatters ||
@@ -106,6 +108,7 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
     setCategory(item.category);
     setSource(item.source);
     setUrgency(item.urgency);
+    setImpact(item.impact ?? "MEDIUM");
     setStatus(item.status);
     setSummary(item.summary);
     setWhyItMatters(item.whyItMatters);
@@ -130,7 +133,7 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
       const updated = await api<HorizonItem>(`/api/horizon-items/${item.id}`, {
         method: "PATCH",
         body: JSON.stringify({
-          title, category, source, urgency, status, summary, whyItMatters,
+          title, category, source, urgency, impact, status, summary, whyItMatters,
           deadline: deadline || null,
           actions: actions || null,
           sourceUrl: sourceUrl || null,
@@ -306,6 +309,14 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
               <div>
                 <Label>Urgency</Label>
                 <select className={inputCls} value={urgency} onChange={(e) => setUrgency(e.target.value as HorizonUrgency)} disabled={!isEditing}>
+                  <option value="HIGH">High</option>
+                  <option value="MEDIUM">Medium</option>
+                  <option value="LOW">Low</option>
+                </select>
+              </div>
+              <div>
+                <Label>Impact</Label>
+                <select className={inputCls} value={impact} onChange={(e) => setImpact(e.target.value as HorizonImpact)} disabled={!isEditing}>
                   <option value="HIGH">High</option>
                   <option value="MEDIUM">Medium</option>
                   <option value="LOW">Low</option>

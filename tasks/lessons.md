@@ -652,6 +652,33 @@ that check `getUserId` but whose `GET` handler doesn't.
 
 ---
 
+### W022 — api() body must be a plain object, not pre-serialized string
+**What happened:** Sprint N — `handleLinkRegulation` and `handleUnlinkRegulation` used
+`body: JSON.stringify({ regulationId })`. The `api()` helper already calls `JSON.stringify(body)`
+internally, so passing a pre-serialized string double-encodes it: the server receives a JSON
+string `"\"{'regulationId':...'}\"` instead of an object.
+**Rule:** Always pass plain objects to `api()`: `body: { regulationId }` not
+`body: JSON.stringify({ regulationId })`.
+**Trigger:** Any new handler that calls `api()` with a POST/PATCH/DELETE body — check that the
+body is a plain object, never a string.
+**Status:** Active.
+
+---
+
+### W023 — Include join tables in the bulk list API from the start
+**What happened:** Sprint N — `regulationLinks` was added to the `RiskRegulationLink` model
+but not included in the `/api/risks` GET `include` block. The regulation panel's "Linked Risks"
+section relied on store risks having `regulationLinks` populated, which they did not — making
+the computed filter always return empty results until the include was added.
+**Rule:** When adding a join table or one-to-many relation to an entity, always add it to the
+corresponding bulk-list API include immediately. Do not wait until the UI needs it.
+**Pattern:** Search for the entity's `findMany` call and add the new relation to its `include`
+at the same time as the schema/type change.
+**Trigger:** Any new Prisma relation added to an existing model.
+**Status:** Active.
+
+---
+
 ## Promotion Log
 
 When the Retrospective Agent recommends a promotion and it is carried out, record it here

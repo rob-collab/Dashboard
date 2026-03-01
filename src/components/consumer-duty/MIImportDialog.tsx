@@ -192,6 +192,7 @@ export default function MIImportDialog({
           previous: "",
           change: "",
           ragStatus: r.ragStatus,
+          indicatorType: "LAGGING",
           appetite: null,
           appetiteOperator: null,
           narrative: null,

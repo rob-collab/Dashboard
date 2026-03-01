@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import type { Risk, RiskActionLink, ControlEffectiveness, RiskAppetite, DirectionOfTravel, ActionPriority } from "@/lib/types";
+import type { Risk, RiskActionLink, ControlEffectiveness, RiskAppetite, DirectionOfTravel, ActionPriority, RiskRegulationLink } from "@/lib/types";
 import { RISK_ACCEPTANCE_STATUS_LABELS, RISK_ACCEPTANCE_STATUS_COLOURS } from "@/lib/types";
 import { useAppStore } from "@/lib/store";
 import {
@@ -14,6 +14,8 @@ import {
   DIRECTION_DISPLAY,
   RISK_CATEGORIES as FALLBACK_CATEGORIES,
   getL2Categories as getFallbackL2,
+  calculateBreach,
+  getRiskScore,
 } from "@/lib/risk-categories";
 import ScoreBadge from "./ScoreBadge";
 import { X, Plus, Trash2, AlertTriangle, ChevronRight, ChevronDown, History, Link2, ShieldQuestion, Star, Clock, XCircle, Loader2, Pencil } from "lucide-react";
@@ -48,6 +50,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
   const riskAcceptances = useAppStore((s) => s.riskAcceptances);
   const storeControls = useAppStore((s) => s.controls);
   const controlBusinessAreas = useAppStore((s) => s.controlBusinessAreas);
+  const storeRegulations = useAppStore((s) => s.regulations);
   const toggleRiskInFocus = useAppStore((s) => s.toggleRiskInFocus);
   const linkControlToRisk = useAppStore((s) => s.linkControlToRisk);
   const unlinkControlFromRisk = useAppStore((s) => s.unlinkControlFromRisk);
@@ -110,6 +113,10 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
   const [confirmUnlinkActionId, setConfirmUnlinkActionId] = useState<string | null>(null);
   const [libCtrlSearch, setLibCtrlSearch] = useState("");
   const [libCtrlAreaFilter, setLibCtrlAreaFilter] = useState<string>("");
+  const [regulationLinksOpen, setRegulationLinksOpen] = useState(false);
+  const [regulationSearch, setRegulationSearch] = useState("");
+  const [linkingRegulation, setLinkingRegulation] = useState(false);
+  const [confirmUnlinkRegId, setConfirmUnlinkRegId] = useState<string | null>(null);
 
   // Populate form when risk changes
   useEffect(() => {
@@ -321,6 +328,48 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
     }
   }
 
+  async function handleLinkRegulation(regulationId: string) {
+    if (!risk) return;
+    setLinkingRegulation(true);
+    try {
+      const link = await api<RiskRegulationLink>(`/api/risks/${risk.id}/regulation-links`, {
+        method: "POST",
+        body: { regulationId },
+      });
+      // Optimistically update store
+      const updatedRisk: Risk = {
+        ...risk,
+        regulationLinks: [...(risk.regulationLinks ?? []), link],
+      };
+      useAppStore.getState().updateRisk(risk.id, updatedRisk);
+      toast.success("Regulation linked");
+      setRegulationSearch("");
+    } catch {
+      toast.error("Failed to link regulation — please try again");
+    } finally {
+      setLinkingRegulation(false);
+    }
+  }
+
+  async function handleUnlinkRegulation(regulationId: string) {
+    if (!risk) return;
+    try {
+      await api(`/api/risks/${risk.id}/regulation-links`, {
+        method: "DELETE",
+        body: { regulationId },
+      });
+      const updatedRisk: Risk = {
+        ...risk,
+        regulationLinks: (risk.regulationLinks ?? []).filter((l) => l.regulationId !== regulationId),
+      };
+      useAppStore.getState().updateRisk(risk.id, updatedRisk);
+      toast.success("Regulation unlinked");
+      setConfirmUnlinkRegId(null);
+    } catch {
+      toast.error("Failed to unlink regulation — please try again");
+    }
+  }
+
   const canSave = name.trim() && description.trim() && categoryL1 && categoryL2 && ownerId;
 
   return (
@@ -362,6 +411,14 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                     </span>
                   );
                 })()}
+                {/* Appetite Breach badge — N4 */}
+                {risk.riskAppetite && calculateBreach(getRiskScore(risk.residualLikelihood, risk.residualImpact), risk.riskAppetite).breached && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-400/20 text-red-300 border border-red-400/30"
+                        title="Residual score exceeds stated risk appetite">
+                    <AlertTriangle className="w-3 h-3 shrink-0" />
+                    Appetite Breach
+                  </span>
+                )}
                 {canToggleFocus && (
                   <button
                     onClick={() => toggleRiskInFocus(risk.id, !risk.inFocus)}
@@ -1174,6 +1231,123 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
               </section>
             );
           })()}
+
+          {/* Regulatory Obligations (collapsible) — only for saved risks */}
+          {risk && !isNew && (
+            <section className="space-y-3">
+              <button
+                type="button"
+                onClick={() => setRegulationLinksOpen(!regulationLinksOpen)}
+                className="w-full text-sm font-semibold text-gray-700 flex items-center gap-2"
+              >
+                <span className="w-6 h-6 rounded-full bg-indigo-500 text-white flex items-center justify-center text-xs">8</span>
+                Regulatory Obligations
+                <span className="rounded-full bg-indigo-100 text-indigo-700 px-1.5 py-0.5 text-[10px] font-bold">
+                  {risk.regulationLinks?.length ?? 0}
+                </span>
+                <span className="text-[10px] text-gray-400 font-normal">linked regulations</span>
+                <span className="ml-auto">
+                  {regulationLinksOpen ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                </span>
+              </button>
+              {regulationLinksOpen && (
+                <div className="space-y-3">
+                  {(risk.regulationLinks ?? []).length === 0 && (
+                    <p className="text-xs text-gray-400 italic">No regulations linked yet.</p>
+                  )}
+                  {(risk.regulationLinks ?? []).map((link) => {
+                    const reg = link.regulation;
+                    const isConfirming = confirmUnlinkRegId === link.regulationId;
+                    return (
+                      <div
+                        key={link.id}
+                        className="flex items-center justify-between rounded-lg bg-gray-50 p-2 text-xs"
+                      >
+                        <div className="min-w-0 flex-1">
+                          {reg ? (
+                            <EntityLink
+                              type="regulation"
+                              id={reg.id}
+                              reference={reg.reference}
+                              label={reg.name}
+                            />
+                          ) : (
+                            <span className="text-gray-500">{link.regulationId}</span>
+                          )}
+                        </div>
+                        {isCCRO && (
+                          isConfirming ? (
+                            <div className="flex items-center gap-1 shrink-0 ml-2">
+                              <span className="text-[10px] text-gray-500">Unlink?</span>
+                              <button
+                                onClick={() => handleUnlinkRegulation(link.regulationId)}
+                                className="text-[10px] text-red-600 font-medium hover:underline"
+                              >Yes</button>
+                              <button
+                                onClick={() => setConfirmUnlinkRegId(null)}
+                                className="text-[10px] text-gray-500 hover:underline"
+                              >No</button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmUnlinkRegId(link.regulationId)}
+                              className="ml-2 text-gray-400 hover:text-red-500 transition-colors shrink-0"
+                              title="Unlink regulation"
+                            >
+                              <XCircle className="w-3.5 h-3.5" />
+                            </button>
+                          )
+                        )}
+                      </div>
+                    );
+                  })}
+                  {isCCRO && (
+                    <div className="space-y-1.5">
+                      <input
+                        type="text"
+                        placeholder="Search regulations to link..."
+                        value={regulationSearch}
+                        onChange={(e) => setRegulationSearch(e.target.value)}
+                        className="w-full rounded-lg border border-gray-200 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
+                      />
+                      {regulationSearch.trim() && (() => {
+                        const q = regulationSearch.toLowerCase();
+                        const linked = new Set((risk.regulationLinks ?? []).map((l) => l.regulationId));
+                        const matches = storeRegulations.filter(
+                          (r) => !linked.has(r.id) && (r.name.toLowerCase().includes(q) || r.reference.toLowerCase().includes(q))
+                        );
+                        return (
+                          <div className="rounded-lg border border-gray-200 bg-white max-h-40 overflow-y-auto">
+                            {matches.length === 0 ? (
+                              <p className="text-xs text-gray-400 italic p-2">No matching regulations found.</p>
+                            ) : (
+                              matches.slice(0, 10).map((reg) => (
+                                <button
+                                  key={reg.id}
+                                  type="button"
+                                  onClick={() => handleLinkRegulation(reg.id)}
+                                  disabled={linkingRegulation}
+                                  className="w-full flex items-center gap-2 px-3 py-2 hover:bg-updraft-pale-purple/30 transition-colors text-left disabled:opacity-50"
+                                >
+                                  {linkingRegulation ? (
+                                    <Loader2 className="w-3 h-3 shrink-0 animate-spin text-gray-400" />
+                                  ) : (
+                                    <Link2 className="w-3 h-3 shrink-0 text-gray-400" />
+                                  )}
+                                  <span className="text-xs text-gray-700 font-medium">{reg.reference}</span>
+                                  <span className="text-xs text-gray-500 truncate">{reg.name}</span>
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+          )}
         </div>
 
         {/* Footer */}

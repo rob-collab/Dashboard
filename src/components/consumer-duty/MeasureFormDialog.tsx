@@ -31,6 +31,7 @@ function blankMetric(measureRefId: string): ConsumerDutyMI {
     previous: "",
     change: "",
     ragStatus: "GOOD",
+    indicatorType: "LAGGING",
     appetite: null,
     appetiteOperator: null,
     narrative: null,

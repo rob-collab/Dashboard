@@ -32,6 +32,12 @@ enum RAGStatus {
   HARM
 }
 
+enum MIIndicatorType {
+  LEADING
+  LAGGING
+  COMPOSITE
+}
+
 enum SectionType {
   TEXT_BLOCK
   DATA_TABLE
@@ -75,6 +81,7 @@ enum RiskAppetite {
   LOW
   LOW_TO_MODERATE
   MODERATE
+  HIGH
 }
 
 enum DirectionOfTravel {
@@ -342,12 +349,13 @@ model ConsumerDutyMI {
   current          String    @default("")
   previous         String    @default("")
   change           String    @default("")
-  ragStatus        RAGStatus @default(GOOD)
+  ragStatus        RAGStatus       @default(GOOD)
+  indicatorType    MIIndicatorType @default(LAGGING)
   appetite         String?
   appetiteOperator String?
-  narrative        String?   @db.Text
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  narrative        String?         @db.Text
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
   snapshots MetricSnapshot[]
   actions   Action[]         @relation("ConsumerDutyMIActions")
@@ -583,14 +591,30 @@ model Risk {
   snapshots   RiskSnapshot[]
   acceptances RiskAcceptance[]
   changes      RiskChange[]
-  controlLinks  RiskControlLink[]
-  actionLinks   RiskActionLink[]
-  processLinks  ProcessRiskLink[]
-  horizonLinks  HorizonRiskLink[]  @relation("HorizonRiskLinks")
+  controlLinks      RiskControlLink[]
+  actionLinks       RiskActionLink[]
+  processLinks      ProcessRiskLink[]
+  horizonLinks      HorizonRiskLink[]       @relation("HorizonRiskLinks")
+  regulationLinks   RiskRegulationLink[]
 
   @@index([categoryL1])
   @@index([ownerId])
   @@map("risks")
+}
+
+model RiskRegulationLink {
+  id           String     @id @default(cuid())
+  riskId       String
+  risk         Risk       @relation(fields: [riskId], references: [id], onDelete: Cascade)
+  regulationId String
+  regulation   Regulation @relation(fields: [regulationId], references: [id], onDelete: Cascade)
+  notes        String?    @db.Text
+  createdAt    DateTime   @default(now())
+
+  @@unique([riskId, regulationId])
+  @@index([riskId])
+  @@index([regulationId])
+  @@map("risk_regulation_links")
 }
 
 model RiskControl {
@@ -997,6 +1021,7 @@ model Regulation {
   policyLinks   PolicyRegulatoryLink[]
   controlLinks  RegulationControlLink[]
   processLinks  ProcessRegulationLink[]
+  riskLinks     RiskRegulationLink[]
 
   @@index([parentId])
   @@map("regulations")
@@ -1771,6 +1796,12 @@ enum HorizonUrgency {
   LOW
 }
 
+enum HorizonImpact {
+  HIGH
+  MEDIUM
+  LOW
+}
+
 enum HorizonStatus {
   MONITORING
   ACTION_REQUIRED
@@ -1789,6 +1820,7 @@ model HorizonItem {
   whyItMatters String          @db.Text
   deadline     DateTime?
   urgency      HorizonUrgency
+  impact       HorizonImpact   @default(MEDIUM)
   status       HorizonStatus   @default(MONITORING)
   sourceUrl    String?
   actions      String?         @db.Text

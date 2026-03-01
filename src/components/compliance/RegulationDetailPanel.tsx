@@ -15,7 +15,7 @@ import {
   type RegulationControlLink,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { X, ExternalLink, ShieldCheck, FileText, Link2, Plus, Search, Pencil, Loader2, ChevronDown, ChevronRight, History, Layers } from "lucide-react";
+import { X, ExternalLink, ShieldCheck, FileText, Link2, Plus, Search, Pencil, Loader2, ChevronDown, ChevronRight, History, Layers, AlertTriangle } from "lucide-react";
 import { AutoResizeTextarea } from "@/components/common/AutoResizeTextarea";
 import EntityLink from "@/components/common/EntityLink";
 import MaturityBadge from "@/components/processes/MaturityBadge";
@@ -41,6 +41,7 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
   const policies = useAppStore((s) => s.policies);
   const smfRoles = useAppStore((s) => s.smfRoles);
   const allProcesses = useAppStore((s) => s.processes);
+  const allRisks = useAppStore((s) => s.risks);
 
   const [editMode, setEditMode] = useState(false);
 
@@ -721,6 +722,29 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
                     <div className="ml-auto shrink-0">
                       <MaturityBadge score={proc.maturityScore} size="sm" />
                     </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
+
+        {/* Linked Risks */}
+        {regulation && (() => {
+          const linked = allRisks.filter((r) =>
+            (r.regulationLinks ?? []).some((l) => l.regulationId === regulation.id)
+          );
+          if (linked.length === 0) return null;
+          return (
+            <section className="border-t border-gray-100 pt-4">
+              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                <AlertTriangle size={12} className="inline mr-1" />
+                Linked Risks ({linked.length})
+              </h4>
+              <div className="space-y-1.5">
+                {linked.map((risk) => (
+                  <div key={risk.id} className="flex items-center gap-2 bg-red-50 rounded px-2 py-1.5">
+                    <EntityLink type="risk" id={risk.id} reference={risk.reference} label={risk.name} />
                   </div>
                 ))}
               </div>

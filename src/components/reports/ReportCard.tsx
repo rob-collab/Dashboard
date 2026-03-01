@@ -6,6 +6,7 @@ import {
   Eye,
   Send,
   Download,
+  FileDown,
   Calendar,
   User,
   Clock,
@@ -20,6 +21,7 @@ interface ReportCardProps {
   onView: (report: Report) => void;
   onPublish: (report: Report) => void;
   onExport: (report: Report) => void;
+  onPrintPDF?: (report: Report) => void;
   onDelete?: (report: Report) => void;
 }
 
@@ -29,6 +31,7 @@ export function ReportCard({
   onView,
   onPublish,
   onExport,
+  onPrintPDF,
   onDelete,
 }: ReportCardProps) {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -127,8 +130,17 @@ export function ReportCard({
             className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
           >
             <Download size={14} />
-            Export
+            Export HTML
           </button>
+          {onPrintPDF && (
+            <button
+              onClick={() => onPrintPDF(report)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-updraft-bright-purple/30 px-3 py-1.5 text-xs font-medium text-updraft-deep transition-colors hover:bg-updraft-pale-purple/20"
+            >
+              <FileDown size={14} />
+              Print to PDF
+            </button>
+          )}
           {onDelete && (
             <button
               onClick={handleDeleteClick}

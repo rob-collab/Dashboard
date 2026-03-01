@@ -4,12 +4,12 @@ import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import type { Risk } from "@/lib/types";
-import { getRiskScore, getRiskLevel, L1_CATEGORY_COLOURS } from "@/lib/risk-categories";
+import { getRiskScore, getRiskLevel, L1_CATEGORY_COLOURS, calculateBreach } from "@/lib/risk-categories";
 import RiskHeatmap from "@/components/risk-register/RiskHeatmap";
 import RiskTable from "@/components/risk-register/RiskTable";
 import RiskDetailPanel from "@/components/risk-register/RiskDetailPanel";
 import RiskHistoryChart from "@/components/risk-register/RiskHistoryChart";
-import { Grid3X3, List, Plus, Download, Upload, ShieldAlert, TrendingDown, TrendingUp, FileText, Bell, Search, Star } from "lucide-react";
+import { Grid3X3, List, Plus, Download, Upload, ShieldAlert, TrendingDown, TrendingUp, FileText, Bell, Search, Star, AlertTriangle, Clock } from "lucide-react";
 import HistoryTab from "@/components/common/HistoryTab";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api-client";
@@ -23,7 +23,7 @@ import { SkeletonStatRow, SkeletonTable } from "@/components/common/SkeletonLoad
 
 type ViewTab = "heatmap" | "table";
 type ScoreMode = "inherent" | "residual" | "overlay";
-type CardFilter = "ALL" | "VERY_HIGH" | "HIGH" | "MEDIUM" | "LOW" | "WORSENING" | "IMPROVING" | "IN_FOCUS";
+type CardFilter = "ALL" | "VERY_HIGH" | "HIGH" | "MEDIUM" | "LOW" | "WORSENING" | "IMPROVING" | "IN_FOCUS" | "IN_BREACH" | "REVIEW_OVERDUE";
 
 function getScore(risk: Risk, mode: ScoreMode): number {
   if (mode === "inherent") return getRiskScore(risk.inherentLikelihood, risk.inherentImpact);
@@ -70,7 +70,7 @@ export default function RiskRegisterPage() {
   // Filter state — initialised from URL
   const [cardFilter, setCardFilter] = useState<CardFilter>(() => {
     const f = searchParams.get("filter") as CardFilter;
-    return ["ALL", "VERY_HIGH", "HIGH", "WORSENING", "IMPROVING", "IN_FOCUS"].includes(f) ? f : "ALL";
+    return ["ALL", "VERY_HIGH", "HIGH", "MEDIUM", "LOW", "WORSENING", "IMPROVING", "IN_FOCUS", "IN_BREACH", "REVIEW_OVERDUE"].includes(f) ? f : "ALL";
   });
   const [activeCategoryL1, setActiveCategoryL1] = useState<string | null>(() => searchParams.get("cat") || null);
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") ?? "");
@@ -195,6 +195,22 @@ export default function RiskRegisterPage() {
     () => risks.filter((r) => r.inFocus).length,
     [risks]
   );
+  const inBreachCount = useMemo(
+    () => risks.filter((r) => {
+      if (!r.riskAppetite) return false;
+      const score = getRiskScore(r.residualLikelihood, r.residualImpact);
+      return calculateBreach(score, r.riskAppetite).breached;
+    }).length,
+    [risks]
+  );
+  const reviewOverdueCount = useMemo(
+    () => risks.filter((r) => {
+      if (!r.lastReviewed || !r.reviewFrequencyDays) return false;
+      const due = new Date(r.lastReviewed).getTime() + r.reviewFrequencyDays * 86_400_000;
+      return Date.now() > due;
+    }).length,
+    [risks]
+  );
 
   // Filter pipeline: risks → ownerFilter → cardFilter → categoryFilter → displayRisks
   const displayRisks = useMemo(() => {
@@ -234,6 +250,20 @@ export default function RiskRegisterPage() {
         break;
       case "IN_FOCUS":
         result = result.filter((r) => r.inFocus);
+        break;
+      case "IN_BREACH":
+        result = result.filter((r) => {
+          if (!r.riskAppetite) return false;
+          const score = getRiskScore(r.residualLikelihood, r.residualImpact);
+          return calculateBreach(score, r.riskAppetite).breached;
+        });
+        break;
+      case "REVIEW_OVERDUE":
+        result = result.filter((r) => {
+          if (!r.lastReviewed || !r.reviewFrequencyDays) return false;
+          const due = new Date(r.lastReviewed).getTime() + r.reviewFrequencyDays * 86_400_000;
+          return Date.now() > due;
+        });
         break;
     }
 
@@ -598,11 +628,13 @@ export default function RiskRegisterPage() {
     { key: "WORSENING", value: worseningCount, label: "Worsening", colour: "text-red-500" },
     { key: "IMPROVING", value: improvingCount, label: "Improving", colour: "text-green-600" },
     { key: "IN_FOCUS", value: inFocusCount, label: "In Focus", colour: "text-amber-500" },
+    { key: "IN_BREACH", value: inBreachCount, label: "Appetite Breach", colour: "text-red-600" },
+    { key: "REVIEW_OVERDUE", value: reviewOverdueCount, label: "Review Overdue", colour: "text-amber-600" },
   ];
 
   if (!hydrated) return (
     <div className="space-y-6">
-      <SkeletonStatRow count={8} />
+      <SkeletonStatRow count={10} />
       <SkeletonTable rows={8} cols={6} />
     </div>
   );
@@ -738,7 +770,7 @@ export default function RiskRegisterPage() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {cards.map((card, idx) => {
           const isActive = cardFilter === card.key;
-          const Icon = card.key === "WORSENING" ? TrendingDown : card.key === "IMPROVING" ? TrendingUp : card.key === "IN_FOCUS" ? Star : null;
+          const Icon = card.key === "WORSENING" ? TrendingDown : card.key === "IMPROVING" ? TrendingUp : card.key === "IN_FOCUS" ? Star : card.key === "IN_BREACH" ? AlertTriangle : card.key === "REVIEW_OVERDUE" ? Clock : null;
           return (
             <button
               key={card.key}

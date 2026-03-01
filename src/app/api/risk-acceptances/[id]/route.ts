@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma, getUserId, getAuthUserId, requireCCRORole, jsonResponse, errorResponse, validateBody } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
+import { sendRiskAcceptanceApprovalRequest, sendRiskAcceptanceDecision } from "@/lib/email";
 
 const includeAll = {
   risk: {
@@ -163,6 +164,36 @@ export async function PATCH(
           changes: { fromStatus: existing.status, toStatus: rule.to },
         },
       }).catch((e) => console.error("[audit]", e));
+
+      // Fire-and-forget email notifications
+      if (transition === "ROUTE_TO_APPROVER") {
+        const appId = fieldUpdates.approverId ?? existing.approverId;
+        if (appId) {
+          const [approver, callerUser] = await Promise.all([
+            prisma.user.findUnique({ where: { id: appId }, select: { name: true, email: true } }),
+            prisma.user.findUnique({ where: { id: authUserId ?? userId }, select: { name: true } }),
+          ]);
+          if (approver?.email) {
+            sendRiskAcceptanceApprovalRequest(
+              { reference: existing.reference, title: existing.title, acceptanceId: id },
+              { name: approver.name, email: approver.email },
+              callerUser?.name ?? "CCRO Team"
+            ).catch((e) => console.error("[email]", e));
+          }
+        }
+      }
+      if (transition === "APPROVE" || transition === "REJECT") {
+        const proposerUser = await prisma.user.findUnique({ where: { id: existing.proposerId }, select: { name: true, email: true } });
+        const callerUser = await prisma.user.findUnique({ where: { id: authUserId ?? userId }, select: { name: true } });
+        if (proposerUser?.email) {
+          sendRiskAcceptanceDecision(
+            { reference: existing.reference, title: existing.title, acceptanceId: id },
+            { name: proposerUser.name, email: proposerUser.email },
+            rule.to as "APPROVED" | "REJECTED",
+            callerUser?.name ?? "Approver"
+          ).catch((e) => console.error("[email]", e));
+        }
+      }
     }
 
     // Handle field edits (non-transition) — require authorisation

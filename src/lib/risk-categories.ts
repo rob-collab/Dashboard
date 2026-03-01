@@ -142,6 +142,7 @@ export const APPETITE_DISPLAY = {
   LOW: "Low",
   LOW_TO_MODERATE: "Low to Moderate",
   MODERATE: "Moderate",
+  HIGH: "High",
 } as const;
 
 // ── Risk Appetite Breach Helpers ──────────────────────────────────────────
@@ -151,6 +152,7 @@ const APPETITE_MAX_SCORES: Record<RiskAppetite, number> = {
   LOW: 6,
   LOW_TO_MODERATE: 8,
   MODERATE: 9,
+  HIGH: 15,
 };
 
 export function getAppetiteMaxScore(appetite: RiskAppetite): number {

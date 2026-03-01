@@ -16,7 +16,8 @@ import MIImportDialog from "@/components/consumer-duty/MIImportDialog";
 import RiskDetailModal from "@/components/consumer-duty/RiskDetailModal";
 import MetricDrillDown from "@/components/consumer-duty/MetricDrillDown";
 import { cn, ragBgColor, ragLabelShort, naturalCompare } from "@/lib/utils";
-import type { ConsumerDutyMeasure, ConsumerDutyOutcome, ConsumerDutyMI, RAGStatus } from "@/lib/types";
+import type { ConsumerDutyMeasure, ConsumerDutyOutcome, ConsumerDutyMI, RAGStatus, MIIndicatorType } from "@/lib/types";
+import { MI_INDICATOR_TYPE_LABELS } from "@/lib/types";
 import { usePageTitle } from "@/lib/usePageTitle";
 import GlossaryTooltip from "@/components/common/GlossaryTooltip";
 import HistoryTab from "@/components/common/HistoryTab";
@@ -88,6 +89,7 @@ function ConsumerDutyContent() {
   const [viewMode, setViewMode] = useState<"all" | "my">("all");
   const [measureRagFilter, setMeasureRagFilter] = useState<RAGStatus | "ALL">("ALL");
   const [metricsRagFilter, setMetricsRagFilter] = useState<RAGStatus | "ALL">("ALL");
+  const [metricsIndicatorFilter, setMetricsIndicatorFilter] = useState<MIIndicatorType | "ALL">("ALL");
   const [selectedMetric, setSelectedMetric] = useState<ConsumerDutyMI | null>(null);
   // Tracks which stat row was last clicked so the dynamic quick-view knows what to show
   const [lastClickedSection, setLastClickedSection] = useState<"measures" | "metrics" | null>(null);
@@ -231,9 +233,12 @@ function ConsumerDutyContent() {
   }, [outcomes]);
 
   const filteredMetrics = useMemo(() => {
-    if (metricsRagFilter === "ALL") return allMetrics;
-    return allMetrics.filter((mi) => mi.ragStatus === metricsRagFilter);
-  }, [allMetrics, metricsRagFilter]);
+    return allMetrics.filter((mi) => {
+      const ragOk = metricsRagFilter === "ALL" || mi.ragStatus === metricsRagFilter;
+      const indOk = metricsIndicatorFilter === "ALL" || (mi.indicatorType ?? "LAGGING") === metricsIndicatorFilter;
+      return ragOk && indOk;
+    });
+  }, [allMetrics, metricsRagFilter, metricsIndicatorFilter]);
 
   const metricsGoodCount = allMetrics.filter((mi) => mi.ragStatus === "GOOD").length;
   const metricsWarningCount = allMetrics.filter((mi) => mi.ragStatus === "WARNING").length;
@@ -1075,10 +1080,10 @@ function ConsumerDutyContent() {
           {/* All Metrics — collapsible table */}
           {allMetrics.length > 0 && (
             <div className="bento-card">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-3">
                 <h2 className="text-lg font-bold text-updraft-deep font-poppins">
                   All Metrics
-                  <span className="ml-2 text-sm font-normal text-gray-400">({filteredMetrics.length}{metricsRagFilter !== "ALL" ? ` of ${allMetrics.length}` : ""})</span>
+                  <span className="ml-2 text-sm font-normal text-gray-400">({filteredMetrics.length}{(metricsRagFilter !== "ALL" || metricsIndicatorFilter !== "ALL") ? ` of ${allMetrics.length}` : ""})</span>
                 </h2>
                 <button
                   onClick={() => toggleSection("metrics")}
@@ -1089,12 +1094,32 @@ function ConsumerDutyContent() {
                 </button>
               </div>
               {!collapsed.metrics && (
+                <>
+                  {/* Indicator type filter chips */}
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {(["ALL", "LEADING", "LAGGING", "COMPOSITE"] as const).map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setMetricsIndicatorFilter(type)}
+                        className={cn(
+                          "rounded-full px-2.5 py-0.5 text-[11px] font-medium border transition-colors",
+                          metricsIndicatorFilter === type
+                            ? "border-updraft-bright-purple bg-updraft-pale-purple/30 text-updraft-deep"
+                            : "border-gray-200 text-gray-500 hover:border-updraft-light-purple hover:text-updraft-deep"
+                        )}
+                      >
+                        {type === "ALL" ? "All types" : MI_INDICATOR_TYPE_LABELS[type]}
+                      </button>
+                    ))}
+                  </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm border-collapse">
                     <thead>
                       <tr className="bg-gray-50">
                         <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">Measure</th>
                         <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">Metric</th>
+                        <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">Type</th>
                         <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">Current Value</th>
                         <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">Period</th>
                         <th className="border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700">RAG</th>
@@ -1103,8 +1128,8 @@ function ConsumerDutyContent() {
                     <tbody>
                       {filteredMetrics.length === 0 && (
                         <tr>
-                          <td colSpan={5} className="border border-gray-200 px-3 py-8 text-center text-sm text-gray-400">
-                            No metrics with this status
+                          <td colSpan={6} className="border border-gray-200 px-3 py-8 text-center text-sm text-gray-400">
+                            No metrics match the current filters
                           </td>
                         </tr>
                       )}
@@ -1124,6 +1149,11 @@ function ConsumerDutyContent() {
                               <span className="text-xs text-gray-500 ml-1.5">{mi.measureName}</span>
                             </td>
                             <td className="border border-gray-200 px-3 py-2 text-gray-800">{mi.metric}</td>
+                            <td className="border border-gray-200 px-3 py-2">
+                              <span className="inline-block rounded bg-updraft-pale-purple/30 px-1.5 py-0.5 text-[9px] font-medium text-updraft-deep">
+                                {MI_INDICATOR_TYPE_LABELS[mi.indicatorType ?? "LAGGING"]}
+                              </span>
+                            </td>
                             <td className="border border-gray-200 px-3 py-2 font-medium text-gray-800">{mi.current}</td>
                             <td className="border border-gray-200 px-3 py-2 text-gray-500 text-xs">{period}</td>
                             <td className="border border-gray-200 px-3 py-2">
@@ -1143,6 +1173,7 @@ function ConsumerDutyContent() {
                     </tbody>
                   </table>
                 </div>
+                </>
               )}
             </div>
           )}

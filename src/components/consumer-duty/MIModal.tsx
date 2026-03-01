@@ -5,7 +5,9 @@ import type {
   ConsumerDutyMeasure,
   ConsumerDutyMI,
   RAGStatus,
+  MIIndicatorType,
 } from "@/lib/types";
+import { MI_INDICATOR_TYPE_LABELS } from "@/lib/types";
 import {
   cn,
   ragBgColor,
@@ -271,9 +273,25 @@ export default function MIModal({
                   className="group cursor-pointer hover:bg-updraft-pale-purple/10 transition-colors"
                   onClick={() => setDrillDownMetric(metric)}
                 >
-                  {/* Metric name */}
-                  <td className="py-3 pr-4 font-medium text-gray-800">
-                    {metric.metric}
+                  {/* Metric name + indicator type */}
+                  <td className="py-3 pr-4">
+                    <div className="font-medium text-gray-800">{metric.metric}</div>
+                    {editable ? (
+                      <select
+                        value={editedMetrics[idx]?.indicatorType ?? metric.indicatorType}
+                        onChange={(e) => { e.stopPropagation(); updateMetric(idx, "indicatorType", e.target.value as MIIndicatorType); }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] text-gray-600 focus:outline-none"
+                      >
+                        {(Object.keys(MI_INDICATOR_TYPE_LABELS) as MIIndicatorType[]).map((k) => (
+                          <option key={k} value={k}>{MI_INDICATOR_TYPE_LABELS[k]}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="mt-0.5 inline-block rounded bg-updraft-pale-purple/30 px-1.5 py-0.5 text-[9px] font-medium text-updraft-deep">
+                        {MI_INDICATOR_TYPE_LABELS[metric.indicatorType ?? "LAGGING"]}
+                      </span>
+                    )}
                   </td>
 
                   {/* Current value */}

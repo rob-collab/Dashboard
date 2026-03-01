@@ -11,6 +11,7 @@ const updateSchema = z.object({
   previous: z.string().optional(),
   change: z.string().optional(),
   ragStatus: z.enum(["GOOD", "WARNING", "HARM"]).optional(),
+  indicatorType: z.enum(["LEADING", "LAGGING", "COMPOSITE"]).optional(),
   appetite: z.string().nullable().optional(),
   appetiteOperator: z.string().nullable().optional(),
   narrative: z.string().nullable().optional(),

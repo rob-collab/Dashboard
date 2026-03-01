@@ -15,7 +15,7 @@ const updateSchema = z.object({
   residualLikelihood: z.number().int().min(1).max(5).optional(),
   residualImpact: z.number().int().min(1).max(5).optional(),
   controlEffectiveness: z.enum(["EFFECTIVE", "PARTIALLY_EFFECTIVE", "INEFFECTIVE"]).nullable().optional(),
-  riskAppetite: z.enum(["VERY_LOW", "LOW", "LOW_TO_MODERATE", "MODERATE"]).nullable().optional(),
+  riskAppetite: z.enum(["VERY_LOW", "LOW", "LOW_TO_MODERATE", "MODERATE", "HIGH"]).nullable().optional(),
   directionOfTravel: z.enum(["IMPROVING", "STABLE", "DETERIORATING"]).optional(),
   reviewFrequencyDays: z.number().int().min(1).optional(),
   reviewRequested: z.boolean().optional(),
@@ -48,6 +48,7 @@ export async function GET(
           },
           orderBy: { linkedAt: "desc" },
         },
+        regulationLinks: { include: { regulation: { select: { id: true, reference: true, name: true, type: true, complianceStatus: true } } }, orderBy: { createdAt: "desc" } },
       },
     });
 
@@ -105,6 +106,7 @@ export async function PATCH(
           },
           orderBy: { linkedAt: "desc" },
         },
+        regulationLinks: { include: { regulation: { select: { id: true, reference: true, name: true, type: true, complianceStatus: true } } }, orderBy: { createdAt: "desc" } },
       },
     });
 

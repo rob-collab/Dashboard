@@ -31,7 +31,7 @@ function colourToScores(colour: string): { likelihood: number; impact: number } 
 }
 
 const VALID_CONTROL_EFFECTIVENESS = ["EFFECTIVE", "PARTIALLY_EFFECTIVE", "INEFFECTIVE"];
-const VALID_RISK_APPETITE = ["VERY_LOW", "LOW", "LOW_TO_MODERATE", "MODERATE"];
+const VALID_RISK_APPETITE = ["VERY_LOW", "LOW", "LOW_TO_MODERATE", "MODERATE", "HIGH"];
 const VALID_DIRECTION = ["IMPROVING", "STABLE", "DETERIORATING"];
 
 export async function POST(request: NextRequest) {
@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
         residualLikelihood: row.residualLikelihood,
         residualImpact: row.residualImpact,
         controlEffectiveness: (row.controlEffectiveness as "EFFECTIVE" | "PARTIALLY_EFFECTIVE" | "INEFFECTIVE") ?? null,
-        riskAppetite: (row.riskAppetite as "VERY_LOW" | "LOW" | "LOW_TO_MODERATE" | "MODERATE") ?? null,
+        riskAppetite: (row.riskAppetite as "VERY_LOW" | "LOW" | "LOW_TO_MODERATE" | "MODERATE" | "HIGH") ?? null,
         directionOfTravel: (row.directionOfTravel as "IMPROVING" | "STABLE" | "DETERIORATING") ?? "STABLE",
         lastReviewed: now,
         createdBy: userId,

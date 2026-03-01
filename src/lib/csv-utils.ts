@@ -568,7 +568,7 @@ export function autoMapRiskColumns(headers: string[]): Partial<RiskColumnMapping
 }
 
 const VALID_CONTROL_EFFECTIVENESS = ["EFFECTIVE", "PARTIALLY_EFFECTIVE", "INEFFECTIVE"];
-const VALID_RISK_APPETITE = ["VERY_LOW", "LOW", "LOW_TO_MODERATE", "MODERATE"];
+const VALID_RISK_APPETITE = ["VERY_LOW", "LOW", "LOW_TO_MODERATE", "MODERATE", "HIGH"];
 const VALID_DIRECTION = ["IMPROVING", "STABLE", "DETERIORATING"];
 
 /** Normalise a RAG colour string from CSV (Green/Yellow/Amber/Red or Low/Medium/High/Very High) */

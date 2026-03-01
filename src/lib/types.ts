@@ -125,6 +125,14 @@ export interface ConsumerDutyMeasure {
   metrics?: ConsumerDutyMI[];
 }
 
+export type MIIndicatorType = "LEADING" | "LAGGING" | "COMPOSITE";
+
+export const MI_INDICATOR_TYPE_LABELS: Record<MIIndicatorType, string> = {
+  LEADING: "Leading",
+  LAGGING: "Lagging",
+  COMPOSITE: "Composite",
+};
+
 export interface ConsumerDutyMI {
   id: string;
   measureId: string;
@@ -133,6 +141,7 @@ export interface ConsumerDutyMI {
   previous: string;
   change: string;
   ragStatus: RAGStatus;
+  indicatorType: MIIndicatorType;
   appetite: string | null;
   appetiteOperator: string | null;
   narrative: string | null;
@@ -268,7 +277,7 @@ export interface AuditLogEntry {
 // ── Risk Register ──────────────────────────────────────────────────────────────
 
 export type ControlEffectiveness = "EFFECTIVE" | "PARTIALLY_EFFECTIVE" | "INEFFECTIVE";
-export type RiskAppetite = "VERY_LOW" | "LOW" | "LOW_TO_MODERATE" | "MODERATE";
+export type RiskAppetite = "VERY_LOW" | "LOW" | "LOW_TO_MODERATE" | "MODERATE" | "HIGH";
 export type DirectionOfTravel = "IMPROVING" | "STABLE" | "DETERIORATING";
 export type MitigationStatus = "OPEN" | "IN_PROGRESS" | "COMPLETE";
 
@@ -347,6 +356,7 @@ export interface Risk {
   changes?: RiskChange[];
   controlLinks?: RiskControlLink[];
   actionLinks?: RiskActionLink[];
+  regulationLinks?: RiskRegulationLink[];
 }
 
 export interface RiskChange {
@@ -907,6 +917,17 @@ export interface RiskActionLink {
   action?: Pick<Action, "id" | "reference" | "title" | "status" | "assignedTo" | "dueDate" | "priority">;
   linkedAt: string;
   linkedBy: string;
+}
+
+// ── Risk ↔ Regulation Link ───────────────────────────────────────────────────
+
+export interface RiskRegulationLink {
+  id: string;
+  riskId: string;
+  regulationId: string;
+  regulation?: Pick<Regulation, "id" | "reference" | "name" | "type" | "complianceStatus">;
+  notes: string | null;
+  createdAt: string;
 }
 
 // ── Risk ↔ Control Library Link ─────────────────────────────────────────────
@@ -1662,6 +1683,7 @@ export type HorizonCategory =
   | "COMPETITIVE";
 
 export type HorizonUrgency = "HIGH" | "MEDIUM" | "LOW";
+export type HorizonImpact = "HIGH" | "MEDIUM" | "LOW";
 
 export type HorizonStatus =
   | "MONITORING"
@@ -1680,6 +1702,7 @@ export interface HorizonItem {
   whyItMatters: string;
   deadline: string | null;
   urgency: HorizonUrgency;
+  impact: HorizonImpact;
   status: HorizonStatus;
   sourceUrl: string | null;
   actions: string | null;

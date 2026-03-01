@@ -11,6 +11,7 @@ const patchSchema = z.object({
   whyItMatters: z.string().optional(),
   deadline: z.string().nullable().optional(),
   urgency: z.enum(["HIGH", "MEDIUM", "LOW"]).optional(),
+  impact: z.enum(["HIGH", "MEDIUM", "LOW"]).optional(),
   status: z.enum(["MONITORING", "ACTION_REQUIRED", "IN_PROGRESS", "COMPLETED", "DISMISSED"]).optional(),
   sourceUrl: z.string().nullable().optional(),
   actions: z.string().nullable().optional(),

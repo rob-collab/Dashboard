@@ -2,10 +2,10 @@
 
 import { useState, useMemo, useEffect, Suspense } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Plus, Download, Search, Radar, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
+import { Plus, Download, Search, Radar, AlertTriangle, CheckCircle2, Clock, LayoutGrid, List } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { useSession } from "next-auth/react";
-import type { HorizonItem, HorizonCategory, HorizonUrgency, HorizonStatus } from "@/lib/types";
+import type { HorizonItem, HorizonCategory, HorizonUrgency, HorizonImpact, HorizonStatus } from "@/lib/types";
 import { HORIZON_CATEGORY_LABELS, HORIZON_URGENCY_COLOURS } from "@/lib/types";
 import { HorizonInFocusSpotlight } from "@/components/horizon/HorizonInFocusSpotlight";
 import { HorizonItemCard } from "@/components/horizon/HorizonItemCard";
@@ -57,6 +57,7 @@ function HorizonScanningPageInner() {
   );
   const [showDismissed, setShowDismissed] = useState(() => searchParams.get("dismissed") === "1");
   const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
+  const [viewMode, setViewMode] = useState<"list" | "matrix">("list");
 
   // Sync filter state → URL (replaces current history entry, no scroll)
   useEffect(() => {
@@ -260,7 +261,7 @@ function HorizonScanningPageInner() {
           <option value="COMPLETED">Completed</option>
           <option value="DISMISSED">Dismissed</option>
         </select>
-        <label className="flex items-center gap-1.5 text-sm text-slate-500 cursor-pointer ml-auto">
+        <label className="flex items-center gap-1.5 text-sm text-slate-500 cursor-pointer">
           <input
             type="checkbox"
             checked={showDismissed}
@@ -269,9 +270,32 @@ function HorizonScanningPageInner() {
           />
           Show dismissed
         </label>
+        {/* View toggle */}
+        <div className="ml-auto flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-0.5">
+          <button
+            onClick={() => setViewMode("list")}
+            className={cn("flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+              viewMode === "list" ? "bg-updraft-pale-purple/40 text-updraft-deep" : "text-slate-500 hover:text-slate-700")}
+          >
+            <List size={13} /> List
+          </button>
+          <button
+            onClick={() => setViewMode("matrix")}
+            className={cn("flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+              viewMode === "matrix" ? "bg-updraft-pale-purple/40 text-updraft-deep" : "text-slate-500 hover:text-slate-700")}
+          >
+            <LayoutGrid size={13} /> Matrix
+          </button>
+        </div>
       </div>
 
+      {/* Urgency × Impact matrix view */}
+      {viewMode === "matrix" && (
+        <HorizonMatrix items={filteredItems} onItemClick={setSelectedItem} />
+      )}
+
       {/* Grouped item list */}
+      {viewMode === "list" && (
       <div className="space-y-6">
         {URGENCY_ORDER.map((urgency) => {
           const items = groupedItems[urgency];
@@ -307,6 +331,7 @@ function HorizonScanningPageInner() {
           </div>
         )}
       </div>
+      )}
 
       {/* Detail panel */}
       {selectedItem && (
@@ -338,6 +363,91 @@ function HorizonScanningPageInner() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+// ── Horizon Urgency × Impact Matrix ──────────────────────────────────────────
+
+const IMPACT_ORDER: HorizonImpact[] = ["HIGH", "MEDIUM", "LOW"];
+const MATRIX_URGENCY_ORDER: HorizonUrgency[] = ["HIGH", "MEDIUM", "LOW"];
+
+const MATRIX_CELL_STYLES: Record<HorizonUrgency, Record<HorizonImpact, string>> = {
+  HIGH:   { HIGH: "bg-red-50 border-red-200",    MEDIUM: "bg-orange-50 border-orange-200",  LOW: "bg-amber-50 border-amber-200"  },
+  MEDIUM: { HIGH: "bg-amber-50 border-amber-200", MEDIUM: "bg-gray-50 border-gray-200",     LOW: "bg-emerald-50 border-emerald-200" },
+  LOW:    { HIGH: "bg-sky-50 border-sky-200",     MEDIUM: "bg-emerald-50 border-emerald-200", LOW: "bg-green-50 border-green-200" },
+};
+
+const MATRIX_CELL_LABEL: Record<HorizonUrgency, Record<HorizonImpact, string>> = {
+  HIGH:   { HIGH: "Act Now",     MEDIUM: "Escalate",   LOW: "Manage" },
+  MEDIUM: { HIGH: "Plan Ahead",  MEDIUM: "Monitor",    LOW: "Review" },
+  LOW:    { HIGH: "Watch",       MEDIUM: "Track",      LOW: "Background" },
+};
+
+function HorizonMatrix({ items, onItemClick }: { items: HorizonItem[]; onItemClick: (item: HorizonItem) => void }) {
+  return (
+    <div className="bento-card p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <LayoutGrid className="w-4 h-4 text-updraft-bar" />
+        <span className="text-sm font-semibold text-updraft-deep font-poppins">Urgency × Impact Matrix</span>
+        <span className="text-xs text-gray-400 ml-1">— {items.length} items plotted</span>
+      </div>
+
+      {/* Column headers (Impact axis) */}
+      <div className="grid grid-cols-[80px_1fr_1fr_1fr] gap-1">
+        <div />
+        {IMPACT_ORDER.map((impact) => (
+          <div key={impact} className="text-center text-[10px] font-bold uppercase tracking-wider text-gray-500 pb-1">
+            Impact: {impact}
+          </div>
+        ))}
+
+        {/* Matrix rows (Urgency axis) */}
+        {MATRIX_URGENCY_ORDER.map((urgency) => (
+          <>
+            <div key={`u-${urgency}`} className="flex items-center justify-end pr-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">
+              {urgency}
+            </div>
+            {IMPACT_ORDER.map((impact) => {
+              const cell = items.filter((h) => h.urgency === urgency && (h.impact ?? "MEDIUM") === impact);
+              return (
+                <div
+                  key={`${urgency}-${impact}`}
+                  className={cn("min-h-[80px] rounded-lg border p-2", MATRIX_CELL_STYLES[urgency][impact])}
+                >
+                  <div className="text-[9px] font-bold uppercase text-gray-400 mb-1">
+                    {MATRIX_CELL_LABEL[urgency][impact]}
+                    {cell.length > 0 && (
+                      <span className="ml-1 rounded-full bg-gray-200 px-1 text-gray-600">{cell.length}</span>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    {cell.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => onItemClick(item)}
+                        className="w-full text-left rounded px-1.5 py-0.5 text-[10px] text-gray-700 hover:bg-white/70 transition-colors leading-tight"
+                        title={item.title}
+                      >
+                        <span className="font-mono text-gray-400 mr-1">{item.reference}</span>
+                        <span className="line-clamp-2">{item.title}</span>
+                      </button>
+                    ))}
+                    {cell.length === 0 && (
+                      <div className="text-[9px] text-gray-300 text-center pt-2">—</div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        ))}
+      </div>
+
+      <div className="mt-3 flex items-center gap-4 text-[10px] text-gray-400">
+        <span>↕ Y-axis = Urgency (how soon action is needed)</span>
+        <span>↔ X-axis = Impact (magnitude of effect on Updraft)</span>
+      </div>
     </div>
   );
 }

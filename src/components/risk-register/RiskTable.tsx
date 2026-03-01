@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback } from "react";
 import type { Risk } from "@/lib/types";
 import { useAppStore } from "@/lib/store";
-import { L1_CATEGORY_COLOURS, L1_CATEGORIES as FALLBACK_L1, getRiskScore, getRiskLevel, getAppetiteMaxScore } from "@/lib/risk-categories";
+import { L1_CATEGORY_COLOURS, L1_CATEGORIES as FALLBACK_L1, getRiskScore, getRiskLevel, getAppetiteMaxScore, calculateBreach } from "@/lib/risk-categories";
 import ScoreBadge from "./ScoreBadge";
 import DirectionArrow from "./DirectionArrow";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -249,6 +249,12 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
                         <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[9px] font-semibold shrink-0"
                               title={`Review ${Math.abs(getNextReviewDaysRemaining(risk))}d overdue`}>
                           <Clock className="w-2.5 h-2.5" /> Review Overdue
+                        </span>
+                      )}
+                      {risk.riskAppetite && calculateBreach(getRiskScore(risk.residualLikelihood, risk.residualImpact), risk.riskAppetite).breached && (
+                        <span className="inline-flex items-center gap-0.5 rounded-full bg-red-100 text-red-700 px-1.5 py-0.5 text-[9px] font-semibold shrink-0"
+                              title="Residual score exceeds stated risk appetite">
+                          <AlertTriangle className="w-2.5 h-2.5" /> Appetite Breach
                         </span>
                       )}
                     </span>

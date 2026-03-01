@@ -128,6 +128,23 @@ function ReportsPageContent() {
     toast.success("Report exported as HTML");
   };
 
+  const handlePrintPDF = (report: Report) => {
+    const reportSections = sections.filter((s) => s.reportId === report.id).sort((a, b) => a.position - b.position);
+    const reportOutcomes = outcomes.filter((o) => o.reportId === report.id);
+    const html = generateHTMLExport(report, reportSections, reportOutcomes);
+    // Inject auto-print script — triggers browser's "Save as PDF" dialog
+    const printHtml = html.replace("</body>", '<script>window.onload=function(){window.print();}</script></body>');
+    const blob = new Blob([printHtml], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const printWindow = window.open(url, "_blank");
+    if (!printWindow) {
+      toast.error("Pop-up was blocked — please allow pop-ups for this site");
+    } else {
+      // Revoke the object URL once the window has loaded
+      printWindow.addEventListener("load", () => URL.revokeObjectURL(url));
+    }
+  };
+
   const handleDelete = (report: Report) => {
     setDeletingReport(report);
   };
@@ -313,6 +330,7 @@ function ReportsPageContent() {
                 onView={handleView}
                 onPublish={handlePublish}
                 onExport={handleExport}
+                onPrintPDF={handlePrintPDF}
                 onDelete={isCCROTeam ? handleDelete : undefined}
               />
             </ScrollReveal>

@@ -40,11 +40,18 @@ export function ragBgColor(status: RAGStatus): string {
   }
 }
 
-export function ragLabel(status: RAGStatus): string {
+export type RAGContext = "consumer-duty" | "risk" | "controls";
+
+export function ragLabel(status: RAGStatus, context: RAGContext = "consumer-duty"): string {
   switch (status) {
     case "GOOD": return "Green — Good Customer Outcome";
     case "WARNING": return "Amber — Possible Detriment";
-    case "HARM": return "Red — Harm Identified";
+    case "HARM":
+      switch (context) {
+        case "risk": return "Red — Critical Risk";
+        case "controls": return "Red — Control Failing";
+        default: return "Red — Harm Identified";
+      }
   }
 }
 

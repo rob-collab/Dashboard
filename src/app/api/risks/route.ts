@@ -20,7 +20,7 @@ const createSchema = z.object({
   residualLikelihood: z.number().int().min(1).max(5),
   residualImpact: z.number().int().min(1).max(5),
   controlEffectiveness: z.enum(["EFFECTIVE", "PARTIALLY_EFFECTIVE", "INEFFECTIVE"]).nullable().optional(),
-  riskAppetite: z.enum(["VERY_LOW", "LOW", "LOW_TO_MODERATE", "MODERATE"]).nullable().optional(),
+  riskAppetite: z.enum(["VERY_LOW", "LOW", "LOW_TO_MODERATE", "MODERATE", "HIGH"]).nullable().optional(),
   directionOfTravel: z.enum(["IMPROVING", "STABLE", "DETERIORATING"]).optional(),
   inFocus: z.boolean().optional(),
   lastReviewed: z.string().optional(),
@@ -58,6 +58,7 @@ export async function GET(request: NextRequest) {
         riskOwner: true,
         changes: { include: { proposer: true, reviewer: true }, orderBy: { proposedAt: "desc" } },
         controlLinks: { include: { control: { select: { id: true, controlRef: true, controlName: true, businessArea: true } } } },
+        regulationLinks: { include: { regulation: { select: { id: true, reference: true, name: true, type: true, complianceStatus: true } } }, orderBy: { createdAt: "desc" } },
       },
       orderBy: { reference: "asc" },
     });

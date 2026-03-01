@@ -2,7 +2,16 @@ import { NextRequest } from "next/server";
 import { prisma, jsonResponse, errorResponse, getUserId } from "@/lib/api-helpers";
 import { sendActionReminder } from "@/lib/email";
 
+// Vercel cron jobs send GET requests; authenticated users can also POST
+export async function GET(request: NextRequest) {
+  return handleRemind(request);
+}
+
 export async function POST(request: NextRequest) {
+  return handleRemind(request);
+}
+
+async function handleRemind(request: NextRequest) {
   // Allow cron calls (no auth) or authenticated CCRO users
   const userId = getUserId(request);
   const cronSecret = request.headers.get("Authorization");
