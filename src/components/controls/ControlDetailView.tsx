@@ -179,6 +179,7 @@ interface ControlDetailViewProps {
   backLabel: string;
   selectedYear: number;
   selectedMonth: number;
+  onEdit?: (controlId: string) => void;
 }
 
 /* ── Component ────────────────────────────────────────────────────────────── */
@@ -189,6 +190,7 @@ export default function ControlDetailView({
   backLabel,
   selectedYear,
   selectedMonth,
+  onEdit,
 }: ControlDetailViewProps) {
   const testingSchedule = useAppStore((s) => s.testingSchedule);
   const users = useAppStore((s) => s.users);
@@ -405,13 +407,16 @@ export default function ControlDetailView({
               {effectivenessBadge.label}
             </div>
             <p className="text-[10px] text-gray-400">Last tested: {lastTestedDate ?? "No results"}</p>
-            <button
-              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-              title="Edit control"
-            >
-              <Pencil size={14} />
-              Edit
-            </button>
+            {onEdit && control?.id && (
+              <button
+                onClick={() => onEdit(control.id)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                title="Edit control in Controls Library"
+              >
+                <Pencil size={14} />
+                Edit
+              </button>
+            )}
           </div>
         </div>
 

@@ -29,6 +29,7 @@ import ScoreBadge from "@/components/risk-register/ScoreBadge";
 import DirectionArrow from "@/components/risk-register/DirectionArrow";
 import { SECTION_ELEMENTS } from "@/lib/dashboard-sections";
 import { AnimatedNumber } from "@/components/common/AnimatedNumber";
+import ChartReveal from "@/components/common/ChartReveal";
 import { HorizonDashboardWidget } from "@/components/horizon/HorizonDashboardWidget";
 import RiskMatrix from "@/components/dashboard/RiskMatrix";
 import RiskTrendChart from "@/components/dashboard/RiskTrendChart";
@@ -473,19 +474,19 @@ export function useDashboardSectionMap(props: SectionMapProps): Record<string, R
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
             <div className="rounded-lg bg-surface-muted border border-[#E8E6E1] p-2 text-center">
-              <p className="text-lg font-bold font-poppins text-gray-600">{raStats.expired}</p>
+              <AnimatedNumber value={raStats.expired} delay={0} duration={800} className="text-lg font-bold font-poppins text-gray-600" />
               <p className="text-[10px] text-text-secondary">Expired</p>
             </div>
             <div className="rounded-lg border border-amber-100 p-2 text-center" style={{ background: "linear-gradient(135deg, #FFFBEB, #FEFCE8)" }}>
-              <p className="text-lg font-bold font-poppins text-amber-700">{raStats.awaiting}</p>
+              <AnimatedNumber value={raStats.awaiting} delay={100} duration={800} className="text-lg font-bold font-poppins text-amber-700" />
               <p className="text-[10px] text-text-secondary">Awaiting</p>
             </div>
             <div className="rounded-lg border border-purple-100 p-2 text-center" style={{ background: "linear-gradient(135deg, #FAF5FF, #F5F3FF)" }}>
-              <p className="text-lg font-bold font-poppins text-purple-700">{raStats.ccroReview}</p>
+              <AnimatedNumber value={raStats.ccroReview} delay={200} duration={800} className="text-lg font-bold font-poppins text-purple-700" />
               <p className="text-[10px] text-text-secondary">CCRO Review</p>
             </div>
             <div className="rounded-lg border border-green-100 p-2 text-center" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-              <p className="text-lg font-bold font-poppins text-green-700">{raStats.accepted}</p>
+              <AnimatedNumber value={raStats.accepted} delay={300} duration={800} className="text-lg font-bold font-poppins text-green-700" />
               <p className="text-[10px] text-text-secondary">Accepted</p>
             </div>
           </div>
@@ -560,31 +561,31 @@ export function useDashboardSectionMap(props: SectionMapProps): Record<string, R
               switch (id) {
                 case "stat-compliant": return (
                   <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=regulatory-universe"); }} className="rounded-lg border border-green-100 p-3 text-center hover:opacity-80 transition-opacity" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-                    <p className="text-xl font-bold font-poppins text-green-700">{complianceHealth.compliantPct}%</p>
+                    <p className="text-xl font-bold font-poppins text-green-700"><AnimatedNumber value={complianceHealth.compliantPct} delay={0} />%</p>
                     <p className="text-[10px] text-gray-500 mt-0.5">Compliant</p>
                   </button>
                 );
                 case "stat-applicable": return (
                   <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=regulatory-universe"); }} className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm hover:opacity-80 transition-opacity">
-                    <p className="text-xl font-bold font-poppins text-updraft-deep">{complianceHealth.total}</p>
+                    <AnimatedNumber value={complianceHealth.total} delay={100} duration={800} className="text-xl font-bold font-poppins text-updraft-deep" />
                     <p className="text-[10px] text-gray-500 mt-0.5">Applicable</p>
                   </button>
                 );
                 case "stat-gaps": return (
                   <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=regulatory-universe"); }} className={`rounded-lg border p-3 text-center hover:opacity-80 transition-opacity ${complianceHealth.gaps > 0 ? "border-red-100" : "border-green-100"}`} style={{ background: complianceHealth.gaps > 0 ? "linear-gradient(135deg, #FEF2F2, #FFF5F5)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-                    <p className={`text-xl font-bold font-poppins ${complianceHealth.gaps > 0 ? "text-red-700" : "text-green-700"}`}>{complianceHealth.gaps}</p>
+                    <AnimatedNumber value={complianceHealth.gaps} delay={200} duration={800} className={`text-xl font-bold font-poppins ${complianceHealth.gaps > 0 ? "text-red-700" : "text-green-700"}`} />
                     <p className="text-[10px] text-gray-500 mt-0.5">Open Gaps</p>
                   </button>
                 );
                 case "stat-assessments": return (
                   <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=assessment-log"); }} className={`rounded-lg border p-3 text-center hover:opacity-80 transition-opacity ${complianceHealth.overdueAssessments > 0 ? "border-amber-100" : "border-green-100"}`} style={{ background: complianceHealth.overdueAssessments > 0 ? "linear-gradient(135deg, #FFFBEB, #FEFCE8)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-                    <p className={`text-xl font-bold font-poppins ${complianceHealth.overdueAssessments > 0 ? "text-amber-700" : "text-green-700"}`}>{complianceHealth.overdueAssessments}</p>
+                    <AnimatedNumber value={complianceHealth.overdueAssessments} delay={300} duration={800} className={`text-xl font-bold font-poppins ${complianceHealth.overdueAssessments > 0 ? "text-amber-700" : "text-green-700"}`} />
                     <p className="text-[10px] text-gray-500 mt-0.5">Overdue Assessments</p>
                   </button>
                 );
                 case "stat-certs": return (
                   <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=smcr"); }} className={`rounded-lg border p-3 text-center hover:opacity-80 transition-opacity ${complianceHealth.pendingCerts > 0 ? "border-amber-100" : "border-green-100"}`} style={{ background: complianceHealth.pendingCerts > 0 ? "linear-gradient(135deg, #FFFBEB, #FEFCE8)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-                    <p className={`text-xl font-bold font-poppins ${complianceHealth.pendingCerts > 0 ? "text-amber-700" : "text-green-700"}`}>{complianceHealth.pendingCerts}</p>
+                    <AnimatedNumber value={complianceHealth.pendingCerts} delay={400} duration={800} className={`text-xl font-bold font-poppins ${complianceHealth.pendingCerts > 0 ? "text-amber-700" : "text-green-700"}`} />
                     <p className="text-[10px] text-gray-500 mt-0.5">Pending Certs</p>
                   </button>
                 );
@@ -614,37 +615,37 @@ export function useDashboardSectionMap(props: SectionMapProps): Record<string, R
               switch (id) {
                 case "stat-total": return (
                   <div key={id} className="rounded-lg border border-updraft-pale-purple p-3 text-center overflow-hidden" style={{ background: "linear-gradient(135deg, #F3E8FF, #FAF5FF)" }}>
-                    <p className="text-xl font-bold font-poppins text-updraft-deep">{controlsStats.total}</p>
+                    <AnimatedNumber value={controlsStats.total} delay={0} duration={800} className="text-xl font-bold font-poppins text-updraft-deep" />
                     <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Total Controls">Total</p>
                   </div>
                 );
                 case "stat-preventative": return (
                   <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=PREVENTATIVE"); }} className="rounded-lg border border-green-100 p-3 text-center hover:opacity-80 transition-opacity overflow-hidden" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-                    <p className="text-xl font-bold font-poppins text-green-700">{controlsStats.preventative}</p>
+                    <AnimatedNumber value={controlsStats.preventative} delay={100} duration={800} className="text-xl font-bold font-poppins text-green-700" />
                     <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Preventative">Prevent.</p>
                   </button>
                 );
                 case "stat-detective": return (
                   <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=DETECTIVE"); }} className="rounded-lg border border-blue-100 p-3 text-center hover:opacity-80 transition-opacity overflow-hidden" style={{ background: "linear-gradient(135deg, #EFF6FF, #F0F9FF)" }}>
-                    <p className="text-xl font-bold font-poppins text-blue-700">{controlsStats.detective}</p>
+                    <AnimatedNumber value={controlsStats.detective} delay={200} duration={800} className="text-xl font-bold font-poppins text-blue-700" />
                     <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Detective">Detect.</p>
                   </button>
                 );
                 case "stat-directive": return (
                   <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=DIRECTIVE"); }} className="rounded-lg border border-amber-100 p-3 text-center hover:opacity-80 transition-opacity overflow-hidden" style={{ background: "linear-gradient(135deg, #FFFBEB, #FEFCE8)" }}>
-                    <p className="text-xl font-bold font-poppins text-amber-700">{controlsStats.directive}</p>
+                    <AnimatedNumber value={controlsStats.directive} delay={300} duration={800} className="text-xl font-bold font-poppins text-amber-700" />
                     <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Directive">Directive</p>
                   </button>
                 );
                 case "stat-corrective": return (
                   <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=CORRECTIVE"); }} className="rounded-lg border border-red-100 p-3 text-center hover:opacity-80 transition-opacity overflow-hidden" style={{ background: "linear-gradient(135deg, #FEF2F2, #FFF5F5)" }}>
-                    <p className="text-xl font-bold font-poppins text-red-700">{controlsStats.corrective}</p>
+                    <AnimatedNumber value={controlsStats.corrective} delay={400} duration={800} className="text-xl font-bold font-poppins text-red-700" />
                     <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Corrective">Correct.</p>
                   </button>
                 );
                 case "stat-policies": return (
                   <div key={id} className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm overflow-hidden">
-                    <p className="text-xl font-bold font-poppins text-updraft-deep">{controlsStats.policiesWithControls}/{controlsStats.totalPolicies}</p>
+                    <p className="text-xl font-bold font-poppins text-updraft-deep"><AnimatedNumber value={controlsStats.policiesWithControls} delay={500} />/<AnimatedNumber value={controlsStats.totalPolicies} delay={600} /></p>
                     <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Policies Covered">Policies</p>
                   </div>
                 );
@@ -742,25 +743,25 @@ export function useDashboardSectionMap(props: SectionMapProps): Record<string, R
               switch (id) {
                 case "stat-total": return (
                   <div key={id} className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm">
-                    <p className="text-xl font-bold font-poppins text-updraft-deep">{policies.length}</p>
+                    <AnimatedNumber value={policies.length} delay={0} duration={800} className="text-xl font-bold font-poppins text-updraft-deep" />
                     <p className="text-[10px] text-gray-500 mt-0.5">Total Policies</p>
                   </div>
                 );
                 case "stat-overdue": return (
                   <div key={id} className={`rounded-lg border p-3 text-center ${overdueCount > 0 ? "border-red-100" : "border-green-100"}`} style={{ background: overdueCount > 0 ? "linear-gradient(135deg, #FEF2F2, #FFF5F5)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-                    <p className={`text-xl font-bold font-poppins ${overdueCount > 0 ? "text-red-700" : "text-green-700"}`}>{overdueCount}</p>
+                    <AnimatedNumber value={overdueCount} delay={100} duration={800} className={`text-xl font-bold font-poppins ${overdueCount > 0 ? "text-red-700" : "text-green-700"}`} />
                     <p className="text-[10px] text-gray-500 mt-0.5">Overdue</p>
                   </div>
                 );
                 case "stat-requirements": return (
                   <div key={id} className="rounded-lg border border-updraft-pale-purple p-3 text-center" style={{ background: "linear-gradient(135deg, #F3E8FF, #FAF5FF)" }}>
-                    <p className="text-xl font-bold font-poppins text-updraft-deep">{policies.reduce((sum, p) => sum + (p.obligations?.length ?? 0), 0)}</p>
+                    <AnimatedNumber value={policies.reduce((sum, p) => sum + (p.obligations?.length ?? 0), 0)} delay={200} duration={800} className="text-xl font-bold font-poppins text-updraft-deep" />
                     <p className="text-[10px] text-gray-500 mt-0.5">Requirements</p>
                   </div>
                 );
                 case "stat-links": return (
                   <div key={id} className="rounded-lg border border-blue-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #EFF6FF, #F0F9FF)" }}>
-                    <p className="text-xl font-bold font-poppins text-blue-700">{policies.reduce((sum, p) => sum + (p.controlLinks?.length ?? 0), 0)}</p>
+                    <AnimatedNumber value={policies.reduce((sum, p) => sum + (p.controlLinks?.length ?? 0), 0)} delay={300} duration={800} className="text-xl font-bold font-poppins text-blue-700" />
                     <p className="text-[10px] text-gray-500 mt-0.5">Control Links</p>
                   </div>
                 );
@@ -778,7 +779,7 @@ export function useDashboardSectionMap(props: SectionMapProps): Record<string, R
           <div className="flex items-center gap-2">
             <Star className="h-5 w-5 text-amber-400 fill-amber-400" />
             <h2 className="text-lg font-bold text-updraft-deep font-poppins">Risks in Focus</h2>
-            <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-bold">{focusRisks.length}</span>
+            <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-bold"><AnimatedNumber value={focusRisks.length} delay={200} duration={600} /></span>
           </div>
           <Link href="/risk-register" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
             Risk Register <ArrowRight className="h-3.5 w-3.5" />
@@ -812,7 +813,7 @@ export function useDashboardSectionMap(props: SectionMapProps): Record<string, R
           <div className="flex items-center gap-2">
             <Clock className="h-5 w-5 text-amber-500" />
             <h2 className="text-lg font-bold text-updraft-deep font-poppins">Pending Approvals</h2>
-            <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-bold">{pendingNewEntities.length}</span>
+            <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-bold"><AnimatedNumber value={pendingNewEntities.length} delay={200} duration={600} /></span>
           </div>
         </div>
         <div className="space-y-2">
@@ -903,7 +904,7 @@ export function useDashboardSectionMap(props: SectionMapProps): Record<string, R
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-red-500" />
             <h2 className="text-lg font-bold text-red-700 font-poppins">Overdue Metrics</h2>
-            <span className="rounded-full bg-red-100 text-red-700 px-2 py-0.5 text-xs font-bold">{overdueMetrics.length}</span>
+            <span className="rounded-full bg-red-100 text-red-700 px-2 py-0.5 text-xs font-bold"><AnimatedNumber value={overdueMetrics.length} delay={200} duration={600} /></span>
           </div>
           <Link href="/consumer-duty" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
             View All <ArrowRight className="h-3.5 w-3.5" />
@@ -1010,7 +1011,7 @@ export function useDashboardSectionMap(props: SectionMapProps): Record<string, R
               <div className="flex items-center gap-2">
                 <Shield className="h-5 w-5 text-updraft-bright-purple" />
                 <h2 className="text-lg font-bold text-updraft-deep font-poppins">My Risks</h2>
-                <span className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5 text-xs font-bold">{myRisks.length}</span>
+                <span className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5 text-xs font-bold"><AnimatedNumber value={myRisks.length} delay={200} duration={600} /></span>
               </div>
               <Link href="/risk-register" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
                 Risk Register <ArrowRight className="h-3.5 w-3.5" />
@@ -1041,7 +1042,7 @@ export function useDashboardSectionMap(props: SectionMapProps): Record<string, R
               <div className="flex items-center gap-2">
                 <ListChecks className="h-5 w-5 text-updraft-bright-purple" />
                 <h2 className="text-lg font-bold text-updraft-deep font-poppins">My Due Actions</h2>
-                <span className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5 text-xs font-bold">{myActions.length}</span>
+                <span className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5 text-xs font-bold"><AnimatedNumber value={myActions.length} delay={200} duration={600} /></span>
               </div>
               <Link href="/actions" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
                 All Actions <ArrowRight className="h-3.5 w-3.5" />
@@ -1085,7 +1086,7 @@ export function useDashboardSectionMap(props: SectionMapProps): Record<string, R
               <div className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5 text-updraft-bright-purple" />
                 <h2 className="text-lg font-bold text-updraft-deep font-poppins">My Metrics</h2>
-                <span className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5 text-xs font-bold">{myMetrics.length}</span>
+                <span className="rounded-full bg-updraft-pale-purple/40 text-updraft-deep px-2 py-0.5 text-xs font-bold"><AnimatedNumber value={myMetrics.length} delay={200} duration={600} /></span>
               </div>
               <Link href="/consumer-duty" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
                 Consumer Duty <ArrowRight className="h-3.5 w-3.5" />
@@ -1171,11 +1172,15 @@ export function useDashboardSectionMap(props: SectionMapProps): Record<string, R
         <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="bento-card">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">Risk Landscape</h3>
-            <RiskMatrix risks={risks} onNavigate={(id) => router.push(`/risk-register?risk=${id}`)} />
+            <ChartReveal>
+              <RiskMatrix risks={risks} onNavigate={(id) => router.push(`/risk-register?risk=${id}`)} />
+            </ChartReveal>
           </div>
           <div className="bento-card">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">Portfolio Trend</h3>
-            <RiskTrendChart risks={risks} />
+            <ChartReveal>
+              <RiskTrendChart risks={risks} />
+            </ChartReveal>
           </div>
         </div>
       </div>
@@ -1275,7 +1280,7 @@ export function useDashboardSectionMap(props: SectionMapProps): Record<string, R
       </div>
     ) : null,
 
-    "control-health": <ControlHealthTrendWidget />,
+    "control-health": <ChartReveal><ControlHealthTrendWidget /></ChartReveal>,
 
     "quarterly-summary": <QuarterlySummaryWidget />,
   };

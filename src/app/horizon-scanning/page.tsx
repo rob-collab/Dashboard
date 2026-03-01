@@ -16,6 +16,7 @@ import { MotionListDiv } from "@/components/motion/MotionList";
 import { MotionDiv } from "@/components/motion/MotionRow";
 import { SkeletonCard } from "@/components/common/SkeletonLoader";
 import { AnimatedNumber } from "@/components/common/AnimatedNumber";
+import ScrollReveal from "@/components/common/ScrollReveal";
 
 const URGENCY_ORDER: HorizonUrgency[] = ["HIGH", "MEDIUM", "LOW"];
 
@@ -58,6 +59,7 @@ function HorizonScanningPageInner() {
   const [showDismissed, setShowDismissed] = useState(() => searchParams.get("dismissed") === "1");
   const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
   const [viewMode, setViewMode] = useState<"list" | "matrix">("list");
+  const [statCardFilter, setStatCardFilter] = useState<"all" | "high" | "due-soon" | "completed">("all");
 
   // Sync filter state → URL (replaces current history entry, no scroll)
   useEffect(() => {
@@ -86,11 +88,25 @@ function HorizonScanningPageInner() {
   }, [horizonItems]);
 
   const filteredItems = useMemo(() => {
+    const now = Date.now();
     return horizonItems.filter((item) => {
-      if (!showDismissed && item.status === "DISMISSED") return false;
+      // Stat card filters (applied first as primary intent)
+      if (statCardFilter === "high") {
+        if (item.urgency !== "HIGH" || item.status === "DISMISSED" || item.status === "COMPLETED") return false;
+      } else if (statCardFilter === "due-soon") {
+        if (item.status === "DISMISSED" || item.status === "COMPLETED") return false;
+        if (!item.deadline) return false;
+        const deadline = new Date(item.deadline).getTime();
+        if (deadline <= now || deadline - now >= 30 * 24 * 60 * 60 * 1000) return false;
+      } else if (statCardFilter === "completed") {
+        if (item.status !== "COMPLETED") return false;
+      } else {
+        // "all" stat filter — apply the existing filter controls as normal
+        if (!showDismissed && item.status === "DISMISSED") return false;
+        if (urgencyFilter !== "ALL" && item.urgency !== urgencyFilter) return false;
+        if (statusFilter !== "ALL" && item.status !== statusFilter) return false;
+      }
       if (categoryFilter !== "ALL" && item.category !== categoryFilter) return false;
-      if (urgencyFilter !== "ALL" && item.urgency !== urgencyFilter) return false;
-      if (statusFilter !== "ALL" && item.status !== statusFilter) return false;
       if (search.trim()) {
         const q = search.toLowerCase();
         return (
@@ -102,7 +118,7 @@ function HorizonScanningPageInner() {
       }
       return true;
     });
-  }, [horizonItems, categoryFilter, urgencyFilter, statusFilter, showDismissed, search]);
+  }, [horizonItems, categoryFilter, urgencyFilter, statusFilter, showDismissed, search, statCardFilter]);
 
   const groupedItems = useMemo(() => {
     const groups: Record<HorizonUrgency, HorizonItem[]> = { HIGH: [], MEDIUM: [], LOW: [] };
@@ -210,12 +226,41 @@ function HorizonScanningPageInner() {
       )}
 
       {/* Stats row */}
+      <ScrollReveal>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="Active Items" value={stats.total} icon={<Radar className="w-4 h-4 text-updraft-bright-purple" />} />
-        <StatCard label="High Urgency" value={stats.high} icon={<AlertTriangle className="w-4 h-4 text-red-500" />} valueClass="text-red-600" />
-        <StatCard label="Due Within 30 Days" value={stats.dueSoon} icon={<Clock className="w-4 h-4 text-amber-500" />} valueClass="text-amber-600" />
-        <StatCard label="Completed" value={stats.completed} icon={<CheckCircle2 className="w-4 h-4 text-emerald-500" />} valueClass="text-emerald-600" />
+        <StatCard
+          label="Active Items"
+          value={stats.total}
+          icon={<Radar className="w-4 h-4 text-updraft-bright-purple" />}
+          isActive={statCardFilter === "all"}
+          onClick={() => setStatCardFilter("all")}
+        />
+        <StatCard
+          label="High Urgency"
+          value={stats.high}
+          icon={<AlertTriangle className="w-4 h-4 text-red-500" />}
+          valueClass="text-red-600"
+          isActive={statCardFilter === "high"}
+          onClick={() => setStatCardFilter(statCardFilter === "high" ? "all" : "high")}
+        />
+        <StatCard
+          label="Due Within 30 Days"
+          value={stats.dueSoon}
+          icon={<Clock className="w-4 h-4 text-amber-500" />}
+          valueClass="text-amber-600"
+          isActive={statCardFilter === "due-soon"}
+          onClick={() => setStatCardFilter(statCardFilter === "due-soon" ? "all" : "due-soon")}
+        />
+        <StatCard
+          label="Completed"
+          value={stats.completed}
+          icon={<CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+          valueClass="text-emerald-600"
+          isActive={statCardFilter === "completed"}
+          onClick={() => setStatCardFilter(statCardFilter === "completed" ? "all" : "completed")}
+        />
       </div>
+      </ScrollReveal>
 
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-2">
@@ -296,6 +341,7 @@ function HorizonScanningPageInner() {
 
       {/* Grouped item list */}
       {viewMode === "list" && (
+      <ScrollReveal delay={80}>
       <div className="space-y-6">
         {URGENCY_ORDER.map((urgency) => {
           const items = groupedItems[urgency];
@@ -331,6 +377,7 @@ function HorizonScanningPageInner() {
           </div>
         )}
       </div>
+      </ScrollReveal>
       )}
 
       {/* Detail panel */}
@@ -454,9 +501,16 @@ function HorizonMatrix({ items, onItemClick }: { items: HorizonItem[]; onItemCli
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function StatCard({ label, value, icon, valueClass }: { label: string; value: number; icon: React.ReactNode; valueClass?: string }) {
+function StatCard({ label, value, icon, valueClass, isActive, onClick }: { label: string; value: number; icon: React.ReactNode; valueClass?: string; isActive?: boolean; onClick?: () => void }) {
   return (
-    <div className="bento-card p-4 flex items-center gap-3">
+    <div
+      onClick={onClick}
+      className={cn(
+        "bento-card p-4 flex items-center gap-3 transition-all",
+        onClick && "cursor-pointer hover:shadow-bento-hover hover:-translate-y-0.5",
+        isActive && "ring-2 ring-updraft-bright-purple/40 shadow-bento-hover",
+      )}
+    >
       <div className="shrink-0">{icon}</div>
       <div>
         <AnimatedNumber value={value} className={cn("text-2xl font-bold font-poppins text-updraft-deep", valueClass)} />

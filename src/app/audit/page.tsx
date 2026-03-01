@@ -146,6 +146,34 @@ function AuditPageContent() {
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / pageSize));
   const paginatedLogs = filteredLogs.slice((page - 1) * pageSize, page * pageSize);
 
+  function handleExportCSV() {
+    const headers = ["Timestamp", "User", "Role", "Action", "Entity Type", "Entity ID", "Report ID"];
+    const escape = (v: string | null | undefined) => {
+      const s = v ?? "";
+      return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows = filteredLogs.map((log) => {
+      const user = users.find((u) => u.id === log.userId);
+      return [
+        escape(new Date(log.timestamp).toISOString()),
+        escape(user?.name ?? log.userId),
+        escape(log.userRole),
+        escape(log.action),
+        escape(log.entityType),
+        escape(log.entityId),
+        escape(log.reportId),
+      ].join(",");
+    });
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `audit-trail-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <RoleGuard permission="page:audit">
     <div className="space-y-6">
@@ -160,7 +188,10 @@ function AuditPageContent() {
             <p className="text-sm text-fca-gray mt-0.5">Complete history of all changes for FCA compliance</p>
           </div>
         </div>
-        <button className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+        <button
+          onClick={handleExportCSV}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+        >
           <Download size={14} /> Export CSV
         </button>
       </div>

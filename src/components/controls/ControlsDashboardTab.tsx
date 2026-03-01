@@ -144,7 +144,7 @@ type DrillDownView =
   | { type: "business-area"; areaId: string; areaName: string }
   | { type: "control"; entryId: string; backLabel: string; backAreaId?: string; backAreaName?: string };
 
-export default function ControlsDashboardTab({ onNavigateToLibrary, onNavigateToSchedule }: { onNavigateToLibrary?: () => void; onNavigateToSchedule?: () => void }) {
+export default function ControlsDashboardTab({ onNavigateToLibrary, onNavigateToSchedule, onEditControl }: { onNavigateToLibrary?: () => void; onNavigateToSchedule?: () => void; onEditControl?: (controlId: string) => void }) {
   const testingSchedule = useAppStore((s) => s.testingSchedule);
   const controlBusinessAreas = useAppStore((s) => s.controlBusinessAreas);
   const controls = useAppStore((s) => s.controls);
@@ -423,6 +423,7 @@ export default function ControlsDashboardTab({ onNavigateToLibrary, onNavigateTo
             setDrillDown({ type: "overview" });
           }
         }}
+        onEdit={onEditControl}
       />
     );
   }

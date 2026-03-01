@@ -72,6 +72,7 @@ function ControlsPageInner() {
       ? "library"
       : "dashboard"
   );
+  const [openControlId, setOpenControlId] = useState<string | null>(initialControlId);
 
   if (!hydrated) return (
     <div className="space-y-6 p-1">
@@ -128,8 +129,17 @@ function ControlsPageInner() {
       </div>
 
       {/* Tab Content */}
-      {activeTab === "dashboard" && <ControlsDashboardTab onNavigateToLibrary={() => setActiveTab("library")} onNavigateToSchedule={() => setActiveTab("testing")} />}
-      {activeTab === "library" && <ControlsLibraryTab initialControlId={initialControlId} initialTypeFilter={initialTypeFilter} />}
+      {activeTab === "dashboard" && (
+        <ControlsDashboardTab
+          onNavigateToLibrary={() => setActiveTab("library")}
+          onNavigateToSchedule={() => setActiveTab("testing")}
+          onEditControl={(controlId) => {
+            setOpenControlId(controlId);
+            setActiveTab("library");
+          }}
+        />
+      )}
+      {activeTab === "library" && <ControlsLibraryTab initialControlId={openControlId} initialTypeFilter={initialTypeFilter} />}
       {activeTab === "attestation" && <AttestationTab />}
       {activeTab === "testing" && <TestingScheduleTab />}
       {activeTab === "results" && <TestResultsEntryTab />}
