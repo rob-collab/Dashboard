@@ -34,6 +34,7 @@ import ActionAccountabilityTimeline from "./ActionAccountabilityTimeline";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { AutoResizeTextarea } from "@/components/common/AutoResizeTextarea";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
 const RichTextEditor = dynamic(() => import("@/components/common/RichTextEditor"), { ssr: false });
 
@@ -291,6 +292,7 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
   const dateChangeCount = (action.changes || []).filter((c) => c.fieldChanged === "dueDate").length;
 
   return (
+    <ErrorBoundary>
     <>
       {/* Backdrop */}
       <div
@@ -784,5 +786,6 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
         confirmLabel="Delete"
       />
     </>
+    </ErrorBoundary>
   );
 }

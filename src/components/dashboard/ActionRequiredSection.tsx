@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -38,6 +38,7 @@ export default function ActionRequiredSection({ groups }: Props) {
   const [idx,     setIdx]     = useState(0);
   const [visible, setVisible] = useState(true);
   const [paused,  setPaused]  = useState(false);
+  const innerTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const totalCount = groups.reduce((s, g) => s + g.count, 0);
 
@@ -50,12 +51,15 @@ export default function ActionRequiredSection({ groups }: Props) {
     if (paused || allItems.length <= 1) return;
     const timer = setInterval(() => {
       setVisible(false);
-      setTimeout(() => {
+      innerTimerRef.current = setTimeout(() => {
         setIdx((i) => (i + 1) % allItems.length);
         setVisible(true);
       }, FADE_MS);
     }, TICK_MS);
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      clearTimeout(innerTimerRef.current);
+    };
   }, [paused, allItems.length]);
 
   if (groups.length === 0) return null;

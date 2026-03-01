@@ -55,6 +55,7 @@ import EntityLink from "@/components/common/EntityLink";
 import MaturityBadge from "@/components/processes/MaturityBadge";
 import RequestEditAccessButton from "@/components/common/RequestEditAccessButton";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
 interface ControlDetailModalProps {
   controlId: string | null;
@@ -278,6 +279,7 @@ export default function ControlDetailModal({
     : null;
 
   return (
+    <ErrorBoundary>
     <>
     <Modal
       open={!!controlId}
@@ -941,5 +943,6 @@ export default function ControlDetailModal({
       confirmLabel="Delete action"
     />
     </>
+    </ErrorBoundary>
   );
 }

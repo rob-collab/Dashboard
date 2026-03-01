@@ -28,6 +28,7 @@ import EntityLink from "@/components/common/EntityLink";
 import RequestEditAccessButton from "@/components/common/RequestEditAccessButton";
 import GlossaryTooltip from "@/components/common/GlossaryTooltip";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
 interface RiskDetailPanelProps {
   risk: Risk | null;
@@ -373,6 +374,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
   const canSave = name.trim() && description.trim() && categoryL1 && categoryL2 && ownerId;
 
   return (
+    <ErrorBoundary>
     <div className="fixed inset-0 z-50 flex justify-end">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/30" onClick={handleCancel} />
@@ -1414,6 +1416,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
         confirmLabel="Delete risk"
       />
     </div>
+    </ErrorBoundary>
   );
 }
 

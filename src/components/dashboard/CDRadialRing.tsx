@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import type { ConsumerDutyOutcome } from "@/lib/types";
@@ -63,17 +63,21 @@ export default function CDRadialRing({ outcomes }: Props) {
   const [idx,     setIdx]     = useState(0);
   const [visible, setVisible] = useState(true);
   const [paused,  setPaused]  = useState(false);
+  const innerTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   useEffect(() => {
     if (paused || ticks.length <= 1) return;
     const timer = setInterval(() => {
       setVisible(false);
-      setTimeout(() => {
+      innerTimerRef.current = setTimeout(() => {
         setIdx((i) => (i + 1) % ticks.length);
         setVisible(true);
       }, FADE_MS);
     }, TICK_MS);
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      clearTimeout(innerTimerRef.current);
+    };
   }, [paused, ticks.length]);
 
   if (outcomes.length === 0) {

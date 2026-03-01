@@ -149,13 +149,22 @@ export default function RiskHeatmap({
                               return (
                                 <div
                                   key={`${risk.id}-${type}`}
+                                  role="button"
+                                  tabIndex={0}
                                   onMouseEnter={() => setHoveredRisk(risk.id)}
                                   onMouseLeave={() => setHoveredRisk(null)}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     onRiskClick?.(risk);
                                   }}
-                                  className={`relative w-6 h-6 rounded-full border-2 cursor-pointer transition-transform ${
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      onRiskClick?.(risk);
+                                    }
+                                  }}
+                                  className={`relative w-6 h-6 rounded-full border-2 cursor-pointer transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-updraft-bright-purple focus-visible:ring-offset-1 ${
                                     isHovered ? "scale-125 z-10" : ""
                                   } ${risk.inFocus ? "ring-2 ring-amber-400 ring-offset-1" : ""}`}
                                   style={{
