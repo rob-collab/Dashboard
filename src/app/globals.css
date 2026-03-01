@@ -596,3 +596,18 @@ body > * {
   background: rgba(123, 31, 162, 0.12) !important;
   border-color: rgba(123, 31, 162, 0.3) !important;
 }
+
+/* ── Accessibility: respect user's reduced-motion preference ─────────────── */
+/* Raw CSS keyframe animations bypass the JS-level useReducedMotion check.    */
+/* This block disables the specific keyframe animations that could cause      */
+/* issues for vestibular disorder users when they have opted out of motion.   */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer       { animation: none; background: #e0e0e0; }
+  .animate-pop-in         { animation: none; opacity: 1; transform: none; }
+  .rag-pulse              { animation: none; }
+  .rag-glow               { animation: none; }
+  .card-entrance          { animation: none; opacity: 1; }
+  .animate-slide-up-fade  { animation: none; opacity: 1; }
+  .animate-fade-in        { animation: none; opacity: 1; }
+  .animate-slide-up       { animation: none; opacity: 1; transform: none; }
+}

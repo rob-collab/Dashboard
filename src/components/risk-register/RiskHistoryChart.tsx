@@ -174,7 +174,7 @@ export default function RiskHistoryChart({ risk, onClose }: RiskHistoryChartProp
                       <td className="px-3 py-2 text-gray-700 font-medium">{formatMonth(s.month)}</td>
                       <td className="px-3 py-2 text-center text-gray-600">{iScore}</td>
                       <td className="px-3 py-2 text-center">
-                        <span className="inline-block px-1.5 py-0.5 text-[10px] font-bold rounded" style={{ backgroundColor: level.colour, color: "#fff" }}>
+                        <span className="inline-block px-1.5 py-0.5 text-[10px] font-bold rounded" style={{ backgroundColor: level.colour, color: "white" }}>
                           {rScore}
                         </span>
                       </td>

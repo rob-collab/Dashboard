@@ -489,6 +489,7 @@ model Action {
   @@index([reportId])
   @@index([assignedTo])
   @@index([status])
+  @@index([approvalStatus])
   @@index([dueDate])
   @@index([source])
   @@index([controlId])
@@ -599,6 +600,7 @@ model Risk {
 
   @@index([categoryL1])
   @@index([ownerId])
+  @@index([approvalStatus])
   @@map("risks")
 }
 
@@ -810,6 +812,7 @@ model Control {
   @@index([businessAreaId])
   @@index([controlOwnerId])
   @@index([businessAreaId, isActive])
+  @@index([approvalStatus])
   @@map("controls_library")
 }
 
@@ -836,6 +839,7 @@ model ControlAttestation {
   @@unique([controlId, periodYear, periodMonth])
   @@index([controlId])
   @@index([attestedById])
+  @@index([periodYear, periodMonth])
   @@map("control_attestations")
 }
 
