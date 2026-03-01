@@ -112,8 +112,26 @@ For every change request (features, fixes, improvements):
 
    If a pattern is directly relevant, state it explicitly before writing the plan.
 
+0.5. **Design intent — for any deliverable that touches visible UI** — before writing the plan,
+   state three things explicitly (one sentence each):
+   - **Who** is using this screen and what are they trying to accomplish?
+   - **What is the one thing** we must get right for them? (the peak moment, the core task)
+   - **What can we remove or defer** to reduce cognitive load?
+
+   This is not a UX essay. It is three sentences that force the right thinking before a single
+   component is designed. If you cannot answer all three, stop and ask before planning.
+
+   Example:
+   > Who: A compliance officer reviewing overdue actions at the start of their week.
+   > One thing: They must be able to see what's overdue and who owns it in under 5 seconds.
+   > Remove: The filter panel can be collapsed by default — most visits are a quick scan, not a deep filter session.
+
+   Skip this step only for changes that are purely cosmetic (a label fix, a colour correction)
+   or purely backend (an API route with no UI surface).
+
 1. **Write to PLAN.md first** — before touching any code, add the requested items to `PLAN.md` under a new sprint heading (or the current sprint if one is active). Include:
    - What is being changed and why
+   - The design intent (who / one thing / remove) if UI-touching
    - Files to be modified/created
    - A checklist of acceptance criteria (`- [ ] ...`)
 
