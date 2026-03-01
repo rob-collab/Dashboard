@@ -695,3 +695,30 @@ so there is a clear trail of what was absorbed into the permanent process.
 | W017 | MEMORY.md Prisma 7 Gotchas | 2026-02-27 | prisma generate after schema changes |
 | L017 | Merged → L013 | 2026-02-27 | Set spread requires Array.from() — same rule as Map |
 | L021 | CLAUDE.md "During a sprint" | 2026-02-27 | Stop immediately to write L-entry |
+
+---
+
+### W024 — Migration-first pattern for column type conversions
+**What happened:** Sprint O O4 — converting DashboardNotification.type from String to a PostgreSQL enum required uppercasing existing DB values BEFORE pushing the schema. Running `npx prisma db push` directly would have failed (enum values must match exactly).
+**Pattern:**
+1. Write a migration script (`prisma/migrate-*.ts`) with `import "dotenv/config"` at the top
+2. Run the migration: `npx tsx prisma/migrate-*.ts`  
+3. Confirm it succeeded (rows updated)
+4. THEN update schema.prisma with the enum
+5. Run `npx prisma db push`
+6. Run `npx prisma generate`
+**Also:** Always add `import "dotenv/config"` as the FIRST import in any tsx script run outside Next.js — otherwise `process.env` will be empty.
+**Status:** Active.
+
+---
+
+### W025 — useDashboardSectionMap hook pattern for large sectionMaps
+**What happened:** Sprint O O1 — page.tsx had a 1079-line sectionMap inline. Extracted to `_useDashboardSectionMap.tsx` as a plain function (not a real hook) that takes all needed state as a props object and returns `Record<string, React.ReactNode>`.
+**Pattern:**
+- Define `SectionMapProps` interface with ALL state the sections need
+- Export `useDashboardSectionMap(props: SectionMapProps): Record<string, React.ReactNode>`
+- Destructure props at top: `const { risks, actions, ... } = props;`
+- Call hook in parent component — ESLint treats `use*` functions as hooks (must call before early returns)
+- Pass all computed state/callbacks as props — no store reads inside the hook
+**Result:** page.tsx reduced by 1068 lines, all sections remain functional.
+**Status:** Active.
