@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useAppStore } from "@/lib/store";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 import { usePermissionSet } from "@/lib/usePermission";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
@@ -785,7 +786,7 @@ function SummaryCard({
         <p className="text-xs font-medium text-gray-500">{label}</p>
       </div>
       <p className={cn("text-2xl font-bold font-poppins", valueColour)}>
-        {value}
+        <AnimatedNumber value={value} />
       </p>
     </button>
   );

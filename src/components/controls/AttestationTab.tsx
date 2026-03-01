@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAppStore } from "@/lib/store";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 import type {
   ControlRecord,
   ControlAttestation,
@@ -1262,7 +1263,7 @@ export default function AttestationTab() {
             <div className="grid grid-cols-3 gap-3 mb-5">
               <div className="rounded-lg border border-gray-200 p-3 text-center">
                 <div className="text-2xl font-bold text-amber-600">
-                  {ccroReviewCounts.pending}
+                  <AnimatedNumber value={ccroReviewCounts.pending} />
                 </div>
                 <div className="text-xs text-gray-500 font-medium mt-0.5">
                   Pending Review
@@ -1270,7 +1271,7 @@ export default function AttestationTab() {
               </div>
               <div className="rounded-lg border border-gray-200 p-3 text-center">
                 <div className="text-2xl font-bold text-green-600">
-                  {ccroReviewCounts.agreed}
+                  <AnimatedNumber value={ccroReviewCounts.agreed} />
                 </div>
                 <div className="text-xs text-gray-500 font-medium mt-0.5">
                   CCRO Agrees
@@ -1278,7 +1279,7 @@ export default function AttestationTab() {
               </div>
               <div className="rounded-lg border border-gray-200 p-3 text-center">
                 <div className="text-2xl font-bold text-red-600">
-                  {ccroReviewCounts.disagreed}
+                  <AnimatedNumber value={ccroReviewCounts.disagreed} />
                 </div>
                 <div className="text-xs text-gray-500 font-medium mt-0.5">
                   CCRO Disagrees

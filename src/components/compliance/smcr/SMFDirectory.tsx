@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import { usePermissionSet } from "@/lib/usePermission";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 import {
   SMF_STATUS_LABELS,
   SMF_STATUS_COLOURS,
@@ -94,25 +95,25 @@ export default function SMFDirectory() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bento-card p-4 text-center">
           <p className="text-2xl font-bold font-poppins text-green-600">
-            {smfRoles.filter((r) => r.status === "ACTIVE").length}
+            <AnimatedNumber value={smfRoles.filter((r) => r.status === "ACTIVE").length} />
           </p>
           <p className="text-xs text-gray-500 mt-1">Active Roles</p>
         </div>
         <div className="bento-card p-4 text-center">
           <p className={cn("text-2xl font-bold font-poppins", smfRoles.some((r) => r.status === "VACANT") ? "text-red-600" : "text-green-600")}>
-            {smfRoles.filter((r) => r.status === "VACANT").length}
+            <AnimatedNumber value={smfRoles.filter((r) => r.status === "VACANT").length} />
           </p>
           <p className="text-xs text-gray-500 mt-1">Vacant Roles</p>
         </div>
         <div className="bento-card p-4 text-center">
           <p className="text-2xl font-bold font-poppins text-amber-600">
-            {smfRoles.filter((r) => r.status === "PENDING_APPROVAL").length}
+            <AnimatedNumber value={smfRoles.filter((r) => r.status === "PENDING_APPROVAL").length} />
           </p>
           <p className="text-xs text-gray-500 mt-1">Pending Approval</p>
         </div>
         <div className="bento-card p-4 text-center">
           <p className="text-2xl font-bold font-poppins text-gray-400">
-            {smfRoles.filter((r) => r.status === "NOT_REQUIRED").length}
+            <AnimatedNumber value={smfRoles.filter((r) => r.status === "NOT_REQUIRED").length} />
           </p>
           <p className="text-xs text-gray-500 mt-1">Not Required</p>
         </div>

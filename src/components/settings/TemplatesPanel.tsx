@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 import { LayoutTemplate, Search, Plus, Filter } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import TemplateCard from "@/components/templates/TemplateCard";
@@ -175,19 +176,19 @@ export default function TemplatesPanel() {
         <div className="bento-card">
           <p className="text-xs text-fca-gray">Total Templates</p>
           <p className="text-2xl font-bold text-updraft-deep mt-1">
-            {templates.length}
+            <AnimatedNumber value={templates.length} />
           </p>
         </div>
         <div className="bento-card">
           <p className="text-xs text-fca-gray">Global Templates</p>
           <p className="text-2xl font-bold text-updraft-deep mt-1">
-            {templates.filter((t) => t.isGlobal).length}
+            <AnimatedNumber value={templates.filter((t) => t.isGlobal).length} />
           </p>
         </div>
         <div className="bento-card">
           <p className="text-xs text-fca-gray">Categories</p>
           <p className="text-2xl font-bold text-updraft-deep mt-1">
-            {categories.length}
+            <AnimatedNumber value={categories.length} />
           </p>
         </div>
       </div>

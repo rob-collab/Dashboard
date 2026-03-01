@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 import {
   CERTIFICATION_STATUS_LABELS,
   CERTIFICATION_STATUS_COLOURS,
@@ -78,28 +79,28 @@ export default function CertificationTracker() {
           <div className="flex items-center justify-center gap-2 mb-1">
             <UserCheck size={16} className="text-updraft-deep" />
           </div>
-          <p className="text-2xl font-bold font-poppins text-updraft-deep">{metrics.total}</p>
+          <p className="text-2xl font-bold font-poppins text-updraft-deep"><AnimatedNumber value={metrics.total} /></p>
           <p className="text-xs text-gray-500 mt-1">Total Certified</p>
         </div>
         <div className="bento-card p-4 text-center">
           <div className="flex items-center justify-center gap-2 mb-1">
             <CheckCircle2 size={16} className="text-green-600" />
           </div>
-          <p className="text-2xl font-bold font-poppins text-green-600">{metrics.current}</p>
+          <p className="text-2xl font-bold font-poppins text-green-600"><AnimatedNumber value={metrics.current} /></p>
           <p className="text-xs text-gray-500 mt-1">Current</p>
         </div>
         <div className="bento-card p-4 text-center">
           <div className="flex items-center justify-center gap-2 mb-1">
             <Clock size={16} className="text-amber-600" />
           </div>
-          <p className={cn("text-2xl font-bold font-poppins", metrics.due > 0 ? "text-amber-600" : "text-gray-400")}>{metrics.due}</p>
+          <p className={cn("text-2xl font-bold font-poppins", metrics.due > 0 ? "text-amber-600" : "text-gray-400")}><AnimatedNumber value={metrics.due} /></p>
           <p className="text-xs text-gray-500 mt-1">Due</p>
         </div>
         <div className="bento-card p-4 text-center">
           <div className="flex items-center justify-center gap-2 mb-1">
             <AlertTriangle size={16} className="text-red-600" />
           </div>
-          <p className={cn("text-2xl font-bold font-poppins", metrics.overdue > 0 ? "text-red-600" : "text-gray-400")}>{metrics.overdue}</p>
+          <p className={cn("text-2xl font-bold font-poppins", metrics.overdue > 0 ? "text-red-600" : "text-gray-400")}><AnimatedNumber value={metrics.overdue} /></p>
           <p className="text-xs text-gray-500 mt-1">Overdue</p>
         </div>
       </div>

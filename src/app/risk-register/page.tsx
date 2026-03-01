@@ -19,6 +19,7 @@ import { usePageTitle } from "@/lib/usePageTitle";
 import { useHasPermission } from "@/lib/usePermission";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { AnimatedNumber } from "@/components/common/AnimatedNumber";
+import ScrollReveal from "@/components/common/ScrollReveal";
 import { SkeletonStatRow, SkeletonTable } from "@/components/common/SkeletonLoader";
 
 type ViewTab = "heatmap" | "table";
@@ -767,6 +768,7 @@ export default function RiskRegisterPage() {
       </div>
 
       {/* Summary Cards */}
+      <ScrollReveal>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {cards.map((card, idx) => {
           const isActive = cardFilter === card.key;
@@ -788,6 +790,7 @@ export default function RiskRegisterPage() {
           );
         })}
       </div>
+      </ScrollReveal>
 
       {/* Active filters indicator */}
       {(cardFilter !== "ALL" || activeCategoryL1) && (
@@ -815,6 +818,7 @@ export default function RiskRegisterPage() {
       )}
 
       {/* View Tabs */}
+      <ScrollReveal delay={80}>
       <div className="bento-card p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="inline-flex rounded-lg bg-gray-100 p-1">
@@ -857,6 +861,7 @@ export default function RiskRegisterPage() {
           <RiskTable risks={displayRisks} onRiskClick={handleRiskClick} />
         )}
       </div>
+      </ScrollReveal>
 
       {/* Request Review button for selected risk (CCRO Team) */}
       {selectedRisk && !isNewRisk && isCCROTeam && !selectedRisk.reviewRequested && panelOpen && (

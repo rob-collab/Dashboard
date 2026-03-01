@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 
 export interface ActionGroup {
   icon: React.ReactNode;
@@ -85,7 +86,7 @@ export default function ActionRequiredSection({ groups }: Props) {
           Action Required
         </h2>
         <span className="ml-auto text-xs text-gray-400">
-          {totalCount} item{totalCount !== 1 ? "s" : ""} need attention
+          <AnimatedNumber value={totalCount} delay={0} duration={600} /> item{totalCount !== 1 ? "s" : ""} need attention
         </span>
       </div>
 
@@ -165,7 +166,7 @@ export default function ActionRequiredSection({ groups }: Props) {
             >
               <span className={gText}>{g.icon}</span>
               <span className={cn("text-xs font-medium flex-1 truncate", gText)}>{g.label}</span>
-              <span className={cn("text-xs font-bold shrink-0 tabular-nums", gText)}>{g.count}</span>
+              <span className={cn("text-xs font-bold shrink-0 tabular-nums", gText)}><AnimatedNumber value={g.count} delay={200} duration={600} /></span>
             </Link>
           );
         })}

@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { api, friendlyApiError } from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
 import type { ActionChange, ControlChange, RiskChange } from "@/lib/types";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 
 /* ── Field label humaniser ───────────────────────────────────────────── */
 const FIELD_LABELS: Record<string, string> = {
@@ -133,7 +134,7 @@ export default function PendingChangesPanel({
         <div className="flex items-center gap-2">
           <Bell className="h-5 w-5 text-amber-500" />
           <h2 className="text-lg font-bold text-updraft-deep font-poppins">Proposed Changes</h2>
-          <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-bold">{visibleChanges.length}</span>
+          <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-bold"><AnimatedNumber value={visibleChanges.length} delay={200} duration={600} /></span>
         </div>
       </div>
       <div className="space-y-3">

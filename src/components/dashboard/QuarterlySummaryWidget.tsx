@@ -6,6 +6,7 @@ import { ArrowRight, CheckCircle2, FileText, Clock } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import type { TestingScheduleEntry } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 
@@ -142,7 +143,7 @@ export default function QuarterlySummaryWidget() {
               {latest.quarter}
             </p>
             <p className="text-3xl font-bold font-poppins text-updraft-deep">
-              {latest.tested > 0 ? `${latest.passRate}%` : "—"}
+              {latest.tested > 0 ? <><AnimatedNumber value={latest.passRate} delay={100} duration={800} />%</> : "—"}
             </p>
             <p className="text-[10px] text-gray-500 mt-0.5">pass rate</p>
           </div>
@@ -150,13 +151,13 @@ export default function QuarterlySummaryWidget() {
             {latest.tested > 0 ? (
               <>
                 <span className="flex items-center gap-1 text-green-700">
-                  <CheckCircle2 size={11} /> {latest.pass} passed
+                  <CheckCircle2 size={11} /> <AnimatedNumber value={latest.pass} delay={200} duration={600} /> passed
                 </span>
                 {latest.fail > 0 && (
-                  <span className="text-red-600">{latest.fail} failed</span>
+                  <span className="text-red-600"><AnimatedNumber value={latest.fail} delay={300} duration={600} /> failed</span>
                 )}
                 {latest.partially > 0 && (
-                  <span className="text-amber-600">{latest.partially} partial</span>
+                  <span className="text-amber-600"><AnimatedNumber value={latest.partially} delay={400} duration={600} /> partial</span>
                 )}
               </>
             ) : (

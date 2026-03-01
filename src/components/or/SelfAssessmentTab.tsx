@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 import type { SelfAssessment, AssessmentStatus } from "@/lib/types";
 import { ASSESSMENT_STATUS_LABELS, ASSESSMENT_STATUS_COLOURS } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -186,7 +187,7 @@ export default function SelfAssessmentTab({ isCCRO }: { isCCRO: boolean }) {
                       Vulnerabilities
                       <ArrowUpRight size={10} className="opacity-0 group-hover:opacity-60 transition-opacity" />
                     </p>
-                    <p className={cn("text-2xl font-bold font-poppins", sa.vulnerabilitiesCount > 0 ? "text-amber-600" : "text-gray-900")}>{sa.vulnerabilitiesCount}</p>
+                    <p className={cn("text-2xl font-bold font-poppins", sa.vulnerabilitiesCount > 0 ? "text-amber-600" : "text-gray-900")}><AnimatedNumber value={sa.vulnerabilitiesCount} /></p>
                     <p className="text-xs text-gray-400 mt-1">View in Risk Register</p>
                   </button>
                   <button
@@ -198,7 +199,7 @@ export default function SelfAssessmentTab({ isCCRO }: { isCCRO: boolean }) {
                       Open Remediations
                       <ArrowUpRight size={10} className="opacity-0 group-hover:opacity-60 transition-opacity" />
                     </p>
-                    <p className={cn("text-2xl font-bold font-poppins", sa.openRemediations > 0 ? "text-red-600" : "text-gray-900")}>{sa.openRemediations}</p>
+                    <p className={cn("text-2xl font-bold font-poppins", sa.openRemediations > 0 ? "text-red-600" : "text-gray-900")}><AnimatedNumber value={sa.openRemediations} /></p>
                     <p className="text-xs text-gray-400 mt-1">View in Actions</p>
                   </button>
                 </div>

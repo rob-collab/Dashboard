@@ -220,7 +220,7 @@ export default function ComplianceOverview({ onNavigate }: Props) {
                   <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
                     <div className={cn("h-full rounded-full transition-all", colours.dot)} style={{ width: `${pct}%` }} />
                   </div>
-                  <span className="text-sm font-medium text-gray-700 w-8 text-right">{count}</span>
+                  <span className="text-sm font-medium text-gray-700 w-8 text-right"><AnimatedNumber value={count} delay={100} duration={600} /></span>
                 </div>
               );
             })}
@@ -499,7 +499,7 @@ function GapRow({ icon: Icon, label, count, colour, onClick }: { icon: typeof Sh
       <span className="text-sm text-gray-600 flex-1">{label}</span>
       <div className="flex items-center gap-2">
         {count > 0 && <div className={cn("w-2 h-2 rounded-full", dotColour)} />}
-        <span className={cn("text-sm font-semibold", count > 0 ? "text-gray-700" : "text-gray-400")}>{count}</span>
+        <span className={cn("text-sm font-semibold", count > 0 ? "text-gray-700" : "text-gray-400")}><AnimatedNumber value={count} delay={100} duration={600} /></span>
         {onClick && count > 0 && <ArrowRight size={12} className="text-gray-300" />}
       </div>
     </Wrapper>

@@ -40,6 +40,7 @@ import { usePageTitle } from "@/lib/usePageTitle";
 import RequestEditAccessButton from "@/components/common/RequestEditAccessButton";
 import { MotionListDiv } from "@/components/motion/MotionList";
 import { AnimatedNumber } from "@/components/common/AnimatedNumber";
+import ScrollReveal from "@/components/common/ScrollReveal";
 import { SkeletonStatRow, SkeletonTable } from "@/components/common/SkeletonLoader";
 import { MotionDiv } from "@/components/motion/MotionRow";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -522,6 +523,7 @@ function ActionsPageContent() {
       })()}
 
       {/* Priority cards */}
+      <ScrollReveal>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {priorityCards.map((p, idx) => (
           <button
@@ -541,8 +543,10 @@ function ActionsPageContent() {
           </button>
         ))}
       </div>
+      </ScrollReveal>
 
       {/* Status stats — clickable with active highlight */}
+      <ScrollReveal delay={80}>
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {statCards.map((s, idx) => (
           <button
@@ -561,6 +565,7 @@ function ActionsPageContent() {
           </button>
         ))}
       </div>
+      </ScrollReveal>
 
       {/* Search & Filters */}
       <div className="flex flex-wrap items-center gap-3">
@@ -743,6 +748,7 @@ function ActionsPageContent() {
       })()}
 
       {/* Actions Table */}
+      <ScrollReveal delay={120}>
       <div className="bento-card p-0 overflow-hidden">
         {/* Select-all header row */}
         {isCCRO && filteredActions.length > 0 && (
@@ -966,6 +972,7 @@ function ActionsPageContent() {
           </div>
         )}
       </div>
+      </ScrollReveal>
 
       </> /* end activeTab === "actions" */ }
 

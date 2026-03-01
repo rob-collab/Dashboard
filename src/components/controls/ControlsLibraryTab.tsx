@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 import {
   Search,
   Plus,
@@ -402,7 +403,7 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
               </div>
               <div>
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">My Controls</p>
-                <p className="text-2xl font-bold text-updraft-deep font-poppins leading-none mt-0.5">{myControlsCount}</p>
+                <p className="text-2xl font-bold text-updraft-deep font-poppins leading-none mt-0.5"><AnimatedNumber value={myControlsCount} /></p>
               </div>
             </div>
             <div className="text-right">

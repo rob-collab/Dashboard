@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 import { cn } from "@/lib/utils";
 import {
   MATURITY_LABELS,
@@ -433,7 +434,7 @@ function OwnerGapCard({ title, count, items, countColour, onProcessClick }: Owne
   return (
     <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
       <p className="text-xs font-semibold text-gray-600">{title}</p>
-      <p className={cn("text-3xl font-bold font-poppins", countColour)}>{count}</p>
+      <p className={cn("text-3xl font-bold font-poppins", countColour)}><AnimatedNumber value={count} /></p>
       {count === 0 ? (
         <p className="text-[11px] text-green-600 font-medium">All covered</p>
       ) : (

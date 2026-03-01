@@ -2,6 +2,7 @@
 
 import ArcGauge from "./ArcGauge";
 import type { Risk, Action, ConsumerDutyOutcome } from "@/lib/types";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 
 interface ComplianceHealth {
   total: number;
@@ -37,11 +38,15 @@ function ScorecardCard({ gauge, title, stat1Label, stat1Value, stat2Label, stat2
         <div className="space-y-0.5">
           <div className="flex items-center justify-between">
             <span className="text-[11px] text-gray-500">{stat1Label}</span>
-            <span className="text-sm font-bold text-updraft-deep">{stat1Value}</span>
+            {typeof stat1Value === "number"
+              ? <AnimatedNumber value={stat1Value} delay={200} duration={800} className="text-sm font-bold text-updraft-deep" />
+              : <span className="text-sm font-bold text-updraft-deep">{stat1Value}</span>}
           </div>
           <div className="flex items-center justify-between">
             <span className="text-[11px] text-gray-500">{stat2Label}</span>
-            <span className={`text-sm font-bold ${stat2Accent ?? "text-updraft-deep"}`}>{stat2Value}</span>
+            {typeof stat2Value === "number"
+              ? <AnimatedNumber value={stat2Value} delay={400} duration={800} className={`text-sm font-bold ${stat2Accent ?? "text-updraft-deep"}`} />
+              : <span className={`text-sm font-bold ${stat2Accent ?? "text-updraft-deep"}`}>{stat2Value}</span>}
           </div>
         </div>
       </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { api } from "@/lib/api-client";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 import type {
   TestResultValue,
   ExcoViewConfig,
@@ -136,7 +137,7 @@ function ExcoStatCard({ value, label, subtext, accentColour, icon, onClick, acti
     >
       <div className="flex items-center justify-between">
         <div className={`text-4xl font-bold font-poppins ${accentColour}`}>
-          {value}
+          {typeof value === "number" ? <AnimatedNumber value={value} /> : value}
         </div>
         <div className={`p-2.5 rounded-xl ${accentColour} opacity-15`}>
           {icon}

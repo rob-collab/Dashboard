@@ -65,8 +65,8 @@ export default function ScrollReveal({ children, className, delay = 0 }: Props) 
       ref={ref}
       style={{ transitionDelay: inView ? `${delay}ms` : "0ms" }}
       className={cn(
-        "transition-[opacity,transform] duration-500 ease-out",
-        inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4",
+        "transition-[opacity,transform] duration-700 ease-out",
+        inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8",
         className,
       )}
     >

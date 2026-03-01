@@ -29,6 +29,8 @@ import { usePageTitle } from "@/lib/usePageTitle";
 import { useHasPermission } from "@/lib/usePermission";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
+import ScrollReveal from "@/components/common/ScrollReveal";
 
 function useOwnedRiskCounts() {
   const risks = useAppStore((s) => s.risks);
@@ -215,6 +217,7 @@ export default function UsersPage() {
       ) : (
       <>
       {/* Role summary cards */}
+      <ScrollReveal>
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         {(["CCRO_TEAM", "CEO", "OWNER", "VIEWER"] as Role[]).map((role) => {
           const config = ROLE_CONFIG[role];
@@ -232,12 +235,13 @@ export default function UsersPage() {
                   {config.label}
                 </span>
               </div>
-              <p className="text-2xl font-bold text-updraft-deep">{roleCounts[role]}</p>
+              <AnimatedNumber value={roleCounts[role]} delay={0} duration={800} className="text-2xl font-bold text-updraft-deep" />
               <p className="text-xs text-fca-gray mt-1">{config.description}</p>
             </button>
           );
         })}
       </div>
+      </ScrollReveal>
 
       {/* Search and filters */}
       <div className="flex items-center gap-3">
@@ -263,6 +267,7 @@ export default function UsersPage() {
       </div>
 
       {/* Users table */}
+      <ScrollReveal delay={80}>
       <div className="bento-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -419,6 +424,7 @@ export default function UsersPage() {
           />
         )}
       </div>
+      </ScrollReveal>
 
       {/* User Form Dialog */}
       <UserFormDialog

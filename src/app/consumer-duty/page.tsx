@@ -22,6 +22,7 @@ import { usePageTitle } from "@/lib/usePageTitle";
 import GlossaryTooltip from "@/components/common/GlossaryTooltip";
 import HistoryTab from "@/components/common/HistoryTab";
 import { AnimatedNumber } from "@/components/common/AnimatedNumber";
+import ScrollReveal from "@/components/common/ScrollReveal";
 
 type RagFilterValue = RAGStatus | "ALL" | "ATTENTION";
 
@@ -560,6 +561,7 @@ function ConsumerDutyContent() {
       {activeTab === "dashboard" && <>
 
       {/* Summary cards — measure-level RAG counts */}
+      <ScrollReveal>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <button
           onClick={() => { setMeasureRagFilter("ALL"); handleStatRagClick("ALL"); setLastClickedSection(null); }}
@@ -615,6 +617,7 @@ function ConsumerDutyContent() {
           <p className="text-xs text-fca-gray mt-1">{harmCount} red outcome{harmCount !== 1 ? "s" : ""}</p>
         </button>
       </div>
+      </ScrollReveal>
 
       {/* RAG status legend */}
       <div className="flex items-center gap-6 text-xs text-gray-500 flex-wrap">
@@ -634,6 +637,7 @@ function ConsumerDutyContent() {
 
       {/* Metric stat tiles (moved above outcomes grid) */}
       {allMetrics.length > 0 && (
+        <ScrollReveal delay={80}>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <button
             onClick={() => { setMetricsRagFilter("ALL"); setLastClickedSection(null); }}
@@ -686,6 +690,7 @@ function ConsumerDutyContent() {
             <AnimatedNumber value={metricsHarmCount} className="text-2xl font-bold text-risk-red mt-1" />
           </button>
         </div>
+        </ScrollReveal>
       )}
 
       {/* Dynamic quick-view — shows directly below stat tiles when a measure or metric card is clicked */}
@@ -930,7 +935,7 @@ function ConsumerDutyContent() {
               <ChevronDown size={14} className={cn("transition-transform duration-200", collapsed.outcomes && "-rotate-180")} />
             </button>
           </div>
-          {!collapsed.outcomes && (<><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {!collapsed.outcomes && (<><ScrollReveal delay={80}><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredOutcomes.map((outcome) => (
               <div key={outcome.id} className="relative group/outcome">
                 <OutcomeCard
@@ -974,7 +979,7 @@ function ConsumerDutyContent() {
               <p className="text-sm font-medium text-gray-500">No outcomes match your filters</p>
               <p className="text-xs text-gray-400 mt-1">Try adjusting your search or filter criteria</p>
             </div>
-          )}</>)}
+          )}</ScrollReveal></>)}
 
           {/* Measures panel */}
           {selectedOutcome && selectedOutcome.measures && (

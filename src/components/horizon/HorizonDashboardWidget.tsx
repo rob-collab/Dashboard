@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Radar, ArrowRight, AlertTriangle, Clock } from "lucide-react";
 import { useAppStore } from "@/lib/store";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 import { cn } from "@/lib/utils";
 
 function daysUntil(deadline: string | null): number | null {
@@ -51,15 +52,15 @@ export function HorizonDashboardWidget() {
       {/* Urgency breakdown */}
       <div className="grid grid-cols-3 gap-2 mb-4">
         <div className="text-center p-2 bg-red-50 rounded-lg">
-          <div className="text-xl font-bold font-poppins text-red-700">{high}</div>
+          <div className="text-xl font-bold font-poppins text-red-700"><AnimatedNumber value={high} /></div>
           <div className="text-[10px] font-semibold text-red-500 uppercase tracking-wide mt-0.5">High</div>
         </div>
         <div className="text-center p-2 bg-amber-50 rounded-lg">
-          <div className="text-xl font-bold font-poppins text-amber-700">{medium}</div>
+          <div className="text-xl font-bold font-poppins text-amber-700"><AnimatedNumber value={medium} /></div>
           <div className="text-[10px] font-semibold text-amber-500 uppercase tracking-wide mt-0.5">Medium</div>
         </div>
         <div className="text-center p-2 bg-emerald-50 rounded-lg">
-          <div className="text-xl font-bold font-poppins text-emerald-700">{low}</div>
+          <div className="text-xl font-bold font-poppins text-emerald-700"><AnimatedNumber value={low} /></div>
           <div className="text-[10px] font-semibold text-emerald-500 uppercase tracking-wide mt-0.5">Low</div>
         </div>
       </div>

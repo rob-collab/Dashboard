@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 import {
   Blocks,
   Search,
@@ -138,18 +139,18 @@ export default function ComponentsPanel() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bento-card">
           <p className="text-xs text-fca-gray">Total Components</p>
-          <p className="text-2xl font-bold text-updraft-deep mt-1">{components.length}</p>
+          <p className="text-2xl font-bold text-updraft-deep mt-1"><AnimatedNumber value={components.length} /></p>
         </div>
         <div className="bento-card">
           <p className="text-xs text-fca-gray">Sanitised</p>
           <p className="text-2xl font-bold text-risk-green mt-1">
-            {components.filter((c) => c.sanitized).length}
+            <AnimatedNumber value={components.filter((c) => c.sanitized).length} />
           </p>
         </div>
         <div className="bento-card">
           <p className="text-xs text-fca-gray">Categories</p>
           <p className="text-2xl font-bold text-updraft-deep mt-1">
-            {new Set(components.map((c) => c.category)).size}
+            <AnimatedNumber value={new Set(components.map((c) => c.category)).size} />
           </p>
         </div>
       </div>

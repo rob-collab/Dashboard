@@ -4,6 +4,7 @@ import { useAppStore } from "@/lib/store";
 import type { ImportantBusinessService } from "@/lib/types";
 import { MATURITY_LABELS, MATURITY_COLOURS, PROCESS_CRITICALITY_LABELS, PROCESS_CRITICALITY_COLOURS } from "@/lib/types";
 import EntityLink from "@/components/common/EntityLink";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 import { cn } from "@/lib/utils";
 
 export default function IBSProcessesTab({ ibs }: { ibs: ImportantBusinessService }) {
@@ -32,15 +33,15 @@ export default function IBSProcessesTab({ ibs }: { ibs: ImportantBusinessService
       <div className="grid grid-cols-3 gap-3">
         <div className="bento-card text-center">
           <p className="text-xs text-gray-400 mb-1">Processes</p>
-          <p className="text-2xl font-bold font-poppins text-gray-900">{processes.length}</p>
+          <p className="text-2xl font-bold font-poppins text-gray-900"><AnimatedNumber value={processes.length} /></p>
         </div>
         <div className="bento-card text-center">
           <p className="text-xs text-gray-400 mb-1">Avg Maturity</p>
-          <p className="text-2xl font-bold font-poppins text-gray-900">{avgMaturity}</p>
+          <p className="text-2xl font-bold font-poppins text-gray-900"><AnimatedNumber value={avgMaturity} /></p>
         </div>
         <div className={cn("bento-card text-center", lowMaturityCritical > 0 ? "bg-red-50 border-red-200" : "")}>
           <p className="text-xs text-gray-400 mb-1">Critical Low-Maturity</p>
-          <p className={cn("text-2xl font-bold font-poppins", lowMaturityCritical > 0 ? "text-red-600" : "text-gray-900")}>{lowMaturityCritical}</p>
+          <p className={cn("text-2xl font-bold font-poppins", lowMaturityCritical > 0 ? "text-red-600" : "text-gray-900")}><AnimatedNumber value={lowMaturityCritical} /></p>
         </div>
       </div>
 

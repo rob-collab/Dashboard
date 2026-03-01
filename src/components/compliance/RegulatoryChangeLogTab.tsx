@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 import {
   COMPLIANCE_STATUS_COLOURS,
   COMPLIANCE_STATUS_LABELS,
@@ -157,7 +158,7 @@ export default function RegulatoryChangeLogTab() {
           { label: "Not Assessed", value: counts.notAssessed, colour: "text-gray-500", bg: "bg-gray-50", border: "border-gray-200" },
         ].map((s) => (
           <div key={s.label} className={cn("rounded-xl border px-4 py-3", s.bg, s.border)}>
-            <p className={cn("text-2xl font-bold tabular-nums font-poppins", s.colour)}>{s.value}</p>
+            <p className={cn("text-2xl font-bold tabular-nums font-poppins", s.colour)}><AnimatedNumber value={s.value} /></p>
             <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
           </div>
         ))}
