@@ -1184,6 +1184,54 @@ section width may change (RGL resize, responsive breakpoints).
 
 ---
 
+### P014 — ScrollChart render-prop for scroll-triggered chart animation (promoted from W026)
+
+Retrofit scroll-triggered entrance animations to any Recharts chart with zero changes to
+chart code — only a wrapper and a `key` prop on `ResponsiveContainer`.
+
+**Basic pattern (fixed height):**
+```tsx
+import { ScrollChart } from "@/components/common/ScrollChart";
+<ScrollChart className="h-[220px]">
+  {(scrollKey) => (
+    <ResponsiveContainer key={scrollKey} width="100%" height="100%">
+      <AreaChart ...>...</AreaChart>
+    </ResponsiveContainer>
+  )}
+</ScrollChart>
+```
+The `key={scrollKey}` forces a Recharts remount on every IntersectionObserver entry fire,
+replaying all bar/line/area entrance animations. Charts are unaware of scroll.
+
+**Dynamic-height charts:**
+```tsx
+<div style={{ height: Math.max(220, data.length * 52) }}>
+  <ScrollChart className="h-full">
+    {(scrollKey) => (
+      <ResponsiveContainer key={scrollKey} width="100%" height="100%">
+        <BarChart layout="vertical" data={data}>...</BarChart>
+      </ResponsiveContainer>
+    )}
+  </ScrollChart>
+</div>
+```
+When height is data-driven, wrap with a `div` that owns the dynamic height and give
+ScrollChart `className="h-full"` to fill it.
+
+**Modal-context charts:** Works identically — the IntersectionObserver fires on modal open
+(element immediately visible), giving the entrance animation at exactly the right moment.
+
+**Find missed instances before declaring done:**
+```bash
+grep -rn "ResponsiveContainer" src/ --include="*.tsx" | grep -v "ScrollChart" | grep -v "node_modules"
+```
+Any result is an unintended missing wrapper.
+
+**File:** `src/components/common/ScrollChart.tsx`
+**Trigger:** Any new or existing Recharts chart that should animate on scroll or modal open.
+
+---
+
 ## API & DATABASE PATTERNS
 
 See `MEMORY.md` for Prisma 7 gotchas, adapter pattern, and multi-column orderBy syntax.
@@ -1216,3 +1264,4 @@ See `tasks/lessons.md` for L-series (mistake rules) and `CLAUDE.md` for mandator
 | W016 | P011 | 2026-02-27 | IIFE pattern for sectionMap entries with local variables |
 | W015 | P012 | 2026-02-27 | Global CSS dark mode strategy without component changes |
 | Sprint I | P013 | 2026-02-27 | Dynamic grid columns for variable-count element tiles |
+| W026 | P014 | 2026-03-01 | ScrollChart render-prop for scroll-triggered chart animation |

@@ -697,6 +697,58 @@ at the same time as the schema/type change.
 
 ---
 
+### L023 — Edit tool requires a prior Read in the same session; easy to forget mid-sprint
+**What happened:** Sprint Q — attempted to Edit `ExcoDashboardTab.tsx` without reading it first.
+The Edit tool errored: "File has not been read yet." Required an extra round-trip to read a
+stub of the file before the edit could proceed.
+**Rule:** Before every Edit call, confirm the target file has been Read in the current session.
+If iterating through many files quickly (e.g. wrapping a pattern across 10+ files), track
+which have been read. A quick mental checklist of "read → edit" prevents the error entirely.
+**Trigger:** Any Edit call to a file that wasn't explicitly Read earlier in the session.
+**Status:** Active.
+
+---
+
+### W026 — ScrollChart render-prop wrapper: zero chart code changes for scroll-triggered animation
+**What happened:** Sprint Q — needed to retrofit scroll-triggered entrance animations to all
+Recharts components across 11+ files. The `ScrollChart` render-prop pattern required no changes
+to the chart code itself — only a wrapper + `key={scrollKey}` on `ResponsiveContainer`.
+**Pattern:**
+```tsx
+import { ScrollChart } from "@/components/common/ScrollChart";
+<ScrollChart className="h-[220px]">
+  {(scrollKey) => (
+    <ResponsiveContainer key={scrollKey} width="100%" height="100%">
+      <AreaChart ...>...</AreaChart>
+    </ResponsiveContainer>
+  )}
+</ScrollChart>
+```
+The `key` forces a Recharts remount on each IntersectionObserver fire, replaying all entrance
+animations. Charts never need to know about scroll — the wrapper handles it entirely.
+**For dynamic-height charts:** `<div style={{ height: Math.max(N, data.length * M) }}><ScrollChart className="h-full">...</ScrollChart></div>`
+**For modal-context charts:** Fires immediately on modal open (element enters viewport). Same pattern, same result — chart animates in when the modal opens.
+**Applies to:** Any Recharts (or similar chart library) component that needs scroll-triggered entrance animation.
+**Status:** [PROMOTED → tasks/patterns.md P014]
+
+---
+
+### W027 — Grep the pattern you're replacing before declaring done; catches missed instances
+**What happened:** Sprint Q — after wrapping the planned 8 files, a targeted grep for bare
+`<ResponsiveContainer` (not preceded by the new `ScrollChart` wrapper pattern) revealed 3 more
+files that hadn't been planned: `TrendAnalysisTab.tsx` (4 charts), `MetricDrillDown.tsx`,
+`ControlDetailModal.tsx`. All were caught and wrapped before the final build.
+**Pattern:** Before marking any "wrap every X in Y" task as done, run a grep for the
+un-wrapped pattern and confirm zero unintended remaining instances:
+```bash
+grep -rn "ResponsiveContainer" src/ --include="*.tsx" | grep -v "ScrollChart" | grep -v "node_modules"
+```
+Adjust the grep to suit the pattern being deployed. This prevents partial implementations.
+**Applies to:** Any sprint that wraps, replaces, or retrofits a pattern across many files.
+**Status:** Active.
+
+---
+
 ## Promotion Log
 
 When the Retrospective Agent recommends a promotion and it is carried out, record it here
@@ -713,3 +765,6 @@ so there is a clear trail of what was absorbed into the permanent process.
 | W017 | MEMORY.md Prisma 7 Gotchas | 2026-02-27 | prisma generate after schema changes |
 | L017 | Merged → L013 | 2026-02-27 | Set spread requires Array.from() — same rule as Map |
 | L021 | CLAUDE.md "During a sprint" | 2026-02-27 | Stop immediately to write L-entry |
+| L018 | CLAUDE.md Step 0c | 2026-02-27 | Re-surface unanswered questions after compaction |
+| L019 | CLAUDE.md Seed & Migration | 2026-02-27 | Never override ordering fields in upsert update clause |
+| L020 | CLAUDE.md Seed & Migration | 2026-02-27 | Audit ALL fields before deleting records in migration |
