@@ -11,6 +11,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { ScrollChart } from "@/components/common/ScrollChart";
 import type { Risk } from "@/lib/types";
 
 interface Props {
@@ -90,36 +91,40 @@ export default function RiskTrendChart({ risks }: Props) {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={180}>
-      <LineChart data={data} margin={{ top: 5, right: 8, left: -20, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-        <XAxis dataKey="month" tick={{ fontSize: 9 }} />
-        <YAxis tick={{ fontSize: 9 }} domain={[0, 25]} />
-        <Tooltip
-          contentStyle={{ fontSize: 11, padding: "4px 8px" }}
-          wrapperStyle={{ zIndex: 50 }}
-        />
-        <Legend wrapperStyle={{ fontSize: 9 }} />
-        {categories.map((cat, i) => (
-          <Line
-            key={cat}
-            type="monotone"
-            dataKey={cat}
-            stroke={CATEGORY_COLOURS[i % CATEGORY_COLOURS.length]}
-            strokeWidth={1.5}
-            dot={false}
-            isAnimationActive
-          />
-        ))}
-        <Line
-          type="monotone"
-          dataKey="Overall"
-          stroke={BRAND_PURPLE}
-          strokeWidth={2.5}
-          dot={false}
-          isAnimationActive
-        />
-      </LineChart>
-    </ResponsiveContainer>
+    <ScrollChart className="h-[180px]">
+      {(scrollKey) => (
+        <ResponsiveContainer key={scrollKey} width="100%" height="100%">
+          <LineChart data={data} margin={{ top: 5, right: 8, left: -20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <XAxis dataKey="month" tick={{ fontSize: 9 }} />
+            <YAxis tick={{ fontSize: 9 }} domain={[0, 25]} />
+            <Tooltip
+              contentStyle={{ fontSize: 11, padding: "4px 8px" }}
+              wrapperStyle={{ zIndex: 50 }}
+            />
+            <Legend wrapperStyle={{ fontSize: 9 }} />
+            {categories.map((cat, i) => (
+              <Line
+                key={cat}
+                type="monotone"
+                dataKey={cat}
+                stroke={CATEGORY_COLOURS[i % CATEGORY_COLOURS.length]}
+                strokeWidth={1.5}
+                dot={false}
+                isAnimationActive
+              />
+            ))}
+            <Line
+              type="monotone"
+              dataKey="Overall"
+              stroke={BRAND_PURPLE}
+              strokeWidth={2.5}
+              dot={false}
+              isAnimationActive
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      )}
+    </ScrollChart>
   );
 }

@@ -41,6 +41,7 @@ import {
 import BusinessAreaDrillDown from "./BusinessAreaDrillDown";
 import ControlDetailView from "./ControlDetailView";
 import ExportPanel from "./ExportPanel";
+import { ScrollChart } from "@/components/common/ScrollChart";
 
 // ── Chart colours ─────────────────────────────────────────────────────────────
 
@@ -573,36 +574,42 @@ export default function ControlsDashboardTab({ onNavigateToLibrary, onNavigateTo
               No data available for this period.
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={Math.max(200, businessAreaChartData.length * 48)}>
-              <BarChart
-                data={businessAreaChartData}
-                layout="vertical"
-                margin={{ top: 4, right: 20, left: 4, bottom: 4 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
-                <XAxis type="number" tick={{ fontSize: 11 }} stroke="#9ca3af" />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  tick={{ fontSize: 11 }}
-                  stroke="#9ca3af"
-                  width={120}
-                />
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: 8,
-                    border: "1px solid #e5e7eb",
-                    fontSize: 12,
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey={TEST_RESULT_LABELS.PASS} stackId="a" fill={RESULT_COLOURS.PASS} />
-                <Bar dataKey={TEST_RESULT_LABELS.FAIL} stackId="a" fill={RESULT_COLOURS.FAIL} />
-                <Bar dataKey={TEST_RESULT_LABELS.PARTIALLY} stackId="a" fill={RESULT_COLOURS.PARTIALLY} />
-                <Bar dataKey={TEST_RESULT_LABELS.NOT_TESTED} stackId="a" fill={RESULT_COLOURS.NOT_TESTED} />
-                <Bar dataKey={TEST_RESULT_LABELS.NOT_DUE} stackId="a" fill={RESULT_COLOURS.NOT_DUE} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div style={{ height: Math.max(200, businessAreaChartData.length * 48) }}>
+              <ScrollChart className="h-full">
+                {(scrollKey) => (
+                <ResponsiveContainer key={scrollKey} width="100%" height="100%">
+                  <BarChart
+                    data={businessAreaChartData}
+                    layout="vertical"
+                    margin={{ top: 4, right: 20, left: 4, bottom: 4 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
+                    <XAxis type="number" tick={{ fontSize: 11 }} stroke="#9ca3af" />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      tick={{ fontSize: 11 }}
+                      stroke="#9ca3af"
+                      width={120}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: 8,
+                        border: "1px solid #e5e7eb",
+                        fontSize: 12,
+                      }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Bar dataKey={TEST_RESULT_LABELS.PASS} stackId="a" fill={RESULT_COLOURS.PASS} />
+                    <Bar dataKey={TEST_RESULT_LABELS.FAIL} stackId="a" fill={RESULT_COLOURS.FAIL} />
+                    <Bar dataKey={TEST_RESULT_LABELS.PARTIALLY} stackId="a" fill={RESULT_COLOURS.PARTIALLY} />
+                    <Bar dataKey={TEST_RESULT_LABELS.NOT_TESTED} stackId="a" fill={RESULT_COLOURS.NOT_TESTED} />
+                    <Bar dataKey={TEST_RESULT_LABELS.NOT_DUE} stackId="a" fill={RESULT_COLOURS.NOT_DUE} />
+                  </BarChart>
+                </ResponsiveContainer>
+                )}
+              </ScrollChart>
+            </div>
           )}
         </div>
 
@@ -622,35 +629,39 @@ export default function ControlsDashboardTab({ onNavigateToLibrary, onNavigateTo
                     No controls
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height={130}>
-                    <PieChart>
-                      <Pie
-                        data={outcome.pieData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={28}
-                        outerRadius={50}
-                        paddingAngle={2}
-                        dataKey="value"
-                        strokeWidth={0}
-                      >
-                        {outcome.pieData.map((segment, idx) => (
-                          <Cell key={`cell-${idx}`} fill={segment.colour} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          borderRadius: 8,
-                          border: "1px solid #e5e7eb",
-                          fontSize: 11,
-                        }}
-                        formatter={((value: number, name: string) => [
-                          `${value} (${Math.round((value / outcome.total) * 100)}%)`,
-                          name,
-                        ]) as never}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <ScrollChart className="h-[130px]">
+                    {(scrollKey) => (
+                    <ResponsiveContainer key={scrollKey} width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={outcome.pieData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={28}
+                          outerRadius={50}
+                          paddingAngle={2}
+                          dataKey="value"
+                          strokeWidth={0}
+                        >
+                          {outcome.pieData.map((segment, idx) => (
+                            <Cell key={`cell-${idx}`} fill={segment.colour} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{
+                            borderRadius: 8,
+                            border: "1px solid #e5e7eb",
+                            fontSize: 11,
+                          }}
+                          formatter={((value: number, name: string) => [
+                            `${value} (${Math.round((value / outcome.total) * 100)}%)`,
+                            name,
+                          ]) as never}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    )}
+                  </ScrollChart>
                 )}
                 <div className="text-[10px] text-gray-400 -mt-1">
                   {outcome.total} control{outcome.total !== 1 ? "s" : ""}

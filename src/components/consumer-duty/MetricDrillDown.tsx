@@ -6,6 +6,7 @@ import type { ConsumerDutyMI, MetricSnapshot } from "@/lib/types";
 import { cn, ragBgColor, ragLabelShort } from "@/lib/utils";
 import { api } from "@/lib/api-client";
 import Modal from "@/components/common/Modal";
+import { ScrollChart } from "@/components/common/ScrollChart";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -300,7 +301,9 @@ export default function MetricDrillDown({
           <h4 className="text-sm font-semibold text-gray-700 mb-3">
             12-Month History
           </h4>
-          <ResponsiveContainer width="100%" height={220}>
+          <ScrollChart className="h-[220px]">
+            {(scrollKey) => (
+            <ResponsiveContainer key={scrollKey} width="100%" height="100%">
             <AreaChart
               data={chartData}
               margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
@@ -355,7 +358,9 @@ export default function MetricDrillDown({
                 activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff" }}
               />
             </AreaChart>
-          </ResponsiveContainer>
+            </ResponsiveContainer>
+            )}
+          </ScrollChart>
         </div>
       ) : null}
 

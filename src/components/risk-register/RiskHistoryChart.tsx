@@ -18,6 +18,7 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
+import { ScrollChart } from "@/components/common/ScrollChart";
 
 interface RiskHistoryChartProps {
   risk: Risk;
@@ -82,9 +83,10 @@ export default function RiskHistoryChart({ risk, onClose }: RiskHistoryChartProp
         </div>
       ) : (
         <>
-          {/* Chart */}
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
+          {/* Chart — scroll-triggered entrance animation */}
+          <ScrollChart className="h-64">
+            {(scrollKey) => (
+            <ResponsiveContainer key={scrollKey} width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="#9ca3af" />
@@ -150,7 +152,8 @@ export default function RiskHistoryChart({ risk, onClose }: RiskHistoryChartProp
                 />
               </LineChart>
             </ResponsiveContainer>
-          </div>
+            )}
+          </ScrollChart>
 
           {/* Monthly data table */}
           <div className="mt-6 overflow-x-auto rounded-lg border border-gray-200">

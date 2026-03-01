@@ -25,6 +25,7 @@ import { useAppStore } from "@/lib/store";
 import type { Policy } from "@/lib/types";
 import { POLICY_STATUS_LABELS, POLICY_STATUS_COLOURS } from "@/lib/types";
 import { formatDate, cn } from "@/lib/utils";
+import { ScrollChart } from "@/components/common/ScrollChart";
 
 interface Props {
   policy: Policy;
@@ -202,11 +203,13 @@ export default function PolicyOverviewTab({ policy, onEdit, onSwitchToControls }
             onClick={onSwitchToControls}
             title={onSwitchToControls ? "Click to view Controls & Testing" : undefined}
           >
-            <ResponsiveContainer width={120} height={120}>
-              <PieChart>
-                <Pie
-                  data={donutData}
-                  cx="50%"
+            <ScrollChart className="w-[120px] h-[120px] shrink-0">
+              {(scrollKey) => (
+              <ResponsiveContainer key={scrollKey} width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={donutData}
+                    cx="50%"
                   cy="50%"
                   innerRadius={35}
                   outerRadius={50}
@@ -222,8 +225,10 @@ export default function PolicyOverviewTab({ policy, onEdit, onSwitchToControls }
                   formatter={(value) => [`${value}`]}
                   contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
                 />
-              </PieChart>
-            </ResponsiveContainer>
+                </PieChart>
+              </ResponsiveContainer>
+              )}
+            </ScrollChart>
             <div className="flex-1">
               <div className="space-y-1.5 mb-3">
                 <div className="flex items-center gap-2">

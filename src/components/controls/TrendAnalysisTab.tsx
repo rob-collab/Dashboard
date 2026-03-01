@@ -33,6 +33,7 @@ import {
   ShieldAlert,
   ArrowUpCircle,
 } from "lucide-react";
+import { ScrollChart } from "@/components/common/ScrollChart";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -491,41 +492,45 @@ export default function TrendAnalysisTab() {
             {overallPassRateData.every((d) => d.tested === 0) ? (
               <EmptyChart message="No test results recorded in the selected time range." />
             ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart
-                  data={overallPassRateData}
-                  margin={{ top: 8, right: 24, left: 0, bottom: 4 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="month"
-                    tick={{ fontSize: 11 }}
-                    stroke="#9ca3af"
-                    tickLine={false}
-                  />
-                  <YAxis
-                    domain={[0, 100]}
-                    tick={{ fontSize: 11 }}
-                    stroke="#9ca3af"
-                    tickLine={false}
-                    tickFormatter={(v) => `${v}%`}
-                  />
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    formatter={(value) => [`${value}%`, "Pass Rate"]}
-                  />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Line
-                    type="monotone"
-                    dataKey="passRate"
-                    name="Pass Rate (%)"
-                    stroke={CHART_COLOURS.primary}
-                    strokeWidth={2.5}
-                    dot={{ r: 4, fill: CHART_COLOURS.primary }}
-                    activeDot={{ r: 6 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <ScrollChart className="h-[300px]">
+                {(scrollKey) => (
+                <ResponsiveContainer key={scrollKey} width="100%" height="100%">
+                  <LineChart
+                    data={overallPassRateData}
+                    margin={{ top: 8, right: 24, left: 0, bottom: 4 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fontSize: 11 }}
+                      stroke="#9ca3af"
+                      tickLine={false}
+                    />
+                    <YAxis
+                      domain={[0, 100]}
+                      tick={{ fontSize: 11 }}
+                      stroke="#9ca3af"
+                      tickLine={false}
+                      tickFormatter={(v) => `${v}%`}
+                    />
+                    <Tooltip
+                      contentStyle={tooltipStyle}
+                      formatter={(value) => [`${value}%`, "Pass Rate"]}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Line
+                      type="monotone"
+                      dataKey="passRate"
+                      name="Pass Rate (%)"
+                      stroke={CHART_COLOURS.primary}
+                      strokeWidth={2.5}
+                      dot={{ r: 4, fill: CHART_COLOURS.primary }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+                )}
+              </ScrollChart>
             )}
           </div>
 
@@ -539,41 +544,45 @@ export default function TrendAnalysisTab() {
               {businessAreaNames.length === 0 ? (
                 <EmptyChart message="No business areas found in the testing schedule." />
               ) : (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart
-                    data={businessAreaData}
-                    margin={{ top: 8, right: 24, left: 0, bottom: 4 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis
-                      dataKey="month"
-                      tick={{ fontSize: 10 }}
-                      stroke="#9ca3af"
-                      tickLine={false}
-                    />
-                    <YAxis
-                      domain={[0, 100]}
-                      tick={{ fontSize: 11 }}
-                      stroke="#9ca3af"
-                      tickLine={false}
-                      tickFormatter={(v) => `${v}%`}
-                    />
-                    <Tooltip
-                      contentStyle={tooltipStyle}
-                      formatter={(value, name) => [`${value}%`, name]}
-                    />
-                    <Legend wrapperStyle={{ fontSize: 10 }} />
-                    {businessAreaNames.map((name, idx) => (
-                      <Bar
-                        key={name}
-                        dataKey={name}
-                        name={name}
-                        fill={AREA_PALETTE[idx % AREA_PALETTE.length]}
-                        radius={[2, 2, 0, 0]}
+                <ScrollChart className="h-[300px]">
+                  {(scrollKey) => (
+                  <ResponsiveContainer key={scrollKey} width="100%" height="100%">
+                    <BarChart
+                      data={businessAreaData}
+                      margin={{ top: 8, right: 24, left: 0, bottom: 4 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="month"
+                        tick={{ fontSize: 10 }}
+                        stroke="#9ca3af"
+                        tickLine={false}
                       />
-                    ))}
-                  </BarChart>
-                </ResponsiveContainer>
+                      <YAxis
+                        domain={[0, 100]}
+                        tick={{ fontSize: 11 }}
+                        stroke="#9ca3af"
+                        tickLine={false}
+                        tickFormatter={(v) => `${v}%`}
+                      />
+                      <Tooltip
+                        contentStyle={tooltipStyle}
+                        formatter={(value, name) => [`${value}%`, name]}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 10 }} />
+                      {businessAreaNames.map((name, idx) => (
+                        <Bar
+                          key={name}
+                          dataKey={name}
+                          name={name}
+                          fill={AREA_PALETTE[idx % AREA_PALETTE.length]}
+                          radius={[2, 2, 0, 0]}
+                        />
+                      ))}
+                    </BarChart>
+                  </ResponsiveContainer>
+                  )}
+                </ScrollChart>
               )}
             </div>
 
@@ -585,46 +594,50 @@ export default function TrendAnalysisTab() {
               {cdOutcomeData.length === 0 ? (
                 <EmptyChart message="No data available for Consumer Duty outcomes." />
               ) : (
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart
-                    data={cdOutcomeData}
-                    margin={{ top: 8, right: 24, left: 0, bottom: 4 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis
-                      dataKey="month"
-                      tick={{ fontSize: 10 }}
-                      stroke="#9ca3af"
-                      tickLine={false}
-                    />
-                    <YAxis
-                      domain={[0, 100]}
-                      tick={{ fontSize: 11 }}
-                      stroke="#9ca3af"
-                      tickLine={false}
-                      tickFormatter={(v) => `${v}%`}
-                    />
-                    <Tooltip
-                      contentStyle={tooltipStyle}
-                      formatter={(value, name) => [`${value}%`, name]}
-                    />
-                    <Legend wrapperStyle={{ fontSize: 10 }} />
-                    {(
-                      Object.keys(CD_OUTCOME_PALETTE) as ConsumerDutyOutcomeType[]
-                    ).map((ot) => (
-                      <Area
-                        key={ot}
-                        type="monotone"
-                        dataKey={CD_OUTCOME_LABELS[ot]}
-                        name={CD_OUTCOME_LABELS[ot]}
-                        stackId="cd"
-                        stroke={CD_OUTCOME_PALETTE[ot]}
-                        fill={CD_OUTCOME_PALETTE[ot]}
-                        fillOpacity={0.3}
+                <ScrollChart className="h-[300px]">
+                  {(scrollKey) => (
+                  <ResponsiveContainer key={scrollKey} width="100%" height="100%">
+                    <AreaChart
+                      data={cdOutcomeData}
+                      margin={{ top: 8, right: 24, left: 0, bottom: 4 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="month"
+                        tick={{ fontSize: 10 }}
+                        stroke="#9ca3af"
+                        tickLine={false}
                       />
-                    ))}
-                  </AreaChart>
-                </ResponsiveContainer>
+                      <YAxis
+                        domain={[0, 100]}
+                        tick={{ fontSize: 11 }}
+                        stroke="#9ca3af"
+                        tickLine={false}
+                        tickFormatter={(v) => `${v}%`}
+                      />
+                      <Tooltip
+                        contentStyle={tooltipStyle}
+                        formatter={(value, name) => [`${value}%`, name]}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 10 }} />
+                      {(
+                        Object.keys(CD_OUTCOME_PALETTE) as ConsumerDutyOutcomeType[]
+                      ).map((ot) => (
+                        <Area
+                          key={ot}
+                          type="monotone"
+                          dataKey={CD_OUTCOME_LABELS[ot]}
+                          name={CD_OUTCOME_LABELS[ot]}
+                          stackId="cd"
+                          stroke={CD_OUTCOME_PALETTE[ot]}
+                          fill={CD_OUTCOME_PALETTE[ot]}
+                          fillOpacity={0.3}
+                        />
+                      ))}
+                    </AreaChart>
+                  </ResponsiveContainer>
+                  )}
+                </ScrollChart>
               )}
             </div>
           </div>
@@ -638,41 +651,45 @@ export default function TrendAnalysisTab() {
             {testingCoverageData.every((d) => d.due === 0) ? (
               <EmptyChart message="No due controls found in the selected time range." />
             ) : (
-              <ResponsiveContainer width="100%" height={280}>
-                <LineChart
-                  data={testingCoverageData}
-                  margin={{ top: 8, right: 24, left: 0, bottom: 4 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="month"
-                    tick={{ fontSize: 11 }}
-                    stroke="#9ca3af"
-                    tickLine={false}
-                  />
-                  <YAxis
-                    domain={[0, 100]}
-                    tick={{ fontSize: 11 }}
-                    stroke="#9ca3af"
-                    tickLine={false}
-                    tickFormatter={(v) => `${v}%`}
-                  />
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    formatter={(value, name) => [`${value}%`, name]}
-                  />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Line
-                    type="monotone"
-                    dataKey="coverage"
-                    name="Coverage (%)"
-                    stroke={CHART_COLOURS.secondary}
-                    strokeWidth={2.5}
-                    dot={{ r: 4, fill: CHART_COLOURS.secondary }}
-                    activeDot={{ r: 6 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <ScrollChart className="h-[280px]">
+                {(scrollKey) => (
+                <ResponsiveContainer key={scrollKey} width="100%" height="100%">
+                  <LineChart
+                    data={testingCoverageData}
+                    margin={{ top: 8, right: 24, left: 0, bottom: 4 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fontSize: 11 }}
+                      stroke="#9ca3af"
+                      tickLine={false}
+                    />
+                    <YAxis
+                      domain={[0, 100]}
+                      tick={{ fontSize: 11 }}
+                      stroke="#9ca3af"
+                      tickLine={false}
+                      tickFormatter={(v) => `${v}%`}
+                    />
+                    <Tooltip
+                      contentStyle={tooltipStyle}
+                      formatter={(value, name) => [`${value}%`, name]}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Line
+                      type="monotone"
+                      dataKey="coverage"
+                      name="Coverage (%)"
+                      stroke={CHART_COLOURS.secondary}
+                      strokeWidth={2.5}
+                      dot={{ r: 4, fill: CHART_COLOURS.secondary }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+                )}
+              </ScrollChart>
             )}
           </div>
 

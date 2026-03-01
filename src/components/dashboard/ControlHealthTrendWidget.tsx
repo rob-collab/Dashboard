@@ -4,6 +4,8 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { ArrowRight, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { useAppStore } from "@/lib/store";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
+import { ScrollChart } from "@/components/common/ScrollChart";
 import type { TestingScheduleEntry } from "@/lib/types";
 import {
   AreaChart,
@@ -140,11 +142,19 @@ export default function ControlHealthTrendWidget() {
         </Link>
       </div>
 
-      {/* Headline stat + trend pill */}
+      {/* Headline stat — AnimatedNumber fires on scroll */}
       <div className="flex items-end gap-3">
-        <span className="text-4xl font-bold font-poppins text-updraft-deep">
-          {hasAnyData ? `${currentRate}%` : "—"}
-        </span>
+        {hasAnyData ? (
+          <>
+            <AnimatedNumber
+              value={currentRate}
+              className="text-4xl font-bold font-poppins text-updraft-deep"
+            />
+            <span className="text-4xl font-bold font-poppins text-updraft-deep">%</span>
+          </>
+        ) : (
+          <span className="text-4xl font-bold font-poppins text-updraft-deep">—</span>
+        )}
         {hasAnyData && (
           <span
             className={cn(
@@ -165,47 +175,49 @@ export default function ControlHealthTrendWidget() {
         <span className="mb-1 text-xs text-gray-400 ml-auto">6-month pass rate</span>
       </div>
 
-      {/* Chart */}
+      {/* Chart — re-triggers Recharts animation on each scroll entry */}
       {hasAnyData ? (
-        <div className="flex-1 min-h-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
-              data={trendData}
-              margin={{ top: 4, right: 4, bottom: 0, left: -20 }}
-            >
-              <defs>
-                <linearGradient id="ctGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#6C2BD9" stopOpacity={0.18} />
-                  <stop offset="95%" stopColor="#6C2BD9" stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-              <XAxis
-                dataKey="month"
-                tick={{ fontSize: 10, fill: "#9ca3af" }}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                domain={[0, 100]}
-                tickFormatter={(v: number) => `${v}%`}
-                tick={{ fontSize: 10, fill: "#9ca3af" }}
-                tickLine={false}
-                axisLine={false}
-              />
-              <Tooltip content={<ChartTooltip />} />
-              <Area
-                type="monotone"
-                dataKey="passRate"
-                stroke="#6C2BD9"
-                strokeWidth={2}
-                fill="url(#ctGrad)"
-                dot={false}
-                activeDot={{ r: 4, strokeWidth: 0, fill: "#6C2BD9" }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        <ScrollChart className="flex-1 min-h-0">
+          {(scrollKey) => (
+            <ResponsiveContainer key={scrollKey} width="100%" height="100%">
+              <AreaChart
+                data={trendData}
+                margin={{ top: 4, right: 4, bottom: 0, left: -20 }}
+              >
+                <defs>
+                  <linearGradient id="ctGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="#6C2BD9" stopOpacity={0.18} />
+                    <stop offset="95%" stopColor="#6C2BD9" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <XAxis
+                  dataKey="month"
+                  tick={{ fontSize: 10, fill: "#9ca3af" }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  domain={[0, 100]}
+                  tickFormatter={(v: number) => `${v}%`}
+                  tick={{ fontSize: 10, fill: "#9ca3af" }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip content={<ChartTooltip />} />
+                <Area
+                  type="monotone"
+                  dataKey="passRate"
+                  stroke="#6C2BD9"
+                  strokeWidth={2}
+                  fill="url(#ctGrad)"
+                  dot={false}
+                  activeDot={{ r: 4, strokeWidth: 0, fill: "#6C2BD9" }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+        </ScrollChart>
       ) : (
         <div className="flex-1 flex items-center justify-center">
           <p className="text-sm text-gray-400 text-center">

@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import ControlDetailModal from "./ControlDetailModal";
 import { cn } from "@/lib/utils";
+import { ScrollChart } from "@/components/common/ScrollChart";
 import {
   BarChart,
   Bar,
@@ -460,79 +461,82 @@ export default function ExcoDashboardTab() {
                     No data available for this period.
                   </div>
                 ) : (
-                  <ResponsiveContainer
-                    width="100%"
-                    height={Math.max(220, businessAreaChartData.length * 52)}
-                  >
-                    <BarChart
-                      data={businessAreaChartData}
-                      layout="vertical"
-                      margin={{ top: 4, right: 24, left: 4, bottom: 4 }}
-                      className="cursor-pointer"
-                      onClick={(chartData: Record<string, unknown>) => {
-                        const label = chartData?.activeLabel as string | undefined;
-                        if (label) {
-                          const area = data?.byBusinessArea.find((a) => a.areaName === label);
-                          if (area) {
-                            handleDrillDown({ type: "area", areaId: area.areaId, areaName: area.areaName });
-                          }
-                        }
-                      }}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke="#e5e7eb"
-                        horizontal={false}
-                      />
-                      <XAxis
-                        type="number"
-                        tick={{ fontSize: 12 }}
-                        stroke="#9ca3af"
-                      />
-                      <YAxis
-                        type="category"
-                        dataKey="name"
-                        tick={{ fontSize: 12 }}
-                        stroke="#9ca3af"
-                        width={130}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          borderRadius: 10,
-                          border: "1px solid #e5e7eb",
-                          fontSize: 12,
-                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                        }}
-                      />
-                      <Legend wrapperStyle={{ fontSize: 12 }} />
-                      <Bar
-                        dataKey={TEST_RESULT_LABELS.PASS}
-                        stackId="a"
-                        fill={RESULT_COLOURS.PASS}
-                        radius={[0, 0, 0, 0]}
-                      />
-                      <Bar
-                        dataKey={TEST_RESULT_LABELS.FAIL}
-                        stackId="a"
-                        fill={RESULT_COLOURS.FAIL}
-                      />
-                      <Bar
-                        dataKey={TEST_RESULT_LABELS.PARTIALLY}
-                        stackId="a"
-                        fill={RESULT_COLOURS.PARTIALLY}
-                      />
-                      <Bar
-                        dataKey={TEST_RESULT_LABELS.NOT_TESTED}
-                        stackId="a"
-                        fill={RESULT_COLOURS.NOT_TESTED}
-                      />
-                      <Bar
-                        dataKey={TEST_RESULT_LABELS.NOT_DUE}
-                        stackId="a"
-                        fill={RESULT_COLOURS.NOT_DUE}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <div style={{ height: Math.max(220, businessAreaChartData.length * 52) }}>
+                    <ScrollChart className="h-full">
+                      {(scrollKey) => (
+                      <ResponsiveContainer key={scrollKey} width="100%" height="100%">
+                        <BarChart
+                          data={businessAreaChartData}
+                          layout="vertical"
+                          margin={{ top: 4, right: 24, left: 4, bottom: 4 }}
+                          className="cursor-pointer"
+                          onClick={(chartData: Record<string, unknown>) => {
+                            const label = chartData?.activeLabel as string | undefined;
+                            if (label) {
+                              const area = data?.byBusinessArea.find((a) => a.areaName === label);
+                              if (area) {
+                                handleDrillDown({ type: "area", areaId: area.areaId, areaName: area.areaName });
+                              }
+                            }
+                          }}
+                        >
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="#e5e7eb"
+                            horizontal={false}
+                          />
+                          <XAxis
+                            type="number"
+                            tick={{ fontSize: 12 }}
+                            stroke="#9ca3af"
+                          />
+                          <YAxis
+                            type="category"
+                            dataKey="name"
+                            tick={{ fontSize: 12 }}
+                            stroke="#9ca3af"
+                            width={130}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              borderRadius: 10,
+                              border: "1px solid #e5e7eb",
+                              fontSize: 12,
+                              boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                            }}
+                          />
+                          <Legend wrapperStyle={{ fontSize: 12 }} />
+                          <Bar
+                            dataKey={TEST_RESULT_LABELS.PASS}
+                            stackId="a"
+                            fill={RESULT_COLOURS.PASS}
+                            radius={[0, 0, 0, 0]}
+                          />
+                          <Bar
+                            dataKey={TEST_RESULT_LABELS.FAIL}
+                            stackId="a"
+                            fill={RESULT_COLOURS.FAIL}
+                          />
+                          <Bar
+                            dataKey={TEST_RESULT_LABELS.PARTIALLY}
+                            stackId="a"
+                            fill={RESULT_COLOURS.PARTIALLY}
+                          />
+                          <Bar
+                            dataKey={TEST_RESULT_LABELS.NOT_TESTED}
+                            stackId="a"
+                            fill={RESULT_COLOURS.NOT_TESTED}
+                          />
+                          <Bar
+                            dataKey={TEST_RESULT_LABELS.NOT_DUE}
+                            stackId="a"
+                            fill={RESULT_COLOURS.NOT_DUE}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                      )}
+                    </ScrollChart>
+                  </div>
                 )}
               </div>
             )}
@@ -564,42 +568,46 @@ export default function ExcoDashboardTab() {
                           No controls
                         </div>
                       ) : (
-                        <ResponsiveContainer width="100%" height={140}>
-                          <PieChart>
-                            <Pie
-                              data={outcome.pieData}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={32}
-                              outerRadius={55}
-                              paddingAngle={2}
-                              dataKey="value"
-                              strokeWidth={0}
-                            >
-                              {outcome.pieData.map((segment, idx) => (
-                                <Cell
-                                  key={`cell-${idx}`}
-                                  fill={segment.colour}
-                                />
-                              ))}
-                            </Pie>
-                            <Tooltip
-                              contentStyle={{
-                                borderRadius: 10,
-                                border: "1px solid #e5e7eb",
-                                fontSize: 11,
-                                boxShadow:
-                                  "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                              }}
-                              formatter={
-                                ((value: number, name: string) => [
-                                  `${value} (${pct(value, outcome.total)})`,
-                                  name,
-                                ]) as never
-                              }
-                            />
-                          </PieChart>
-                        </ResponsiveContainer>
+                        <ScrollChart className="h-[140px]">
+                          {(scrollKey) => (
+                          <ResponsiveContainer key={scrollKey} width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={outcome.pieData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={32}
+                                outerRadius={55}
+                                paddingAngle={2}
+                                dataKey="value"
+                                strokeWidth={0}
+                              >
+                                {outcome.pieData.map((segment, idx) => (
+                                  <Cell
+                                    key={`cell-${idx}`}
+                                    fill={segment.colour}
+                                  />
+                                ))}
+                              </Pie>
+                              <Tooltip
+                                contentStyle={{
+                                  borderRadius: 10,
+                                  border: "1px solid #e5e7eb",
+                                  fontSize: 11,
+                                  boxShadow:
+                                    "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                                }}
+                                formatter={
+                                  ((value: number, name: string) => [
+                                    `${value} (${pct(value, outcome.total)})`,
+                                    name,
+                                  ]) as never
+                                }
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                          )}
+                        </ScrollChart>
                       )}
                       <div className="text-[11px] text-gray-400 -mt-1">
                         {outcome.total} control

@@ -77,6 +77,7 @@ import CDRadialRing from "@/components/dashboard/CDRadialRing";
 import DomainScorecardRow from "@/components/dashboard/DomainScorecardRow";
 import ActionRequiredSection from "@/components/dashboard/ActionRequiredSection";
 import ScrollReveal from "@/components/common/ScrollReveal";
+import { StaggerList } from "@/components/common/StaggerList";
 import ControlHealthTrendWidget from "@/components/dashboard/ControlHealthTrendWidget";
 import QuarterlySummaryWidget from "@/components/dashboard/QuarterlySummaryWidget";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -1774,7 +1775,7 @@ export default function DashboardHome() {
           </Link>
         </div>
         <p className="text-xs text-red-600/70 mb-3">These metrics have not been updated in over 30 days and require attention.</p>
-        <div className="space-y-2">
+        <StaggerList className="space-y-2">
           {overdueMetrics.slice(0, 8).map((m) => (
             <Link
               key={m.id}
@@ -1795,10 +1796,10 @@ export default function DashboardHome() {
               </span>
             </Link>
           ))}
-          {overdueMetrics.length > 8 && (
-            <p className="text-[10px] text-red-500 text-center">+{overdueMetrics.length - 8} more overdue metrics</p>
-          )}
-        </div>
+        </StaggerList>
+        {overdueMetrics.length > 8 && (
+          <p className="text-[10px] text-red-500 text-center mt-2">+{overdueMetrics.length - 8} more overdue metrics</p>
+        )}
       </div>
     ) : null,
 

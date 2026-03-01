@@ -16,6 +16,7 @@ import { naturalCompare } from "@/lib/utils";
 import GlossaryTooltip from "@/components/common/GlossaryTooltip";
 import ArcGauge from "@/components/dashboard/ArcGauge";
 import { AnimatedNumber } from "@/components/common/AnimatedNumber";
+import { ScrollChart } from "@/components/common/ScrollChart";
 import {
   ResponsiveContainer,
   LineChart,
@@ -763,25 +764,29 @@ export default function QuarterlySummaryTab() {
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
                 Coverage Trend (Last 4 Quarters)
               </p>
-              <ResponsiveContainer width="100%" height={140}>
-                <LineChart data={coverageTrendData} margin={{ top: 4, right: 16, left: -16, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#6b7280" }} />
-                  <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: "#6b7280" }} unit="%" width={40} />
-                  <Tooltip
-                    formatter={(v: number | undefined) => [`${v ?? 0}%`, "Coverage"]}
-                    contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="coverage"
-                    stroke="#7c3aed"
-                    strokeWidth={2}
-                    dot={{ r: 4, fill: "#7c3aed", strokeWidth: 0 }}
-                    activeDot={{ r: 5 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <ScrollChart className="h-[140px]">
+                {(scrollKey) => (
+                <ResponsiveContainer key={scrollKey} width="100%" height="100%">
+                  <LineChart data={coverageTrendData} margin={{ top: 4, right: 16, left: -16, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#6b7280" }} />
+                    <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: "#6b7280" }} unit="%" width={40} />
+                    <Tooltip
+                      formatter={(v: number | undefined) => [`${v ?? 0}%`, "Coverage"]}
+                      contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="coverage"
+                      stroke="#7c3aed"
+                      strokeWidth={2}
+                      dot={{ r: 4, fill: "#7c3aed", strokeWidth: 0 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+                )}
+              </ScrollChart>
             </div>
           </div>
         </div>

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api-client";
 import { ShieldCheck, AlertTriangle, Clock, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AnimatedNumber } from "@/components/common/AnimatedNumber";
+import { useReducedMotion } from "framer-motion";
 
 interface IBSStat {
   id: string;
@@ -55,6 +56,32 @@ const READINESS_ROWS: [ReadinessKey, string][] = [
 export default function ORDashboard({ onSelectIbs }: { onSelectIbs?: (id: string) => void }) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Scroll-triggered animation for IBS Readiness Summary bars
+  const prefersReduced = useReducedMotion();
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const [summaryInView, setSummaryInView] = useState(false);
+  const wasSummaryInView = useRef(false);
+
+  useEffect(() => {
+    if (prefersReduced) { setSummaryInView(true); return; }
+    const el = summaryRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !wasSummaryInView.current) {
+          wasSummaryInView.current = true;
+          setSummaryInView(true);
+        } else if (!entry.isIntersecting) {
+          wasSummaryInView.current = false;
+          setSummaryInView(false);
+        }
+      },
+      { threshold: 0.15 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [prefersReduced]);
 
   useEffect(() => {
     api<DashboardData>("/api/or/dashboard")
@@ -180,8 +207,8 @@ export default function ORDashboard({ onSelectIbs }: { onSelectIbs?: (id: string
           )}
         </div>
 
-        {/* Readiness summary */}
-        <div className="bento-card">
+        {/* Readiness summary — bars animate in on scroll entry */}
+        <div ref={summaryRef} className="bento-card">
           <h3 className="font-poppins font-semibold text-gray-900 text-sm mb-3">IBS Readiness Summary</h3>
           <div className="space-y-2">
             {READINESS_ROWS.map(([key, label]) => (
@@ -192,7 +219,10 @@ export default function ORDashboard({ onSelectIbs }: { onSelectIbs?: (id: string
                 <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <div
                     className={cn("h-full rounded-full", READINESS_COLOURS[key].dot)}
-                    style={{ width: data.ibs.length > 0 ? `${(countMap[key] / data.ibs.length) * 100}%` : "0%" }}
+                    style={{
+                      width: (summaryInView && data.ibs.length > 0) ? `${(countMap[key] / data.ibs.length) * 100}%` : "0%",
+                      transition: prefersReduced ? "none" : "width 0.7s ease-out",
+                    }}
                   />
                 </div>
               </div>

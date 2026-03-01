@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Modal from "@/components/common/Modal";
 import ControlChangePanel from "./ControlChangePanel";
+import { ScrollChart } from "@/components/common/ScrollChart";
 import ControlSuggestChangeForm from "./ControlSuggestChangeForm";
 import ActionFormDialog from "@/components/actions/ActionFormDialog";
 import { deriveTestingStatus } from "@/lib/controls-utils";
@@ -496,8 +497,9 @@ export default function ControlDetailModal({
                 Performance Over Time
                 <span className="text-xs font-normal text-gray-400">({chartData.length} results)</span>
               </h4>
-              <div className="h-36">
-                <ResponsiveContainer width="100%" height="100%">
+              <ScrollChart className="h-36">
+                {(scrollKey) => (
+                <ResponsiveContainer key={scrollKey} width="100%" height="100%">
                   <LineChart data={chartData} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                     <XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="#d1d5db" interval="preserveStartEnd" />
@@ -529,7 +531,8 @@ export default function ControlDetailModal({
                     />
                   </LineChart>
                 </ResponsiveContainer>
-              </div>
+                )}
+              </ScrollChart>
             </div>
           )}
 

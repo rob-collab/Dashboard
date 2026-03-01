@@ -222,6 +222,29 @@ body > * {
       transform: translateY(0);
     }
   }
+
+  /* ── Q6: Scroll-triggered item stagger ──────────────────────────────────── */
+  /* Applied to list items inside containers that add .stagger-visible on entry.
+     Each item uses --stagger-delay (set via inline style) for its offset.       */
+  .stagger-item {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .stagger-visible .stagger-item {
+    animation: itemSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: var(--stagger-delay, 0ms);
+  }
+
+  @keyframes itemSlideUp {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
 
 /* Scrollbar */

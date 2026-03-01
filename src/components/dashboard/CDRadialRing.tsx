@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { useReducedMotion } from "framer-motion";
 import type { ConsumerDutyOutcome } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -64,6 +65,12 @@ export default function CDRadialRing({ outcomes }: Props) {
   const [visible, setVisible] = useState(true);
   const [paused,  setPaused]  = useState(false);
 
+  // Scroll trigger for outcome grid stagger
+  const prefersReduced = useReducedMotion();
+  const gridRef    = useRef<HTMLDivElement>(null);
+  const wasInView  = useRef(false);
+  const [staggerKey, setStaggerKey] = useState(0); // increments on each scroll entry
+
   useEffect(() => {
     if (paused || ticks.length <= 1) return;
     const timer = setInterval(() => {
@@ -75,6 +82,26 @@ export default function CDRadialRing({ outcomes }: Props) {
     }, TICK_MS);
     return () => clearInterval(timer);
   }, [paused, ticks.length]);
+
+  // Stagger observer — fires on each scroll entry to replay item slide-in
+  useEffect(() => {
+    if (prefersReduced) return;
+    const el = gridRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !wasInView.current) {
+          wasInView.current = true;
+          setStaggerKey((k) => k + 1);
+        } else if (!entry.isIntersecting) {
+          wasInView.current = false;
+        }
+      },
+      { threshold: 0.1 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [prefersReduced]);
 
   if (outcomes.length === 0) {
     return (
@@ -151,9 +178,16 @@ export default function CDRadialRing({ outcomes }: Props) {
         </div>
       </Link>
 
-      {/* Outcome grid */}
-      <div className="grid grid-cols-2 gap-2">
-        {outcomes.map((outcome) => {
+      {/* Outcome grid — items stagger in on scroll entry */}
+      <div
+        ref={gridRef}
+        key={staggerKey}
+        className={cn(
+          "grid grid-cols-2 gap-2",
+          staggerKey > 0 && "stagger-visible",
+        )}
+      >
+        {outcomes.map((outcome, i) => {
           const isGood = outcome.ragStatus === "GOOD";
           const isWarn = outcome.ragStatus === "WARNING";
           return (
@@ -161,13 +195,14 @@ export default function CDRadialRing({ outcomes }: Props) {
               key={outcome.id}
               href={`/consumer-duty?outcome=${outcome.id}`}
               className={cn(
-                "rounded-lg pl-3 pr-2 py-2 hover:shadow-md transition-shadow",
+                "stagger-item rounded-lg pl-3 pr-2 py-2 hover:shadow-md transition-shadow",
                 isGood
                   ? "border-l-[3px] border-green-500 bg-green-50 hover:bg-green-100/60"
                   : isWarn
                   ? "border-l-[3px] border-amber-400 bg-amber-50 hover:bg-amber-100/60"
                   : "border-l-[3px] border-red-500 bg-red-50 hover:bg-red-100/60",
               )}
+              style={{ "--stagger-delay": `${i * 60}ms` } as React.CSSProperties}
             >
               <p className="text-xs font-medium text-gray-900 leading-tight truncate">
                 {outcome.name}

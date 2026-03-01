@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useReducedMotion } from "framer-motion";
 
 interface Props {
   value: number;   // 0–100
@@ -9,18 +10,50 @@ interface Props {
 }
 
 /**
- * SVG arc gauge sweeping 240° (gap centered at 6 o'clock).
- * Uses CSS transition on stroke-dasharray for a smooth fill animation.
+ * SVG arc gauge sweeping 240° (gap centred at 6 o'clock).
+ * Uses CSS transition on stroke-dashoffset for a smooth fill animation.
  * No external dependencies — pure SVG + CSS.
+ *
+ * Scroll-triggered: the arc resets to 0 each time the gauge leaves the
+ * viewport and replays its fill animation when it re-enters.
+ * Respects prefers-reduced-motion — shows the final value immediately.
  */
 export default function ArcGauge({ value, size = 80, label }: Props) {
-  const [displayed, setDisplayed] = useState(0);
+  const prefersReduced = useReducedMotion();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const wasInView    = useRef(false);
+  const [displayed, setDisplayed] = useState(prefersReduced ? Math.max(0, Math.min(100, value)) : 0);
 
-  // Defer the fill animation by one frame so the CSS transition fires
+  // Scroll-trigger: reset arc to 0 on exit, replay fill on entry
   useEffect(() => {
-    const t = setTimeout(() => setDisplayed(Math.max(0, Math.min(100, value))), 50);
-    return () => clearTimeout(t);
-  }, [value]);
+    if (prefersReduced) {
+      setDisplayed(Math.max(0, Math.min(100, value)));
+      return;
+    }
+
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !wasInView.current) {
+          // Entered view — reset to 0, then defer fill so CSS transition fires
+          wasInView.current = true;
+          setDisplayed(0);
+          const t = setTimeout(() => setDisplayed(Math.max(0, Math.min(100, value))), 50);
+          return () => clearTimeout(t);
+        } else if (!entry.isIntersecting) {
+          // Left view — reset arc so it's ready to replay next entry
+          wasInView.current = false;
+          setDisplayed(0);
+        }
+      },
+      { threshold: 0.2 },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [value, prefersReduced]);
 
   const r = size * 0.37;
   const strokeWidth = size * 0.1;
@@ -41,7 +74,7 @@ export default function ArcGauge({ value, size = 80, label }: Props) {
   const rotateTransform = `rotate(150, ${cx}, ${cy})`;
 
   return (
-    <div className="flex flex-col items-center" style={{ width: size }}>
+    <div ref={containerRef} className="flex flex-col items-center" style={{ width: size }}>
       <svg
         width={size}
         height={size}
@@ -75,7 +108,7 @@ export default function ArcGauge({ value, size = 80, label }: Props) {
           strokeLinecap="round"
           transform={rotateTransform}
           style={{
-            transition: "stroke-dashoffset 1s ease-out, stroke 0.3s ease",
+            transition: prefersReduced ? "none" : "stroke-dashoffset 1s ease-out, stroke 0.3s ease",
           }}
         />
 

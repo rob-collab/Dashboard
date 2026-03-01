@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useReducedMotion } from "framer-motion";
 import {
@@ -12,6 +12,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { ScrollChart } from "@/components/common/ScrollChart";
 import type { Action, ActionPriority } from "@/lib/types";
 
 interface PriorityStats {
@@ -39,15 +40,43 @@ const STATUS_SEGMENTS = [
 
 type TrackableStatus = (typeof STATUS_SEGMENTS)[number]["status"];
 
+/** Spring easing — bars overshoot very slightly then snap back. Pure fun. */
+const SPRING_EASING = "cubic-bezier(0.34, 1.56, 0.64, 1)";
+
 export default function ActionPipeline({ actions, priorityStats }: Props) {
   const router = useRouter();
   const prefersReduced = useReducedMotion();
-  const [mounted, setMounted] = useState(false);
+
+  // Scroll trigger for stacked bars
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [inView, setInView]       = useState(false);
+  const wasInView = useRef(false);
 
   useEffect(() => {
-    const t = requestAnimationFrame(() => setMounted(true));
-    return () => cancelAnimationFrame(t);
-  }, []);
+    if (prefersReduced) {
+      setInView(true); // show bars immediately for reduced motion
+      return;
+    }
+
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !wasInView.current) {
+          wasInView.current = true;
+          setInView(true);
+        } else if (!entry.isIntersecting) {
+          wasInView.current = false;
+          setInView(false); // reset so bars re-animate on re-entry
+        }
+      },
+      { threshold: 0.15 },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [prefersReduced]);
 
   // Total open actions across all priorities (for width proportions)
   const totalOpen = actions.filter(
@@ -64,7 +93,7 @@ export default function ActionPipeline({ actions, priorityStats }: Props) {
   }));
 
   return (
-    <div className="bento-card space-y-4">
+    <div ref={containerRef} className="bento-card space-y-4">
       {/* Swimlane section */}
       <div className="space-y-2">
         {(["P1", "P2", "P3"] as ActionPriority[]).map((priority) => {
@@ -76,12 +105,11 @@ export default function ActionPipeline({ actions, priorityStats }: Props) {
 
           // Segment widths proportional to totalOpen (portfolio-wide)
           const base = Math.max(totalOpen, 1);
-          // Skip animation if user prefers reduced motion
-          const showWidth = mounted || prefersReduced;
+          // Spring-animated widths — grow from 0 when inView becomes true
           const segWidths: Record<TrackableStatus, string> = {
-            OPEN:        showWidth ? `${(openCount / base) * 100}%` : "0%",
-            IN_PROGRESS: showWidth ? `${(inProgressCount / base) * 100}%` : "0%",
-            OVERDUE:     showWidth ? `${(overdueCount / base) * 100}%` : "0%",
+            OPEN:        inView ? `${(openCount / base) * 100}%` : "0%",
+            IN_PROGRESS: inView ? `${(inProgressCount / base) * 100}%` : "0%",
+            OVERDUE:     inView ? `${(overdueCount / base) * 100}%` : "0%",
           };
 
           return (
@@ -94,15 +122,20 @@ export default function ActionPipeline({ actions, priorityStats }: Props) {
                 {priority}
               </span>
 
-              {/* Stacked bar */}
+              {/* Stacked bar — spring easing on width growth */}
               <div className="flex-1 flex h-6 rounded-full overflow-hidden bg-gray-100">
                 {STATUS_SEGMENTS.map(({ status, colour }) => {
                   const width = segWidths[status as TrackableStatus];
                   return (
                     <button
                       key={status}
-                      className={`h-full ${colour} ${prefersReduced ? "" : "duration-700 ease-out"} hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1`}
-                      style={{ width, transitionProperty: prefersReduced ? "none" : "width" }}
+                      className={`h-full ${colour} focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1`}
+                      style={{
+                        width,
+                        transitionProperty: prefersReduced ? "none" : "width",
+                        transitionDuration: prefersReduced ? "0ms" : "700ms",
+                        transitionTimingFunction: prefersReduced ? "linear" : SPRING_EASING,
+                      }}
                       onClick={() =>
                         router.push(`/actions?priority=${priority}&status=${status}`)
                       }
@@ -130,26 +163,30 @@ export default function ActionPipeline({ actions, priorityStats }: Props) {
         ))}
       </div>
 
-      {/* Recharts bar chart — overall count per priority */}
-      <ResponsiveContainer width="100%" height={100}>
-        <BarChart
-          data={barData}
-          layout="vertical"
-          margin={{ top: 0, right: 24, left: 8, bottom: 0 }}
-        >
-          <XAxis type="number" tick={{ fontSize: 9 }} />
-          <YAxis type="category" dataKey="priority" tick={{ fontSize: 10, fontWeight: 700 }} width={24} />
-          <Tooltip
-            contentStyle={{ fontSize: 11, padding: "4px 8px" }}
-            cursor={{ fill: "rgba(0,0,0,0.04)" }}
-          />
-          <Bar dataKey="count" name="Actions" radius={[0, 4, 4, 0]} isAnimationActive>
-            {barData.map((entry, i) => (
-              <Cell key={i} fill={entry.fill} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+      {/* Recharts bar chart — scroll-triggered via ScrollChart wrapper */}
+      <ScrollChart className="h-[100px]">
+        {(scrollKey) => (
+          <ResponsiveContainer key={scrollKey} width="100%" height="100%">
+            <BarChart
+              data={barData}
+              layout="vertical"
+              margin={{ top: 0, right: 24, left: 8, bottom: 0 }}
+            >
+              <XAxis type="number" tick={{ fontSize: 9 }} />
+              <YAxis type="category" dataKey="priority" tick={{ fontSize: 10, fontWeight: 700 }} width={24} />
+              <Tooltip
+                contentStyle={{ fontSize: 11, padding: "4px 8px" }}
+                cursor={{ fill: "rgba(0,0,0,0.04)" }}
+              />
+              <Bar dataKey="count" name="Actions" radius={[0, 4, 4, 0]} isAnimationActive>
+                {barData.map((entry, i) => (
+                  <Cell key={i} fill={entry.fill} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </ScrollChart>
     </div>
   );
 }

@@ -1,5 +1,83 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-03-01 (Sprint P — all items implemented)
+Last updated: 2026-03-01 (Sprint Q — scroll-triggered animations ✅ COMPLETE)
+
+## CURRENT SPRINT: Sprint Q — Scroll-Triggered Animations (App-Wide) ✅ COMPLETE
+
+### Design Intent
+- **Who:** A compliance officer using any screen in the app — dashboard, risk register, controls, compliance, consumer duty, horizon scanning — scrolling through data as they work.
+- **One thing:** Every number and bar must feel alive — counting up and drawing in as it enters the viewport, every time, on every screen.
+- **Remove:** No new UI chrome. The motion is the feature — nothing visible at rest, everything responds on scroll.
+
+### ⚠️ Conflict check
+- None. All changes are purely additive. `scrollTrigger` defaults to `true` in `AnimatedNumber` — this is a behaviour change but all existing usages now get scroll trigger for free with no call-site changes needed.
+- L014 respected throughout: `prefers-reduced-motion` skips all new animations.
+
+### Relevant patterns
+- **L014**: All new animations must respect `prefers-reduced-motion` — show final values instantly when preferred.
+- **D025**: UK British English throughout code comments and any UI text.
+- **W007**: `AnimatedNumber` is a named export — `import { AnimatedNumber }`.
+
+### Acceptance Criteria
+
+**Foundation (Q1):**
+- [x] `src/hooks/useScrollObserver.ts` — NEW: `{ ref, inView }` via IntersectionObserver, bidirectional
+- [x] `src/hooks/useCountUp.ts` — `triggerKey` param added; re-fires count-up on increment; backwards-compatible default `0`
+- [x] `src/components/common/AnimatedNumber.tsx` — `scrollTrigger` prop, **defaults to `true`**; self-contained observer; shows static value until first entry; re-fires count-up on every re-entry; respects `prefers-reduced-motion`
+- [x] `src/components/common/ScrollChart.tsx` — NEW: recharts scroll wrapper; forces `key` remount on scroll-in to re-trigger Recharts entrance animation; respects `prefers-reduced-motion`
+- [x] `src/components/dashboard/ArcGauge.tsx` — built-in IntersectionObserver; resets arc to 0 on exit, replays on entry
+- [x] `src/app/globals.css` — `@keyframes itemSlideUp` (8px → 0, opacity 0→1) wrapped in `prefers-reduced-motion`
+
+**Dashboard (Q2):**
+- [x] `ActionPipeline.tsx` — stacked bars: replace `mounted` with `useScrollObserver`; spring CSS easing `cubic-bezier(0.34, 1.56, 0.64, 1)`; recharts bar wrapped in `ScrollChart`
+- [x] `QuarterlySummaryWidget.tsx` — headline `{passRate}%` → `AnimatedNumber`; `PassBar` widths scroll-triggered with spring easing; re-fires on re-entry
+- [x] `ControlHealthTrendWidget.tsx` — headline `{currentRate}%` → `AnimatedNumber`; `AreaChart` wrapped in `ScrollChart`
+- [x] `RiskTrendChart.tsx` — `LineChart` wrapped in `ScrollChart`
+- [x] `CDRadialRing.tsx` — outcome grid items stagger in (60ms apart) on scroll-in; replays on re-entry
+- [x] `page.tsx` — `overdue-metrics` list items stagger in (60ms apart) on scroll; replays on re-entry
+
+**All other screens (Q3):**
+- [x] `src/components/sections/ChartSection.tsx` — generic chart renderer wrapped in `ScrollChart` (covers all charts rendered through it)
+- [x] `src/components/or/ORDashboard.tsx` — IBS readiness bars: scroll-triggered CSS width transition; `AnimatedNumber` stat cards auto-covered by default `scrollTrigger=true`
+- [x] `src/components/controls/QuarterlySummaryTab.tsx` — `LineChart` → `ScrollChart`; `ArcGauge` already self-scrolling
+- [x] `src/components/controls/ExcoDashboardTab.tsx` — BarChart and CD outcome PieCharts → `ScrollChart`
+- [x] `src/components/controls/ControlsDashboardTab.tsx` — BarChart and CD outcome PieCharts → `ScrollChart`
+- [x] `src/components/controls/TrendAnalysisTab.tsx` — all 4 charts (LineChart ×2, BarChart, AreaChart) → `ScrollChart`
+- [x] `src/components/controls/ControlDetailModal.tsx` — performance LineChart → `ScrollChart` (fires on modal open)
+- [x] `src/components/policies/PolicyOverviewTab.tsx` — coverage PieChart → `ScrollChart`
+- [x] `src/components/policies/PolicyComplianceCharts.tsx` — PieChart and BarChart → `ScrollChart`
+- [x] `src/components/risk-register/RiskHistoryChart.tsx` — `LineChart` → `ScrollChart` (fires on modal open)
+- [x] `src/components/consumer-duty/MetricDrillDown.tsx` — 12-month AreaChart → `ScrollChart` (fires on modal open)
+- [x] Build passes: `npx next build` — zero errors, zero type errors
+
+### Implementation note — `AnimatedNumber` default change
+Changing `scrollTrigger` default from `false` to `true` means **all 13 files using AnimatedNumber** (risk-register, risk-acceptances, audit, horizon-scanning, consumer-duty, actions, processes, reports, compliance, controls-dashboard, page.tsx, ORDashboard, QuarterlySummaryTab) gain scroll-triggered animations with **zero call-site changes**. This is the highest-leverage change in the sprint.
+
+### Key Files
+
+| File | Deliverable |
+|---|---|
+| `src/hooks/useScrollObserver.ts` | NEW — Q1 |
+| `src/hooks/useCountUp.ts` | Q1 (triggerKey) |
+| `src/components/common/AnimatedNumber.tsx` | Q1 (scrollTrigger, default true) |
+| `src/components/common/ScrollChart.tsx` | NEW — Q1 |
+| `src/components/dashboard/ArcGauge.tsx` | Q1 (built-in scroll trigger) |
+| `src/app/globals.css` | Q1 (itemSlideUp keyframes) |
+| `src/components/dashboard/ActionPipeline.tsx` | Q2 |
+| `src/components/dashboard/QuarterlySummaryWidget.tsx` | Q2 |
+| `src/components/dashboard/ControlHealthTrendWidget.tsx` | Q2 |
+| `src/components/dashboard/RiskTrendChart.tsx` | Q2 |
+| `src/components/dashboard/CDRadialRing.tsx` | Q2 |
+| `src/app/page.tsx` | Q2 (overdue-metrics stagger) |
+| `src/components/sections/ChartSection.tsx` | Q3 |
+| `src/components/or/ORDashboard.tsx` | Q3 |
+| `src/components/controls/QuarterlySummaryTab.tsx` | Q3 |
+| `src/components/controls/ExcoDashboardTab.tsx` | Q3 |
+| `src/components/controls/ControlsDashboardTab.tsx` | Q3 |
+| `src/components/policies/PolicyOverviewTab.tsx` | Q3 |
+| `src/components/policies/PolicyComplianceCharts.tsx` | Q3 |
+| `src/components/risk-register/RiskHistoryChart.tsx` | Q3 |
+
+---
 
 ## CURRENT SPRINT: Sprint P — Dashboard Design Elevation ✅ COMPLETE
 

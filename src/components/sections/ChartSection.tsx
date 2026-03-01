@@ -19,6 +19,7 @@ import {
 import { Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Section } from "@/lib/types";
+import { ScrollChart } from "@/components/common/ScrollChart";
 
 // ---------------------------------------------------------------------------
 // Brand colours
@@ -498,10 +499,10 @@ export default function ChartSection({
         <ChartTypeSelector value={chartType} onChange={handleTypeChange} />
       )}
 
-      {/* Chart preview */}
-      <div className="rounded-lg border border-gray-100 bg-white p-4">
-        <ChartView chartData={chartData} />
-      </div>
+      {/* Chart preview — scroll-triggered: replays Recharts entrance animation on each scroll entry */}
+      <ScrollChart className="rounded-lg border border-gray-100 bg-white p-4">
+        {(scrollKey) => <ChartView key={scrollKey} chartData={chartData} />}
+      </ScrollChart>
 
       {/* Edit-mode data table */}
       {editable && (

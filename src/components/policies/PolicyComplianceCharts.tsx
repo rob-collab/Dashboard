@@ -15,6 +15,7 @@ import {
 } from "recharts";
 import type { Policy } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { ScrollChart } from "@/components/common/ScrollChart";
 
 interface Props {
   policies: Policy[];
@@ -156,28 +157,32 @@ export default function PolicyComplianceCharts({ policies }: Props) {
             <h3 className="text-sm font-semibold text-gray-700 mb-1">Requirements Coverage</h3>
             <p className="text-xs text-gray-400 mb-3">{totalObligations} requirements across all policies</p>
             <div className="flex items-center gap-4">
-              <ResponsiveContainer width={140} height={140}>
-                <PieChart>
-                  <Pie
-                    data={coverageData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={40}
-                    outerRadius={60}
-                    paddingAngle={2}
-                    dataKey="value"
-                    strokeWidth={0}
-                  >
-                    {coverageData.map((d, i) => (
-                      <Cell key={i} fill={d.colour} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value) => [`${value}`]}
-                    contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              <ScrollChart className="w-[140px] h-[140px] shrink-0">
+                {(scrollKey) => (
+                <ResponsiveContainer key={scrollKey} width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={coverageData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={40}
+                      outerRadius={60}
+                      paddingAngle={2}
+                      dataKey="value"
+                      strokeWidth={0}
+                    >
+                      {coverageData.map((d, i) => (
+                        <Cell key={i} fill={d.colour} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value) => [`${value}`]}
+                      contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                )}
+              </ScrollChart>
               <div className="space-y-2">
                 {coverageData.map((d) => (
                   <div key={d.name} className="flex items-center gap-2">
@@ -197,34 +202,38 @@ export default function PolicyComplianceCharts({ policies }: Props) {
           <div className="bento-card p-5">
             <h3 className="text-sm font-semibold text-gray-700 mb-1">Control Test Health</h3>
             <p className="text-xs text-gray-400 mb-3">{totalControls} controls linked to policies</p>
-            <ResponsiveContainer width="100%" height={120}>
-              <BarChart
-                data={[{
-                  name: "Controls",
-                  Pass: healthData[0].value,
-                  Fail: healthData[1].value,
-                  Partial: healthData[2].value,
-                  "Not Tested": healthData[3].value,
-                }]}
-                layout="vertical"
-                barSize={28}
-              >
-                <XAxis type="number" hide />
-                <YAxis type="category" dataKey="name" hide />
-                <Tooltip
-                  contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
-                />
-                <Legend
-                  iconType="circle"
-                  iconSize={8}
-                  wrapperStyle={{ fontSize: 11 }}
-                />
-                <Bar dataKey="Pass" stackId="a" fill={HEALTH_COLOURS.Pass} radius={[4, 0, 0, 4]} />
-                <Bar dataKey="Fail" stackId="a" fill={HEALTH_COLOURS.Fail} />
-                <Bar dataKey="Partial" stackId="a" fill={HEALTH_COLOURS.Partial} />
-                <Bar dataKey="Not Tested" stackId="a" fill={HEALTH_COLOURS["Not Tested"]} radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <ScrollChart className="h-[120px]">
+              {(scrollKey) => (
+              <ResponsiveContainer key={scrollKey} width="100%" height="100%">
+                <BarChart
+                  data={[{
+                    name: "Controls",
+                    Pass: healthData[0].value,
+                    Fail: healthData[1].value,
+                    Partial: healthData[2].value,
+                    "Not Tested": healthData[3].value,
+                  }]}
+                  layout="vertical"
+                  barSize={28}
+                >
+                  <XAxis type="number" hide />
+                  <YAxis type="category" dataKey="name" hide />
+                  <Tooltip
+                    contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
+                  />
+                  <Legend
+                    iconType="circle"
+                    iconSize={8}
+                    wrapperStyle={{ fontSize: 11 }}
+                  />
+                  <Bar dataKey="Pass" stackId="a" fill={HEALTH_COLOURS.Pass} radius={[4, 0, 0, 4]} />
+                  <Bar dataKey="Fail" stackId="a" fill={HEALTH_COLOURS.Fail} />
+                  <Bar dataKey="Partial" stackId="a" fill={HEALTH_COLOURS.Partial} />
+                  <Bar dataKey="Not Tested" stackId="a" fill={HEALTH_COLOURS["Not Tested"]} radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+              )}
+            </ScrollChart>
           </div>
         )}
       </div>

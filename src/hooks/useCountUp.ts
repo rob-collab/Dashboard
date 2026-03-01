@@ -4,11 +4,14 @@ import { useState, useEffect, useRef } from "react";
 
 /**
  * Animates a number from 0 to `target` over `duration` ms using an ease-out cubic curve.
- * Returns the current animated value. Re-triggers whenever `target` changes.
+ * Returns the current animated value. Re-triggers whenever `target` OR `triggerKey` changes.
  * Optional `delay` (ms) defers the start — useful when the containing element has an
  * entrance animation (e.g. card-entrance) that would hide the count-up otherwise.
+ *
+ * `triggerKey` — increment this to force a re-play of the count-up without changing the
+ * target value. Used by `AnimatedNumber` scroll trigger to re-fire on each scroll entry.
  */
-export function useCountUp(target: number, duration = 800, delay = 0): number {
+export function useCountUp(target: number, duration = 800, delay = 0, triggerKey = 0): number {
   const [count, setCount] = useState(0);
   const startRef = useRef<number | null>(null);
   const rafRef = useRef<number>(0);
@@ -41,7 +44,9 @@ export function useCountUp(target: number, duration = 800, delay = 0): number {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       cancelAnimationFrame(rafRef.current);
     };
-  }, [target, duration, delay]);
+    // triggerKey is intentionally included so incrementing it re-fires the animation
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target, duration, delay, triggerKey]);
 
   return count;
 }
