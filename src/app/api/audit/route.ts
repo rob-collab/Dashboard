@@ -28,6 +28,19 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Audit logs are immutable — deletion is not permitted
+export async function DELETE() {
+  return errorResponse("Audit logs are immutable and cannot be deleted", 405);
+}
+
+export async function PUT() {
+  return errorResponse("Audit logs are immutable and cannot be modified", 405);
+}
+
+export async function PATCH() {
+  return errorResponse("Audit logs are immutable and cannot be modified", 405);
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Derive userId from session headers — never trust client-supplied identity
