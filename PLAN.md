@@ -1,5 +1,321 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-03-01 (Sprint O complete)
+Last updated: 2026-03-01 (Sprint P planned)
+
+---
+
+## CURRENT SPRINT: Sprint P — Animation Coverage (All Pages, All Elements)
+
+### Context
+
+A full cross-codebase design audit (DESIGN-AUDIT.md) identified that:
+1. `ScrollReveal` was structurally present on the dashboard but **not firing** — root cause: the app uses `<main overflow-y-auto>` as the scroll container, not `<body>`. IntersectionObserver with `root:null` (viewport) reported all elements as in-view on mount. Fixed in previous commit (L023 lesson written).
+2. **78+ numeric stat displays** across all pages are raw `{value}` expressions — not wrapped in `<AnimatedNumber>`. These include headline bento card numbers, scorecard stats, user role counts, compliance metrics, chart subtitles, badge counts.
+3. **ScrollReveal is dashboard-only** — every other page (Risks, Actions, Compliance, SMCR, Horizon, Controls, Reports, Audit, Users) has no scroll-triggered entrance animations on its sections, stat cards, or content areas.
+4. **Charts and graphs** have no entrance animation — Recharts built-in animation plays at mount time (before user scrolls), so charts that start below the fold animate invisibly. Custom SVG charts (ArcGauge, RiskMatrix) have no animation at all.
+5. **Horizon Scanning bento cards** violate D004 — stat cards are read-only displays, not interactive filters.
+
+### Scope
+
+This sprint fixes ALL of the above. Every page. Every numeric stat. Every section. Every chart. No exceptions.
+
+### Conflict check
+
+- AnimatedNumber and ScrollReveal are additive changes — no existing functionality is removed.
+- Recharts animation props are defaults that are already set to `true` — enabling them explicitly and delaying mount-time animation to first-in-view is a targeted enhancement.
+- Horizon Scanning D004 fix adds click handlers to existing cards — no visual redesign, no removal of existing behaviour.
+- No schema, API, or store changes required for this sprint.
+
+---
+
+### Deliverables
+
+#### P1 — AnimatedNumber: Dashboard HIGH bento card stats
+**File:** `src/app/_useDashboardSectionMap.tsx`
+
+Wrap every headline stat in the four dashboard bento sections that currently render raw numbers:
+
+- **Risk Acceptances** (~line 476–488): `raStats.expired`, `raStats.awaiting`, `raStats.ccroReview`, `raStats.accepted`
+- **Compliance Health** (~line 563–587): `complianceHealth.compliantPct` (with `suffix="%"`), `complianceHealth.total`, `complianceHealth.gaps`, `complianceHealth.overdueAssessments`, `complianceHealth.pendingCerts`
+- **Controls Library** (~line 617–647): `controlsStats.total`, `controlsStats.preventative`, `controlsStats.detective`, `controlsStats.directive`, `controlsStats.corrective`, each side of the `policiesWithControls/totalPolicies` fraction
+- **Policy Health** (~line 745–763): `policies.length`, `overdueCount`, the two `policies.reduce(...)` computed counts for obligations and controlLinks
+
+Use `duration={800}` on all. Stagger per card with `delay` prop increasing by 100ms within each bento row.
+
+**Acceptance:**
+- [ ] All 15+ values in these four bento sections animate counting-up on scroll-in
+- [ ] Stagger is noticeable (cards cascade in left-to-right order)
+- [ ] Zero type errors
+
+---
+
+#### P2 — AnimatedNumber: Dashboard MEDIUM — badges, pills, task counts
+**File:** `src/app/_useDashboardSectionMap.tsx`
+
+Wrap secondary numeric displays:
+
+- **Welcome banner notification pills** (~line 241–271): `overdueMetrics.length`, `myOverdueActions.length`, `myDueThisMonthActions.length`, `risksNeedingReview.length`, `allPendingChanges.length`
+- **Section header badges** (~line 781, 815, 906): `focusRisks.length`, `pendingNewEntities.length`, `overdueMetrics.length`
+- **Tasks & Reviews heading counts** (~line 1013–1088): `myRisks.length`, `myActions.length`, `myMetrics.length`
+
+Use `duration={400}` (shorter — these are secondary stats). No stagger needed.
+
+**Acceptance:**
+- [ ] All notification pill counts animate
+
+---
+
+#### P3 — AnimatedNumber: QuarterlySummaryWidget
+**File:** `src/components/dashboard/QuarterlySummaryWidget.tsx`
+
+- `latest.passRate` — `text-3xl font-bold`: use `<AnimatedNumber value={latest.passRate} suffix="%" duration={1200} />` — the longest duration in the app, it is the hero stat
+- `latest.pass`, `latest.fail`, `latest.partially`: use `duration={600}` with staggered delays (0, 100, 200ms)
+- Historical `q.passRate` values: `duration={400}` each
+
+**Acceptance:**
+- [ ] Hero passRate animates with 1200ms duration
+- [ ] Supporting counts animate with 600ms stagger
+
+---
+
+#### P4 — AnimatedNumber: DomainScorecardRow
+**File:** `src/components/dashboard/DomainScorecardRow.tsx`
+
+All 8 stat display values:
+- `totalRisks`, `highRisks`, `openActions.length`, `overdueActions`
+- `goodMeasures`, `warnMeasures`, `harmMeasures`, `complianceTotal`, `complianceGaps`
+
+Use `duration={600}`. Stagger stat1/stat2 within each card: `delay={0}` and `delay={80}`.
+
+**Acceptance:**
+- [ ] Both values per scorecard card animate on scroll-in
+
+---
+
+#### P5 — AnimatedNumber: ActionRequiredSection + PendingChangesPanel
+**Files:** `src/components/dashboard/ActionRequiredSection.tsx`, `src/components/dashboard/PendingChangesPanel.tsx`
+
+- `totalCount` in ActionRequiredSection header: `duration={600}`
+- `g.count` per group summary row: `duration={400}`
+- `visibleChanges.length` badge in PendingChangesPanel: `duration={400}`
+- Skip `{idx + 1}` ticker position — this changes dynamically and must not animate
+
+**Acceptance:**
+- [ ] Total count and group counts animate
+
+---
+
+#### P6 — AnimatedNumber: ComplianceOverview
+**File:** `src/components/compliance/ComplianceOverview.tsx`
+
+The component already uses AnimatedNumber in MetricTile and SmcrTile. Add it to the remaining gaps:
+
+- Compliance rate `{compliantPct}%` in posture summary
+- Per-status `{count}` in posture row
+- Gap Analysis: `gaps.nonCompliant`, `gaps.noPolicies`, `gaps.noControls`, `assessmentPipeline.overdue`, `assessmentPipeline.dueSoon`, `assessmentPipeline.notAssessed`
+- SMCR: `smcrHealth.filledRoles/smfRoles.length` — animate each side separately
+- Policy owner counts: `overdueCount`, `totalPass`, `totalPartial`, `totalFail`, `totalNotTested`
+
+Use `duration={600}` throughout. Leave `cdHealth.harm/warning` LOW-priority inline counts as-is (these are in sentence prose).
+
+**Acceptance:**
+- [ ] Gap Analysis counts animate
+- [ ] Compliance rate percentage animates
+
+---
+
+#### P7 — AnimatedNumber: Users page role counts
+**File:** `src/app/users/page.tsx`
+
+- `roleCounts[role]` in the three role summary cards — `text-2xl font-bold`: use `<AnimatedNumber value={roleCounts[role]} duration={800} />` with stagger `delay={idx * 150}` per role card
+
+**Acceptance:**
+- [ ] All three role count cards animate in sequence on scroll-in
+
+---
+
+#### P8 — ScrollReveal: Risk Register page
+**File:** `src/app/risk-register/page.tsx`
+
+Add ScrollReveal to each logical visual block:
+1. Stat card row — wrap the entire row in one `<ScrollReveal delay={0}>`, OR wrap each card individually with increasing delay (preferred for cascade effect)
+2. Heatmap section — `<ScrollReveal delay={100}>`
+3. Table/list section — `<ScrollReveal delay={200}>`
+
+Pattern for all non-dashboard pages:
+```tsx
+// Stat cards with cascade (preferred)
+{statCards.map((card, i) => (
+  <ScrollReveal key={card.key} delay={i * 80}>
+    <StatCard ... />
+  </ScrollReveal>
+))}
+
+// Main content
+<ScrollReveal delay={160}>
+  <MainContentArea />
+</ScrollReveal>
+```
+
+**Acceptance:**
+- [ ] Stat cards cascade in on scroll-in
+- [ ] Table/heatmap reveals on scroll
+
+---
+
+#### P9 — ScrollReveal: Actions page
+**File:** `src/app/actions/page.tsx`
+
+Same pattern as P8:
+1. Priority cards (P1/P2/P3) — cascade with 80ms stagger
+2. Status stat cards row — cascade
+3. Table groups — single ScrollReveal on the table container
+
+**Acceptance:**
+- [ ] Priority cards and status cards cascade on reveal
+
+---
+
+#### P10 — ScrollReveal: Compliance page
+**File:** `src/app/compliance/page.tsx`
+
+Compliance tab content is rendered via child tab components. The page-level ScrollReveal wraps the tab transition container. Each tab should ScrollReveal its own sections.
+
+Primary target: `src/components/compliance/ComplianceOverview.tsx`
+- Metric tiles row: cascade with 80ms stagger
+- Each major section (gap analysis, by domain, by policy owner, SMCR, Consumer Duty): individual ScrollReveal
+
+**Acceptance:**
+- [ ] ComplianceOverview metric tiles cascade on scroll-in
+- [ ] Gap analysis section reveals on scroll
+
+---
+
+#### P11 — ScrollReveal: Horizon Scanning page
+**File:** `src/app/horizon-scanning/page.tsx`
+
+1. Stat cards row — each card with staggered ScrollReveal
+2. Item list — single ScrollReveal on the list container
+
+Also apply the D004 fix here:
+- Wire each stat card click to set a filter (urgency, or completion status)
+- Active card gets `ring-2 ring-updraft-bright-purple/60` styling
+- Clicking again resets filter
+
+**Acceptance:**
+- [ ] Stat cards cascade in on scroll
+- [ ] Clicking "High Urgency" filters item list to HIGH urgency items
+- [ ] Clicking again resets to All
+- [ ] D004 satisfied
+
+---
+
+#### P12 — ScrollReveal: Controls page + SMCR page
+**Files:** `src/app/controls/page.tsx`, `src/app/smcr/page.tsx`
+
+For Controls: the tab-based layout means ScrollReveal applies within each tab component, not at the page level.
+- `src/components/controls/ControlsDashboardTab.tsx`: stat card row cascade, domain chart section, business area list
+
+For SMCR: wrap each section within the SMCR page/tabs:
+- Summary stat row cascade
+- Individual panel sections
+
+**Acceptance:**
+- [ ] ControlsDashboardTab stat cards cascade
+- [ ] SMCR sections reveal on scroll
+
+---
+
+#### P13 — ScrollReveal: Reports, Audit, Users pages
+**Files:** `src/app/reports/page.tsx`, `src/app/audit/page.tsx`, `src/app/users/page.tsx`
+
+- Reports: stat tiles cascade; report card grid each card with stagger
+- Audit: stat cards cascade; table reveals
+- Users: role summary cards cascade; table reveals
+
+**Acceptance:**
+- [ ] Report cards cascade into view
+- [ ] Audit stat cards cascade
+- [ ] User role cards cascade
+
+---
+
+#### P14 — Chart entrance animations (Recharts + custom SVGs)
+**Files:** Multiple chart components
+
+**Recharts charts** — ensure `isAnimationActive={true}` and `animationDuration={1000}` are set AND mount is deferred until in-view:
+
+The current issue: Recharts animates on component mount. If the chart mounts before it's in view (opacity-0 via ScrollReveal), the animation plays invisibly. Fix: use a `useInView` pattern to only mount/show the chart when first scrolled into view.
+
+Create a `<ChartReveal>` wrapper (or extend ScrollReveal) that:
+1. Starts with `shown: false`
+2. Uses IntersectionObserver (same `findScrollParent` approach) to set `shown: true` on first entry
+3. Only renders `{children}` when `shown: true` (so Recharts mounts at scroll-in time)
+4. Wraps the container in the fade/slide entrance animation
+
+Files to update with ChartReveal:
+- `src/components/dashboard/ControlHealthTrendChart.tsx` (Recharts LineChart)
+- `src/components/dashboard/QuarterlySummaryWidget.tsx` (any progress bars)
+- `src/components/dashboard/DomainScorecardRow.tsx` (mini bar charts if any)
+- `src/components/dashboard/ArcGauge.tsx` (SVG arc) — animate the arc path length from 0 to value on first in-view
+- `src/components/dashboard/RiskMatrix.tsx` — fade in via ScrollReveal wrapper
+- Any Recharts chart in compliance, risks, actions sections
+
+**Acceptance:**
+- [ ] Line charts animate their line drawing when scrolled into view
+- [ ] ArcGauge animates its arc from 0 to the actual value on first view
+- [ ] No chart animates while off-screen (animation plays at the right moment)
+
+---
+
+#### P15 — Broken features: ControlDetailView edit button + Audit Trail export
+These were identified as P0 bugs in the audit.
+
+**`src/components/controls/ControlDetailView.tsx` ~line 408:**
+Wire the Edit button `onClick` to call the appropriate handler (open edit modal or navigate to edit view).
+
+**`src/app/audit/page.tsx` ~line 163:**
+Implement the CSV export handler. Generate CSV from current filtered audit log entries. Show `toast.success("Audit log exported")` on success.
+
+**Acceptance:**
+- [ ] ControlDetailView Edit button is functional
+- [ ] Audit Trail CSV export downloads a file and shows success toast
+
+---
+
+### Execution order
+
+```
+P1 → P2 → P3 → P4 → P5    (AnimatedNumber: all dashboard — can be done in one pass)
+P6 → P7                    (AnimatedNumber: non-dashboard pages)
+P8 → P9 → P10 → P11        (ScrollReveal: high-traffic pages first)
+P12 → P13                  (ScrollReveal: remaining pages)
+P14                        (Chart animations — depends on ScrollReveal foundation)
+P15                        (Broken features — quick independent fixes)
+```
+
+### Key files
+
+| Deliverable | File(s) |
+|---|---|
+| P1–P5 | `src/app/_useDashboardSectionMap.tsx`, `QuarterlySummaryWidget.tsx`, `DomainScorecardRow.tsx`, `ActionRequiredSection.tsx`, `PendingChangesPanel.tsx` |
+| P6 | `src/components/compliance/ComplianceOverview.tsx` |
+| P7 | `src/app/users/page.tsx` |
+| P8 | `src/app/risk-register/page.tsx` |
+| P9 | `src/app/actions/page.tsx` |
+| P10 | `src/app/compliance/page.tsx`, `ComplianceOverview.tsx` |
+| P11 | `src/app/horizon-scanning/page.tsx` |
+| P12 | `src/components/controls/ControlsDashboardTab.tsx`, `src/app/smcr/page.tsx` |
+| P13 | `src/app/reports/page.tsx`, `src/app/audit/page.tsx`, `src/app/users/page.tsx` |
+| P14 | `ControlHealthTrendChart.tsx`, `ArcGauge.tsx`, `RiskMatrix.tsx` + new `ChartReveal.tsx` |
+| P15 | `ControlDetailView.tsx`, `src/app/audit/page.tsx` |
+
+### Acceptance: Sprint P complete when
+- [ ] P1–P7: Every numeric stat in the codebase is wrapped in AnimatedNumber or explicitly excluded with a documented reason
+- [ ] P8–P13: Every page has ScrollReveal on stat cards (with cascade stagger) and main content sections
+- [ ] P14: No chart animates while off-screen; all charts animate on first scroll-in
+- [ ] P15: Both broken features functional
+- [ ] `npx next build` — zero errors
+- [ ] Final UAT: describe what the experience is on first load of each page — sections should fade/slide in as user scrolls; numbers should count up; charts should draw in
 
 ## COMPLETED SPRINT: Sprint H — Dashboard Enhancements ✅ COMPLETE
 
