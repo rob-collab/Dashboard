@@ -70,9 +70,34 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const _suppressNavPush = useAppStore((s) => s._suppressNavPush);
   const setSuppressNavPush = useAppStore((s) => s.setSuppressNavPush);
 
+  // Ref attached to <main> — used for scroll save/restore
+  const mainRef = useRef<HTMLElement>(null);
+
   // Track all route changes and push previous path to navigation stack so the
   // Back button appears after any navigation (not just EntityLink click-throughs).
   const prevPathnameRef = useRef<string | null>(null);
+
+  // Save scroll position when leaving a page; restore when returning to it.
+  // Must run BEFORE the navStack effect so prevPathnameRef still holds the old path.
+  useEffect(() => {
+    const prev = prevPathnameRef.current;
+    const curr = pathname;
+
+    // Save the scroll position of the page we're leaving
+    if (prev && prev !== curr && mainRef.current) {
+      sessionStorage.setItem(`scroll:${prev}`, String(mainRef.current.scrollTop));
+    }
+
+    // Restore saved scroll position for the page we're entering.
+    // Delay slightly to let the 150ms page-transition + first render settle.
+    const saved = sessionStorage.getItem(`scroll:${curr}`);
+    if (saved && Number(saved) > 0) {
+      const timer = setTimeout(() => {
+        if (mainRef.current) mainRef.current.scrollTop = Number(saved);
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const prev = prevPathnameRef.current;
     const curr = pathname;
@@ -197,6 +222,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
           onSearch={() => setSearchOpen(true)}
         />
         <main
+          ref={mainRef}
           className={`flex-1 overflow-y-auto transition-all duration-300 ${
             isMobile ? "ml-0" : sidebarOpen ? "ml-64" : "ml-16"
           }`}

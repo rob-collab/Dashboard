@@ -893,7 +893,7 @@ export function useDashboardSectionMap(props: SectionMapProps): Record<string, R
           </Link>
         </div>
         <div className="mt-4">
-          <ActionPipeline actions={actions} priorityStats={priorityStats} />
+          <ChartReveal><ActionPipeline actions={actions} priorityStats={priorityStats} /></ChartReveal>
         </div>
       </div>
     ) : null,
@@ -1130,7 +1130,7 @@ export function useDashboardSectionMap(props: SectionMapProps): Record<string, R
       </div>
     ) : null,
 
-    "consumer-duty": hasConsumerDutyPage ? <CDRadialRing outcomes={outcomes} /> : null,
+    "consumer-duty": hasConsumerDutyPage ? <ChartReveal><CDRadialRing outcomes={outcomes} /></ChartReveal> : null,
 
     "risk-summary": hasRiskRegisterPage ? (() => {
       const rsOrder = elementOrderForRender["risk-summary"] ?? SECTION_ELEMENTS["risk-summary"].map((d) => d.id);
@@ -1188,12 +1188,14 @@ export function useDashboardSectionMap(props: SectionMapProps): Record<string, R
     })() : null,
 
     "programme-health": (
-      <DomainScorecardRow
-        risks={risks}
-        actions={actions}
-        outcomes={outcomes}
-        complianceHealth={complianceHealth}
-      />
+      <ChartReveal>
+        <DomainScorecardRow
+          risks={risks}
+          actions={actions}
+          outcomes={outcomes}
+          complianceHealth={complianceHealth}
+        />
+      </ChartReveal>
     ),
 
     "reports": hasReportsPage ? (
@@ -1282,6 +1284,6 @@ export function useDashboardSectionMap(props: SectionMapProps): Record<string, R
 
     "control-health": <ChartReveal><ControlHealthTrendWidget /></ChartReveal>,
 
-    "quarterly-summary": <QuarterlySummaryWidget />,
+    "quarterly-summary": <ChartReveal><QuarterlySummaryWidget /></ChartReveal>,
   };
 }

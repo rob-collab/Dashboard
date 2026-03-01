@@ -24,27 +24,27 @@ function findScrollParent(el: HTMLElement): Element | null {
 }
 
 /**
- * Renders a number that counts up from 0 to `value` the FIRST TIME the element
- * scrolls into view — NOT on mount. This ensures numbers below the fold don't
- * silently animate before the user can see them.
+ * Renders a number that counts up from 0 to `value` every time the element
+ * scrolls into view — NOT just the first time. Re-animates on each scroll-in.
  *
  * Uses IntersectionObserver scoped to the nearest scrollable ancestor (same
  * approach as ScrollReveal) so it works correctly with <main overflow-y-auto>.
  *
- * Fires once then disconnects — re-triggers if `value` changes (e.g. after
- * store hydration).
+ * Does NOT disconnect after first fire — re-triggers on every entry.
+ * Shows 0 while off-screen (invisible), counts up each time it enters view.
  *
  * Respects prefers-reduced-motion — shows final value immediately.
  */
 export function AnimatedNumber({ value, duration = 800, delay = 0, className }: AnimatedNumberProps) {
   const prefersReduced = useReducedMotion();
   const ref = useRef<HTMLSpanElement>(null);
-  const [triggered, setTriggered] = useState(false);
+  const inViewRef = useRef(false);
+  const [displayTarget, setDisplayTarget] = useState(0);
 
+  // IO: watches every intersection change — re-fires count-up on each entry
   useEffect(() => {
-    // Reduced motion: skip IO, show final value at once
     if (prefersReduced) {
-      setTriggered(true);
+      setDisplayTarget(value);
       return;
     }
     const el = ref.current;
@@ -53,30 +53,40 @@ export function AnimatedNumber({ value, duration = 800, delay = 0, className }: 
     const scrollRoot = findScrollParent(el);
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setTriggered(true);
-          observer.disconnect();
+        const nowIn = entry.isIntersecting;
+        if (nowIn && !inViewRef.current) {
+          // Just entered viewport: reset to 0, then count up to current value
+          setDisplayTarget(0);
+          requestAnimationFrame(() => setDisplayTarget(value));
         }
+        inViewRef.current = nowIn;
       },
       { root: scrollRoot, threshold: 0.1 },
     );
     observer.observe(el);
-    return () => observer.disconnect();
-  // Re-run if `value` changes so a store hydration re-triggers the count-up
+    return () => {
+      observer.disconnect();
+      inViewRef.current = false;
+    };
+  // value excluded intentionally — handled by the effect below
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefersReduced]);
 
-  // Reset trigger when value changes so count-up replays after data refresh
-  const prevValueRef = useRef(value);
+  // Re-animate when value changes while in view (e.g. after store hydration)
   useEffect(() => {
-    if (prevValueRef.current !== value && triggered) {
-      // Keep triggered=true but useCountUp will re-fire its own animation
-      prevValueRef.current = value;
+    if (prefersReduced) {
+      setDisplayTarget(value);
+      return;
     }
-  }, [value, triggered]);
+    if (inViewRef.current) {
+      setDisplayTarget(0);
+      const id = requestAnimationFrame(() => setDisplayTarget(value));
+      return () => cancelAnimationFrame(id);
+    }
+  }, [value, prefersReduced]);
 
   const animated = useCountUp(
-    triggered ? value : 0,
+    displayTarget,
     prefersReduced ? 0 : duration,
     prefersReduced ? 0 : delay,
   );
