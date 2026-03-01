@@ -1,5 +1,253 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-02-27 (Full audit complete — Sprints J–O planned)
+Last updated: 2026-03-01 (Sprint P added — Dashboard Design Elevation)
+
+## CURRENT SPRINT: Sprint P — Dashboard Design Elevation
+
+### Design Intent
+- **Who:** A compliance officer arriving at the start of their day to see what needs attention.
+- **One thing to get right:** They must be able to identify the most urgent items within 3 seconds — no scanning, no reading. Urgency is visible before they've read a word.
+- **What to remove/defer:** The visual equality between all sections. Not everything matters equally; the hierarchy must show that.
+
+### Context
+The dashboard has solid functional foundations — AnimatedNumber, ScrollReveal, react-grid-layout,
+real data visualisation widgets, and a coherent brand palette. But it reads flat: every section
+has the same visual weight, stat tiles are identical rectangles differentiated only by tint, entry
+animations are inconsistent, and dozens of inline hardcoded hex gradient backgrounds bypass the
+design system. This sprint elevates the dashboard from "technically correct" to "genuinely good"
+by fixing hierarchy, motion, and consistency — without dark mode, glassmorphism, or decorative
+effects. Light mode, clean, fast, intentional.
+
+### ⚠️ Conflict check
+- **Sprint O item O1** plans to split `src/app/page.tsx` into section components. Sprint P makes
+  significant edits to `page.tsx`. These are compatible — Sprint P runs first; O1 (the split) is
+  done after. Sprint P edits will be trivially portable into the extracted components.
+- **Dark mode** (Sprint G): any new CSS tokens or animations added in Sprint P must include
+  `.dark` overrides in `globals.css`. Called out per item below.
+- **AnimatedNumber** already exists in `src/components/common/AnimatedNumber.tsx` — no new
+  component needed. Import already present in `page.tsx`.
+- **card-entrance** animation classes already defined in `globals.css` — Sprint P revises the
+  stagger timing only; does not change the animation mechanism.
+- **No glassmorphism, no dark backgrounds, no backdrop-filter** — this sprint is strictly light
+  mode refinement. Any suggestion to add frosted glass or dark hero variants is out of scope.
+
+### Acceptance Criteria
+
+- [ ] P1: Semantic status tokens added to `globals.css` and Tailwind config; inline hex gradient `style` props replaced in all stat tile sections (compliance-health, controls-library, policy-health, action-tracking, risk-acceptances)
+- [ ] P2: Welcome hero replaces hardcoded `#1C1B29` with `var(--surface-dark)`
+- [ ] P3: Urgency sections (action-required when items exist, overdue-metrics) are visually dominant — testable by glancing at the page: the urgent sections should immediately draw the eye over neutral content cards
+- [ ] P4: `<AnimatedNumber>` wraps all numeric stats in compliance-health, controls-library, policy-health, and risk-acceptances stat tiles
+- [ ] P5: All interactive stat tiles use hover lift (`-translate-y-0.5 hover:shadow-sm`) — `hover:opacity-80` removed from stat tiles
+- [ ] P6: Overdue/critical notification pills in the welcome hero are visually distinct (red tint) from neutral pills; due-soon pills are amber-tinted
+- [ ] P7: `card-entrance` stagger is consistent (1–8, 60ms each); `@media (prefers-reduced-motion)` disables card-entrance animations
+- [ ] P8: action-tracking and cross-entity sections have section header icons matching the rest
+- [ ] Build passes: `npx next build` — zero errors, zero type errors
+- [ ] No dark mode regression — all changed sections readable in dark mode
+
+---
+
+### P1 — Semantic status tokens (foundation)
+
+Add semantic CSS custom properties to `:root` in `globals.css` for the status tint backgrounds
+that are currently hardcoded inline throughout `page.tsx`. These replace every
+`style={{ background: "linear-gradient(135deg, #FEF2F2..." }}` instance.
+
+**New tokens in `globals.css` `:root`:**
+```css
+--status-danger-bg-from:   #FEF2F2;
+--status-danger-bg-to:     #FFF5F5;
+--status-warning-bg-from:  #FFFBEB;
+--status-warning-bg-to:    #FEFCE8;
+--status-success-bg-from:  #ECFDF5;
+--status-success-bg-to:    #F0FDF4;
+--status-neutral-bg-from:  #F3E8FF;
+--status-neutral-bg-to:    #FAF5FF;
+--status-info-bg-from:     #EFF6FF;
+--status-info-bg-to:       #F0F9FF;
+```
+
+**New Tailwind utilities in `globals.css` `@layer utilities`:**
+```css
+.bg-status-danger  { background: linear-gradient(135deg, var(--status-danger-bg-from), var(--status-danger-bg-to)); }
+.bg-status-warning { background: linear-gradient(135deg, var(--status-warning-bg-from), var(--status-warning-bg-to)); }
+.bg-status-success { background: linear-gradient(135deg, var(--status-success-bg-from), var(--status-success-bg-to)); }
+.bg-status-neutral { background: linear-gradient(135deg, var(--status-neutral-bg-from), var(--status-neutral-bg-to)); }
+.bg-status-info    { background: linear-gradient(135deg, var(--status-info-bg-from), var(--status-info-bg-to)); }
+```
+
+**Dark mode overrides in `.dark` block:**
+All status backgrounds should use slightly different dark variants — muted, desaturated tints.
+```css
+.dark { --status-danger-bg-from: #2D1B1B; --status-danger-bg-to: #3D1F1F; /* etc */ }
+```
+
+**Replace inline styles in `page.tsx`:** Across compliance-health, controls-library, policy-health,
+action-tracking, risk-acceptances, and priority-actions stat tiles, replace:
+`style={{ background: "linear-gradient(135deg, #FEF2F2 0%, #FFF5F5 100%)" }}`
+with: `className="bg-status-danger"`
+
+**Files:** `src/app/globals.css`, `src/app/page.tsx`
+
+---
+
+### P2 — Welcome hero: fix hardcoded hex
+
+The hero banner uses `from-[#1C1B29]` but `--surface-dark: #1C1B29` is already defined in
+`globals.css`. One line change.
+
+Replace: `className="... from-[#1C1B29] via-updraft-deep to-updraft-bar ..."`
+With: `className="... from-[var(--surface-dark)] via-updraft-deep to-updraft-bar ..."`
+
+**Files:** `src/app/page.tsx` (welcome section, line ~1066)
+
+---
+
+### P3 — Urgency hierarchy: make critical sections visually dominant
+
+**Problem:** action-required, overdue-metrics, pending-approvals, proposed-changes, and
+risks-in-focus all render at the same visual weight as neutral content cards. If a user has
+7 overdue actions, that should be impossible to miss.
+
+**The change:** Wrap the RGL grid item content for urgency sections with a subtle but unmissable
+signal — a 3px solid left border accent on the section container, slightly elevated shadow,
+and section title at slightly larger weight.
+
+**Urgency tier (red accent, `border-risk-red/40`):**
+- `action-required` — when `groups.length > 0`
+- `overdue-metrics` — always shown
+
+Current: `<div className="bento-card border-2 border-red-200 bg-red-50/30">`
+After: `<div className="bento-card border-l-[3px] border-l-risk-red/50 shadow-md bg-risk-red/[0.02]">`
+
+Section title: `text-lg` → `text-xl` for these sections only. The urgency sections are the one
+place where typographic scale creates hierarchy.
+
+**Warning tier (amber accent, `border-risk-amber/40`):**
+- `pending-approvals` — already has `border-2 border-amber-200`; refine to `border-l-[3px] border-l-risk-amber/50`
+- `proposed-changes` — same treatment
+
+**Standard tier:** all other sections unchanged.
+
+**Files:** `src/app/page.tsx`
+
+---
+
+### P4 — AnimatedNumber on all stat tiles
+
+Every numeric stat that communicates a quantity should count up on load. This is a perceived
+quality signal — static numbers look unfinished next to animated ones.
+
+**Currently missing AnimatedNumber (needs adding):**
+- `compliance-health`: compliantPct, total, gaps, overdueAssessments, pendingCerts
+- `controls-library`: total, preventative, detective, directive, corrective (skip ratio stat)
+- `policy-health`: policies.length, overdueCount, total requirements sum, total links sum
+- `risk-acceptances`: raStats.expired, raStats.awaiting, raStats.ccroReview, raStats.accepted
+
+**Pattern (matching existing usage):**
+```tsx
+<AnimatedNumber value={complianceHealth.compliantPct} delay={60} className="text-xl font-bold font-poppins text-green-700" />
+```
+Use staggered delays: first stat in a section at 60ms, each subsequent +40ms.
+
+Note: the ratio stat in controls-library (`policiesWithControls/totalPolicies`) cannot use
+AnimatedNumber directly — leave as static or format as `{controlsStats.policiesWithControls}/{controlsStats.totalPolicies}`.
+
+**Files:** `src/app/page.tsx`
+
+---
+
+### P5 — Consistent hover lift on all interactive stat tiles
+
+**Problem:** action-tracking tiles use `hover:-translate-y-0.5 transition-all` (good — tactile
+lift). compliance-health, controls-library, policy-health tiles use `hover:opacity-80` (bad —
+opacity fade is a weaker interactive signal and looks like a disabled state).
+
+**Fix:** Replace `hover:opacity-80 transition-opacity` with `hover:-translate-y-0.5 hover:shadow-sm transition-all` on every `<button>` and `<Link>` stat tile in:
+- compliance-health (5 tiles)
+- controls-library (5 button tiles — stat-total is a div, not interactive)
+- policy-health (stat-overdue only is currently non-interactive — make it a button linking to `/policies?status=overdue`)
+- risk-acceptances (the 4 status count divs — consider making them interactive links)
+
+Also add `cursor-pointer` to any `<div>` stat tile that is navigable but currently lacks it.
+
+**Files:** `src/app/page.tsx`
+
+---
+
+### P6 — Welcome hero: differentiate urgency notification pills
+
+All notification pills in the welcome hero are `bg-white/10 backdrop-blur-sm border border-white/20`
+regardless of urgency level. A pill saying "5 overdue actions" looks identical to one saying
+"2 risks due for review". Fix:
+
+| Pill type | Current | After |
+|---|---|---|
+| Overdue actions (red icon) | `bg-white/10 border-white/20` | `bg-red-500/20 border-red-300/30` |
+| Due this month (amber icon) | `bg-white/10 border-white/20` | `bg-amber-500/15 border-amber-300/30` |
+| Risks due for review (purple icon) | `bg-white/10 border-white/20` | unchanged (neutral) |
+| Pending changes (blue icon) | `bg-white/10 border-white/20` | `bg-blue-500/15 border-blue-300/30` |
+| Overdue metrics (red icon) | `bg-white/10 border-white/20` | `bg-red-500/20 border-red-300/30` |
+
+The tints are visible against the dark hero gradient without being garish — they're signals,
+not decoration.
+
+**Files:** `src/app/page.tsx` (welcome section, notification pills block ~lines 1098–1136)
+
+---
+
+### P7 — Coherent card entry animation system
+
+The `card-entrance` classes exist but are applied with random numbers (card-entrance-1,
+card-entrance-2, card-entrance-5, card-entrance-6 — with gaps at 3 and 4 unexplained).
+
+**Fix in `globals.css`:**
+1. Define card-entrance-1 through card-entrance-8 with a clean 60ms stagger:
+   - card-entrance-1: 0ms delay (welcome hero)
+   - card-entrance-2: 60ms (urgent sections)
+   - card-entrance-3: 120ms
+   - card-entrance-4: 180ms
+   - card-entrance-5: 240ms
+   - card-entrance-6: 300ms
+   - card-entrance-7: 360ms
+   - card-entrance-8: 420ms
+
+2. Wrap the keyframes in `@media (prefers-reduced-motion: no-preference)` so users who
+   prefer reduced motion see no animation at all (items appear instantly).
+
+**Apply in `page.tsx`:** audit all sectionMap entries and assign entrance classes consistently:
+- welcome → card-entrance-1
+- action-required, overdue-metrics → card-entrance-2 (urgency first)
+- notification-required sections → card-entrance-3
+- stat card sections → card-entrance-4, 5
+- widget sections (charts, matrix) → card-entrance-6, 7, 8
+
+**Files:** `src/app/globals.css`, `src/app/page.tsx`
+
+---
+
+### P8 — Section header icon consistency
+
+Two sections with bento-card headers are missing icons:
+
+- **action-tracking**: has `<h2>Action Tracking</h2>` with no icon. Add `<ListChecks className="h-5 w-5 text-updraft-bright-purple" />` (already imported).
+- **cross-entity**: has `<h2>Compliance Insights</h2>` with an icon already (`<Shield>`). ✓ Already consistent — no change needed.
+
+Check all other section headers are consistent: Icon (h-5 w-5 text-updraft-bright-purple) + Title (text-lg font-bold text-updraft-deep font-poppins) + optional ArrowRight/badge.
+
+**Files:** `src/app/page.tsx`
+
+---
+
+### Key Files
+
+| File | Items |
+|---|---|
+| `src/app/globals.css` | P1 (tokens + utilities), P7 (animation system) |
+| `src/app/page.tsx` | P1 (replace inline hex), P2 (hero), P3 (urgency), P4 (AnimatedNumber), P5 (hover lift), P6 (pills), P7 (class audit), P8 (icon) |
+
+### Implementation Order
+P1 → P7 (globals.css foundation first) → P2 → P3 → P4 → P5 → P6 → P8
+
+---
 
 ## COMPLETED SPRINT: Sprint H — Dashboard Enhancements ✅ COMPLETE
 
