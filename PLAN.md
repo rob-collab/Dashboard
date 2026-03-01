@@ -3481,11 +3481,13 @@ From a9ab7c1 compliance domain audit (2026-02-27):
 
 ---
 
-## SPRINT O — Technical Debt & Performance
+## SPRINT O — Technical Debt, Performance & Audit Integrity
 
 ### Context
 Technical debt agent found: page.tsx is 2,418 lines, dead Supabase dependency, missing DB
 indexes, several large components, DashboardNotification.type is an unvalidated string.
+P1 (tamper-evident audit log) pulled in from Sprint P — identified as the single most
+significant technical compliance gap. P2–P6 deferred to a future sprint.
 
 ### O1 — Split src/app/page.tsx into section components
 Extract each dashboard section into a standalone component in `src/components/dashboard/`:
@@ -3572,6 +3574,17 @@ From ad2e22a UX/performance audit (2026-02-27):
 - A crash in a nested component takes down the entire page instead of just the panel
 - Wrap each detail panel render in `<ErrorBoundary fallback={...}>`
 
+### O15 — Tamper-evident append-only audit log (moved from P1)
+The current `AuditLog` table can be deleted by any DB admin, which is a regulatory
+evidence risk under FCA/PRA Section 165 review. Three-part fix:
+- **DB-level protection**: Apply PostgreSQL RLS (Row Level Security) or a separate role
+  with INSERT-only permission on the `audit_logs` table — no UPDATE or DELETE allowed
+- **Application-level guard**: Add a `DELETE` handler to `/api/audit` that returns `405
+  Method Not Allowed` with a clear error message; same on individual audit log routes
+- **Export endpoint**: `GET /api/audit/export` — accepts query params `?from=&to=&entityType=&userId=`
+  and returns a filtered CSV download; authenticated CCRO-only; includes all fields
+  (id, timestamp, userId, role, action, entityType, entityId, changes JSON)
+
 ### Acceptance Criteria
 - [ ] O1: page.tsx < 400 lines; each section is an independently importable component
 - [ ] O2: Supabase packages removed; bundle size decreases; no import errors
@@ -3587,14 +3600,17 @@ From ad2e22a UX/performance audit (2026-02-27):
 - [ ] O12: RiskHeatmap risk circles keyboard-accessible
 - [ ] O13: Dashboard store selectors consolidated (no unnecessary re-renders)
 - [ ] O14: ControlDetailModal, RiskDetailPanel, ActionDetailPanel wrapped in ErrorBoundary
+- [ ] O15: AuditLog cannot be deleted via API (405); export CSV endpoint works; DB-level protection documented
 - [ ] Build passes
 
 ---
 
 ---
 
-## SPRINT P — Compliance Infrastructure (FCA Supervisory Grade)
+## SPRINT P — Compliance Infrastructure (FCA Supervisory Grade) — DEFERRED / ON SHELF
 Last planned: 2026-02-27
+**Status:** Deferred. P1 (audit log) moved into Sprint O. P2–P6 shelved for future
+consideration — relevance to current scope not confirmed.
 
 ### Context
 From a9ab7c1 compliance domain completeness audit. These items address the gap between
