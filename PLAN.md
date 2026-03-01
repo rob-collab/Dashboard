@@ -1,7 +1,7 @@
 # CCRO Dashboard — Active Development Plan
-Last updated: 2026-03-01 (Sprint P added — Dashboard Design Elevation)
+Last updated: 2026-03-01 (Sprint P — all items implemented)
 
-## CURRENT SPRINT: Sprint P — Dashboard Design Elevation
+## CURRENT SPRINT: Sprint P — Dashboard Design Elevation ✅ COMPLETE
 
 ### Design Intent
 - **Who:** A compliance officer arriving at the start of their day to see what needs attention.
@@ -32,16 +32,16 @@ effects. Light mode, clean, fast, intentional.
 
 ### Acceptance Criteria
 
-- [ ] P1: Semantic status tokens added to `globals.css` and Tailwind config; inline hex gradient `style` props replaced in all stat tile sections (compliance-health, controls-library, policy-health, action-tracking, risk-acceptances)
-- [ ] P2: Welcome hero replaces hardcoded `#1C1B29` with `var(--surface-dark)`
-- [ ] P3: Urgency sections (action-required when items exist, overdue-metrics) are visually dominant — testable by glancing at the page: the urgent sections should immediately draw the eye over neutral content cards
-- [ ] P4: `<AnimatedNumber>` wraps all numeric stats in compliance-health, controls-library, policy-health, and risk-acceptances stat tiles
-- [ ] P5: All interactive stat tiles use hover lift (`-translate-y-0.5 hover:shadow-sm`) — `hover:opacity-80` removed from stat tiles
-- [ ] P6: Overdue/critical notification pills in the welcome hero are visually distinct (red tint) from neutral pills; due-soon pills are amber-tinted
-- [ ] P7: `card-entrance` stagger is consistent (1–8, 60ms each); `@media (prefers-reduced-motion)` disables card-entrance animations
-- [ ] P8: action-tracking and cross-entity sections have section header icons matching the rest
-- [ ] Build passes: `npx next build` — zero errors, zero type errors
-- [ ] No dark mode regression — all changed sections readable in dark mode
+- [x] P1: Semantic status tokens added to `globals.css` and Tailwind config; inline hex gradient `style` props replaced in all stat tile sections (compliance-health, controls-library, policy-health, action-tracking, risk-acceptances)
+- [x] P2: Welcome hero replaces hardcoded `#1C1B29` with `var(--surface-dark)`
+- [x] P3: Urgency sections (action-required when items exist, overdue-metrics) are visually dominant — testable by glancing at the page: the urgent sections should immediately draw the eye over neutral content cards
+- [x] P4: `<AnimatedNumber>` wraps all numeric stats in compliance-health, controls-library, policy-health, and risk-acceptances stat tiles
+- [x] P5: All interactive stat tiles use hover lift (`-translate-y-0.5 hover:shadow-sm`) — `hover:opacity-80` removed from stat tiles
+- [x] P6: Overdue/critical notification pills in the welcome hero are visually distinct (red tint) from neutral pills; due-soon pills are amber-tinted
+- [x] P7: `card-entrance` stagger is consistent (1–8, 60ms each); `@media (prefers-reduced-motion)` disables card-entrance animations
+- [x] P8: action-tracking section header icon added (ListChecks); cross-entity already had an icon
+- [x] Build passes: `npx next build` — zero errors, zero type errors
+- [x] No dark mode regression — status tokens have `.dark` CSS variable overrides; all other changes are class-based and inherit existing dark mode remapping
 
 ---
 

@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── P1: Semantic status background utilities ─────────────────────────────── */
+@layer utilities {
+  .bg-status-danger  { background: linear-gradient(135deg, var(--status-danger-bg-from),  var(--status-danger-bg-to));  }
+  .bg-status-warning { background: linear-gradient(135deg, var(--status-warning-bg-from), var(--status-warning-bg-to)); }
+  .bg-status-success { background: linear-gradient(135deg, var(--status-success-bg-from), var(--status-success-bg-to)); }
+  .bg-status-neutral { background: linear-gradient(135deg, var(--status-neutral-bg-from), var(--status-neutral-bg-to)); }
+  .bg-status-info    { background: linear-gradient(135deg, var(--status-info-bg-from),    var(--status-info-bg-to));    }
+}
+
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
 
 :root {
@@ -12,6 +21,18 @@
   --surface-dark: #1C1B29;
   --text-secondary: #6B6B6B;
   --border-warm: #E8E6E1;
+
+  /* ── P1: Semantic status tint tokens ──────────────────────────────────── */
+  --status-danger-bg-from:  #FEF2F2;
+  --status-danger-bg-to:    #FFF5F5;
+  --status-warning-bg-from: #FFFBEB;
+  --status-warning-bg-to:   #FEFCE8;
+  --status-success-bg-from: #ECFDF5;
+  --status-success-bg-to:   #F0FDF4;
+  --status-neutral-bg-from: #F3E8FF;
+  --status-neutral-bg-to:   #FAF5FF;
+  --status-info-bg-from:    #EFF6FF;
+  --status-info-bg-to:      #F0F9FF;
 }
 
 body {
@@ -175,25 +196,31 @@ body > * {
   transform: translateY(-4px) scale(1.01);
 }
 
-/* Card entrance animation utility classes */
-.card-entrance {
-  animation: staggerIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-.card-entrance-1 { animation-delay: 0ms; }
-.card-entrance-2 { animation-delay: 60ms; }
-.card-entrance-3 { animation-delay: 120ms; }
-.card-entrance-4 { animation-delay: 180ms; }
-.card-entrance-5 { animation-delay: 240ms; }
-.card-entrance-6 { animation-delay: 300ms; }
-
-@keyframes staggerIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
+/* ── P7: Card entrance animation system ──────────────────────────────────── */
+/* Wrapped in prefers-reduced-motion: no-preference so users who prefer
+   reduced motion see content appear instantly with no animation at all.    */
+@media (prefers-reduced-motion: no-preference) {
+  .card-entrance {
+    animation: staggerIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  .card-entrance-1 { animation-delay:   0ms; }
+  .card-entrance-2 { animation-delay:  60ms; }
+  .card-entrance-3 { animation-delay: 120ms; }
+  .card-entrance-4 { animation-delay: 180ms; }
+  .card-entrance-5 { animation-delay: 240ms; }
+  .card-entrance-6 { animation-delay: 300ms; }
+  .card-entrance-7 { animation-delay: 360ms; }
+  .card-entrance-8 { animation-delay: 420ms; }
+
+  @keyframes staggerIn {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }
 
@@ -449,6 +476,18 @@ body > * {
   --surface-dark:  #0A0914;
   --border-warm:   #2D2B3D;
   --text-secondary:#8D8BA3;
+
+  /* P1: Status tokens — muted, desaturated dark variants */
+  --status-danger-bg-from:  #2D1B1B;
+  --status-danger-bg-to:    #3D1F1F;
+  --status-warning-bg-from: #2D2510;
+  --status-warning-bg-to:   #3A2E10;
+  --status-success-bg-from: #0D2B1F;
+  --status-success-bg-to:   #0F3324;
+  --status-neutral-bg-from: #1E1030;
+  --status-neutral-bg-to:   #261540;
+  --status-info-bg-from:    #0D1E35;
+  --status-info-bg-to:      #0F2240;
 }
 
 .dark body {

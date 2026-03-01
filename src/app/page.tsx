@@ -205,11 +205,11 @@ function PendingChangesPanel({
   if (visibleChanges.length === 0) return null;
 
   return (
-    <div className="bento-card border-2 border-amber-200">
+    <div className="bento-card border-l-[3px] border-l-amber-500/50 shadow-sm bg-amber-50/20">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Bell className="h-5 w-5 text-amber-500" />
-          <h2 className="text-lg font-bold text-updraft-deep font-poppins">Proposed Changes</h2>
+          <h2 className="text-xl font-bold text-updraft-deep font-poppins">Proposed Changes</h2>
           <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-bold">{visibleChanges.length}</span>
         </div>
       </div>
@@ -1063,7 +1063,7 @@ export default function DashboardHome() {
   // Build section map AFTER loading check
   const sectionMap: Record<string, React.ReactNode> = {
     "welcome": (
-      <div className="card-entrance card-entrance-1 relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#1C1B29] via-updraft-deep to-updraft-bar p-8 text-white">
+      <div className="card-entrance card-entrance-1 relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--surface-dark)] via-updraft-deep to-updraft-bar p-8 text-white">
         {/* Geometric pattern overlay */}
         <div className="absolute inset-0 opacity-[0.07]" style={{
           backgroundImage: `
@@ -1098,19 +1098,19 @@ export default function DashboardHome() {
             {(myOverdueActions.length > 0 || myDueThisMonthActions.length > 0 || (canViewPending && (risksNeedingReview.length > 0 || allPendingChanges.length > 0)) || myRisksNeedingReview.length > 0 || (hasConsumerDutyPage && overdueMetrics.length > 0)) && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {hasConsumerDutyPage && overdueMetrics.length > 0 && (
-                  <Link href="/consumer-duty?rag=ATTENTION" className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 transition-colors">
+                  <Link href="/consumer-duty?rag=ATTENTION" className="inline-flex items-center gap-1.5 rounded-full bg-red-500/20 backdrop-blur-sm border border-red-300/30 px-3 py-1 text-xs font-semibold text-white hover:bg-red-500/30 transition-colors">
                     <BarChart3 className="h-3 w-3 text-red-300" />
                     {overdueMetrics.length} overdue metric{overdueMetrics.length > 1 ? "s" : ""}
                   </Link>
                 )}
                 {myOverdueActions.length > 0 && (
-                  <Link href="/actions?status=OVERDUE" className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 transition-colors">
+                  <Link href="/actions?status=OVERDUE" className="inline-flex items-center gap-1.5 rounded-full bg-red-500/20 backdrop-blur-sm border border-red-300/30 px-3 py-1 text-xs font-semibold text-white hover:bg-red-500/30 transition-colors">
                     <AlertTriangle className="h-3 w-3 text-red-300" />
                     {myOverdueActions.length} overdue action{myOverdueActions.length > 1 ? "s" : ""}
                   </Link>
                 )}
                 {myDueThisMonthActions.length > 0 && (
-                  <Link href="/actions" className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 transition-colors">
+                  <Link href="/actions" className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 backdrop-blur-sm border border-amber-300/30 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-500/25 transition-colors">
                     <Clock className="h-3 w-3 text-amber-300" />
                     {myDueThisMonthActions.length} due this month
                   </Link>
@@ -1128,7 +1128,7 @@ export default function DashboardHome() {
                   </Link>
                 )}
                 {canViewPending && allPendingChanges.length > 0 && (
-                  <Link href="/change-requests" className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 transition-colors">
+                  <Link href="/change-requests" className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/15 backdrop-blur-sm border border-blue-300/30 px-3 py-1 text-xs font-semibold text-white hover:bg-blue-500/25 transition-colors">
                     <Bell className="h-3 w-3 text-blue-300" />
                     {allPendingChanges.length} pending approval{allPendingChanges.length > 1 ? "s" : ""}
                   </Link>
@@ -1266,7 +1266,7 @@ export default function DashboardHome() {
         });
       }
 
-      return <ActionRequiredSection groups={groups} />;
+      return <div className="card-entrance card-entrance-2 h-full"><ActionRequiredSection groups={groups} /></div>;
     })(),
 
     "priority-actions": (() => {
@@ -1284,8 +1284,7 @@ export default function DashboardHome() {
               <Link
                 key={id}
                 href={`/actions?priority=${p}`}
-                className={`card-entrance card-entrance-${idx + 2} rounded-2xl border ${config.border} p-5 transition-all hover:shadow-bento-hover`}
-                style={{ background: `linear-gradient(135deg, ${p === "P1" ? "#FEF2F2" : p === "P2" ? "#FFFBEB" : "#F8FAFC"} 0%, ${p === "P1" ? "#FFF5F5" : p === "P2" ? "#FEFCE8" : "#F1F5F9"} 100%)` }}
+                className={`card-entrance card-entrance-${idx + 2} rounded-2xl border ${config.border} p-5 transition-all hover:shadow-bento-hover ${p === "P1" ? "bg-status-danger" : p === "P2" ? "bg-status-warning" : "bg-slate-50"}`}
               >
                 <div className="flex items-center justify-between mb-3">
                   <h3 className={`text-sm font-bold ${config.color}`}>{config.label}</h3>
@@ -1335,19 +1334,19 @@ export default function DashboardHome() {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
             <div className="rounded-lg bg-surface-muted border border-[#E8E6E1] p-2 text-center">
-              <p className="text-lg font-bold font-poppins text-gray-600">{raStats.expired}</p>
+              <AnimatedNumber value={raStats.expired} delay={60} className="text-lg font-bold font-poppins text-gray-600" />
               <p className="text-[10px] text-text-secondary">Expired</p>
             </div>
-            <div className="rounded-lg border border-amber-100 p-2 text-center" style={{ background: "linear-gradient(135deg, #FFFBEB, #FEFCE8)" }}>
-              <p className="text-lg font-bold font-poppins text-amber-700">{raStats.awaiting}</p>
+            <div className="rounded-lg border border-amber-100 p-2 text-center bg-status-warning">
+              <AnimatedNumber value={raStats.awaiting} delay={100} className="text-lg font-bold font-poppins text-amber-700" />
               <p className="text-[10px] text-text-secondary">Awaiting</p>
             </div>
-            <div className="rounded-lg border border-purple-100 p-2 text-center" style={{ background: "linear-gradient(135deg, #FAF5FF, #F5F3FF)" }}>
-              <p className="text-lg font-bold font-poppins text-purple-700">{raStats.ccroReview}</p>
+            <div className="rounded-lg border border-purple-100 p-2 text-center bg-status-neutral">
+              <AnimatedNumber value={raStats.ccroReview} delay={140} className="text-lg font-bold font-poppins text-purple-700" />
               <p className="text-[10px] text-text-secondary">CCRO Review</p>
             </div>
-            <div className="rounded-lg border border-green-100 p-2 text-center" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-              <p className="text-lg font-bold font-poppins text-green-700">{raStats.accepted}</p>
+            <div className="rounded-lg border border-green-100 p-2 text-center bg-status-success">
+              <AnimatedNumber value={raStats.accepted} delay={180} className="text-lg font-bold font-poppins text-green-700" />
               <p className="text-[10px] text-text-secondary">Accepted</p>
             </div>
           </div>
@@ -1421,32 +1420,32 @@ export default function DashboardHome() {
             {chVisible.map((id) => {
               switch (id) {
                 case "stat-compliant": return (
-                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=regulatory-universe"); }} className="rounded-lg border border-green-100 p-3 text-center hover:opacity-80 transition-opacity" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-                    <p className="text-xl font-bold font-poppins text-green-700">{complianceHealth.compliantPct}%</p>
+                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=regulatory-universe"); }} className="rounded-lg border border-green-100 p-3 text-center hover:-translate-y-0.5 hover:shadow-sm transition-all bg-status-success">
+                    <AnimatedNumber value={complianceHealth.compliantPct} delay={60} className="text-xl font-bold font-poppins text-green-700" /><span className="text-xl font-bold font-poppins text-green-700">%</span>
                     <p className="text-[10px] text-gray-500 mt-0.5">Compliant</p>
                   </button>
                 );
                 case "stat-applicable": return (
-                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=regulatory-universe"); }} className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm hover:opacity-80 transition-opacity">
-                    <p className="text-xl font-bold font-poppins text-updraft-deep">{complianceHealth.total}</p>
+                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=regulatory-universe"); }} className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm hover:-translate-y-0.5 hover:shadow-sm transition-all">
+                    <AnimatedNumber value={complianceHealth.total} delay={100} className="text-xl font-bold font-poppins text-updraft-deep" />
                     <p className="text-[10px] text-gray-500 mt-0.5">Applicable</p>
                   </button>
                 );
                 case "stat-gaps": return (
-                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=regulatory-universe"); }} className={`rounded-lg border p-3 text-center hover:opacity-80 transition-opacity ${complianceHealth.gaps > 0 ? "border-red-100" : "border-green-100"}`} style={{ background: complianceHealth.gaps > 0 ? "linear-gradient(135deg, #FEF2F2, #FFF5F5)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-                    <p className={`text-xl font-bold font-poppins ${complianceHealth.gaps > 0 ? "text-red-700" : "text-green-700"}`}>{complianceHealth.gaps}</p>
+                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=regulatory-universe"); }} className={`rounded-lg border p-3 text-center hover:-translate-y-0.5 hover:shadow-sm transition-all ${complianceHealth.gaps > 0 ? "border-red-100 bg-status-danger" : "border-green-100 bg-status-success"}`}>
+                    <AnimatedNumber value={complianceHealth.gaps} delay={140} className={`text-xl font-bold font-poppins ${complianceHealth.gaps > 0 ? "text-red-700" : "text-green-700"}`} />
                     <p className="text-[10px] text-gray-500 mt-0.5">Open Gaps</p>
                   </button>
                 );
                 case "stat-assessments": return (
-                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=assessment-log"); }} className={`rounded-lg border p-3 text-center hover:opacity-80 transition-opacity ${complianceHealth.overdueAssessments > 0 ? "border-amber-100" : "border-green-100"}`} style={{ background: complianceHealth.overdueAssessments > 0 ? "linear-gradient(135deg, #FFFBEB, #FEFCE8)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-                    <p className={`text-xl font-bold font-poppins ${complianceHealth.overdueAssessments > 0 ? "text-amber-700" : "text-green-700"}`}>{complianceHealth.overdueAssessments}</p>
+                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=assessment-log"); }} className={`rounded-lg border p-3 text-center hover:-translate-y-0.5 hover:shadow-sm transition-all ${complianceHealth.overdueAssessments > 0 ? "border-amber-100 bg-status-warning" : "border-green-100 bg-status-success"}`}>
+                    <AnimatedNumber value={complianceHealth.overdueAssessments} delay={180} className={`text-xl font-bold font-poppins ${complianceHealth.overdueAssessments > 0 ? "text-amber-700" : "text-green-700"}`} />
                     <p className="text-[10px] text-gray-500 mt-0.5">Overdue Assessments</p>
                   </button>
                 );
                 case "stat-certs": return (
-                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=smcr"); }} className={`rounded-lg border p-3 text-center hover:opacity-80 transition-opacity ${complianceHealth.pendingCerts > 0 ? "border-amber-100" : "border-green-100"}`} style={{ background: complianceHealth.pendingCerts > 0 ? "linear-gradient(135deg, #FFFBEB, #FEFCE8)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-                    <p className={`text-xl font-bold font-poppins ${complianceHealth.pendingCerts > 0 ? "text-amber-700" : "text-green-700"}`}>{complianceHealth.pendingCerts}</p>
+                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/compliance?tab=smcr"); }} className={`rounded-lg border p-3 text-center hover:-translate-y-0.5 hover:shadow-sm transition-all ${complianceHealth.pendingCerts > 0 ? "border-amber-100 bg-status-warning" : "border-green-100 bg-status-success"}`}>
+                    <AnimatedNumber value={complianceHealth.pendingCerts} delay={220} className={`text-xl font-bold font-poppins ${complianceHealth.pendingCerts > 0 ? "text-amber-700" : "text-green-700"}`} />
                     <p className="text-[10px] text-gray-500 mt-0.5">Pending Certs</p>
                   </button>
                 );
@@ -1475,32 +1474,32 @@ export default function DashboardHome() {
             {clVisible.map((id) => {
               switch (id) {
                 case "stat-total": return (
-                  <div key={id} className="rounded-lg border border-updraft-pale-purple p-3 text-center overflow-hidden" style={{ background: "linear-gradient(135deg, #F3E8FF, #FAF5FF)" }}>
-                    <p className="text-xl font-bold font-poppins text-updraft-deep">{controlsStats.total}</p>
+                  <div key={id} className="rounded-lg border border-updraft-pale-purple p-3 text-center overflow-hidden bg-status-neutral">
+                    <AnimatedNumber value={controlsStats.total} delay={60} className="text-xl font-bold font-poppins text-updraft-deep" />
                     <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Total Controls">Total</p>
                   </div>
                 );
                 case "stat-preventative": return (
-                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=PREVENTATIVE"); }} className="rounded-lg border border-green-100 p-3 text-center hover:opacity-80 transition-opacity overflow-hidden" style={{ background: "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-                    <p className="text-xl font-bold font-poppins text-green-700">{controlsStats.preventative}</p>
+                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=PREVENTATIVE"); }} className="rounded-lg border border-green-100 p-3 text-center hover:-translate-y-0.5 hover:shadow-sm transition-all overflow-hidden bg-status-success">
+                    <AnimatedNumber value={controlsStats.preventative} delay={100} className="text-xl font-bold font-poppins text-green-700" />
                     <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Preventative">Prevent.</p>
                   </button>
                 );
                 case "stat-detective": return (
-                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=DETECTIVE"); }} className="rounded-lg border border-blue-100 p-3 text-center hover:opacity-80 transition-opacity overflow-hidden" style={{ background: "linear-gradient(135deg, #EFF6FF, #F0F9FF)" }}>
-                    <p className="text-xl font-bold font-poppins text-blue-700">{controlsStats.detective}</p>
+                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=DETECTIVE"); }} className="rounded-lg border border-blue-100 p-3 text-center hover:-translate-y-0.5 hover:shadow-sm transition-all overflow-hidden bg-status-info">
+                    <AnimatedNumber value={controlsStats.detective} delay={140} className="text-xl font-bold font-poppins text-blue-700" />
                     <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Detective">Detect.</p>
                   </button>
                 );
                 case "stat-directive": return (
-                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=DIRECTIVE"); }} className="rounded-lg border border-amber-100 p-3 text-center hover:opacity-80 transition-opacity overflow-hidden" style={{ background: "linear-gradient(135deg, #FFFBEB, #FEFCE8)" }}>
-                    <p className="text-xl font-bold font-poppins text-amber-700">{controlsStats.directive}</p>
+                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=DIRECTIVE"); }} className="rounded-lg border border-amber-100 p-3 text-center hover:-translate-y-0.5 hover:shadow-sm transition-all overflow-hidden bg-status-warning">
+                    <AnimatedNumber value={controlsStats.directive} delay={180} className="text-xl font-bold font-poppins text-amber-700" />
                     <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Directive">Directive</p>
                   </button>
                 );
                 case "stat-corrective": return (
-                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=CORRECTIVE"); }} className="rounded-lg border border-red-100 p-3 text-center hover:opacity-80 transition-opacity overflow-hidden" style={{ background: "linear-gradient(135deg, #FEF2F2, #FFF5F5)" }}>
-                    <p className="text-xl font-bold font-poppins text-red-700">{controlsStats.corrective}</p>
+                  <button key={id} onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push("/controls?tab=library&type=CORRECTIVE"); }} className="rounded-lg border border-red-100 p-3 text-center hover:-translate-y-0.5 hover:shadow-sm transition-all overflow-hidden bg-status-danger">
+                    <AnimatedNumber value={controlsStats.corrective} delay={220} className="text-xl font-bold font-poppins text-red-700" />
                     <p className="text-[10px] text-gray-500 mt-0.5 truncate" title="Corrective">Correct.</p>
                   </button>
                 );
@@ -1527,7 +1526,7 @@ export default function DashboardHome() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Risks with failing controls */}
           {crossEntityInsights.risksWithFailingControls.length > 0 && (
-            <div className="rounded-xl border border-red-100 p-4" style={{ background: "linear-gradient(135deg, #FEF2F2, #FFF5F5)" }}>
+            <div className="rounded-xl border border-red-100 p-4 bg-status-danger">
               <h3 className="text-xs font-bold text-red-700 mb-2">Risks with Failing Controls</h3>
               <div className="space-y-2">
                 {crossEntityInsights.risksWithFailingControls.map((r) => (
@@ -1545,7 +1544,7 @@ export default function DashboardHome() {
 
           {/* Policies with coverage gaps */}
           {crossEntityInsights.policiesWithGaps.length > 0 && (
-            <div className="rounded-xl border border-amber-100 p-4" style={{ background: "linear-gradient(135deg, #FFFBEB, #FEFCE8)" }}>
+            <div className="rounded-xl border border-amber-100 p-4 bg-status-warning">
               <h3 className="text-xs font-bold text-amber-700 mb-2">Policies with Coverage Gaps</h3>
               <div className="space-y-2">
                 {crossEntityInsights.policiesWithGaps.map((p) => (
@@ -1563,7 +1562,7 @@ export default function DashboardHome() {
 
           {/* Key controls */}
           {crossEntityInsights.keyControls.length > 0 && (
-            <div className="rounded-xl border border-updraft-pale-purple p-4" style={{ background: "linear-gradient(135deg, #F3E8FF, #FAF5FF)" }}>
+            <div className="rounded-xl border border-updraft-pale-purple p-4 bg-status-neutral">
               <h3 className="text-xs font-bold text-updraft-deep mb-2">Key Controls (Multi-Policy)</h3>
               <div className="space-y-2">
                 {crossEntityInsights.keyControls.map((c) => (
@@ -1604,25 +1603,25 @@ export default function DashboardHome() {
               switch (id) {
                 case "stat-total": return (
                   <div key={id} className="rounded-lg border border-gray-200 p-3 text-center bg-surface-warm">
-                    <p className="text-xl font-bold font-poppins text-updraft-deep">{policies.length}</p>
+                    <AnimatedNumber value={policies.length} delay={60} className="text-xl font-bold font-poppins text-updraft-deep" />
                     <p className="text-[10px] text-gray-500 mt-0.5">Total Policies</p>
                   </div>
                 );
                 case "stat-overdue": return (
-                  <div key={id} className={`rounded-lg border p-3 text-center ${overdueCount > 0 ? "border-red-100" : "border-green-100"}`} style={{ background: overdueCount > 0 ? "linear-gradient(135deg, #FEF2F2, #FFF5F5)" : "linear-gradient(135deg, #ECFDF5, #F0FDF4)" }}>
-                    <p className={`text-xl font-bold font-poppins ${overdueCount > 0 ? "text-red-700" : "text-green-700"}`}>{overdueCount}</p>
+                  <div key={id} className={`rounded-lg border p-3 text-center ${overdueCount > 0 ? "border-red-100 bg-status-danger" : "border-green-100 bg-status-success"}`}>
+                    <AnimatedNumber value={overdueCount} delay={100} className={`text-xl font-bold font-poppins ${overdueCount > 0 ? "text-red-700" : "text-green-700"}`} />
                     <p className="text-[10px] text-gray-500 mt-0.5">Overdue</p>
                   </div>
                 );
                 case "stat-requirements": return (
-                  <div key={id} className="rounded-lg border border-updraft-pale-purple p-3 text-center" style={{ background: "linear-gradient(135deg, #F3E8FF, #FAF5FF)" }}>
-                    <p className="text-xl font-bold font-poppins text-updraft-deep">{policies.reduce((sum, p) => sum + (p.obligations?.length ?? 0), 0)}</p>
+                  <div key={id} className="rounded-lg border border-updraft-pale-purple p-3 text-center bg-status-neutral">
+                    <AnimatedNumber value={policies.reduce((sum, p) => sum + (p.obligations?.length ?? 0), 0)} delay={140} className="text-xl font-bold font-poppins text-updraft-deep" />
                     <p className="text-[10px] text-gray-500 mt-0.5">Requirements</p>
                   </div>
                 );
                 case "stat-links": return (
-                  <div key={id} className="rounded-lg border border-blue-100 p-3 text-center" style={{ background: "linear-gradient(135deg, #EFF6FF, #F0F9FF)" }}>
-                    <p className="text-xl font-bold font-poppins text-blue-700">{policies.reduce((sum, p) => sum + (p.controlLinks?.length ?? 0), 0)}</p>
+                  <div key={id} className="rounded-lg border border-blue-100 p-3 text-center bg-status-info">
+                    <AnimatedNumber value={policies.reduce((sum, p) => sum + (p.controlLinks?.length ?? 0), 0)} delay={180} className="text-xl font-bold font-poppins text-blue-700" />
                     <p className="text-[10px] text-gray-500 mt-0.5">Control Links</p>
                   </div>
                 );
@@ -1669,11 +1668,11 @@ export default function DashboardHome() {
     ) : null,
 
     "pending-approvals": canApproveEntities && pendingNewEntities.length > 0 ? (
-      <div className="bento-card border-2 border-amber-200">
+      <div className="bento-card border-l-[3px] border-l-amber-500/50 shadow-sm bg-amber-50/20">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Clock className="h-5 w-5 text-amber-500" />
-            <h2 className="text-lg font-bold text-updraft-deep font-poppins">Pending Approvals</h2>
+            <h2 className="text-xl font-bold text-updraft-deep font-poppins">Pending Approvals</h2>
             <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-bold">{pendingNewEntities.length}</span>
           </div>
         </div>
@@ -1730,25 +1729,28 @@ export default function DashboardHome() {
     "action-tracking": hasActionsPage ? (
       <div className="card-entrance card-entrance-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold text-updraft-deep font-poppins">Action Tracking</h2>
+          <div className="flex items-center gap-2">
+            <ListChecks className="h-5 w-5 text-updraft-bright-purple" />
+            <h2 className="text-lg font-bold text-updraft-deep font-poppins">Action Tracking</h2>
+          </div>
           <Link href="/actions" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
             View All <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Link href="/actions?status=OPEN" className="rounded-xl border border-blue-100 p-3 cursor-pointer hover:border-blue-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #EFF6FF 0%, #F0F7FF 100%)" }}>
+          <Link href="/actions?status=OPEN" className="rounded-xl border border-blue-100 p-3 cursor-pointer hover:border-blue-300 hover:-translate-y-0.5 transition-all bg-status-info">
             <p className="text-xs text-text-secondary">Open</p>
             <AnimatedNumber value={actionStats.open} delay={300} className="text-2xl font-bold font-poppins text-blue-700" />
           </Link>
-          <Link href="/actions?status=OVERDUE" className="rounded-xl border border-red-100 p-3 cursor-pointer hover:border-red-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #FEF2F2 0%, #FFF5F5 100%)" }}>
+          <Link href="/actions?status=OVERDUE" className="rounded-xl border border-red-100 p-3 cursor-pointer hover:border-red-300 hover:-translate-y-0.5 transition-all bg-status-danger">
             <p className="text-xs text-text-secondary">Overdue</p>
             <AnimatedNumber value={actionStats.overdue} delay={300} className="text-2xl font-bold font-poppins text-red-700" />
           </Link>
-          <Link href="/actions?status=DUE_THIS_MONTH" className="rounded-xl border border-amber-100 p-3 cursor-pointer hover:border-amber-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEFCE8 100%)" }}>
+          <Link href="/actions?status=DUE_THIS_MONTH" className="rounded-xl border border-amber-100 p-3 cursor-pointer hover:border-amber-300 hover:-translate-y-0.5 transition-all bg-status-warning">
             <p className="text-xs text-text-secondary">Due This Month</p>
             <AnimatedNumber value={actionStats.dueThisMonth} delay={300} className="text-2xl font-bold font-poppins text-amber-700" />
           </Link>
-          <Link href="/actions?status=COMPLETED" className="rounded-xl border border-blue-100 p-3 cursor-pointer hover:border-blue-300 hover:-translate-y-0.5 transition-all" style={{ background: "linear-gradient(135deg, #EFF6FF 0%, #F0F7FF 100%)" }}>
+          <Link href="/actions?status=COMPLETED" className="rounded-xl border border-blue-100 p-3 cursor-pointer hover:border-blue-300 hover:-translate-y-0.5 transition-all bg-status-info">
             <p className="text-xs text-text-secondary">Completed</p>
             <AnimatedNumber value={actionStats.completed} delay={300} className="text-2xl font-bold font-poppins text-blue-700" />
           </Link>
@@ -1760,11 +1762,11 @@ export default function DashboardHome() {
     ) : null,
 
     "overdue-metrics": hasConsumerDutyPage && overdueMetrics.length > 0 ? (
-      <div className="bento-card border-2 border-red-200 bg-red-50/30">
+      <div className="bento-card border-l-[3px] border-l-red-500/50 shadow-md bg-red-50/20 card-entrance card-entrance-2">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-red-500" />
-            <h2 className="text-lg font-bold text-red-700 font-poppins">Overdue Metrics</h2>
+            <h2 className="text-xl font-bold text-red-700 font-poppins">Overdue Metrics</h2>
             <span className="rounded-full bg-red-100 text-red-700 px-2 py-0.5 text-xs font-bold">{overdueMetrics.length}</span>
           </div>
           <Link href="/consumer-duty" className="text-sm text-updraft-bright-purple hover:text-updraft-deep flex items-center gap-1">
@@ -2009,19 +2011,19 @@ export default function DashboardHome() {
                 </Link>
               );
               case "stat-low": return (
-                <Link key={id} href="/risk-register?filter=LOW" className="rounded-xl border border-green-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%)" }}>
+                <Link key={id} href="/risk-register?filter=LOW" className="rounded-xl border border-green-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all bg-status-success">
                   <p className="text-xs text-text-secondary">Low Risk</p>
                   <AnimatedNumber value={risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) <= 4).length} delay={240} className="text-2xl font-bold font-poppins text-green-700" />
                 </Link>
               );
               case "stat-medium": return (
-                <Link key={id} href="/risk-register?filter=MEDIUM" className="rounded-xl border border-amber-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #FFFBEB 0%, #FEFCE8 100%)" }}>
+                <Link key={id} href="/risk-register?filter=MEDIUM" className="rounded-xl border border-amber-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all bg-status-warning">
                   <p className="text-xs text-text-secondary">Medium Risk</p>
                   <AnimatedNumber value={risks.filter((r) => { const s = getRiskScore(r.residualLikelihood, r.residualImpact); return s > 4 && s <= 12; }).length} delay={240} className="text-2xl font-bold font-poppins text-amber-700" />
                 </Link>
               );
               case "stat-high": return (
-                <Link key={id} href="/risk-register?filter=HIGH" className="rounded-xl border border-red-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all" style={{ background: "linear-gradient(135deg, #FEF2F2 0%, #FFF5F5 100%)" }}>
+                <Link key={id} href="/risk-register?filter=HIGH" className="rounded-xl border border-red-100 p-3 hover:-translate-y-0.5 hover:shadow-bento transition-all bg-status-danger">
                   <p className="text-xs text-text-secondary">High Risk</p>
                   <AnimatedNumber value={risks.filter((r) => getRiskScore(r.residualLikelihood, r.residualImpact) > 12).length} delay={240} className="text-2xl font-bold font-poppins text-red-700" />
                 </Link>

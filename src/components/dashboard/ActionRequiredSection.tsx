@@ -68,7 +68,7 @@ export default function ActionRequiredSection({ groups }: Props) {
   const borderClass  = colourParts.find((c) => c.startsWith("border-")) ?? "border-red-200";
 
   return (
-    <div className="bento-card border-l-4 border-l-red-400 flex flex-col gap-3 h-full">
+    <div className="bento-card border-l-4 border-l-red-400 shadow-md bg-red-50/10 flex flex-col gap-3 h-full">
       {/* Header — pulsing icon when items exist */}
       <div className="flex items-center gap-2">
         <AlertTriangle
@@ -77,7 +77,7 @@ export default function ActionRequiredSection({ groups }: Props) {
             totalCount > 0 && "rag-pulse",
           )}
         />
-        <h2 className={cn("text-base font-bold text-updraft-deep font-poppins", totalCount > 0 && "rag-pulse")}>
+        <h2 className={cn("text-xl font-bold text-updraft-deep font-poppins", totalCount > 0 && "rag-pulse")}>
           Action Required
         </h2>
         <span className="ml-auto text-xs text-gray-400">

@@ -679,6 +679,24 @@ at the same time as the schema/type change.
 
 ---
 
+### W024 — Semantic CSS tokens pattern for replacing scattered inline styles
+**What happened:** Sprint P required removing dozens of inline `style={{ background: "linear-gradient(135deg, #FEF2F2..." }}` calls across page.tsx. Rather than hunting and replacing hex values one by one, the pattern was:
+1. Define CSS custom properties in `:root` (e.g. `--status-danger-bg-from: #FEF2F2`)
+2. Write `@layer utilities` classes that consume them (`.bg-status-danger { background: linear-gradient(135deg, var(...), var(...)); }`)
+3. Add `.dark` overrides to the CSS variable definitions (not the utility classes)
+4. Replace all inline `style` props with the appropriate class name
+**Why it works:** Moving hex to tokens means: (a) dark mode is one block, not per-element; (b) Tailwind classes are scannable and auditable; (c) no `style=` props means Tailwind PurgeCSS works correctly; (d) future colour changes are one-line edits.
+**Applies to:** Any codebase with repeated inline gradient/colour styles that need dark mode support and design system alignment.
+
+---
+
+### W025 — AnimatedNumber with suffix requires sibling span for non-numeric suffix text
+**What happened:** `complianceHealth.compliantPct` needed to display as `67%`. AnimatedNumber only renders the number. Wrapping with `<AnimatedNumber value={67} .../>%` puts raw text after the span, which loses the class styling on `%`. Correct pattern: `<AnimatedNumber value={67} className="..."/><span className="...">%</span>`.
+**Rule:** For number+suffix displays, render the suffix as a sibling `<span>` with the same text classes, not as adjacent text in JSX.
+**Applies to:** Any AnimatedNumber use that needs a suffix (`%`, `×`, `/total`, etc.).
+
+---
+
 ## Promotion Log
 
 When the Retrospective Agent recommends a promotion and it is carried out, record it here
