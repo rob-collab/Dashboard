@@ -128,7 +128,7 @@ export default function ControlHealthTrendWidget() {
   const hasAnyData = trendData.some((p) => p.tested > 0);
 
   return (
-    <div className="bento-card flex flex-col gap-3 h-full">
+    <div className="bento-card flex flex-col gap-3">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="font-poppins font-semibold text-gray-900">Control Health Trend</h2>
@@ -167,7 +167,7 @@ export default function ControlHealthTrendWidget() {
 
       {/* Chart */}
       {hasAnyData ? (
-        <div className="flex-1 min-h-0">
+        <div className="h-[140px]">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
               data={trendData}
@@ -207,7 +207,7 @@ export default function ControlHealthTrendWidget() {
           </ResponsiveContainer>
         </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center">
+        <div className="h-[140px] flex items-center justify-center">
           <p className="text-sm text-gray-400 text-center">
             No test results recorded yet.
             <br />
