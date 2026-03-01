@@ -378,7 +378,7 @@ export interface RiskChange {
 export interface DashboardNotification {
   id: string;
   message: string;
-  type: "info" | "warning" | "urgent";
+  type: "INFO" | "WARNING" | "URGENT";
   active: boolean;
   targetRoles: Role[] | string[];
   createdBy: string;

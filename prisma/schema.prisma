@@ -143,6 +143,12 @@ enum DocumentStatus {
   DOC_NOT_STARTED
 }
 
+enum NotificationType {
+  INFO
+  WARNING
+  URGENT
+}
+
 model User {
   id                  String    @id @default(cuid())
   email               String    @unique
@@ -1441,8 +1447,8 @@ model AccessRequest {
 
 model DashboardNotification {
   id          String    @id @default(cuid())
-  message     String    @db.Text
-  type        String    @default("info") // "info" | "warning" | "urgent"
+  message     String           @db.Text
+  type        NotificationType @default(INFO)
   active      Boolean   @default(true)
   targetRoles String[]  // empty = all roles
   createdBy   String

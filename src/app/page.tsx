@@ -1179,9 +1179,9 @@ export default function DashboardHome() {
     "notifications": activeNotifications.length > 0 ? (
       <div className="space-y-2">
         {activeNotifications.map((n) => {
-          const styles = n.type === "urgent"
+          const styles = n.type === "URGENT"
             ? { bg: "bg-red-50 border-red-200", text: "text-red-800", icon: <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" /> }
-            : n.type === "warning"
+            : n.type === "WARNING"
             ? { bg: "bg-amber-50 border-amber-200", text: "text-amber-800", icon: <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" /> }
             : { bg: "bg-blue-50 border-blue-200", text: "text-blue-800", icon: <Info className="h-4 w-4 text-blue-500 shrink-0" /> };
           return (

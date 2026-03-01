@@ -5,7 +5,7 @@ import { serialiseDates } from "@/lib/serialise";
 
 const updateSchema = z.object({
   message: z.string().min(1).optional(),
-  type: z.enum(["info", "warning", "urgent"]).optional(),
+  type: z.enum(["INFO", "WARNING", "URGENT"]).optional(),
   active: z.boolean().optional(),
   targetRoles: z.array(z.string()).optional(),
   expiresAt: z.string().nullable().optional(),

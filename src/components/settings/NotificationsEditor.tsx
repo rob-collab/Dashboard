@@ -10,9 +10,9 @@ import { cn } from "@/lib/utils";
 import type { DashboardNotification, Role } from "@/lib/types";
 
 const TYPE_OPTIONS: { value: DashboardNotification["type"]; label: string; colour: string }[] = [
-  { value: "info", label: "Info", colour: "bg-blue-100 text-blue-700" },
-  { value: "warning", label: "Warning", colour: "bg-amber-100 text-amber-700" },
-  { value: "urgent", label: "Urgent", colour: "bg-red-100 text-red-700" },
+  { value: "INFO", label: "Info", colour: "bg-blue-100 text-blue-700" },
+  { value: "WARNING", label: "Warning", colour: "bg-amber-100 text-amber-700" },
+  { value: "URGENT", label: "Urgent", colour: "bg-red-100 text-red-700" },
 ];
 
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
@@ -29,14 +29,14 @@ export default function NotificationsEditor() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
-  const [type, setType] = useState<DashboardNotification["type"]>("info");
+  const [type, setType] = useState<DashboardNotification["type"]>("INFO");
   const [targetRoles, setTargetRoles] = useState<Role[]>([]);
   const [expiresAt, setExpiresAt] = useState("");
   const [saving, setSaving] = useState(false);
 
   function resetForm() {
     setMessage("");
-    setType("info");
+    setType("INFO");
     setTargetRoles([]);
     setExpiresAt("");
     setShowForm(false);
