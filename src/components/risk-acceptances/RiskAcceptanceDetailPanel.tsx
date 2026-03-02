@@ -213,7 +213,7 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
           </div>
         </div>
 
-        <div className="px-6 py-4 space-y-0">
+        <div className="px-6 pt-3 pb-4 space-y-0">
           {/* 1. Workflow Stepper */}
           <CollapsibleSection title="Workflow Progress" defaultOpen>
             <div className="flex items-center gap-1 py-2">

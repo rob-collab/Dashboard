@@ -152,7 +152,7 @@ export default function PolicyDetailPanel({ policy, onClose, onUpdate }: Props) 
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 pt-4 pb-16">
+        <div className="flex-1 overflow-y-auto px-6 pt-3 pb-16">
           {tab === "overview" && <PolicyOverviewTab policy={policy} onEdit={() => setShowEditForm(true)} onSwitchToControls={healthSummary.controls > 0 ? () => setTab("controls") : undefined} />}
           {tab === "regulations" && <PolicyRegulationsTab policy={policy} onUpdate={onUpdate} />}
           {tab === "controls" && <PolicyControlsTab policy={policy} onUpdate={onUpdate} />}

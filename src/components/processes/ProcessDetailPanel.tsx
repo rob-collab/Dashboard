@@ -183,7 +183,7 @@ export default function ProcessDetailPanel({ process, onUpdate, onClose }: Props
         </div>
 
         {/* Tab content */}
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="flex-1 overflow-y-auto px-5 pt-3 pb-4">
           {activeTab === "overview" && (
             <ProcessOverviewTab
               process={process}

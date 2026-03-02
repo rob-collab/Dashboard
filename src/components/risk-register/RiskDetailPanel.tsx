@@ -489,7 +489,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
           </div>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="px-6 pt-3 pb-6 space-y-6">
           {/* Approval info banner — new risk */}
           {isNew && !canBypassApproval && (
             <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">

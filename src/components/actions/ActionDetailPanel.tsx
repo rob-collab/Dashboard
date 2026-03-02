@@ -373,7 +373,7 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
         </div>
 
         {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+        <div className="flex-1 overflow-y-auto px-6 pt-3 pb-5 space-y-5">
 
           {/* Issue to be Addressed */}
           <div className="rounded-lg bg-updraft-pale-purple/15 border border-updraft-pale-purple/30 px-4 py-3">

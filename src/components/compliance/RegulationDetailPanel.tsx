@@ -335,7 +335,7 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
         </div>
       </div>
 
-      <div className="p-4 space-y-5">
+      <div className="px-4 pt-3 pb-4 space-y-5">
 
         {/* Description */}
         <section>

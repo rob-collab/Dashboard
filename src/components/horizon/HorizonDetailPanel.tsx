@@ -285,7 +285,7 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
         </div>
 
         {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+        <div className="flex-1 overflow-y-auto px-6 pt-3 pb-4 space-y-4">
 
           {/* Item Details */}
           <Section title="Item Details" sectionKey="details" open={openSections.has("details")} onToggle={toggleSection}>
