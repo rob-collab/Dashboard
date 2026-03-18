@@ -28,6 +28,7 @@ import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { api } from "@/lib/api-client";
 import { cn, formatDateShort } from "@/lib/utils";
 import type { Action, ActionStatus } from "@/lib/types";
+import PanelPortal from "@/components/common/PanelPortal";
 import { toast } from "sonner";
 import ActionUpdateForm from "./ActionUpdateForm";
 import ActionAccountabilityTimeline from "./ActionAccountabilityTimeline";
@@ -292,6 +293,7 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
   const dateChangeCount = (action.changes || []).filter((c) => c.fieldChanged === "dueDate").length;
 
   return (
+    <PanelPortal>
     <ErrorBoundary>
     <>
       {/* Backdrop */}
@@ -787,5 +789,6 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
       />
     </>
     </ErrorBoundary>
+    </PanelPortal>
   );
 }

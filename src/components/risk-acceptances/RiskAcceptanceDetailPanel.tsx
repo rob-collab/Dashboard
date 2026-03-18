@@ -13,6 +13,7 @@ import ScoreBadge from "@/components/risk-register/ScoreBadge";
 import type { RiskAcceptance, RiskAcceptanceStatus, RiskAcceptanceComment as RAComment } from "@/lib/types";
 import { AutoResizeTextarea } from "@/components/common/AutoResizeTextarea";
 import { RISK_ACCEPTANCE_STATUS_LABELS, RISK_ACCEPTANCE_STATUS_COLOURS, RISK_ACCEPTANCE_SOURCE_LABELS } from "@/lib/types";
+import PanelPortal from "@/components/common/PanelPortal";
 
 interface Props {
   acceptance: RiskAcceptance | null;
@@ -165,6 +166,7 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
   const statusColours = RISK_ACCEPTANCE_STATUS_COLOURS[acceptance.status];
 
   return (
+    <PanelPortal>
     <>
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
@@ -656,5 +658,6 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
         </div>
       </div>
     </>
+    </PanelPortal>
   );
 }

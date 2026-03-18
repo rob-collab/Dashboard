@@ -9,6 +9,7 @@ import IBSOverviewTab from "./IBSOverviewTab";
 import IBSResourceMapTab from "./IBSResourceMapTab";
 import IBSProcessesTab from "./IBSProcessesTab";
 import IBSScenarioTestingTab from "./IBSScenarioTestingTab";
+import PanelPortal from "@/components/common/PanelPortal";
 
 type Tab = "overview" | "resource-map" | "processes" | "scenarios";
 
@@ -39,6 +40,7 @@ export default function IBSDetailPanel({
     : "bg-gray-100 text-gray-500";
 
   return (
+    <PanelPortal>
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
       <div className="bg-gradient-to-r from-updraft-deep to-updraft-bar flex items-start justify-between px-5 py-4 shrink-0">
@@ -97,5 +99,6 @@ export default function IBSDetailPanel({
         )}
       </div>
     </div>
+    </PanelPortal>
   );
 }

@@ -1,6 +1,6 @@
 import { prisma, requireCCRORole, jsonResponse, errorResponse } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
-import { computeMaturity, PROCESS_INCLUDE } from "../../route";
+import { computeMaturity, PROCESS_INCLUDE } from "@/lib/process-utils";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

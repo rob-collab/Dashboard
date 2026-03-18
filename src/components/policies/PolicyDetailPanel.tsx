@@ -13,6 +13,7 @@ import PolicyAuditTab from "./PolicyAuditTab";
 import PolicyConsumerDutyTab from "./PolicyConsumerDutyTab";
 import PolicyFormDialog from "./PolicyFormDialog";
 import PolicyProcessesTab from "./PolicyProcessesTab";
+import PanelPortal from "@/components/common/PanelPortal";
 
 type TabKey = "overview" | "regulations" | "controls" | "obligations" | "consumer-duty" | "processes" | "audit";
 
@@ -70,6 +71,7 @@ export default function PolicyDetailPanel({ policy, onClose, onUpdate }: Props) 
   }
 
   return (
+    <PanelPortal>
     <>
       {/* Backdrop */}
       <div className="fixed inset-0 z-40 bg-black/20" onClick={onClose} />
@@ -171,5 +173,6 @@ export default function PolicyDetailPanel({ policy, onClose, onUpdate }: Props) 
         editPolicy={policy}
       />
     </>
+    </PanelPortal>
   );
 }

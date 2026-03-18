@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { AutoResizeTextarea } from "@/components/common/AutoResizeTextarea";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import PanelPortal from "@/components/common/PanelPortal";
 
 const EVENT_TYPES: RegCalEventType[] = ["DEADLINE", "SUBMISSION", "REVIEW", "CONSULTATION", "INTERNAL_DEADLINE"];
 const SOURCES = ["FCA", "PRA", "DORA", "INTERNAL", "OTHER"];
@@ -129,6 +130,7 @@ export default function RegCalEventDetailPanel({ event, onClose }: RegCalEventDe
   const set = (patch: Partial<typeof EMPTY_FORM>) => setEditForm((f) => ({ ...f, ...patch }));
 
   return (
+    <PanelPortal>
     <>
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/30 z-40" onClick={onClose} aria-hidden="true" />
@@ -314,5 +316,6 @@ export default function RegCalEventDetailPanel({ event, onClose }: RegCalEventDe
         loading={deleting}
       />
     </>
+    </PanelPortal>
   );
 }

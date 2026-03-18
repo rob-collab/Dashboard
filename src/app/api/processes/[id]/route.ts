@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { prisma, requireCCRORole, jsonResponse, errorResponse, validateBody, auditLog } from "@/lib/api-helpers";
 import { serialiseDates } from "@/lib/serialise";
-import { PROCESS_INCLUDE, computeMaturity } from "../route";
+import { PROCESS_INCLUDE, computeMaturity } from "@/lib/process-utils";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

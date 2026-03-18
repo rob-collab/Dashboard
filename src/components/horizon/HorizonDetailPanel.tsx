@@ -12,6 +12,7 @@ import { useAppStore } from "@/lib/store";
 import { AutoResizeTextarea } from "@/components/common/AutoResizeTextarea";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import EntityLink from "@/components/common/EntityLink";
+import PanelPortal from "@/components/common/PanelPortal";
 
 interface Props {
   item: HorizonItem;
@@ -228,6 +229,7 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
   const urgencyStyle = HORIZON_URGENCY_COLOURS[urgency];
 
   return (
+    <PanelPortal>
     <>
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/20 z-40" onClick={handleClose} />
@@ -612,6 +614,7 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
         variant="warning"
       />
     </>
+    </PanelPortal>
   );
 }
 

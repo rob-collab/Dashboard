@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useRouter } from "next/navigation";
+import PanelPortal from "@/components/common/PanelPortal";
 import type { Risk, RiskActionLink, ControlEffectiveness, RiskAppetite, DirectionOfTravel, ActionPriority, RiskRegulationLink } from "@/lib/types";
 import { RISK_ACCEPTANCE_STATUS_LABELS, RISK_ACCEPTANCE_STATUS_COLOURS } from "@/lib/types";
 import { useAppStore } from "@/lib/store";
@@ -374,8 +375,9 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
   const canSave = name.trim() && description.trim() && categoryL1 && categoryL2 && ownerId;
 
   return (
-    <ErrorBoundary>
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <PanelPortal>
+      <ErrorBoundary>
+        <div className="fixed inset-0 z-50 flex justify-end">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/30" onClick={handleCancel} />
 
@@ -1415,8 +1417,9 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
         message="Are you sure you want to delete this risk? This action cannot be undone."
         confirmLabel="Delete risk"
       />
-    </div>
-    </ErrorBoundary>
+        </div>
+      </ErrorBoundary>
+    </PanelPortal>
   );
 }
 

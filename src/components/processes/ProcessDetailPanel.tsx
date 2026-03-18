@@ -22,6 +22,7 @@ import ProcessRegulationsTab from "./ProcessRegulationsTab";
 import ProcessRisksTab from "./ProcessRisksTab";
 import ProcessIBSTab from "./ProcessIBSTab";
 import ProcessFormDialog from "./ProcessFormDialog";
+import PanelPortal from "@/components/common/PanelPortal";
 
 type TabId = "overview" | "steps" | "controls" | "policies" | "regulations" | "risks" | "ibs";
 
@@ -93,6 +94,7 @@ export default function ProcessDetailPanel({ process, onUpdate, onClose }: Props
   }
 
   return (
+    <PanelPortal>
     <>
       {/* Panel */}
       <motion.div
@@ -226,5 +228,6 @@ export default function ProcessDetailPanel({ process, onUpdate, onClose }: Props
         />
       )}
     </>
+    </PanelPortal>
   );
 }

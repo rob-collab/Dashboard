@@ -22,6 +22,7 @@ import MaturityBadge from "@/components/processes/MaturityBadge";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import PanelPortal from "@/components/common/PanelPortal";
 import type { RegulationHistoryEvent } from "@/app/api/compliance/regulations/[id]/history/route";
 
 interface Props {
@@ -298,6 +299,7 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
   if (!regulation) return null;
 
   return (
+    <PanelPortal>
     <div className="w-[40%] min-w-[380px] max-w-[500px] border border-gray-200 rounded-lg bg-white shadow-lg overflow-y-auto max-h-[calc(100vh-200px)] sticky top-4">
       {/* Header */}
       <div className="bg-gradient-to-r from-updraft-deep to-updraft-bar flex items-start justify-between p-4 shrink-0">
@@ -794,6 +796,7 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
         variant="warning"
       />
     </div>
+    </PanelPortal>
   );
 }
 
