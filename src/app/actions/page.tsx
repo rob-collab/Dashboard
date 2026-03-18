@@ -811,7 +811,11 @@ function ActionsPageContent() {
                     {(() => {
                       const onTrack = groupActions.filter((a) => {
                         const days = daysUntilDue(a.dueDate);
-                        return a.status === "COMPLETED" || a.status === "PROPOSED_CLOSED" || days === null || days > 0;
+                        return (
+                          a.status === "COMPLETED" ||
+                          a.status === "PROPOSED_CLOSED" ||
+                          (a.status !== "OVERDUE" && (days === null || days > 0))
+                        );
                       }).length;
                       const pct = groupActions.length > 0 ? Math.round((onTrack / groupActions.length) * 100) : 0;
                       return (

@@ -23,7 +23,7 @@ const URGENCY_ORDER: HorizonUrgency[] = ["HIGH", "MEDIUM", "LOW"];
 const URGENCY_SECTION_STYLES: Record<HorizonUrgency, { label: string; headerBg: string; headerText: string; count: string }> = {
   HIGH:   { label: "HIGH URGENCY",   headerBg: "bg-red-50",     headerText: "text-red-700",    count: "bg-red-100 text-red-700"    },
   MEDIUM: { label: "MEDIUM URGENCY", headerBg: "bg-amber-50",   headerText: "text-amber-700",  count: "bg-amber-100 text-amber-700"  },
-  LOW:    { label: "LOW URGENCY",    headerBg: "bg-emerald-50", headerText: "text-emerald-700", count: "bg-emerald-100 text-emerald-700" },
+  LOW:    { label: "LOW URGENCY",    headerBg: "bg-emerald-100", headerText: "text-emerald-700", count: "bg-emerald-200 text-emerald-700" },
 };
 
 export default function HorizonScanningPage() {

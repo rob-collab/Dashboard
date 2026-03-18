@@ -294,8 +294,8 @@ export default function UsersPage() {
                         </div>
                         <div>
                           <p className="font-medium text-gray-900">{user.name}</p>
-                          <p className="flex items-center gap-1 text-xs text-gray-400">
-                            <Mail size={10} /> {user.email}
+                          <p className="flex items-center gap-1 text-xs text-gray-400 max-w-[200px]" title={user.email}>
+                            <Mail size={10} className="shrink-0" /> <span className="truncate">{user.email}</span>
                           </p>
                         </div>
                       </div>

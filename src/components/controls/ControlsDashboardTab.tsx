@@ -578,7 +578,7 @@ export default function ControlsDashboardTab({ onNavigateToLibrary, onNavigateTo
               <BarChart
                 data={businessAreaChartData}
                 layout="vertical"
-                margin={{ top: 4, right: 20, left: 4, bottom: 4 }}
+                margin={{ top: 4, right: 20, left: 0, bottom: 4 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 11 }} stroke="#9ca3af" />
@@ -587,7 +587,7 @@ export default function ControlsDashboardTab({ onNavigateToLibrary, onNavigateTo
                   dataKey="name"
                   tick={{ fontSize: 11 }}
                   stroke="#9ca3af"
-                  width={120}
+                  width={160}
                 />
                 <Tooltip
                   contentStyle={{
