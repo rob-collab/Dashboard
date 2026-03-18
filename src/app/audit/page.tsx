@@ -363,12 +363,26 @@ function AuditPageContent() {
                     </td>
                     <td className="px-4 py-3">
                       {log.changes ? (
-                        <div className="text-xs text-gray-500 max-w-[200px] truncate">
-                          {Object.entries(log.changes).map(([k, v]) => (
-                            <span key={k} className="mr-2">
-                              <span className="font-medium text-gray-600">{k}:</span> {String(v)}
-                            </span>
-                          ))}
+                        <div className="text-xs text-gray-500 max-w-[200px] space-y-0.5">
+                          {Object.entries(log.changes).map(([k, v]) => {
+                            let display: string;
+                            if (v === null || v === undefined) {
+                              display = "—";
+                            } else if (typeof v === "object" && !Array.isArray(v) && "from" in v && "to" in v) {
+                              const from = (v as { from: unknown }).from;
+                              const to = (v as { to: unknown }).to;
+                              display = `${from ?? "—"} → ${to ?? "—"}`;
+                            } else if (typeof v === "object") {
+                              display = JSON.stringify(v);
+                            } else {
+                              display = String(v);
+                            }
+                            return (
+                              <div key={k} className="truncate" title={`${k}: ${display}`}>
+                                <span className="font-medium text-gray-600">{k}:</span> {display}
+                              </div>
+                            );
+                          })}
                         </div>
                       ) : (
                         <span className="text-xs text-gray-400">—</span>
