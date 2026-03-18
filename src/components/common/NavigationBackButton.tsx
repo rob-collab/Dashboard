@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
-import { ArrowLeft } from "lucide-react";
+import ArrowBackIcon from "@/components/icons/arrow-back-icon";
 
 interface Props {
   sidebarOpen: boolean;
@@ -39,7 +39,7 @@ export default function NavigationBackButton({ sidebarOpen }: Props) {
       style={{ left: sidebarOpen ? "calc(16rem + 1.5rem)" : "calc(4rem + 1.5rem)" }}
       aria-label="Go back"
     >
-      <ArrowLeft size={16} />
+      <ArrowBackIcon size={16} color="currentColor" strokeWidth={2} />
       Back
     </button>
   );

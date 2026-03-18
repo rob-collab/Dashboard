@@ -34,6 +34,21 @@ import {
   Sun,
   Moon,
 } from "lucide-react";
+import LayoutDashboardIcon from "@/components/icons/layout-dashboard-icon";
+import ShieldCheckIcon from "@/components/icons/shield-check";
+import LockIcon from "@/components/icons/lock-icon";
+import GaugeIcon from "@/components/icons/gauge-icon";
+import TargetIcon from "@/components/icons/target-icon";
+import FilterIcon from "@/components/icons/filter-icon";
+import LayersIcon from "@/components/icons/layers-icon";
+import ClockIcon from "@/components/icons/clock-icon";
+import CheckedIcon from "@/components/icons/checked-icon";
+import SendIcon from "@/components/icons/send-icon";
+import FileDescriptionIcon from "@/components/icons/file-description-icon";
+import DownloadIcon from "@/components/icons/download-icon";
+import HistoryCircleIcon from "@/components/icons/history-circle-icon";
+import GearIcon from "@/components/icons/gear-icon";
+import UsersIcon from "@/components/icons/users-icon";
 import { useAppStore } from "@/lib/store";
 import type { User } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -51,49 +66,50 @@ interface SidebarProps {
 
 const ROB_EMAIL = "rob@updraft.com";
 
-type NavItem = { label: string; href: string; icon: typeof LayoutDashboard; permission: PermissionCode; badgeKey?: string };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type NavItem = { label: string; href: string; icon: typeof LayoutDashboard; animatedIcon?: React.ComponentType<any>; permission: PermissionCode; badgeKey?: string };
 type NavGroup = { groupLabel: string | null; items: NavItem[] };
 
 const NAV_GROUPS: NavGroup[] = [
   {
     groupLabel: null,
     items: [
-      { label: "Dashboard", href: "/", icon: LayoutDashboard, permission: "page:dashboard" },
+      { label: "Dashboard", href: "/", icon: LayoutDashboard, animatedIcon: LayoutDashboardIcon, permission: "page:dashboard" },
     ],
   },
   {
     groupLabel: "Risk Management",
     items: [
-      { label: "Risk Register", href: "/risk-register", icon: ShieldAlert, permission: "page:risk-register" },
-      { label: "Risk Acceptances", href: "/risk-acceptances", icon: ShieldQuestion, permission: "page:risk-acceptances", badgeKey: "riskAcceptance" },
+      { label: "Risk Register", href: "/risk-register", icon: ShieldAlert, animatedIcon: ShieldCheckIcon, permission: "page:risk-register" },
+      { label: "Risk Acceptances", href: "/risk-acceptances", icon: ShieldQuestion, animatedIcon: LockIcon, permission: "page:risk-acceptances", badgeKey: "riskAcceptance" },
     ],
   },
   {
     groupLabel: "Compliance & Controls",
     items: [
-      { label: "Compliance", href: "/compliance", icon: Scale, permission: "page:compliance", badgeKey: "compliance" },
-      { label: "Consumer Duty", href: "/consumer-duty", icon: ShieldCheck, permission: "page:consumer-duty" },
-      { label: "Horizon Scanning", href: "/horizon-scanning", icon: Radar, permission: "page:horizon-scanning" },
-      { label: "Controls", href: "/controls", icon: FlaskConical, permission: "page:controls", badgeKey: "controls" },
-      { label: "Processes & IBS", href: "/processes", icon: Layers, permission: "page:compliance", badgeKey: "operationalResilience" },
-      { label: "Reg Calendar", href: "/regulatory-calendar", icon: Calendar, permission: "page:compliance" },
+      { label: "Compliance", href: "/compliance", icon: Scale, animatedIcon: GaugeIcon, permission: "page:compliance", badgeKey: "compliance" },
+      { label: "Consumer Duty", href: "/consumer-duty", icon: ShieldCheck, animatedIcon: ShieldCheckIcon, permission: "page:consumer-duty" },
+      { label: "Horizon Scanning", href: "/horizon-scanning", icon: Radar, animatedIcon: TargetIcon, permission: "page:horizon-scanning" },
+      { label: "Controls", href: "/controls", icon: FlaskConical, animatedIcon: FilterIcon, permission: "page:controls", badgeKey: "controls" },
+      { label: "Processes & IBS", href: "/processes", icon: Layers, animatedIcon: LayersIcon, permission: "page:compliance", badgeKey: "operationalResilience" },
+      { label: "Reg Calendar", href: "/regulatory-calendar", icon: Calendar, animatedIcon: ClockIcon, permission: "page:compliance" },
     ],
   },
   {
     groupLabel: "Execution",
     items: [
-      { label: "Actions", href: "/actions", icon: ListChecks, permission: "page:actions", badgeKey: "actions" },
-      { label: "Change Requests", href: "/change-requests", icon: ArrowLeftRight, permission: "page:actions", badgeKey: "changeRequests" },
+      { label: "Actions", href: "/actions", icon: ListChecks, animatedIcon: CheckedIcon, permission: "page:actions", badgeKey: "actions" },
+      { label: "Change Requests", href: "/change-requests", icon: ArrowLeftRight, animatedIcon: SendIcon, permission: "page:actions", badgeKey: "changeRequests" },
     ],
   },
   {
     groupLabel: "Administration",
     items: [
-      { label: "Reports", href: "/reports", icon: FileText, permission: "page:reports" },
-      { label: "Export Centre", href: "/exports", icon: Download, permission: "page:dashboard" },
-      { label: "Audit Trail", href: "/audit", icon: ClipboardList, permission: "page:audit" },
-      { label: "Settings", href: "/settings", icon: Settings, permission: "page:settings", badgeKey: "settings" },
-      { label: "Users", href: "/users", icon: Users, permission: "page:users" },
+      { label: "Reports", href: "/reports", icon: FileText, animatedIcon: FileDescriptionIcon, permission: "page:reports" },
+      { label: "Export Centre", href: "/exports", icon: Download, animatedIcon: DownloadIcon, permission: "page:dashboard" },
+      { label: "Audit Trail", href: "/audit", icon: ClipboardList, animatedIcon: HistoryCircleIcon, permission: "page:audit" },
+      { label: "Settings", href: "/settings", icon: Settings, animatedIcon: GearIcon, permission: "page:settings", badgeKey: "settings" },
+      { label: "Users", href: "/users", icon: Users, animatedIcon: UsersIcon, permission: "page:users" },
     ],
   },
 ];
@@ -368,6 +384,10 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
                 {visibleItems.map((item) => {
                   const active = isActive(item.href);
                   const Icon = item.icon;
+                  const AnimIcon = item.animatedIcon;
+                  const iconColour = active
+                    ? "text-updraft-light-purple"
+                    : cn(t.textFaint, "group-hover:" + (dark ? "text-white/60" : "text-gray-600"));
                   return (
                     <Link
                       key={item.href}
@@ -384,15 +404,16 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
                       {active && (
                         <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-updraft-light-purple" />
                       )}
-                      <Icon
-                        size={20}
-                        className={cn(
-                          "shrink-0 transition-colors",
-                          active
-                            ? "text-updraft-light-purple"
-                            : cn(t.textFaint, "group-hover:" + (dark ? "text-white/60" : "text-gray-600"))
-                        )}
-                      />
+                      {AnimIcon ? (
+                        <span className={cn("shrink-0 transition-colors", iconColour)}>
+                          <AnimIcon size={20} color="currentColor" strokeWidth={1.75} />
+                        </span>
+                      ) : (
+                        <Icon
+                          size={20}
+                          className={cn("shrink-0 transition-colors", iconColour)}
+                        />
+                      )}
                       {!collapsed && <span className="truncate">{item.label}</span>}
                       {!collapsed && item.badgeKey && (badges[item.badgeKey] ?? 0) > 0 && (
                         <span className="ml-auto rounded-full bg-red-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center px-1">
