@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-const BASE_TITLE = "Updraft CCRO Dashboard";
+const BASE_TITLE = "Meridian";
 
 export function usePageTitle(pageTitle?: string) {
   useEffect(() => {

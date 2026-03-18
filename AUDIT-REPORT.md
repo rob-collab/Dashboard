@@ -1,4 +1,4 @@
-# Comprehensive Audit Report — CCRO Dashboard
+# Comprehensive Audit Report — Meridian
 
 **Date:** 18 February 2026
 **Scope:** Full application audit — code quality, data integrity, security, UX, feature consistency, database
@@ -7,7 +7,7 @@
 
 ## Executive Summary
 
-The CCRO Dashboard is architecturally sound with a well-designed Prisma schema (8.1/10), comprehensive seed data, and a consistent UI pattern library. However, six audit streams have uncovered **3 critical**, **8 high**, and **12 medium** issues that need attention before the platform can be considered production-ready for executive reliance.
+The Meridian is architecturally sound with a well-designed Prisma schema (8.1/10), comprehensive seed data, and a consistent UI pattern library. However, six audit streams have uncovered **3 critical**, **8 high**, and **12 medium** issues that need attention before the platform can be considered production-ready for executive reliance.
 
 The most urgent findings are:
 

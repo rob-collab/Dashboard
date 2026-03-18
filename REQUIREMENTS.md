@@ -1,4 +1,4 @@
-# CCRO Dashboard & Report Management System
+# Meridian & Report Management System
 ## Requirements Document v1.0
 
 **Project:** Updraft CCRO Report Management System  
@@ -232,7 +232,7 @@ Per-Section Styling:
 **Interface Layout:**
 ```
 ┌─────────────────────────────────────────────────────┐
-│  CCRO Dashboard Editor                    [Preview] │
+│  Meridian Editor                    [Preview] │
 ├──────────┬──────────────────────────────────────────┤
 │          │                                           │
 │ SECTIONS │  ┌───────────────────────────────────┐   │

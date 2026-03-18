@@ -1,4 +1,4 @@
-# CCRO Dashboard — Full Audit Report
+# Meridian — Full Audit Report
 Last updated: 2026-02-27
 Audit conducted across: Sprints J and K (this session)
 Prior context: 8 specialist agents ran across the full codebase before this session
@@ -7,7 +7,7 @@ Prior context: 8 specialist agents ran across the full codebase before this sess
 
 ## 1. Scope and Methodology
 
-This audit covered the entire CCRO Dashboard codebase from a security, product-correctness,
+This audit covered the entire Meridian codebase from a security, product-correctness,
 UX, and technical-quality perspective. It was conducted in two phases:
 
 **Phase 1 — Specialist agent sweep (8 agents, all parallel):**

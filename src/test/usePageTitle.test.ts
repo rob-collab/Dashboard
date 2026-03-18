@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { usePageTitle } from "@/lib/usePageTitle";
 
-const BASE = "Updraft CCRO Dashboard";
+const BASE = "Meridian";
 
 afterEach(() => {
   document.title = "";

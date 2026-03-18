@@ -1,4 +1,4 @@
-# CCRO Dashboard — Active Development Plan
+# Meridian — Active Development Plan
 Last updated: 2026-03-01 (Sprint P complete)
 
 ---
@@ -1241,7 +1241,7 @@ must NOT be installed.
 ### Horizon Scanning Module
 
 ### What
-Add a Horizon Scanning module to the CCRO Dashboard — a standalone page and sidebar entry
+Add a Horizon Scanning module to the Meridian — a standalone page and sidebar entry
 giving the CCRO team a structured, searchable, monthly register of regulatory, legislative,
 competitive, and employment developments that may affect Updraft. Replaces the manual Word/
 Excel process.

@@ -242,7 +242,7 @@ describe("resolveAllPermissions", () => {
   it("Set contains only valid PermissionCodes", () => {
     const granted = resolveAllPermissions("OWNER", [], []);
     const valid = new Set(PERMISSION_CODES);
-    for (const code of granted) {
+    for (const code of Array.from(granted)) {
       expect(valid.has(code), `unexpected code in result: ${code}`).toBe(true);
     }
   });

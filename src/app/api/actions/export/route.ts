@@ -135,7 +135,7 @@ function buildHTMLExport(actions: ActionRow[]): string {
   </style>
 </head>
 <body>
-  <h1>CCRO Dashboard — Actions</h1>
+  <h1>Meridian — Actions</h1>
   <p>Exported ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
   <table>
     <thead>

@@ -4,7 +4,7 @@ const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
 
-const FROM_ADDRESS = process.env.EMAIL_FROM || "CCRO Dashboard <noreply@updraft.com>";
+const FROM_ADDRESS = process.env.EMAIL_FROM || "Meridian <noreply@updraft.com>";
 
 interface ActionEmailData {
   actionTitle: string;
@@ -62,7 +62,7 @@ export async function sendActionAssigned(
       html: `
         <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
           <div style="background: linear-gradient(135deg, #1a1060, #4f46e5); padding: 20px 24px; border-radius: 12px 12px 0 0;">
-            <h1 style="color: white; font-size: 18px; margin: 0;">CCRO Dashboard — New Action</h1>
+            <h1 style="color: white; font-size: 18px; margin: 0;">Meridian — New Action</h1>
           </div>
           <div style="border: 1px solid #e5e7eb; border-top: none; padding: 24px; border-radius: 0 0 12px 12px;">
             <p style="color: #374151; font-size: 14px;">Hi ${assignee.name},</p>
@@ -110,24 +110,24 @@ export async function sendUserInvite(
     await resend.emails.send({
       from: FROM_ADDRESS,
       to: data.recipientEmail,
-      subject: "You've been added to the Updraft CCRO Management Tool",
+      subject: "You've been added to Meridian",
       html: `
         <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
           <div style="background: linear-gradient(135deg, #1a1060, #4f46e5); padding: 24px; border-radius: 12px 12px 0 0;">
-            <h1 style="color: white; font-size: 20px; margin: 0; font-weight: 600;">Updraft CCRO Management Tool</h1>
+            <h1 style="color: white; font-size: 20px; margin: 0; font-weight: 600;">Meridian</h1>
             <p style="color: rgba(255,255,255,0.75); font-size: 13px; margin: 6px 0 0 0;">Compliance &amp; Risk Management Platform</p>
           </div>
           <div style="border: 1px solid #e5e7eb; border-top: none; padding: 32px 24px; border-radius: 0 0 12px 12px; background: #ffffff;">
             <p style="color: #374151; font-size: 15px; margin: 0 0 16px 0;">Hi ${firstName},</p>
             <p style="color: #374151; font-size: 14px; line-height: 1.6; margin: 0 0 16px 0;">
-              You have been added to the <strong>Updraft CCRO Management Tool</strong> — our centralised platform for compliance monitoring, risk management, regulatory tracking, and Consumer Duty oversight.
+              You have been added to <strong>Meridian</strong> — our centralised platform for compliance monitoring, risk management, regulatory tracking, and Consumer Duty oversight.
             </p>
             <p style="color: #374151; font-size: 14px; line-height: 1.6; margin: 0 0 24px 0;">
               You can sign in using your Google account associated with this email address. Please use the button below to access the platform.
             </p>
             <div style="text-align: center; margin: 28px 0;">
               <a href="${data.appUrl}" style="display: inline-block; background: linear-gradient(135deg, #1a1060, #4f46e5); color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; letter-spacing: 0.01em;">
-                Access the CCRO Tool
+                Access Meridian
               </a>
             </div>
             <div style="border-top: 1px solid #f3f4f6; padding-top: 20px; margin-top: 24px;">
@@ -179,7 +179,7 @@ export async function sendActionReminder(
       html: `
         <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
           <div style="background: linear-gradient(135deg, #1a1060, #4f46e5); padding: 20px 24px; border-radius: 12px 12px 0 0;">
-            <h1 style="color: white; font-size: 18px; margin: 0;">CCRO Dashboard — Action Reminder</h1>
+            <h1 style="color: white; font-size: 18px; margin: 0;">Meridian — Action Reminder</h1>
           </div>
           <div style="border: 1px solid #e5e7eb; border-top: none; padding: 24px; border-radius: 0 0 12px 12px;">
             <p style="color: #374151; font-size: 14px;">Hi ${assignee.name},</p>
@@ -232,7 +232,7 @@ export async function sendRiskAcceptanceApprovalRequest(
       html: `
         <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
           <div style="background: linear-gradient(135deg, #311B92, #673AB7); padding: 20px 24px; border-radius: 12px 12px 0 0;">
-            <h1 style="color: white; font-size: 18px; margin: 0;">CCRO Dashboard — Approval Required</h1>
+            <h1 style="color: white; font-size: 18px; margin: 0;">Meridian — Approval Required</h1>
           </div>
           <div style="border: 1px solid #e5e7eb; border-top: none; padding: 24px; border-radius: 0 0 12px 12px;">
             <p style="color: #374151; font-size: 14px;">Hi ${approver.name},</p>
@@ -278,7 +278,7 @@ export async function sendRiskAcceptanceDecision(
       html: `
         <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
           <div style="background: linear-gradient(135deg, ${approved ? "#065F46, #059669" : "#7F1D1D, #DC2626"}); padding: 20px 24px; border-radius: 12px 12px 0 0;">
-            <h1 style="color: white; font-size: 18px; margin: 0;">CCRO Dashboard — Risk Acceptance ${approved ? "Approved" : "Rejected"}</h1>
+            <h1 style="color: white; font-size: 18px; margin: 0;">Meridian — Risk Acceptance ${approved ? "Approved" : "Rejected"}</h1>
           </div>
           <div style="border: 1px solid #e5e7eb; border-top: none; padding: 24px; border-radius: 0 0 12px 12px;">
             <p style="color: #374151; font-size: 14px;">Hi ${proposer.name},</p>

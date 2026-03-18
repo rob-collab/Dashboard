@@ -1,4 +1,4 @@
-# CCRO Dashboard — Claude Instructions
+# Meridian — Claude Instructions
 
 ## Step 0a: Decompose the Message First
 

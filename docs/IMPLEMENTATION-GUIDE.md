@@ -1,4 +1,4 @@
-# Updraft CCRO Dashboard — Implementation Guide
+# Meridian — Implementation Guide
 
 **For:** Rob (Developer) & Team
 **Version:** 0.1.0 — February 2025

@@ -1,4 +1,4 @@
-# Updraft CCRO Dashboard — System Context Document
+# Meridian — System Context Document
 
 > **Purpose:** This document describes the full system as built. Use it as context when scoping new features, planning changes, or answering questions about how the platform works.
 >

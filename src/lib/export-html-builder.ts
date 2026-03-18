@@ -1,5 +1,5 @@
 /**
- * CCRO Dashboard — Interactive HTML Export Builder
+ * Meridian — Interactive HTML Export Builder
  * Generates fully self-contained HTML packs with inline CSS, inline SVG charts,
  * and optional inline JavaScript for interactive features (expandable rows,
  * live search, TOC scroll-spy, section fold, print mode).

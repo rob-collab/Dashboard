@@ -238,7 +238,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
               >
                 <Menu size={20} className="text-gray-600" />
               </button>
-              <span className="flex-1 text-sm font-semibold text-updraft-deep font-poppins">CCRO Dashboard</span>
+              <span className="flex-1 text-sm font-semibold text-updraft-deep font-poppins">Meridian</span>
               <button
                 type="button"
                 onClick={() => setSearchOpen(true)}
@@ -320,10 +320,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <title>Updraft CCRO Dashboard</title>
+        <title>Meridian</title>
         <meta name="description" content="Chief Compliance & Risk Officer Dashboard — governance, risk and controls management" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta property="og:title" content="Updraft CCRO Dashboard" />
+        <meta property="og:title" content="Meridian" />
         <meta property="og:description" content="Chief Compliance & Risk Officer Dashboard" />
         <meta property="og:type" content="website" />
         <link rel="icon" href="/helloupdraft_logo.jpeg" />

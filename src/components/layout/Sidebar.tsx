@@ -309,7 +309,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/logo.png"
-          alt="Updraft CCRO Dashboard"
+          alt="Meridian"
           className={cn(
             "w-full object-contain transition-all duration-300 ease-in-out",
             t.logoFilter,

@@ -21,7 +21,7 @@ function LoginForm() {
             className="mb-4 h-16 w-16 rounded-xl"
           />
           <h1 className="font-poppins text-xl font-bold text-updraft-deep">
-            CCRO Dashboard
+            Meridian
           </h1>
           <p className="mt-1 text-sm text-gray-500">
             Sign in to continue

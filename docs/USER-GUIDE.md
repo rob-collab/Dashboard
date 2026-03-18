@@ -1,4 +1,4 @@
-# Updraft CCRO Dashboard — User Guide
+# Meridian — User Guide
 
 **For:** Cath (CCRO) & the wider team
 **Written in:** Plain English, British spelling
@@ -33,7 +33,7 @@
 
 ## 1. What Is This?
 
-The Updraft CCRO Dashboard is a tool for building, managing, and publishing your monthly CCRO reports. Instead of assembling reports in PowerPoint or Word, you build them in the browser — adding text, tables, charts, images, and Consumer Duty data as modular sections that you can drag around, style, and publish.
+The Meridian is a tool for building, managing, and publishing your monthly CCRO reports. Instead of assembling reports in PowerPoint or Word, you build them in the browser — adding text, tables, charts, images, and Consumer Duty data as modular sections that you can drag around, style, and publish.
 
 **Key things it does:**
 - Lets you build reports from reusable building blocks (sections)

@@ -13,7 +13,7 @@ interface TipEntry {
 
 const ROLE_TIPS: Record<string, { heading: string; subheading: string; tips: TipEntry[] }> = {
   CCRO_TEAM: {
-    heading: "Welcome to the CCRO Dashboard",
+    heading: "Welcome to Meridian",
     subheading: "You have full access as a CCRO team member. Here's what to do first.",
     tips: [
       { icon: Shield, colour: "text-red-500", text: "Check the Action Required panel for urgent items needing your attention." },
@@ -23,7 +23,7 @@ const ROLE_TIPS: Record<string, { heading: string; subheading: string; tips: Tip
     ],
   },
   OWNER: {
-    heading: "Welcome to the CCRO Dashboard",
+    heading: "Welcome to Meridian",
     subheading: "You are logged in as a Risk Owner. Here's what you can do.",
     tips: [
       { icon: ListChecks, colour: "text-amber-500", text: "Check your Actions — any overdue or high priority items will show here." },
@@ -33,7 +33,7 @@ const ROLE_TIPS: Record<string, { heading: string; subheading: string; tips: Tip
     ],
   },
   REVIEWER: {
-    heading: "Welcome to the CCRO Dashboard",
+    heading: "Welcome to Meridian",
     subheading: "You are logged in as a Reviewer. Here's what to focus on.",
     tips: [
       { icon: Scale, colour: "text-indigo-500", text: "Browse the Compliance section to review regulations and policy coverage." },

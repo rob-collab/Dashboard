@@ -1,6 +1,6 @@
 {
-  "name": "Updraft CCRO Dashboard",
-  "short_name": "CCRO",
+  "name": "Meridian",
+  "short_name": "Meridian",
   "description": "Chief Compliance & Risk Officer Dashboard",
   "start_url": "/",
   "display": "standalone",

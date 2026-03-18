@@ -254,7 +254,7 @@ export default function BrandingSettings() {
             {/* Simulated text */}
             <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white">
               <div className="text-sm font-bold">Welcome back, User</div>
-              <div className="text-[10px] text-white/60 mt-0.5">Updraft CCRO Dashboard</div>
+              <div className="text-[10px] text-white/60 mt-0.5">Meridian</div>
             </div>
             {/* Draggable icon on the right side */}
             {/* eslint-disable-next-line @next/next/no-img-element */}

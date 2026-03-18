@@ -1,4 +1,4 @@
-# CCRO Dashboard — UX Audit Report
+# Meridian — UX Audit Report
 
 **Date:** 22 February 2026
 **Audited by:** Automated UX review (5 parallel agents)

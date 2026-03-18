@@ -1,4 +1,4 @@
-# CCRO Dashboard — Design Audit
+# Meridian — Design Audit
 **Date:** 2026-03-01
 **Auditors:** Animation Audit Agent, UX Quality Agent, UI Visual Craft Agent
 **Methodology:** Full codebase read across all pages and components, evaluated against the D-series design contract (`tasks/patterns.md`), the designer-agent philosophy (`/.claude/agents/designer-agent.md`), UX psychology principles (cognitive load, feedback loops, Hick's Law, Peak-end rule), and UI visual craft standards (8pt grid, 60-30-10 colour, systematic type scale, GPU-accelerated motion).

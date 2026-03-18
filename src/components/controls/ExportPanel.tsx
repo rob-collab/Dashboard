@@ -349,7 +349,7 @@ function generateHTMLSummary(
     <!-- Footer -->
     <hr style="border:none;border-top:1px solid #e5e7eb;margin:32px 0 16px;">
     <p style="font-size:11px;color:#9ca3af;margin:0;">
-      Generated on ${timestamp} &middot; Updraft CCRO Dashboard
+      Generated on ${timestamp} &middot; Meridian
     </p>
   </div>
 </body>
