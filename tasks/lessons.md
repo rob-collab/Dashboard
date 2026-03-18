@@ -728,6 +728,14 @@ so there is a clear trail of what was absorbed into the permanent process.
 
 ---
 
+### L024 — Exact-string sed patterns miss variant display names during global renames
+**What happened:** When renaming "CCRO Dashboard" → "Meridian", sed patterns targeted `"CCRO Dashboard"` and `"Updraft CCRO Dashboard"` exactly. A third variant — `"Updraft CCRO Report Management Dashboard"` — in `_useDashboardSectionMap.tsx` was not caught. Also missed: `"CCRO Report"` and `"CCRO Report Export Metadata"` in export-html.ts.
+**Rule:** For any global rename, do NOT rely solely on targeted sed patterns. After running the sed pass, always run a secondary broad grep against the old brand name across all source files (`grep -r "CCRO" src/ --include="*.tsx" --include="*.ts"`) and scan the results for any display-string occurrences that differ from the exact patterns used. Confirm visually that NO user-visible strings remain.
+**Trigger:** Any rename of a system name, product name, or brand string across the codebase.
+**Status:** Active.
+
+---
+
 ### W025 — useDashboardSectionMap hook pattern for large sectionMaps
 **What happened:** Sprint O O1 — page.tsx had a 1079-line sectionMap inline. Extracted to `_useDashboardSectionMap.tsx` as a plain function (not a real hook) that takes all needed state as a props object and returns `Record<string, React.ReactNode>`.
 **Pattern:**
