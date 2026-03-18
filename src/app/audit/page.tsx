@@ -33,13 +33,24 @@ const ACTION_LABELS: Record<string, { label: string; color: string }> = {
   create_template: { label: "Create Template", color: "bg-green-100 text-green-700" },
   update_template: { label: "Update Template", color: "bg-blue-100 text-blue-700" },
   delete_template: { label: "Delete Template", color: "bg-red-100 text-red-700" },
-  duplicate_template: { label: "Duplicate Template", color: "bg-teal-100 text-teal-700" },
+  duplicate_template: { label: "Dupe Template", color: "bg-teal-100 text-teal-700" },
   import_component: { label: "Import Component", color: "bg-cyan-100 text-cyan-700" },
   delete_component: { label: "Delete Component", color: "bg-red-100 text-red-700" },
-  duplicate_component: { label: "Duplicate Component", color: "bg-teal-100 text-teal-700" },
+  duplicate_component: { label: "Dupe Component", color: "bg-teal-100 text-teal-700" },
   add_user: { label: "Add User", color: "bg-green-100 text-green-700" },
   update_user: { label: "Update User", color: "bg-blue-100 text-blue-700" },
-  toggle_user_status: { label: "Toggle User Status", color: "bg-amber-100 text-amber-700" },
+  toggle_user_status: { label: "Toggle Status", color: "bg-amber-100 text-amber-700" },
+  update_regulation_compliance: { label: "Update Reg", color: "bg-blue-100 text-blue-700" },
+  link_regulation_control: { label: "Link Control", color: "bg-indigo-100 text-indigo-700" },
+  unlink_regulation_control: { label: "Unlink Control", color: "bg-orange-100 text-orange-700" },
+  link_regulation_policy: { label: "Link Policy", color: "bg-indigo-100 text-indigo-700" },
+  unlink_regulation_policy: { label: "Unlink Policy", color: "bg-orange-100 text-orange-700" },
+  update_risk: { label: "Update Risk", color: "bg-blue-100 text-blue-700" },
+  create_risk: { label: "Create Risk", color: "bg-green-100 text-green-700" },
+  update_action: { label: "Update Action", color: "bg-blue-100 text-blue-700" },
+  create_action: { label: "Create Action", color: "bg-green-100 text-green-700" },
+  update_control: { label: "Update Control", color: "bg-blue-100 text-blue-700" },
+  update_risk_acceptance: { label: "Update RA", color: "bg-blue-100 text-blue-700" },
 };
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -345,7 +356,7 @@ function AuditPageContent() {
                       <span className="text-xs text-gray-500">{ROLE_LABELS[log.userRole] ?? log.userRole}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold", badge.color)}>
+                      <span className={cn("inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold", badge.color)}>
                         {badge.label}
                       </span>
                     </td>
