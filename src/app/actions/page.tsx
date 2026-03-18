@@ -281,6 +281,15 @@ function ActionsPageContent() {
           : action.status;
       map.get(effectiveStatus)?.push(action);
     }
+    // Within each group: dated actions first (ascending), then undated (alphabetical)
+    map.forEach((actions) => {
+      actions.sort((a, b) => {
+        if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
+        if (a.dueDate) return -1;
+        if (b.dueDate) return 1;
+        return a.title.localeCompare(b.title);
+      });
+    });
     return map;
   }, [filteredActions]);
 

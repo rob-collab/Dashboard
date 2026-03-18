@@ -290,7 +290,7 @@ export default function RiskAcceptancesPage() {
         <div className="flex items-center justify-between gap-2">
           {[
             { label: "Proposed", icon: <ShieldQuestion size={16} />, colour: "bg-blue-100 text-blue-700" },
-            { label: "CCRO Review", icon: <Search size={16} />, colour: "bg-purple-100 text-purple-700" },
+            { label: "CCRO Review", icon: <Search size={16} />, colour: "bg-updraft-pale-purple text-updraft-bright-purple" },
             { label: "Awaiting Approval", icon: <Clock size={16} />, colour: "bg-amber-100 text-amber-700" },
             { label: "Approved", icon: <Check size={16} />, colour: "bg-green-100 text-green-700" },
           ].map((step, i) => (
@@ -448,7 +448,7 @@ export default function RiskAcceptancesPage() {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-800 truncate max-w-[200px]">{ra.title}</p>
+                      <p className="text-sm text-gray-800 truncate max-w-[280px]" title={ra.title}>{ra.title}</p>
                     </td>
                     <td className="py-3 px-3">
                       <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{RISK_ACCEPTANCE_SOURCE_LABELS[ra.source]}</span>
