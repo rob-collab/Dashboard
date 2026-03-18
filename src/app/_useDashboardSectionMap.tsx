@@ -230,7 +230,7 @@ export function useDashboardSectionMap(props: SectionMapProps): Record<string, R
               Welcome back, {currentUser?.name || "User"}
             </h1>
             <p className="mt-1 text-white/60 text-sm">
-              Updraft CCRO Report Management Dashboard
+              Meridian
             </p>
 
             {/* Notification pills — unified, permission-based */}

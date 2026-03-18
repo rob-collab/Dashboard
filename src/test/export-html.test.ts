@@ -165,12 +165,12 @@ describe("generateHTMLExport — HTML escaping", () => {
 
 describe("generateHTMLExport — options", () => {
   it("includes metadata HTML comments by default", () => {
-    expect(gen()).toContain("<!-- CCRO Report Export Metadata -->");
+    expect(gen()).toContain("<!-- Meridian Report Export Metadata -->");
   });
 
   it("omits metadata comments when includeMetadata is false", () => {
     expect(gen([], [], { includeMetadata: false })).not.toContain(
-      "<!-- CCRO Report Export Metadata -->"
+      "<!-- Meridian Report Export Metadata -->"
     );
   });
 

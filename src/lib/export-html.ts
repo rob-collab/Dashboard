@@ -35,7 +35,7 @@ export function generateHTMLExport(
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(report.title)} - ${escapeHtml(report.period)}</title>
   ${opts.includeMetadata ? `
-  <!-- CCRO Report Export Metadata -->
+  <!-- Meridian Report Export Metadata -->
   <!-- Report: ${escapeHtml(report.title)} -->
   <!-- Period: ${escapeHtml(report.period)} -->
   <!-- Published: ${publishDate} -->
@@ -57,7 +57,7 @@ export function generateHTMLExport(
     ${branding?.logoSrc && branding.showInHeader ? `<div class="header-logo"><img src="${branding.logoSrc}" alt="${escapeHtml(branding.logoAlt)}" style="width:${branding.logoWidth}px;object-fit:contain" /></div>` : ""}
     <h1>${escapeHtml(report.title)}</h1>
     <p class="period">${escapeHtml(report.period)}</p>
-    <p class="meta">${branding?.companyName ? escapeHtml(branding.companyName) + " — " : ""}CCRO Report</p>
+    <p class="meta">${branding?.companyName ? escapeHtml(branding.companyName) + " — " : ""}Meridian Report</p>
   </header>
 
   <main class="report-content">
