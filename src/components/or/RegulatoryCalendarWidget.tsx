@@ -135,8 +135,6 @@ export default function RegulatoryCalendarWidget() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Calendar size={18} className="text-updraft-bright-purple" />
-          <h3 className="font-poppins font-semibold text-gray-900 text-base">Regulatory Calendar</h3>
           {upcoming.length > 0 && (
             <span className="text-xs bg-updraft-pale-purple/30 text-updraft-deep px-2 py-0.5 rounded-full font-medium">
               {upcoming.length} upcoming

@@ -26,6 +26,7 @@ interface SectionDef {
   label: string;
   description: string;
   getCount: (store: ReturnType<typeof useAppStore.getState>) => number;
+  countLabel?: string;
   filters?: FilterField[];
 }
 
@@ -105,8 +106,9 @@ const SECTIONS: SectionDef[] = [
   {
     key: "consumer_duty",
     label: "Consumer Duty Dashboard",
-    description: "Four outcome areas with RAG status and narrative",
+    description: "All five outcome areas with RAG status, measures and narrative",
     getCount: (s) => s.outcomes.length,
+    countLabel: "outcomes",
   },
   {
     key: "or_resilience",
@@ -445,7 +447,7 @@ export default function ExportCentrePage() {
                         <span className="text-sm font-medium text-gray-900">{sec.label}</span>
                         {count > 0 && (
                           <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                            {count === 1 && sec.key === "executive_summary" ? "summary" : `${count} items`}
+                            {sec.key === "executive_summary" ? "summary" : `${count} ${sec.countLabel ?? "items"}`}
                           </span>
                         )}
                       </div>
