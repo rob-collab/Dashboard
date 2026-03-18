@@ -586,7 +586,7 @@ function ConsumerDutyContent() {
             <p className="text-xs text-fca-gray">Green Measures</p>
           </div>
           <AnimatedNumber value={measureGoodCount} className="text-2xl font-bold text-risk-green mt-1" />
-          <p className="text-xs text-fca-gray mt-1">{goodCount} green outcome{goodCount !== 1 ? "s" : ""}</p>
+          <p className="text-xs text-fca-gray mt-1">across {goodCount} outcome{goodCount !== 1 ? "s" : ""}</p>
         </button>
         <button
           onClick={() => { setMeasureRagFilter("WARNING"); handleStatRagClick("ALL"); setLastClickedSection("measures"); }}
@@ -600,7 +600,7 @@ function ConsumerDutyContent() {
             <p className="text-xs text-fca-gray">Amber Measures</p>
           </div>
           <AnimatedNumber value={measureWarningCount} className="text-2xl font-bold text-risk-amber mt-1" />
-          <p className="text-xs text-fca-gray mt-1">{warningCount} amber outcome{warningCount !== 1 ? "s" : ""}</p>
+          <p className="text-xs text-fca-gray mt-1">across {warningCount} outcome{warningCount !== 1 ? "s" : ""}</p>
         </button>
         <button
           onClick={() => { setMeasureRagFilter("HARM"); handleStatRagClick("ALL"); setLastClickedSection("measures"); }}
@@ -614,7 +614,7 @@ function ConsumerDutyContent() {
             <p className="text-xs text-fca-gray">Red Measures</p>
           </div>
           <AnimatedNumber value={measureHarmCount} className="text-2xl font-bold text-risk-red mt-1" />
-          <p className="text-xs text-fca-gray mt-1">{harmCount} red outcome{harmCount !== 1 ? "s" : ""}</p>
+          <p className="text-xs text-fca-gray mt-1">across {harmCount} outcome{harmCount !== 1 ? "s" : ""}</p>
         </button>
       </div>
       </ScrollReveal>
