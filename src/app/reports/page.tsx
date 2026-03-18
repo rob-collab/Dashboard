@@ -341,7 +341,11 @@ function ReportsPageContent() {
           <FileText className="h-12 w-12 text-gray-300 mx-auto" />
           <h3 className="mt-3 text-lg font-medium text-fca-dark-gray">No reports found</h3>
           <p className="text-sm text-fca-gray mt-1">
-            {searchQuery ? "Try a different search term" : "Create your first report to get started"}
+            {searchQuery
+              ? "Try a different search term"
+              : isCCROTeam
+              ? "Create your first report to get started"
+              : "No published reports are available yet"}
           </p>
         </div>
       )}
