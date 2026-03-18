@@ -49,6 +49,7 @@ import DownloadIcon from "@/components/icons/download-icon";
 import HistoryCircleIcon from "@/components/icons/history-circle-icon";
 import GearIcon from "@/components/icons/gear-icon";
 import UsersIcon from "@/components/icons/users-icon";
+import LoopingIcon from "@/components/icons/LoopingIcon";
 import { useAppStore } from "@/lib/store";
 import type { User } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -364,7 +365,9 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
-        {NAV_GROUPS.map((group, gi) => {
+        {(() => {
+          let navItemIndex = 0;
+          return NAV_GROUPS.map((group, gi) => {
           const visibleItems = group.items.filter((item) => permissionSet.has(item.permission));
           if (visibleItems.length === 0) return null;
           return (
@@ -385,6 +388,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
                   const active = isActive(item.href);
                   const Icon = item.icon;
                   const AnimIcon = item.animatedIcon;
+                  const staggerDelay = (navItemIndex++) * 120;
                   const iconColour = active
                     ? "text-updraft-light-purple"
                     : cn(t.textFaint, "group-hover:" + (dark ? "text-white/60" : "text-gray-600"));
@@ -406,7 +410,8 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
                       )}
                       {AnimIcon ? (
                         <span className={cn("shrink-0 transition-colors", iconColour)}>
-                          <AnimIcon size={20} color="currentColor" strokeWidth={1.75} />
+                          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                          <LoopingIcon icon={AnimIcon as any} size={20} color="currentColor" strokeWidth={1.75} initialDelay={staggerDelay} />
                         </span>
                       ) : (
                         <Icon
@@ -429,7 +434,8 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
               </div>
             </div>
           );
-        })}
+        });
+        })()}
       </nav>
 
       {/* Refresh & Collapse */}
