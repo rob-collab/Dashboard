@@ -20,6 +20,12 @@ import GlobalSearch from "@/components/common/GlobalSearch";
 import KeyboardShortcutsModal from "@/components/common/KeyboardShortcutsModal";
 import NotificationDrawer, { useNotificationCount } from "@/components/common/NotificationDrawer";
 
+const LOADING_MESSAGES = [
+  "Connecting to your workspace...",
+  "Loading your data...",
+  "Almost ready...",
+] as const;
+
 function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const prefersReduced = useReducedMotion();
@@ -29,6 +35,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
   const notifCount = useNotificationCount();
 
   // Detect mobile breakpoint (< 768px = md)
@@ -161,6 +168,17 @@ function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [hydrated, storeUsers, currentUser, setCurrentUser]);
 
+  // Cycle loading messages while the app is initialising
+  useEffect(() => {
+    const isLoading = status === "loading" || !hydrated || !currentUser;
+    if (!isLoading) return;
+    const t = setInterval(
+      () => setLoadingMsgIdx((i) => (i + 1) % LOADING_MESSAGES.length),
+      2000
+    );
+    return () => clearInterval(t);
+  }, [status, hydrated, currentUser]);
+
   const switchUser = useCallback(
     (u: User) => {
       setCurrentUser(u);
@@ -177,25 +195,42 @@ function AppShell({ children }: { children: React.ReactNode }) {
   // Still loading session or hydrating
   if (status === "loading" || !hydrated || !currentUser) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
+      <div className="relative flex h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-updraft-deep via-updraft-bar to-updraft-bright-purple">
+        {/* Depth orbs */}
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+          <div className="absolute -top-40 -left-40 h-[600px] w-[600px] rounded-full bg-updraft-bright-purple/20 blur-3xl" />
+          <div className="absolute -bottom-40 -right-40 h-[600px] w-[600px] rounded-full bg-purple-950/40 blur-3xl" />
+        </div>
+
+        <div className="relative flex flex-col items-center gap-5 animate-entrance">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/loading-logo.jpeg" alt="Updraft" className="h-14 w-14 rounded-xl object-cover" />
+          <img
+            src="/loading-logo.jpeg"
+            alt="Updraft"
+            className="h-14 w-14 rounded-2xl ring-2 ring-white/25 shadow-lg object-cover animate-pulse"
+            style={{ animationDuration: "2s" }}
+          />
           {hydrateError ? (
             <>
-              <p className="text-sm font-medium text-red-600">Failed to load data</p>
-              <p className="text-xs text-gray-500 max-w-xs text-center">{hydrateError}</p>
+              <p className="text-sm font-medium text-red-200">Failed to load data</p>
+              <p className="text-xs text-white/75 max-w-xs text-center">{hydrateError}</p>
               <button
                 onClick={() => hydrate()}
-                className="mt-2 rounded-lg bg-updraft-bright-purple px-4 py-2 text-sm font-medium text-white hover:bg-updraft-deep transition-colors"
+                className="mt-2 rounded-lg bg-white/10 border border-white/20 px-4 py-3 text-sm font-medium text-white hover:bg-white/20 transition-colors"
               >
                 Retry
               </button>
             </>
           ) : (
             <>
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-updraft-bright-purple border-t-transparent" />
-              <p className="text-sm text-gray-500">Loading...</p>
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: "0ms" }} />
+                <div className="h-2 w-2 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: "150ms" }} />
+                <div className="h-2 w-2 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: "300ms" }} />
+              </div>
+              <p className="text-sm text-white/75 transition-opacity duration-500">
+                {LOADING_MESSAGES[loadingMsgIdx]}
+              </p>
             </>
           )}
         </div>

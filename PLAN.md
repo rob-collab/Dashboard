@@ -1,9 +1,49 @@
 # Meridian — Active Development Plan
-Last updated: 2026-03-01 (Sprint P complete)
+Last updated: 2026-03-18 (Sprint Q active)
 
 ---
 
-## CURRENT SPRINT: Sprint P — Animation Coverage (All Pages, All Elements) ✅ COMPLETE
+## CURRENT SPRINT: Sprint Q — Login & Loading Screen Visual Redesign
+
+### Design intent
+- **Who:** Employees opening their compliance platform — CCRO daily, OWNER reluctantly, CEO under time pressure. First interaction with the system.
+- **One thing:** The platform must feel trustworthy, polished, and intentional from the very first frame — not like a generic SaaS boilerplate.
+- **Remove:** White box login card, plain spinner, "Loading..." copy, white loading background.
+
+### Conflict check
+⚠️ None identified. Login and loading screens are self-contained; no store, API, or navigation logic is changed.
+
+### Files
+- `src/app/login/page.tsx`
+- `src/app/layout.tsx` (loading state only — lines 178-204)
+
+### Deliverables
+
+#### Q1 — Login page redesign
+- [x] Background: existing purple gradient + 2 decorative blurred orbs for depth
+- [x] Card: frosted glass (`bg-white/[0.07] backdrop-blur-2xl border border-white/20 shadow-glass`) instead of white
+- [x] Logo: `rounded-2xl` + `ring-2 ring-white/25 shadow-lg`
+- [x] Title: `text-white`
+- [x] Subtitle: "Your compliance platform" in `text-white/75`
+- [x] Button: "Continue with Google" + `hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]`
+- [x] Error states: glass-compatible (`bg-red-500/15 border-red-400/25 text-red-200`, session notice `bg-white/10`)
+- [x] Card entrance: `animate-entrance` (slides up, fills `both`)
+- [x] Suspense fallback: gradient + 3 bouncing dots
+- [x] Build passes
+
+#### Q2 — Loading screen redesign
+- [x] Background: same gradient as login (no more plain white)
+- [x] Logo: `rounded-2xl ring-2 ring-white/25 animate-pulse`
+- [x] Spinner replaced with 3 staggered bouncing dots
+- [x] Cycling messages: "Connecting to your workspace..." → "Loading your data..." → "Almost ready..."
+- [x] Error state: `text-red-200`, retry button `bg-white/10 border border-white/20 text-white py-3`
+- [x] Build passes
+
+---
+
+## PREVIOUSLY COMPLETED
+
+## Sprint P — Animation Coverage (All Pages, All Elements) ✅ COMPLETE
 
 ### Context
 

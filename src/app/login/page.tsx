@@ -11,31 +11,39 @@ function LoginForm() {
   const reason = searchParams.get("reason");
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-updraft-deep via-updraft-bar to-updraft-bright-purple">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-2xl">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-updraft-deep via-updraft-bar to-updraft-bright-purple">
+      {/* Decorative depth orbs */}
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div className="absolute -top-40 -left-40 h-[600px] w-[600px] rounded-full bg-updraft-bright-purple/20 blur-3xl" />
+        <div className="absolute -bottom-40 -right-40 h-[600px] w-[600px] rounded-full bg-purple-950/40 blur-3xl" />
+      </div>
+
+      {/* Card */}
+      <div className="relative w-full max-w-sm rounded-2xl bg-white/[0.07] p-8 backdrop-blur-2xl border border-white/20 shadow-glass animate-entrance">
+        {/* Logo + brand */}
         <div className="mb-8 flex flex-col items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/loading-logo.jpeg"
             alt="Updraft"
-            className="mb-4 h-16 w-16 rounded-xl"
+            className="mb-4 h-16 w-16 rounded-2xl ring-2 ring-white/25 shadow-lg object-cover"
           />
-          <h1 className="font-poppins text-xl font-bold text-updraft-deep">
+          <h1 className="font-poppins text-xl font-semibold text-white">
             Meridian
           </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Sign in to continue
+          <p className="mt-1 text-sm text-white/75 text-center">
+            Your compliance platform
           </p>
         </div>
 
         {reason === "session_expired" && (
-          <div className="mb-4 rounded-lg bg-blue-50 p-3 text-center text-sm text-blue-700">
+          <div className="mb-4 rounded-lg bg-white/10 border border-white/20 p-3 text-center text-sm text-white/80">
             Your session has expired. Please sign in again.
           </div>
         )}
 
         {error && (
-          <div className="mb-4 rounded-lg bg-red-50 p-3 text-center text-sm text-red-600">
+          <div className="mb-4 rounded-lg bg-red-500/15 border border-red-400/25 p-3 text-center text-sm text-red-200">
             {error === "AccessDenied"
               ? "Your account does not have access."
               : "Something went wrong. Please try again."}
@@ -44,9 +52,9 @@ function LoginForm() {
 
         <button
           onClick={() => signIn("google", { callbackUrl })}
-          className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+          className="flex w-full items-center justify-center gap-3 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]"
         >
-          <svg className="h-5 w-5" viewBox="0 0 24 24">
+          <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24">
             <path
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
               fill="#4285F4"
@@ -64,7 +72,7 @@ function LoginForm() {
               fill="#EA4335"
             />
           </svg>
-          Sign in with Google
+          Continue with Google
         </button>
       </div>
     </div>
@@ -76,7 +84,11 @@ export default function LoginPage() {
     <Suspense
       fallback={
         <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-updraft-deep via-updraft-bar to-updraft-bright-purple">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-white border-t-transparent" />
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: "0ms" }} />
+            <div className="h-2 w-2 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: "150ms" }} />
+            <div className="h-2 w-2 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: "300ms" }} />
+          </div>
         </div>
       }
     >
