@@ -19,6 +19,8 @@ import { Menu, Search, Bell } from "lucide-react";
 import GlobalSearch from "@/components/common/GlobalSearch";
 import KeyboardShortcutsModal from "@/components/common/KeyboardShortcutsModal";
 import NotificationDrawer, { useNotificationCount } from "@/components/common/NotificationDrawer";
+import { AnimatedGridPattern } from "@/components/ui/animated-grid-pattern";
+import { cn } from "@/lib/utils";
 
 const LOADING_MESSAGES = [
   "Connecting to your workspace...",
@@ -187,7 +189,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
   );
 
   // Auth pages — no sidebar/chrome
-  const isAuthPage = pathname === "/login" || pathname === "/unauthorised";
+  const isAuthPage = pathname === "/login" || pathname === "/unauthorised" || pathname.startsWith("/demo");
   if (isAuthPage) {
     return <>{children}</>;
   }
@@ -240,6 +242,24 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      {/* Global animated grid background — fixed, behind all content */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <AnimatedGridPattern
+          numSquares={30}
+          maxOpacity={0.12}
+          duration={4}
+          repeatDelay={1}
+          style={{
+            fill: "rgba(103,58,183,0.04)",
+            stroke: "rgba(103,58,183,0.07)",
+            color: "#9575CD",
+          }}
+          className={cn(
+            "[mask-image:radial-gradient(900px_circle_at_50%_20%,white,transparent)]",
+            "inset-0 h-full",
+          )}
+        />
+      </div>
       <div className="flex h-screen overflow-hidden">
         {/* Mobile backdrop — closes sidebar on tap outside */}
         {isMobile && sidebarOpen && (

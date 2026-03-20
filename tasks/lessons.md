@@ -736,6 +736,20 @@ so there is a clear trail of what was absorbed into the permanent process.
 
 ---
 
+### W026 — Systematic Playwright visual QA audit across all pages
+**What happened:** Comprehensive visual audit of all 16 pages was run via Playwright MCP in a single sub-agent session. Agent screenshotted every page at 1440×900 as two roles (OWNER, CCRO), producing a 57-issue ranked report.
+**Pattern:**
+- Run a `general-purpose` sub-agent with Playwright access
+- Instruct it to screenshot all pages at 1440×900, both roles, with pauses for animations
+- Ask for a ranked issue report (CRITICAL/HIGH/MEDIUM/LOW) with specific file/line references
+- Triage: ~30% are false alarms (animation timing, intentional design, test DB state)
+- Genuine bugs surface clearly in the top 15 issues
+**Value:** 15 genuine bugs fixed across 10 files in a single session. Much faster than page-by-page review.
+**Caveat:** Run locally (localhost:3000 from `npm run dev`), not against Vercel (requires auth).
+**Status:** Active — repeat this at major sprint boundaries as a sanity pass.
+
+---
+
 ### W025 — useDashboardSectionMap hook pattern for large sectionMaps
 **What happened:** Sprint O O1 — page.tsx had a 1079-line sectionMap inline. Extracted to `_useDashboardSectionMap.tsx` as a plain function (not a real hook) that takes all needed state as a props object and returns `Record<string, React.ReactNode>`.
 **Pattern:**
@@ -745,4 +759,30 @@ so there is a clear trail of what was absorbed into the permanent process.
 - Call hook in parent component — ESLint treats `use*` functions as hooks (must call before early returns)
 - Pass all computed state/callbacks as props — no store reads inside the hook
 **Result:** page.tsx reduced by 1068 lines, all sections remain functional.
+**Status:** Active.
+
+---
+
+### L025 — "Build passes" is not evidence that a feature works
+**What happened:** Added PanelPortal with a `useState(false)` + `useEffect` hydration guard
+to all 9 detail panels. The guard returns `null` on the first render cycle. For conditionally-
+mounted panels (which mount fresh every time a user clicks an entity name), "first render" is
+the ONLY render — so the panel never paints. Ran `npx next build`, saw it pass, declared the
+work done. Shipped a regression to production that broke every detail panel in the app.
+**Root cause:** Applied own judgement about when the process applies instead of following
+it as written. The PanelPortal change was mentally categorised as "trivial wrapper, just
+moving render target" — and that judgement created an unwritten exception to the mandatory
+review gate ("every deliverable, no exceptions"). The process has no size threshold
+precisely because "small" changes can have app-wide blast radius — this one broke all 9
+detail panels. The failure is not forgetting the process or being rushed. It is
+selectively deciding the process doesn't apply to a change that seems small. The process
+is not discretionary. "Every deliverable" means every deliverable.
+**Rule:** After ANY change that alters how a component renders, mounts, or unmounts:
+1. `npx next build` — necessary but not sufficient
+2. Verify the actual user interaction in the browser (click the thing, see it open)
+3. If the component is used in multiple places, verify at least two
+Never ship a rendering change with only a build check. A 10-second manual test would have
+caught this. The build is a gate, not a green light.
+**Trigger:** Any change to portal wrappers, conditional rendering logic, AnimatePresence,
+mount/unmount guards, or component wrappers that sit between a user action and visible output.
 **Status:** Active.
