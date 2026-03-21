@@ -1,17 +1,20 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   CheckCircle2,
-  Clock,
   ShieldCheck,
   Star,
   ArrowRight,
   TrendingUp,
   TrendingDown,
   Minus,
+  Megaphone,
+  RefreshCw,
+  BarChart3,
+  Radio,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { useHasPermission } from "@/lib/usePermission";
@@ -20,7 +23,87 @@ import { cn } from "@/lib/utils";
 import { BentoGrid } from "@/components/ui/bento-grid";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import WelcomeBanner from "@/components/common/WelcomeBanner";
+import type { DashboardNotification, Role } from "@/lib/types";
+
+// ── Time-of-day greeting ──────────────────────────────────────────────────
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12) return "Good morning";
+  if (h >= 12 && h < 17) return "Good afternoon";
+  if (h >= 17 && h < 21) return "Good evening";
+  return "Good night";
+}
+
+// ── Greeting header with broadcast messages ───────────────────────────────
+function GreetingHeader({
+  userName,
+  notifications,
+  role,
+}: {
+  userName: string;
+  notifications: DashboardNotification[];
+  role: string;
+}) {
+  const [greeting] = useState(getGreeting);
+  const now = new Date();
+  const dateLabel = now.toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  const activeMessages = notifications.filter((n) => {
+    if (!n.active) return false;
+    if (n.expiresAt && new Date(n.expiresAt) < now) return false;
+    if (n.targetRoles?.length > 0 && !n.targetRoles.includes(role as Role)) return false;
+    return true;
+  });
+
+  const urgencyStyles: Record<DashboardNotification["type"], string> = {
+    URGENT: "bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800/40 dark:text-red-300",
+    WARNING: "bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-900/20 dark:border-amber-800/40 dark:text-amber-300",
+    INFO: "bg-updraft-pale-purple/30 border-updraft-light-purple/30 text-updraft-deep dark:bg-updraft-bar/10 dark:border-updraft-bar/20 dark:text-updraft-pale-purple",
+  };
+
+  return (
+    <div className="rounded-2xl bg-gradient-to-br from-updraft-deep via-updraft-bar to-updraft-bright-purple p-6 text-white shadow-lg">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="font-poppins text-2xl font-semibold tracking-tight">
+            {greeting}, {userName.split(" ")[0]}.
+          </p>
+          <p className="mt-0.5 text-sm text-white/60">{dateLabel}</p>
+        </div>
+        {/* Subtle logo mark */}
+        <div className="shrink-0 opacity-20">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+            <circle cx="18" cy="18" r="17" stroke="white" strokeWidth="1.5" />
+            <path d="M11 18 L18 10 L25 18 L18 26 Z" stroke="white" strokeWidth="1.5" fill="none" />
+          </svg>
+        </div>
+      </div>
+
+      {/* Broadcast messages */}
+      {activeMessages.length > 0 && (
+        <div className="mt-4 space-y-2">
+          {activeMessages.map((n) => (
+            <div
+              key={n.id}
+              className={cn(
+                "flex items-start gap-2.5 rounded-xl border px-4 py-2.5 text-sm",
+                urgencyStyles[n.type]
+              )}
+            >
+              <Megaphone size={14} className="mt-0.5 shrink-0" />
+              <span>{n.message}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function daysUntilDue(dueDate: string | null): number | null {
   if (!dueDate) return null;
@@ -41,40 +124,6 @@ function riskSeverityLevel(score: number): "critical" | "high" | "medium" | "low
   return "low";
 }
 
-// ── Severity bar ──────────────────────────────────────────────────────────
-function SeverityBar({
-  label,
-  count,
-  total,
-  variant,
-}: {
-  label: string;
-  count: number;
-  total: number;
-  variant: "critical" | "high" | "medium" | "low";
-}) {
-  const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-  const colours = {
-    critical: "bg-red-500",
-    high: "bg-orange-400",
-    medium: "bg-amber-400",
-    low: "bg-emerald-400",
-  };
-  return (
-    <div className="flex items-center gap-3">
-      <span className="w-16 shrink-0 text-xs text-gray-500 dark:text-gray-400">{label}</span>
-      <div className="h-1.5 flex-1 rounded-full bg-gray-100 dark:bg-gray-800">
-        <div
-          className={cn("h-full rounded-full transition-all duration-700", colours[variant])}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span className="w-6 shrink-0 text-right text-xs font-semibold text-gray-700 dark:text-gray-300">
-        {count}
-      </span>
-    </div>
-  );
-}
 
 export default function DashboardHome() {
   usePageTitle("Dashboard");
@@ -87,6 +136,9 @@ export default function DashboardHome() {
   const controls = useAppStore((s) => s.controls);
   const regulations = useAppStore((s) => s.regulations);
   const certifiedPersons = useAppStore((s) => s.certifiedPersons);
+  const notifications = useAppStore((s) => s.notifications);
+  const outcomes = useAppStore((s) => s.outcomes);
+  const horizonItems = useAppStore((s) => s.horizonItems);
 
   const canViewPending = useHasPermission("can:view-pending");
   const hasCompliancePage = useHasPermission("page:compliance");
@@ -188,6 +240,57 @@ export default function DashboardHome() {
   // ── Risks in Focus ────────────────────────────────────────────────────
   const focusRisks = useMemo(() => risks.filter((r) => r.inFocus).slice(0, 5), [risks]);
 
+  // ── Action Needed (personal) ──────────────────────────────────────────
+  const actionNeeded = useMemo(() => {
+    if (!currentUser) return { overdueActions: [], risksNeedingRefresh: [], staleMetrics: [], latestHorizon: null };
+
+    // Overdue actions assigned to me
+    const overdueActions = actions
+      .filter((a) =>
+        a.assignedTo === currentUser.id &&
+        a.status !== "COMPLETED" &&
+        (a.status === "OVERDUE" || (daysUntilDue(a.dueDate) !== null && daysUntilDue(a.dueDate)! <= 0))
+      )
+      .slice(0, 5);
+
+    // My risks needing review
+    const risksNeedingRefresh = risks
+      .filter((r) => {
+        if (r.ownerId !== currentUser.id) return false;
+        if (r.reviewRequested) return true;
+        const lastRev = new Date(r.lastReviewed);
+        const nextReview = new Date(lastRev);
+        nextReview.setDate(nextReview.getDate() + (r.reviewFrequencyDays ?? 90));
+        return Math.ceil((nextReview.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) <= 7;
+      })
+      .slice(0, 4);
+
+    // Consumer Duty metrics I own not updated in 30+ days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const staleMetrics = outcomes
+      .flatMap((o) =>
+        (o.measures ?? [])
+          .filter(
+            (m) =>
+              currentUser.assignedMeasures.includes(m.measureId) &&
+              (!m.lastUpdatedAt || new Date(m.lastUpdatedAt) < thirtyDaysAgo)
+          )
+          .map((m) => ({ ...m, outcomeName: o.name }))
+      )
+      .slice(0, 4);
+
+    // Most recent inFocus or highest-urgency horizon item
+    const latestHorizon =
+      horizonItems.find((h) => h.inFocus && h.urgency === "HIGH") ??
+      horizonItems.find((h) => h.urgency === "HIGH") ??
+      horizonItems.find((h) => h.inFocus) ??
+      horizonItems[0] ??
+      null;
+
+    return { overdueActions, risksNeedingRefresh, staleMetrics, latestHorizon };
+  }, [currentUser, actions, risks, outcomes, horizonItems]);
+
   // ── Loading ───────────────────────────────────────────────────────────
   if (!hydrated) {
     return (
@@ -210,78 +313,147 @@ export default function DashboardHome() {
 
   return (
     <div className="space-y-6 p-6">
-      {currentUser && <WelcomeBanner currentUser={currentUser} />}
+      {currentUser && (
+        <GreetingHeader
+          userName={currentUser.name}
+          notifications={notifications}
+          role={currentUser.role}
+        />
+      )}
 
       <BentoGrid
-        // ── 1. Risk Overview (tall card) ──────────────────────────────
+        // ── 1. Action Needed (tall card — personal) ───────────────────
         overview={
           <Card className="flex h-full flex-col">
             <CardHeader>
-              <CardTitle>Risk Register</CardTitle>
+              <CardTitle>Action Needed</CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-1 flex-col gap-5">
-              {/* Hero number */}
-              <div className="flex items-baseline gap-2">
-                <span className="font-poppins text-6xl font-bold text-gray-900 dark:text-white leading-none">
-                  {riskStats.total}
-                </span>
-                <span className="text-sm text-gray-400">total risks</span>
-              </div>
+            <CardContent className="flex flex-1 flex-col gap-5 overflow-y-auto">
 
-              {/* Severity bars */}
-              <div className="space-y-2.5">
-                <SeverityBar label="Critical" count={riskStats.critical} total={riskStats.total} variant="critical" />
-                <SeverityBar label="High" count={riskStats.high} total={riskStats.total} variant="high" />
-                <SeverityBar label="Medium" count={riskStats.medium} total={riskStats.total} variant="medium" />
-                <SeverityBar label="Low" count={riskStats.low} total={riskStats.total} variant="low" />
-              </div>
+              {/* All clear */}
+              {actionNeeded.overdueActions.length === 0 &&
+               actionNeeded.risksNeedingRefresh.length === 0 &&
+               actionNeeded.staleMetrics.length === 0 && (
+                <div className="flex flex-1 flex-col items-center justify-center gap-2 py-6 text-center">
+                  <CheckCircle2 size={28} className="text-emerald-400" />
+                  <p className="font-medium text-gray-700 dark:text-gray-300">You&apos;re all caught up.</p>
+                  <p className="text-xs text-gray-400">No overdue actions or items requiring your attention.</p>
+                </div>
+              )}
 
-              {/* Divider */}
-              <div className="border-t border-gray-100 dark:border-gray-800" />
-
-              {/* Top risks */}
-              <div className="flex-1 space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">
-                  Top Risks
-                </p>
-                {riskStats.topCritical.length === 0 && (
-                  <p className="text-sm text-gray-400">No critical or high risks.</p>
-                )}
-                {riskStats.topCritical.map((r) => (
-                  <button
-                    key={r.id}
-                    onClick={() => hasRiskPage && router.push(`/risk-register?risk=${r.id}`)}
-                    className="flex w-full items-start gap-2 rounded-lg p-2 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
-                  >
-                    <span
-                      className={cn(
-                        "mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full",
-                        r.level === "critical" ? "bg-red-500" : "bg-orange-400"
-                      )}
-                    />
-                    <span className="flex-1 text-xs text-gray-700 dark:text-gray-300 leading-snug line-clamp-2">
-                      {r.name}
+              {/* ── Overdue actions ── */}
+              {actionNeeded.overdueActions.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle size={12} className="text-red-500" />
+                    <p className="text-xs font-semibold uppercase tracking-widest text-red-500">
+                      Overdue Actions
+                    </p>
+                    <span className="ml-auto font-mono text-xs text-red-400">
+                      {actionNeeded.overdueActions.length}
                     </span>
-                    <span className="shrink-0 font-mono text-xs text-gray-400">{r.reference}</span>
-                  </button>
-                ))}
-              </div>
+                  </div>
+                  {actionNeeded.overdueActions.map((a) => (
+                    <button
+                      key={a.id}
+                      onClick={() => hasActionsPage && router.push(`/actions?edit=${a.id}`)}
+                      className="flex w-full items-start gap-2 rounded-lg border border-red-100 bg-red-50/50 p-2.5 text-left transition-colors hover:bg-red-50 dark:border-red-900/20 dark:bg-red-900/5 dark:hover:bg-red-900/10"
+                    >
+                      <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />
+                      <span className="flex-1 text-xs text-gray-700 dark:text-gray-300 leading-snug line-clamp-2">
+                        {a.title}
+                      </span>
+                      <span className="shrink-0 font-mono text-[10px] text-red-400">{a.reference}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
 
-              {/* Footer */}
-              <div className="flex items-center justify-between border-t border-gray-100 pt-3 dark:border-gray-800">
-                {riskStats.needsReview > 0 && (
-                  <span className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
-                    <Clock size={11} />
-                    {riskStats.needsReview} need review
-                  </span>
-                )}
-                <button
-                  onClick={() => hasRiskPage && router.push("/risk-register")}
-                  className="ml-auto flex items-center gap-1 text-xs font-medium text-updraft-bar hover:text-updraft-deep dark:text-updraft-light-purple transition-colors"
-                >
-                  View register <ArrowRight size={12} />
-                </button>
-              </div>
+              {/* ── Risks needing refresh ── */}
+              {actionNeeded.risksNeedingRefresh.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <RefreshCw size={12} className="text-amber-500" />
+                    <p className="text-xs font-semibold uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                      Risks Due for Review
+                    </p>
+                    <span className="ml-auto font-mono text-xs text-amber-400">
+                      {actionNeeded.risksNeedingRefresh.length}
+                    </span>
+                  </div>
+                  {actionNeeded.risksNeedingRefresh.map((r) => (
+                    <button
+                      key={r.id}
+                      onClick={() => hasRiskPage && router.push(`/risk-register?risk=${r.id}`)}
+                      className="flex w-full items-start gap-2 rounded-lg border border-amber-100 bg-amber-50/50 p-2.5 text-left transition-colors hover:bg-amber-50 dark:border-amber-900/20 dark:bg-amber-900/5 dark:hover:bg-amber-900/10"
+                    >
+                      <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
+                      <span className="flex-1 text-xs text-gray-700 dark:text-gray-300 leading-snug line-clamp-2">
+                        {r.name}
+                      </span>
+                      <span className="shrink-0 font-mono text-[10px] text-amber-400">{r.reference}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* ── Stale metrics ── */}
+              {actionNeeded.staleMetrics.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 size={12} className="text-updraft-bar" />
+                    <p className="text-xs font-semibold uppercase tracking-widest text-updraft-bar dark:text-updraft-light-purple">
+                      Metrics Not Updated
+                    </p>
+                    <span className="ml-auto font-mono text-xs text-updraft-light-purple">
+                      {actionNeeded.staleMetrics.length}
+                    </span>
+                  </div>
+                  {actionNeeded.staleMetrics.map((m) => (
+                    <button
+                      key={m.measureId}
+                      onClick={() => router.push("/consumer-duty")}
+                      className="flex w-full items-start gap-2 rounded-lg border border-updraft-pale-purple/40 bg-updraft-pale-purple/10 p-2.5 text-left transition-colors hover:bg-updraft-pale-purple/20 dark:border-updraft-bar/20 dark:bg-updraft-bar/5 dark:hover:bg-updraft-bar/10"
+                    >
+                      <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-updraft-bar" />
+                      <span className="flex-1 text-xs text-gray-700 dark:text-gray-300 leading-snug line-clamp-2">
+                        {m.measureId} — {m.outcomeName}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* ── Latest horizon update ── */}
+              {actionNeeded.latestHorizon && (
+                <div className="mt-auto space-y-2">
+                  <div className="border-t border-gray-100 pt-4 dark:border-gray-800" />
+                  <div className="flex items-center gap-2">
+                    <Radio size={12} className="text-updraft-bar" />
+                    <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">
+                      Latest Horizon Update
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => router.push("/horizon-scanning")}
+                    className="flex w-full flex-col gap-1 rounded-lg border border-gray-100 bg-gray-50/50 p-3 text-left transition-colors hover:bg-gray-100/50 dark:border-gray-800 dark:bg-gray-800/30 dark:hover:bg-gray-800/50"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-[10px] text-gray-400">{actionNeeded.latestHorizon.reference}</span>
+                      <Badge variant={actionNeeded.latestHorizon.urgency === "HIGH" ? "critical" : actionNeeded.latestHorizon.urgency === "MEDIUM" ? "medium" : "low"}>
+                        {actionNeeded.latestHorizon.urgency}
+                      </Badge>
+                    </div>
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300 line-clamp-2 leading-snug">
+                      {actionNeeded.latestHorizon.title}
+                    </p>
+                    <span className="mt-1 flex items-center gap-1 text-[10px] text-updraft-bar dark:text-updraft-light-purple">
+                      View horizon scanning <ArrowRight size={10} />
+                    </span>
+                  </button>
+                </div>
+              )}
+
             </CardContent>
           </Card>
         }
