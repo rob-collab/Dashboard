@@ -23,6 +23,7 @@ import ProcessRisksTab from "./ProcessRisksTab";
 import ProcessIBSTab from "./ProcessIBSTab";
 import ProcessFormDialog from "./ProcessFormDialog";
 import PanelPortal from "@/components/common/PanelPortal";
+import { GlowMenu } from "@/components/ui/glow-menu";
 
 type TabId = "overview" | "steps" | "controls" | "policies" | "regulations" | "risks" | "ibs";
 
@@ -153,38 +154,17 @@ export default function ProcessDetailPanel({ process, onUpdate, onClose }: Props
             </div>
           </div>
 
-          {/* Tab bar */}
-          <nav className="flex gap-0.5 mt-4 overflow-x-auto scrollbar-none" role="tablist">
-            {TABS.map((tab) => {
-              const count = tabBadge(tab.id);
-              return (
-                <button
-                  key={tab.id}
-                  role="tab"
-                  aria-selected={activeTab === tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    "shrink-0 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap",
-                    activeTab === tab.id
-                      ? "bg-updraft-pale-purple/40 text-updraft-deep font-semibold"
-                      : "text-gray-500 hover:text-updraft-deep hover:bg-gray-50",
-                  )}
-                >
-                  {tab.label}
-                  {count > 0 && (
-                    <span className={cn(
-                      "inline-flex items-center justify-center rounded-full text-[10px] font-bold px-1.5 min-w-[18px] h-[18px]",
-                      activeTab === tab.id
-                        ? "bg-updraft-deep text-white"
-                        : "bg-gray-200 text-gray-600",
-                    )}>
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
+        </div>
+
+        {/* Tab bar */}
+        <div className="bg-white shrink-0 px-5">
+          <GlowMenu
+            items={TABS.map((t) => ({ id: t.id, label: t.label, badge: tabBadge(t.id) || undefined }))}
+            activeId={activeTab}
+            onSelect={(id) => setActiveTab(id as TabId)}
+            size="sm"
+            menuId="process-panel"
+          />
         </div>
 
         {/* Tab content */}

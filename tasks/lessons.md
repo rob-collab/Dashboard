@@ -786,3 +786,36 @@ caught this. The build is a gate, not a green light.
 **Trigger:** Any change to portal wrappers, conditional rendering logic, AnimatePresence,
 mount/unmount guards, or component wrappers that sit between a user action and visible output.
 **Status:** Active.
+
+---
+
+### W027 — Parallel agent execution for large UI-only replacements
+
+**What happened:** GlowMenu sprint replaced 14 independent tab bars. Dispatching two agents in
+parallel (Teammate A: 8 page-level files, Teammate B: 6 panel files) completed the integration
+in ~2 minutes vs. sequential work that would have taken 10–15.
+
+**Why it worked:** Each file touched different modules with no shared state. No git conflicts
+because agents only wrote files — lead session committed. TypeScript caught the one type error
+(compliance/page.tsx `handleTabChange` assignment) at build time, not in agent execution.
+
+**Rule:** For "find and replace" sprints with N≥5 independent single-file changes and a shared
+new dependency (the component), use parallel agents writing only files (no commits) + single
+lead commit after build passes.
+
+**Trigger:** Any sprint where ≥5 files need the same structural change applied independently.
+**Status:** Active.
+
+---
+
+### W028 — Sub-tab visual hierarchy: `size="sm"` for nested tab bars
+
+**What happened:** SMCRTab (sub-tabs inside the Compliance page) initially used default `size="md"`.
+The Designer agent flagged this as a missed opportunity for visual hierarchy — when two tab bars
+are stacked, the primary should be `size="md"` and the secondary should be `size="sm"`.
+
+**Rule:** Any tab bar nested inside another tab's content (sub-tabs) should use `size="sm"`.
+Primary (page-level) navigation: `size="md"`. Secondary (panel/sub-tab): `size="sm"`.
+
+**Trigger:** Any component that renders a GlowMenu inside the content area of another tab.
+**Status:** Active.

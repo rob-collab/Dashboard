@@ -18,6 +18,7 @@ import { RISK_ACCEPTANCE_STATUS_LABELS, RISK_ACCEPTANCE_STATUS_COLOURS, RISK_ACC
 import { usePageTitle } from "@/lib/usePageTitle";
 import ScrollReveal from "@/components/common/ScrollReveal";
 import { MotionTabContent } from "@/components/motion/MotionTabContent";
+import { GlowMenu } from "@/components/ui/glow-menu";
 
 const ALL_STATUSES: RiskAcceptanceStatus[] = ["PROPOSED", "CCRO_REVIEW", "AWAITING_APPROVAL", "APPROVED", "REJECTED", "RETURNED", "EXPIRED"];
 const ALL_SOURCES: RiskAcceptanceSource[] = ["RISK_REGISTER", "CONTROL_TESTING", "INCIDENT", "AD_HOC"];
@@ -306,25 +307,16 @@ export default function RiskAcceptancesPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 border-b border-gray-200">
-        {([
-          { key: "all" as TabKey, label: "All Acceptances" },
-          { key: "needs_action" as TabKey, label: "Needs Action" },
-          { key: "active" as TabKey, label: "Active" },
-          { key: "audit" as TabKey, label: "Audit Trail" },
-        ]).map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={cn(
-              "px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors",
-              tab === t.key ? "border-updraft-bright-purple text-updraft-deep" : "border-transparent text-gray-500 hover:text-gray-700"
-            )}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <GlowMenu
+        items={[
+          { id: "all", label: "All Acceptances" },
+          { id: "needs_action", label: "Needs Action" },
+          { id: "active", label: "Active" },
+          { id: "audit", label: "Audit Trail" },
+        ]}
+        activeId={tab}
+        onSelect={(id) => setTab(id as TabKey)}
+      />
 
       {/* Filters */}
       {tab !== "audit" && (

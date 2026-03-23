@@ -10,6 +10,7 @@ import IBSResourceMapTab from "./IBSResourceMapTab";
 import IBSProcessesTab from "./IBSProcessesTab";
 import IBSScenarioTestingTab from "./IBSScenarioTestingTab";
 import PanelPortal from "@/components/common/PanelPortal";
+import { GlowMenu } from "@/components/ui/glow-menu";
 
 type Tab = "overview" | "resource-map" | "processes" | "scenarios";
 
@@ -62,25 +63,14 @@ export default function IBSDetailPanel({
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-0.5 px-4 border-b border-gray-200 shrink-0 overflow-x-auto">
-        {TABS.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium border-b-2 whitespace-nowrap transition-colors",
-                activeTab === tab.id
-                  ? "border-updraft-bright-purple text-updraft-deep"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              )}
-            >
-              <Icon size={12} />
-              {tab.label}
-            </button>
-          );
-        })}
+      <div className="shrink-0 px-4">
+        <GlowMenu
+          items={TABS.map((t) => ({ id: t.id, label: t.label, icon: t.icon }))}
+          activeId={activeTab}
+          onSelect={(id) => setActiveTab(id as Tab)}
+          size="sm"
+          menuId="ibs-panel"
+        />
       </div>
 
       {/* Content */}

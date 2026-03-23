@@ -3,7 +3,60 @@ Last updated: 2026-03-23
 
 ---
 
-## CURRENT SPRINT: Normalise — Panel Architecture, Focus Styles, Shared Utilities ✅ COMPLETE
+## CURRENT SPRINT: GlowMenu — Unified Animated Tab Bars ✅ COMPLETE
+
+### Design intent
+- **Who**: CCRO and all users navigating the app — switching between tabs on every major page and panel throughout their working day.
+- **One thing**: Every horizontal tab bar must feel consistent, premium, and alive — animated 3D flip on hover with radial glow, unified across all 14 tab bars.
+- **Remove**: The 14 independent copy-paste tab bar implementations. One component replaces all of them.
+
+### ⚠️ Conflict check
+- None. This change replaces only the tab bar rendering, not the underlying tab state, URL sync, or role-filtering logic — all preserved verbatim.
+- G10 (ProcessDetailPanel) moves the tab bar out of the gradient header. This is a structural improvement aligned with IBSDetailPanel and PolicyDetailPanel patterns.
+
+### Files created
+- `src/components/ui/glow-menu.tsx` — new GlowMenu component
+
+### Files changed — 15 integrations
+- `src/app/compliance/page.tsx` (G1 — 8 tabs, text-only, URL sync)
+- `src/app/controls/page.tsx` (G2 — 8 tabs, icons, role-filtered, URL sync)
+- `src/app/settings/page.tsx` (G3 — 9 tabs, text-only, URL sync)
+- `src/app/processes/page.tsx` (G4 — 5 tabs, mixed icons, was manual render)
+- `src/app/risk-register/page.tsx` (G5 — 2 tabs, text-only)
+- `src/app/consumer-duty/page.tsx` (G6 — 3 tabs, role-gated Manage tab)
+- `src/app/actions/page.tsx` (G7 — 2 tabs, text-only)
+- `src/app/users/page.tsx` (G8 — 2 tabs, conditionally rendered)
+- `src/app/change-requests/page.tsx` (G9 — 2 tabs, icons, badge counts)
+- `src/components/processes/ProcessDetailPanel.tsx` (G10 — 7 tabs, badges, moved out of header)
+- `src/components/or/IBSDetailPanel.tsx` (G11 — 4 tabs, icons, size=sm)
+- `src/components/policies/PolicyDetailPanel.tsx` (G12 — 7 tabs, inline badges, key→id mapping)
+- `src/components/compliance/SMCRTab.tsx` (G13 — 5 tabs, icons, sub-tab)
+- `src/app/risk-acceptances/page.tsx` (G14 — 4 tabs, text-only)
+- `src/components/controls/BulkHistoricalEntry.tsx` (G15 — 3 tabs, icons, size=sm)
+
+### Acceptance criteria
+- [x] GlowMenu component renders text-only tabs correctly
+- [x] GlowMenu component renders icon + text tabs correctly
+- [x] GlowMenu component renders badge counts correctly (active: deep purple, inactive: grey)
+- [x] 3D flip animation on hover (rotateX front: 0→-90, back: 90→0)
+- [x] Radial glow behind active item (permanent) and on hover (nav-level)
+- [x] `useReducedMotion` disables all animation, shows static underline
+- [x] `size="sm"` renders at panel scale (text-xs, px-3 py-1.5, icon 12)
+- [x] `size="md"` renders at page scale (text-sm, px-4 py-2, icon 16)
+- [x] `role="tablist"` on nav, `role="tab"` + `aria-selected` on buttons
+- [x] `overflow-x-auto` on container for narrow viewports
+- [x] All 14 tab bar integrations replaced (G1–G15, excluding G4 dividers which are dropped)
+- [x] All URL sync logic preserved where applicable
+- [x] All role-filtering logic preserved
+- [x] All badge count logic preserved
+- [x] G10 tab bar moved outside gradient header
+- [x] `npx next build` passes with zero type errors
+
+---
+
+## PREVIOUSLY COMPLETED
+
+## PREV: Normalise — Panel Architecture, Focus Styles, Shared Utilities ✅ COMPLETE
 
 ### Design intent
 - **Who**: CCRO and functional owners moving between Risk, Compliance, Actions, and Horizon throughout their working day — often in the same session.

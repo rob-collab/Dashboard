@@ -977,6 +977,53 @@ If yes, move it to be a sibling or portal it to `document.body`.
 
 ---
 
+### D028 — GlowMenu: Standard Tab Bar Component
+
+**Rule:** Every horizontal tab bar in the app uses `<GlowMenu>` from `src/components/ui/glow-menu.tsx`. Never build an inline tab bar from scratch.
+
+**When to use GlowMenu:** Any navigation context where the user switches between 2+ views of a page or panel using a horizontal row of labelled tabs.
+
+**When NOT to use GlowMenu:** 2-option binary toggles (e.g. My/All, Heatmap/Table) — these remain as segmented controls or icon-button pairs.
+
+**Required props:**
+```tsx
+<GlowMenu
+  items={[
+    { id: "overview", label: "Overview" },          // text-only
+    { id: "steps", label: "Steps", icon: List },     // with icon
+    { id: "controls", label: "Controls", badge: 3 }, // with badge
+  ]}
+  activeId={activeTab}
+  onSelect={(id) => setActiveTab(id as TabId)}
+/>
+```
+
+**Sizing:**
+- `size="md"` (default) — page-level tabs: `text-sm px-4 py-2`, icon 16px
+- `size="sm"` — panel/sub-tabs: `text-xs px-3 py-1.5`, icon 12px
+
+**Scoping (required when page + panel tabs coexist):**
+```tsx
+<GlowMenu menuId="process-panel" ... />  {/* panel */}
+<GlowMenu menuId="processes-page" ... /> {/* page */}
+```
+
+**Badge pills:**
+- Active: `bg-updraft-deep text-white`
+- Inactive: `bg-gray-200 text-gray-600`
+- Pass `undefined` (not `0`) for no badge: `badge: count > 0 ? count : undefined`
+
+**Reduced motion:** `useReducedMotion()` is checked internally. When active, all 3D transforms and glow are disabled — a static `border-updraft-bright-purple` underline is rendered instead.
+
+**Accessibility:** `role="tablist"` on the nav, `role="tab"` + `aria-selected` on each button.
+
+**Brand gradient (internal):**
+`radial-gradient(circle, rgba(123,31,162,0.15) 0%, rgba(103,58,183,0.06) 50%, transparent 100%)`
+
+**File:** `src/components/ui/glow-menu.tsx`
+
+---
+
 ### D014 — Shared File Ownership (for parallel sessions)
 
 These files are HIGH BLAST RADIUS — only ONE session should edit them at a time.

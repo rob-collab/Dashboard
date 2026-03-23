@@ -13,6 +13,7 @@ import { Grid3X3, List, Plus, Download, Upload, ShieldAlert, TrendingDown, Trend
 import HistoryTab from "@/components/common/HistoryTab";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api-client";
+import { GlowMenu } from "@/components/ui/glow-menu";
 import { toast } from "sonner";
 import RiskCSVUploadDialog from "@/components/risk-register/RiskCSVUploadDialog";
 import { usePageTitle } from "@/lib/usePageTitle";
@@ -691,23 +692,14 @@ export default function RiskRegisterPage() {
       </div>
 
       {/* Page tab bar */}
-      <div className="flex gap-1 border-b border-gray-200">
-        {(["register", "history"] as const).map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            onClick={() => setActiveTab(tab)}
-            className={cn(
-              "px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
-              activeTab === tab
-                ? "border-updraft-bright-purple text-updraft-deep"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            )}
-          >
-            {tab === "register" ? "Register" : "History"}
-          </button>
-        ))}
-      </div>
+      <GlowMenu
+        items={[
+          { id: "register", label: "Register" },
+          { id: "history", label: "History" },
+        ]}
+        activeId={activeTab}
+        onSelect={(id) => setActiveTab(id as "register" | "history")}
+      />
 
       {activeTab === "history" && (
         <HistoryTab

@@ -13,6 +13,7 @@ import AccessRequestsPanel from "@/components/settings/AccessRequestsPanel";
 import ConsumerDutySettings from "@/components/settings/ConsumerDutySettings";
 import { cn } from "@/lib/utils";
 import { usePageTitle } from "@/lib/usePageTitle";
+import { GlowMenu } from "@/components/ui/glow-menu";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Suspense } from "react";
 
@@ -55,26 +56,15 @@ function SettingsPageContent() {
         </div>
 
         {/* Tab bar */}
-        <div className="flex gap-1 mb-6 border-b border-gray-200">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => {
-                setActiveTab(tab.id);
-                router.replace(`${pathname}?tab=${tab.id}`, { scroll: false });
-              }}
-              className={cn(
-                "px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
-                activeTab === tab.id
-                  ? "border-updraft-bright-purple text-updraft-deep"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        <GlowMenu
+          items={TABS.map((t) => ({ id: t.id, label: t.label }))}
+          activeId={activeTab}
+          onSelect={(id) => {
+            setActiveTab(id as TabId);
+            router.replace(`${pathname}?tab=${id}`, { scroll: false });
+          }}
+          className="mb-6"
+        />
 
         {/* Tab content */}
         {activeTab === "branding" && <BrandingSettings />}

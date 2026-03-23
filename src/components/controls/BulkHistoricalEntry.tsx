@@ -7,6 +7,7 @@ import type { TestResultValue, TestingScheduleEntry } from "@/lib/types";
 import { TEST_RESULT_LABELS, TEST_RESULT_COLOURS } from "@/lib/types";
 import { naturalCompare } from "@/lib/utils";
 import { Upload, Clipboard, Zap, X, AlertTriangle, CheckCircle2, FileText } from "lucide-react";
+import { GlowMenu } from "@/components/ui/glow-menu";
 
 /* ── Types ──────────────────────────────────────────────────────────────────── */
 
@@ -837,29 +838,18 @@ export default function BulkHistoricalEntry({ open, onClose, onSuccess }: BulkHi
         </div>
 
         {/* Tab navigation */}
-        <div className="flex border-b border-gray-200 px-6 shrink-0">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  setImportSuccess(null);
-                  setImportError(null);
-                }}
-                className={`inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                  isActive
-                    ? "border-updraft-bright-purple text-updraft-deep"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-              >
-                <Icon size={15} />
-                {tab.label}
-              </button>
-            );
-          })}
+        <div className="px-6 shrink-0">
+          <GlowMenu
+            items={tabs.map((t) => ({ id: t.id, label: t.label, icon: t.icon }))}
+            activeId={activeTab}
+            onSelect={(id) => {
+              setActiveTab(id as TabId);
+              setImportSuccess(null);
+              setImportError(null);
+            }}
+            size="sm"
+            menuId="bulk-entry"
+          />
         </div>
 
         {/* Content area (scrollable) */}

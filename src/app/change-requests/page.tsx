@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { api, friendlyApiError } from "@/lib/api-client";
 import { useAppStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { GlowMenu } from "@/components/ui/glow-menu";
 import {
   CheckCircle2,
   XCircle,
@@ -227,44 +228,24 @@ export default function ChangeRequestsPage() {
       </div>
 
       {/* View toggle tabs */}
-      <div className="flex gap-1 border-b border-gray-200">
-        <button
-          type="button"
-          onClick={() => setActiveView("changes")}
-          className={cn(
-            "px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-2",
-            activeView === "changes"
-              ? "border-updraft-bright-purple text-updraft-deep"
-              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-          )}
-        >
-          <ArrowLeftRight size={14} />
-          Field Changes
-          {statusFilter === "PENDING" && pendingCounts.total > 0 && (
-            <span className="rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center px-1">
-              {pendingCounts.total}
-            </span>
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveView("access_requests")}
-          className={cn(
-            "px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-2",
-            activeView === "access_requests"
-              ? "border-updraft-bright-purple text-updraft-deep"
-              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-          )}
-        >
-          <KeyRound size={14} />
-          Access Requests
-          {pendingAccessRequests.length > 0 && (
-            <span className="rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center px-1">
-              {pendingAccessRequests.length}
-            </span>
-          )}
-        </button>
-      </div>
+      <GlowMenu
+        items={[
+          {
+            id: "changes",
+            label: "Field Changes",
+            icon: ArrowLeftRight,
+            badge: statusFilter === "PENDING" && pendingCounts.total > 0 ? pendingCounts.total : undefined,
+          },
+          {
+            id: "access_requests",
+            label: "Access Requests",
+            icon: KeyRound,
+            badge: pendingAccessRequests.length > 0 ? pendingAccessRequests.length : undefined,
+          },
+        ]}
+        activeId={activeView}
+        onSelect={(id) => setActiveView(id as "changes" | "access_requests")}
+      />
 
       {/* ── FIELD CHANGES VIEW ── */}
       {activeView === "changes" && (
