@@ -29,6 +29,7 @@ export default function SMCRTab() {
         items={SUB_TABS.map(({ key, label, icon }) => ({ id: key, label, icon }))}
         activeId={activeTab}
         onSelect={(id) => setActiveTab(id as SubTab)}
+        size="sm"
         menuId="smcr"
       />
 
