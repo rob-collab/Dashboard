@@ -286,54 +286,51 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
         style={{ willChange: "transform" }}
       >
         {/* Header */}
-        <div className="border-b border-gray-200 px-6 py-4 shrink-0">
+        <div className="bg-gradient-to-r from-updraft-deep to-updraft-bar px-6 py-4 shrink-0">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               {/* Badges row */}
               <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-                <span className="inline-flex items-center rounded bg-updraft-bar/10 px-2 py-0.5 text-[10px] font-bold font-mono text-updraft-bar">
+                <span className="inline-flex items-center rounded bg-white/20 px-2 py-0.5 text-[10px] font-bold font-mono text-white">
                   {action.reference}
                 </span>
                 {action.priority && (
                   <span className={cn(
                     "inline-flex items-center rounded px-2 py-0.5 text-[10px] font-bold",
-                    action.priority === "P1" ? "bg-red-100 text-red-700" :
-                    action.priority === "P2" ? "bg-amber-100 text-amber-700" :
-                    "bg-gray-100 text-gray-600"
+                    action.priority === "P1" ? "bg-red-400/80 text-white" :
+                    action.priority === "P2" ? "bg-amber-400/80 text-white" :
+                    "bg-gray-400/80 text-white"
                   )}>
                     {action.priority}
                   </span>
                 )}
-                <span className={cn(
-                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                  STATUS_CONFIG[action.status].bgColor
-                )}>
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/20 text-white px-2 py-0.5 text-[10px] font-semibold">
                   <StatusIcon size={10} />
                   {STATUS_CONFIG[action.status].label}
                 </span>
                 {action.approvalStatus === "PENDING_APPROVAL" && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-semibold">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/80 text-white px-2 py-0.5 text-[10px] font-semibold">
                     <Clock size={10} /> Awaiting Approval
                   </span>
                 )}
                 {action.changes && action.changes.filter((c) => c.status === "PENDING").length > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 text-sky-700 px-2 py-0.5 text-[10px] font-semibold">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-sky-400/80 text-white px-2 py-0.5 text-[10px] font-semibold">
                     <GitBranch size={10} />
                     {action.changes.filter((c) => c.status === "PENDING").length} pending
                   </span>
                 )}
               </div>
               {/* Title */}
-              <h2 className="font-poppins text-lg font-semibold text-gray-900 leading-tight">
+              <h2 className="font-poppins text-lg font-semibold text-white leading-tight">
                 {action.title}
               </h2>
               {/* Due date */}
               {action.dueDate && (
-                <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                <p className="text-xs text-white/70 mt-1 flex items-center gap-1">
                   <Calendar size={11} />
                   Due {formatDateShort(action.dueDate)}
                   {days !== null && isActive && days > 0 && (
-                    <span className="text-gray-400 ml-1">({days}d remaining)</span>
+                    <span className="text-white/50 ml-1">({days}d remaining)</span>
                   )}
                 </p>
               )}
@@ -341,7 +338,7 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
             <button
               type="button"
               onClick={onClose}
-              className="shrink-0 rounded-lg p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              className="shrink-0 rounded-lg p-1.5 text-white/70 hover:text-white hover:bg-white/10 transition-colors"
               aria-label="Close panel"
             >
               <X size={18} />

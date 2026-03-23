@@ -300,18 +300,18 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
   return (
     <div className="w-[40%] min-w-[380px] max-w-[500px] border border-gray-200 rounded-lg bg-white shadow-lg overflow-y-auto max-h-[calc(100vh-200px)] sticky top-4">
       {/* Header */}
-      <div className="border-b border-gray-200 flex items-start justify-between p-4 shrink-0">
+      <div className="bg-gradient-to-r from-updraft-deep to-updraft-bar flex items-start justify-between p-4 shrink-0">
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-mono bg-updraft-bar/10 text-updraft-bar px-2 py-0.5 rounded">{regulation.reference}</span>
+            <span className="text-xs font-mono bg-white/20 text-white px-2 py-0.5 rounded">{regulation.reference}</span>
             <span className={cn("inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold", appColours.bg, appColours.text)}>
               {APPLICABILITY_LABELS[applicability]}
             </span>
           </div>
-          <h3 className="text-base font-semibold text-gray-900 font-poppins">{regulation.name}</h3>
-          <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+          <h3 className="text-base font-semibold text-white font-poppins">{regulation.name}</h3>
+          <div className="flex items-center gap-2 mt-1 text-xs text-white/60">
             <span>{regulation.body}</span>
-            {regulation.type && <span className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{regulation.type.replace(/_/g, " ")}</span>}
+            {regulation.type && <span className="px-1.5 py-0.5 rounded bg-white/20 text-white/80">{regulation.type.replace(/_/g, " ")}</span>}
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
@@ -321,15 +321,15 @@ export default function RegulationDetailPanel({ regulation, loading, onClose, on
               className={cn(
                 "p-1.5 rounded transition-colors",
                 editMode
-                  ? "bg-updraft-bright-purple/10 text-updraft-deep"
-                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                  ? "bg-white/30 text-white"
+                  : "text-white/70 hover:bg-white/10 hover:text-white"
               )}
               title={editMode ? "Exit edit mode" : "Edit regulation"}
             >
               <Pencil size={14} />
             </button>
           )}
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded text-gray-400" aria-label="Close panel">
+          <button onClick={onClose} className="p-1 hover:bg-white/10 rounded text-white/70" aria-label="Close panel">
             <X size={16} />
           </button>
         </div>

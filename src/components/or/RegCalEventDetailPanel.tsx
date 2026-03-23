@@ -146,26 +146,26 @@ export default function RegCalEventDetailPanel({ event, onClose }: RegCalEventDe
         style={{ willChange: "transform" }}
       >
         {/* Header */}
-        <div className="border-b border-gray-200 bg-white/95 backdrop-blur-sm px-6 py-4 shrink-0">
+        <div className="bg-gradient-to-r from-updraft-deep to-updraft-bar px-6 py-4 shrink-0">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold", tc.bg, tc.text)}>
                   {REG_CAL_TYPE_LABELS[event.type]}
                 </span>
-                <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold", rag.pillClass)}>
+                <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold bg-white/20 text-white">
                   {rag.label}
                 </span>
-                <span className="text-[10px] font-mono text-gray-400">{event.source}</span>
+                <span className="text-[10px] font-mono text-white/60">{event.source}</span>
               </div>
-              <h2 className="font-poppins text-lg font-semibold text-gray-900 leading-tight">{event.title}</h2>
-              <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+              <h2 className="font-poppins text-lg font-semibold text-white leading-tight">{event.title}</h2>
+              <p className="text-xs text-white/70 mt-1 flex items-center gap-1">
                 <Calendar size={11} />
                 {new Date(event.eventDate).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
               </p>
             </div>
             <button type="button" onClick={onClose}
-              className="shrink-0 rounded-lg p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              className="shrink-0 rounded-lg p-1.5 text-white/70 hover:text-white hover:bg-white/10 transition-colors"
               aria-label="Close panel">
               <X size={18} />
             </button>

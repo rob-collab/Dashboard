@@ -87,29 +87,29 @@ export default function PolicyDetailPanel({ policy, onClose, onUpdate }: Props) 
         style={{ willChange: "transform" }}
       >
         {/* Header */}
-        <div className="shrink-0 border-b border-gray-200 bg-white/95 backdrop-blur-sm px-6 py-5">
-          <p className="text-[10px] uppercase tracking-wider text-gray-400 font-medium mb-2">Policy Review › {policy.reference}</p>
-          <div className="flex items-center justify-between mb-3">
+        <div className="shrink-0 relative overflow-hidden bg-gradient-to-r from-updraft-deep to-updraft-bar px-6 py-5">
+          <p className="text-[10px] uppercase tracking-wider text-white/50 font-medium mb-2">Policy Review › {policy.reference}</p>
+          <div className="relative flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
-              <span className="font-mono text-xs font-bold rounded-md bg-updraft-bar/10 text-updraft-bar px-2.5 py-1">{policy.reference}</span>
+              <span className="font-mono text-xs font-bold rounded-md bg-white/20 text-white px-2.5 py-1">{policy.reference}</span>
               <span className={cn(
                 "rounded-full px-2.5 py-0.5 text-xs font-semibold",
-                policy.status === "OVERDUE" ? "bg-red-100 text-red-700" :
-                policy.status === "CURRENT" ? "bg-green-100 text-green-700" :
-                policy.status === "UNDER_REVIEW" ? "bg-amber-100 text-amber-700" :
-                "bg-gray-100 text-gray-600"
+                policy.status === "OVERDUE" ? "bg-red-500 text-white" :
+                policy.status === "CURRENT" ? "bg-green-500 text-white" :
+                policy.status === "UNDER_REVIEW" ? "bg-amber-500 text-white" :
+                "bg-gray-500 text-white"
               )}>
                 {POLICY_STATUS_LABELS[policy.status]}
               </span>
             </div>
-            <button onClick={onClose} className="rounded-lg p-1 hover:bg-gray-100 transition-colors">
-              <X size={18} className="text-gray-400" />
+            <button onClick={onClose} className="rounded-lg p-1 hover:bg-white/10 transition-colors">
+              <X size={18} className="text-white/80" />
             </button>
           </div>
-          <h2 className="text-lg font-bold text-gray-900 font-poppins">{policy.name}</h2>
+          <h2 className="text-lg font-bold text-white font-poppins">{policy.name}</h2>
 
           {/* Health summary */}
-          <div className="flex items-center gap-4 mt-3 text-gray-500 text-xs">
+          <div className="flex items-center gap-4 mt-3 text-white/70 text-xs">
             <span className="inline-flex items-center gap-1">
               <Shield size={12} />
               {healthSummary.controls} controls{healthSummary.controls > 0 && `, ${healthSummary.pass} pass`}

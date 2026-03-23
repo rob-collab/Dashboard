@@ -108,12 +108,12 @@ export default function ProcessDetailPanel({ process, onUpdate, onClose }: Props
         style={{ willChange: "transform" }}
       >
         {/* Header */}
-        <div className="border-b border-gray-200 bg-white/95 backdrop-blur-sm px-5 pt-5 pb-4 shrink-0">
+        <div className="bg-gradient-to-r from-updraft-deep to-updraft-bar px-5 pt-5 pb-4 shrink-0">
           <div className="flex items-start gap-3">
             <div className="flex-1 min-w-0">
               {/* Reference badge */}
               <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                <span className="font-mono text-xs font-bold bg-updraft-bar/10 text-updraft-bar px-2 py-0.5 rounded">
+                <span className="font-mono text-xs font-bold bg-white/20 text-white px-2 py-0.5 rounded">
                   {process.reference}
                 </span>
                 <MaturityBadge score={process.maturityScore} size="sm" />
@@ -130,14 +130,14 @@ export default function ProcessDetailPanel({ process, onUpdate, onClose }: Props
                   {PROCESS_CATEGORY_LABELS[process.category]}
                 </span>
               </div>
-              <h2 className="font-poppins text-base font-semibold text-gray-900 leading-snug">
+              <h2 className="font-poppins text-base font-semibold text-white leading-snug">
                 {process.name}
               </h2>
             </div>
             <div className="flex items-center gap-0.5 shrink-0">
               <button
                 onClick={handleExport}
-                className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+                className="p-1.5 rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors"
                 aria-label="Export process to HTML"
                 title="Export to HTML"
               >
@@ -145,7 +145,7 @@ export default function ProcessDetailPanel({ process, onUpdate, onClose }: Props
               </button>
               <button
                 onClick={onClose}
-                className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+                className="p-1.5 rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors"
                 aria-label="Close panel"
               >
                 <X size={16} />
