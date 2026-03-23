@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -21,6 +22,7 @@ import { useHasPermission } from "@/lib/usePermission";
 import { usePageTitle } from "@/lib/usePageTitle";
 import { cn } from "@/lib/utils";
 import { BentoGrid } from "@/components/ui/bento-grid";
+import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { DashboardNotification, Role } from "@/lib/types";
@@ -127,6 +129,7 @@ function riskSeverityLevel(score: number): "critical" | "high" | "medium" | "low
 
 export default function DashboardHome() {
   usePageTitle("Dashboard");
+  const prefersReduced = useReducedMotion();
   const router = useRouter();
 
   const hydrated = useAppStore((s) => s._hydrated);
@@ -314,11 +317,17 @@ export default function DashboardHome() {
   return (
     <div className="space-y-6 p-6">
       {currentUser && (
-        <GreetingHeader
-          userName={currentUser.name}
-          notifications={notifications}
-          role={currentUser.role}
-        />
+        <motion.div
+          initial={prefersReduced ? false : { opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <GreetingHeader
+            userName={currentUser.name}
+            notifications={notifications}
+            role={currentUser.role}
+          />
+        </motion.div>
       )}
 
       <BentoGrid
@@ -467,7 +476,7 @@ export default function DashboardHome() {
             <CardContent className="flex flex-1 flex-col justify-between">
               <div className="flex items-baseline gap-3">
                 <span className="font-poppins text-5xl font-bold text-gray-900 dark:text-white leading-none">
-                  {actionStats.open}
+                  <AnimatedNumber value={actionStats.open} duration={600} />
                 </span>
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-gray-400">open</span>
@@ -517,7 +526,7 @@ export default function DashboardHome() {
             </CardHeader>
             <CardContent className="relative z-10 flex h-[calc(100%-4.5rem)] flex-col items-center justify-center gap-2">
               <span className={cn("font-poppins text-7xl font-bold leading-none", scoreColour)}>
-                {programmeHealth.score}
+                <AnimatedNumber value={programmeHealth.score} duration={900} />
                 <span className="text-4xl">%</span>
               </span>
               <div className="flex items-center gap-1.5 text-xs text-gray-500">
@@ -544,7 +553,7 @@ export default function DashboardHome() {
                     <p className="text-xs text-red-500/70 dark:text-red-400/50">Immediate attention</p>
                   </div>
                   <span className="font-poppins text-3xl font-bold text-red-700 dark:text-red-400">
-                    {actionStats.p1}
+                    <AnimatedNumber value={actionStats.p1} duration={500} />
                   </span>
                 </div>
                 <div className="flex items-center justify-between rounded-lg bg-orange-50 px-3 py-2.5 dark:bg-orange-900/10">
@@ -553,7 +562,7 @@ export default function DashboardHome() {
                     <p className="text-xs text-orange-500/70 dark:text-orange-400/50">Due within 7 days</p>
                   </div>
                   <span className="font-poppins text-3xl font-bold text-orange-700 dark:text-orange-400">
-                    {actionStats.p2}
+                    <AnimatedNumber value={actionStats.p2} duration={500} />
                   </span>
                 </div>
                 <div className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2.5 dark:bg-gray-800/50">
@@ -562,7 +571,7 @@ export default function DashboardHome() {
                     <p className="text-xs text-gray-400">On track</p>
                   </div>
                   <span className="font-poppins text-3xl font-bold text-gray-600 dark:text-gray-300">
-                    {actionStats.p3}
+                    <AnimatedNumber value={actionStats.p3} duration={500} />
                   </span>
                 </div>
               </div>
@@ -589,10 +598,27 @@ export default function DashboardHome() {
                         : "text-red-600 dark:text-red-400"
                     )}
                   >
-                    {controlsHealth.passRate}%
+                    <AnimatedNumber value={controlsHealth.passRate} duration={700} />%
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-gray-400">pass rate</p>
+                {/* Animated progress bar */}
+                <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                  <motion.div
+                    className={cn(
+                      "h-full rounded-full origin-left",
+                      controlsHealth.passRate >= 80
+                        ? "bg-emerald-500"
+                        : controlsHealth.passRate >= 60
+                        ? "bg-amber-500"
+                        : "bg-red-500"
+                    )}
+                    style={{ width: `${controlsHealth.passRate}%` }}
+                    initial={prefersReduced ? false : { scaleX: 0 }}
+                    animate={{ scaleX: 1 }}
+                    transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.5 }}
+                  />
+                </div>
               </div>
 
               <div className="mt-4 grid grid-cols-3 gap-2 text-center">
