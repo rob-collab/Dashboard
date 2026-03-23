@@ -142,7 +142,7 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
       const updated = await api<Action>(`/api/actions/${action.id}`);
       updateAction(action.id, updated);
       setShowUpdateForm(false);
-      toast.success("Update submitted");
+      toast.success("Update logged.", { description: "Added to action history" });
     } catch {
       toast.error("Failed to submit update");
     }
@@ -213,7 +213,7 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
       });
       setActions(actions.map((a) => (a.id === action.id ? { ...a, ...updated } : a)));
       setEditingIssue(false);
-      toast.success("Action saved");
+      toast.success("Description saved.");
     } catch {
       toast.error("Failed to save action — please try again");
     } finally {
@@ -242,7 +242,8 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
         body: { status: "COMPLETED", completedAt: new Date().toISOString() },
       });
       setActions(actions.map((a) => (a.id === action.id ? { ...a, ...updated } : a)));
-      toast.success("Action marked as complete");
+      const title = action.title.length > 55 ? action.title.slice(0, 55) + "…" : action.title;
+      toast.success("Action closed.", { description: `${action.reference} — ${title}` });
     } catch {
       toast.error("Failed to save action — please try again");
     } finally {
@@ -304,10 +305,16 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
                     {action.priority}
                   </span>
                 )}
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/20 text-white px-2 py-0.5 text-[10px] font-semibold">
+                <motion.span
+                  key={action.status}
+                  initial={prefersReduced ? false : { scale: 0.75, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                  className="inline-flex items-center gap-1 rounded-full bg-white/20 text-white px-2 py-0.5 text-[10px] font-semibold"
+                >
                   <StatusIcon size={10} />
                   {STATUS_CONFIG[action.status].label}
-                </span>
+                </motion.span>
                 {action.approvalStatus === "PENDING_APPROVAL" && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/80 text-white px-2 py-0.5 text-[10px] font-semibold">
                     <Clock size={10} /> Awaiting Approval
