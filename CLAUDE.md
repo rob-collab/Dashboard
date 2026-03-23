@@ -1,5 +1,43 @@
 # Meridian — Claude Instructions
 
+## Project Vision: What Meridian Is and Who It's For
+
+Meridian is an internal Governance, Risk & Compliance (GRC) platform built for
+Updraft (Fairscore Ltd), a UK-regulated phased consolidation lender operating
+under FCA supervision.
+
+### The problem it solves
+Compliance management at a regulated firm is typically fragmented across
+spreadsheets, email threads, and manual tracking. Meridian replaces that with
+a single source of truth — one place where risks, controls, actions, policies,
+Consumer Duty obligations, SMCR records, and regulatory horizon items are all
+connected to the same data model and auditable.
+
+### The three users it serves
+- **CCRO** — the power user and system owner. Needs full access to everything,
+  fast decision-making on pending items, and confidence that the system reflects
+  reality. Meridian is their operating environment.
+- **OWNER** — functional owners who hold accountability for specific risks,
+  controls, or CD outcomes. Not compliance specialists. Must find the interface
+  so simple and specific that engagement is the path of least resistance.
+- **CEO** — uses Meridian as a control panel, under time pressure. Needs a
+  5-second answer to "is anything on fire?" and one-click drill-down when it is.
+
+### The design principle
+Every screen should direct attention, not list information. The right question
+to ask of any UI change: "Does this help the intended user act faster and more
+confidently, or does it add to their cognitive load?"
+
+### Regulatory context
+The system is built around the FCA regulatory regime:
+- **Consumer Duty** — outcome health, metric tracking, evidence of fair treatment
+- **SMCR** — Senior Manager responsibilities, certification, conduct rules
+- **Horizon Scanning** — emerging regulatory changes, FCA publications
+- **Risk & Controls** — inherent/residual risk scoring, control testing, RAG status
+- **Actions** — remediation tracking, ownership, due dates, escalation
+
+---
+
 ## Step 0a: Decompose the Message First
 
 **Before anything else — before clarifying questions, before planning, before reading files —
@@ -129,10 +167,43 @@ For every change request (features, fixes, improvements):
    Skip this step only for changes that are purely cosmetic (a label fix, a colour correction)
    or purely backend (an API route with no UI surface).
 
+0.75. **Propose agent teams before writing the plan** — after reading lessons/patterns and stating
+   design intent, assess whether this sprint warrants running as an agent team.
+
+   **Propose agent teams when ANY of the following are true:**
+   - The sprint has 3 or more independent deliverables that don't share state or ordering
+   - The sprint touches 3 or more separate screens or feature areas simultaneously
+   - A deliverable requires parallel build + review + regression checking that would
+     be slow or context-heavy done sequentially in a single session
+   - The sprint includes both backend (schema/API) and frontend work that could progress
+     in parallel once the schema is agreed
+   - A previous sprint of similar scope produced regressions that a parallel reviewer
+     would have caught earlier
+
+   **How to propose:**
+   > "This sprint has [N] independent deliverables across [areas]. I'd suggest running
+   > this as an agent team — one lead session for [X], parallel teammates for [Y] and [Z].
+   > Want me to set that up, or proceed single-session?"
+
+   **When NOT to propose agent teams:**
+   - A single-file bug fix or cosmetic change
+   - A tightly sequential chain where step 2 depends on step 1's output
+   - A sprint with only 1–2 deliverables
+   - The user has explicitly said to proceed without a team
+
+   If the user approves, structure the plan with a section:
+   ```
+   ## Agent Team Structure
+   - Lead: [responsibility]
+   - Teammate A: [responsibility + which PLAN.md items]
+   - Teammate B: [responsibility + which PLAN.md items]
+   ```
+
 1. **Write to PLAN.md first** — before touching any code, add the requested items to `PLAN.md` under a new sprint heading (or the current sprint if one is active). Include:
    - What is being changed and why
    - The design intent (who / one thing / remove) if UI-touching
    - Files to be modified/created
+   - Agent team structure (if applicable — see step 0.75)
    - A checklist of acceptance criteria (`- [ ] ...`)
 
 2. **Implement one deliverable at a time — senior developer review gate after each** — do not batch all changes into one pass. After each meaningful deliverable, run all three layers before moving on:
@@ -178,45 +249,88 @@ For every change request (features, fixes, improvements):
 ## Agent-Assisted Review Gates
 
 Specialist sub-agents are stored in `.claude/agents/`. They are invoked at specific checkpoints
-using the Task tool with `subagent_type: general-purpose` or `subagent_type: Explore`, given
-the relevant agent prompt as context. Run agents in parallel where possible.
+using the Agent tool with `subagent_type: general-purpose` or `subagent_type: Explore`, given
+the relevant agent prompt as context. **Run all Tier 1 agents in parallel — never sequentially.**
 
 ### When to invoke which agent
 
 | Agent | File | Invoke when |
 |---|---|---|
 | UAT Agent | `.claude/agents/uat-agent.md` | After every deliverable that changes visible UI |
+| Regression Agent | `.claude/agents/regression-agent.md` | After every deliverable — sweeps adjacent screens for side-effects |
+| Planning Agent | `.claude/agents/planning-agent.md` | After every deliverable (plan sync) AND at sprint boundaries (full drift review) |
 | Designer Agent | `.claude/agents/designer-agent.md` | After every new screen, component, or visual change |
 | Compliance Agent | `.claude/agents/compliance-agent.md` | After changes to risk/control/SMCR/obligations data model or logic |
-| Planning Agent | `.claude/agents/planning-agent.md` | At sprint boundaries, or if implementation feels off-track |
+| Retrospective Agent | `.claude/agents/retrospective-agent.md` | Sprint end only |
 
 ### Tiered usage
 
-**Tier 1 — Every deliverable (always run in parallel with my own review):**
-- Build agent: `npx next build` via `Bash` subagent — confirms zero errors
-- UAT agent: `Explore` subagent with `uat-agent.md` prompt — simulates CRO user review
+**Tier 1 — Every deliverable (run ALL in parallel):**
+- Build: `npx next build` via Bash — zero errors required
+- UAT agent: `Explore` subagent — CCRO end-user review of changed AND adjacent screens
+- Regression agent: `Explore` subagent — system-wide side-effect sweep
+- Planning sync: `general-purpose` subagent — quick check: does this deliverable match PLAN.md?
+  Tick completed items; flag if implementation drifted from the plan; propose PLAN.md updates if needed
 
-**Tier 2 — New screens or significant UI changes (add to Tier 1):**
-- Designer agent: `Explore` subagent with `designer-agent.md` prompt
+**Tier 2 — New screens, components, or significant visual changes (add to Tier 1):**
+- Designer agent: `Explore` subagent — design system adherence + UX quality
 
 **Tier 3 — Domain logic changes (risk, controls, SMCR, obligations, audit):**
-- Compliance agent: `general-purpose` subagent with `compliance-agent.md` prompt
+- Compliance agent: `general-purpose` subagent
 
-**Tier 4 — Sprint boundaries or detected drift:**
-- Planning agent: `general-purpose` subagent with `planning-agent.md` prompt — reads
-  PLAN.md + recent git log and reports on drift, gaps, and replanning needs
+**Sprint boundary (Tier 4 — in addition to all above):**
+- Planning agent (full): `general-purpose` subagent — comprehensive sprint drift review
+- Retrospective agent: `general-purpose` subagent — lessons and wins
 
-### How to invoke (example)
+### How to invoke — always provide entity context
+
+When invoking UAT, Regression, or Designer agents, always include in your prompt:
+
 ```
-Task tool → subagent_type: Explore
-Prompt: "[paste contents of .claude/agents/uat-agent.md]
-
-Now review the following changed files and evaluate them against the criteria above:
-[list the files changed in this deliverable]"
+1. The files directly changed in this deliverable
+2. Which data entities those files touch (e.g. "risks, controls, actions")
+3. "Also check these adjacent screens that use the same entities: [list them]"
 ```
 
-Agent findings are consolidated before proceeding. Any FAIL (UAT) or NON-COMPLIANT (Compliance)
-item blocks progress until resolved.
+This is not optional. Agents reviewing only the changed file in isolation will miss
+regressions and consistency drift. The adjacent screen list should come from a quick
+grep of the codebase for the entity types identified.
+
+Example prompt structure:
+```
+[paste contents of .claude/agents/uat-agent.md]
+
+Deliverable: [what was built]
+Changed files: [list]
+Entities touched: [e.g. Regulation, ComplianceStatus, controlLinks]
+Adjacent screens to also check: [e.g. compliance/page.tsx, risk-register, action panels]
+```
+
+### When an agent returns FAIL, BLOCK, or RISKS IDENTIFIED
+
+**This is a mandatory loop — not a suggestion:**
+
+1. **STOP** — do not proceed to the next deliverable
+2. Add a rework item to PLAN.md: `- [ ] REWORK: [agent finding summary]`
+3. Identify the root cause (use systematic-debugging skill if needed)
+4. Implement the fix
+5. Re-run **only** the agent(s) that flagged the issue (on the same files + adjacent screens)
+6. Only proceed when every agent returns PASS / CLEAR / CONSISTENT
+
+**Never mark a deliverable done while any agent finding is outstanding.** "I'll fix it in the
+next deliverable" is not acceptable — fix it now, re-run the agent, confirm it's resolved.
+
+### Design iteration when problems are found
+
+If an agent finds a design problem (BLOCK, UX ISSUE, VISUAL CRAFT ISSUE):
+
+1. Do not patch cosmetically — understand the root cause
+2. Update PLAN.md to reflect the revised design (acceptance criteria may need to change)
+3. Re-implement from the revised spec
+4. Re-run Designer + UAT agents — confirm the fix doesn't introduce new issues
+
+Agent findings are consolidated before proceeding. Any FAIL (UAT), REGRESSION CONFIRMED
+(Regression), NON-COMPLIANT (Compliance), or BLOCK (Designer) blocks progress until resolved.
 
 ---
 

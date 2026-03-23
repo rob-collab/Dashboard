@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { X, ExternalLink, Edit3, Save, Trash2, ListChecks, Bell, User2, Calendar } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
@@ -44,6 +45,7 @@ interface RegCalEventDetailPanelProps {
 }
 
 export default function RegCalEventDetailPanel({ event, onClose }: RegCalEventDetailPanelProps) {
+  const prefersReduced = useReducedMotion();
   const router = useRouter();
   const currentUser = useAppStore((s) => s.currentUser);
   const updateRegulatoryEvent = useAppStore((s) => s.updateRegulatoryEvent);
@@ -133,31 +135,37 @@ export default function RegCalEventDetailPanel({ event, onClose }: RegCalEventDe
     <PanelPortal>
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/30 z-40" onClick={onClose} aria-hidden="true" />
+      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} aria-hidden="true" />
 
       {/* Panel */}
-      <div className="fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-white shadow-2xl sm:w-[480px]">
-        {/* Purple gradient header */}
-        <div className="bg-gradient-to-r from-updraft-deep to-updraft-bar px-6 py-4 shrink-0">
+      <motion.div
+        className="fixed inset-y-0 right-0 z-50 flex sm:w-[640px] w-full flex-col panel-surface shadow-2xl"
+        initial={prefersReduced ? false : { x: "100%" }}
+        animate={prefersReduced ? false : { x: 0 }}
+        transition={prefersReduced ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 30 }}
+        style={{ willChange: "transform" }}
+      >
+        {/* Header */}
+        <div className="border-b border-gray-200 bg-white/95 backdrop-blur-sm px-6 py-4 shrink-0">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold", tc.bg, tc.text)}>
                   {REG_CAL_TYPE_LABELS[event.type]}
                 </span>
-                <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold bg-white/20 text-white">
+                <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold", rag.pillClass)}>
                   {rag.label}
                 </span>
-                <span className="text-[10px] font-mono text-white/60">{event.source}</span>
+                <span className="text-[10px] font-mono text-gray-400">{event.source}</span>
               </div>
-              <h2 className="font-poppins text-lg font-semibold text-white leading-tight">{event.title}</h2>
-              <p className="text-xs text-white/70 mt-1 flex items-center gap-1">
+              <h2 className="font-poppins text-lg font-semibold text-gray-900 leading-tight">{event.title}</h2>
+              <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                 <Calendar size={11} />
                 {new Date(event.eventDate).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
               </p>
             </div>
             <button type="button" onClick={onClose}
-              className="shrink-0 rounded-lg p-1.5 text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+              className="shrink-0 rounded-lg p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
               aria-label="Close panel">
               <X size={18} />
             </button>
@@ -305,7 +313,7 @@ export default function RegCalEventDetailPanel({ event, onClose }: RegCalEventDe
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
       <ConfirmDialog
         open={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}

@@ -195,7 +195,13 @@ Features: focus trap, Escape to close, ARIA labels, `max-h-[90vh]` with scrollab
 </div>
 ```
 
-**Width:** default `w-96`. Use `w-[32rem]` for panels with richer content.
+**Width:** `sm:w-[640px] w-full` for standard panels. Use `sm:w-[680px] w-full` for panels with complex multi-section content (e.g. RiskDetailPanel). `w-96` is deprecated.
+
+**Overlay:** `bg-black/40` (previously `bg-black/20` or `bg-black/30` — standardised to `/40`).
+
+**Header background:** flat `border-b border-gray-200 bg-white/95 backdrop-blur-sm`. No gradient headers — `bg-gradient-to-r from-updraft-deep to-updraft-bar` is deprecated.
+
+**Badge colours in header:** dark-on-light only. Reference badge: `bg-updraft-bar/10 text-updraft-bar`. Status/priority badges: use existing `*Config.bgColor` (e.g. `ACTION_STATUS_CONFIG[status].bgColor`). No `bg-white/20 text-white` badges.
 
 ---
 

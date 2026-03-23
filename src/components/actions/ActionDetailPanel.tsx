@@ -14,9 +14,6 @@ import {
   Calendar,
   User,
   Clock,
-  CheckCircle2,
-  AlertTriangle,
-  Circle,
   CheckCircle,
   XCircle,
   GitBranch,
@@ -27,7 +24,12 @@ import { useRouter } from "next/navigation";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { api } from "@/lib/api-client";
 import { cn, formatDateShort } from "@/lib/utils";
-import type { Action, ActionStatus } from "@/lib/types";
+import type { Action } from "@/lib/types";
+import {
+  ACTION_STATUS_CONFIG as STATUS_CONFIG,
+  daysUntilDue,
+  dueDateColor,
+} from "@/lib/action-utils";
 import PanelPortal from "@/components/common/PanelPortal";
 import { toast } from "sonner";
 import ActionUpdateForm from "./ActionUpdateForm";
@@ -38,34 +40,6 @@ import { AutoResizeTextarea } from "@/components/common/AutoResizeTextarea";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
 const RichTextEditor = dynamic(() => import("@/components/common/RichTextEditor"), { ssr: false });
-
-// ── helpers (same as page) ────────────────────────────────────────────────────
-
-const STATUS_CONFIG: Record<ActionStatus, { label: string; color: string; bgColor: string; icon: typeof Circle }> = {
-  OPEN: { label: "Open", color: "text-blue-600", bgColor: "bg-blue-100 text-blue-700", icon: Circle },
-  IN_PROGRESS: { label: "In Progress", color: "text-amber-600", bgColor: "bg-amber-100 text-amber-700", icon: Clock },
-  COMPLETED: { label: "Completed", color: "text-green-600", bgColor: "bg-green-100 text-green-700", icon: CheckCircle2 },
-  OVERDUE: { label: "Overdue", color: "text-red-600", bgColor: "bg-red-100 text-red-700", icon: AlertTriangle },
-  PROPOSED_CLOSED: { label: "Proposed Closed", color: "text-purple-600", bgColor: "bg-purple-100 text-purple-700", icon: CheckCircle2 },
-};
-
-
-function daysUntilDue(dueDate: string | null): number | null {
-  if (!dueDate) return null;
-  const now = new Date();
-  const due = new Date(dueDate);
-  return Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-}
-
-function dueDateColor(action: Action): string {
-  if (action.status === "COMPLETED") return "text-gray-400";
-  if (action.status === "OVERDUE") return "text-red-600 font-semibold";
-  const days = daysUntilDue(action.dueDate);
-  if (days === null) return "text-gray-400";
-  if (days <= 0) return "text-red-600 font-semibold";
-  if (days <= 30) return "text-amber-600 font-medium";
-  return "text-gray-600";
-}
 
 function getOriginalValue(action: Action, field: string): string | null {
   if (!action.changes || action.changes.length === 0) return null;
@@ -298,67 +272,68 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/30 z-40"
+        className="fixed inset-0 bg-black/40 z-40"
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Panel */}
       <motion.div
-        className="fixed inset-y-0 right-0 z-50 flex w-full flex-col panel-surface shadow-2xl sm:w-[560px] lg:w-[620px]"
+        className="fixed inset-y-0 right-0 z-50 flex w-full flex-col panel-surface shadow-2xl sm:w-[640px]"
         initial={prefersReduced ? false : { x: "100%" }}
         animate={prefersReduced ? false : { x: 0 }}
         transition={prefersReduced ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 30 }}
         style={{ willChange: "transform" }}
       >
-        {/* Purple gradient header */}
-        <div className="bg-gradient-to-r from-updraft-deep to-updraft-bar px-6 py-4 shrink-0">
+        {/* Header */}
+        <div className="border-b border-gray-200 px-6 py-4 shrink-0">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               {/* Badges row */}
               <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-                <span className="inline-flex items-center rounded bg-white/20 px-2 py-0.5 text-[10px] font-bold font-mono text-white">
+                <span className="inline-flex items-center rounded bg-updraft-bar/10 px-2 py-0.5 text-[10px] font-bold font-mono text-updraft-bar">
                   {action.reference}
                 </span>
                 {action.priority && (
                   <span className={cn(
                     "inline-flex items-center rounded px-2 py-0.5 text-[10px] font-bold",
-                    action.priority === "P1" ? "bg-red-400/80 text-white" :
-                    action.priority === "P2" ? "bg-amber-400/80 text-white" :
-                    "bg-white/20 text-white"
+                    action.priority === "P1" ? "bg-red-100 text-red-700" :
+                    action.priority === "P2" ? "bg-amber-100 text-amber-700" :
+                    "bg-gray-100 text-gray-600"
                   )}>
                     {action.priority}
                   </span>
                 )}
                 <span className={cn(
-                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-white/20 text-white"
+                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                  STATUS_CONFIG[action.status].bgColor
                 )}>
                   <StatusIcon size={10} />
                   {STATUS_CONFIG[action.status].label}
                 </span>
                 {action.approvalStatus === "PENDING_APPROVAL" && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/80 text-white px-2 py-0.5 text-[10px] font-semibold">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-semibold">
                     <Clock size={10} /> Awaiting Approval
                   </span>
                 )}
                 {action.changes && action.changes.filter((c) => c.status === "PENDING").length > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-sky-400/80 text-white px-2 py-0.5 text-[10px] font-semibold">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 text-sky-700 px-2 py-0.5 text-[10px] font-semibold">
                     <GitBranch size={10} />
                     {action.changes.filter((c) => c.status === "PENDING").length} pending
                   </span>
                 )}
               </div>
               {/* Title */}
-              <h2 className="font-poppins text-lg font-semibold text-white leading-tight">
+              <h2 className="font-poppins text-lg font-semibold text-gray-900 leading-tight">
                 {action.title}
               </h2>
               {/* Due date */}
               {action.dueDate && (
-                <p className="text-xs text-white/70 mt-1 flex items-center gap-1">
+                <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                   <Calendar size={11} />
                   Due {formatDateShort(action.dueDate)}
                   {days !== null && isActive && days > 0 && (
-                    <span className="text-white/50 ml-1">({days}d remaining)</span>
+                    <span className="text-gray-400 ml-1">({days}d remaining)</span>
                   )}
                 </p>
               )}
@@ -366,7 +341,7 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
             <button
               type="button"
               onClick={onClose}
-              className="shrink-0 rounded-lg p-1.5 text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+              className="shrink-0 rounded-lg p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
               aria-label="Close panel"
             >
               <X size={18} />
@@ -633,7 +608,7 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
                       type="date"
                       value={proposedDate}
                       onChange={(e) => setProposedDate(e.target.value)}
-                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple"
+                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
                     />
                   </div>
                 </div>
@@ -643,7 +618,7 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
                     value={proposalReason}
                     onChange={(e) => setProposalReason(e.target.value)}
                     placeholder="Explain why the due date needs to change..."
-                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple"
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
                   />
                 </div>
                 <div className="flex items-center justify-end gap-2">
@@ -688,7 +663,7 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
                     <select
                       value={proposedOwner}
                       onChange={(e) => setProposedOwner(e.target.value)}
-                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple"
+                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
                     >
                       <option value="">Select...</option>
                       {users.filter((u) => u.isActive && u.id !== action.assignedTo).map((u) => (
@@ -703,7 +678,7 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
                     value={proposalReason}
                     onChange={(e) => setProposalReason(e.target.value)}
                     placeholder="Explain why this action should be reassigned..."
-                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-updraft-light-purple focus:ring-1 focus:ring-updraft-light-purple"
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
                   />
                 </div>
                 <div className="flex items-center justify-end gap-2">

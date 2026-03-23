@@ -379,26 +379,26 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
       <ErrorBoundary>
         <div className="fixed inset-0 z-50 flex justify-end">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/30" onClick={handleCancel} />
+      <div className="absolute inset-0 bg-black/40" onClick={handleCancel} />
 
       {/* Panel */}
       <motion.div
-        className="relative w-[min(800px,95vw)] panel-surface shadow-2xl overflow-y-auto"
+        className="relative sm:w-[680px] w-full panel-surface shadow-2xl overflow-y-auto"
         initial={prefersReduced ? false : { x: "100%" }}
         animate={prefersReduced ? false : { x: 0 }}
         transition={prefersReduced ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 30 }}
         style={{ willChange: "transform" }}
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-gradient-to-r from-updraft-deep to-updraft-bar px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 z-10 border-b border-gray-200 bg-white/95 backdrop-blur-sm px-6 py-4 flex items-center justify-between">
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] uppercase tracking-wider text-white/50 font-medium mb-0.5">Risk Register {risk && !isNew ? `› ${risk.reference}` : ""}</p>
-            <h2 className="text-lg font-poppins font-semibold text-white truncate">
+            <p className="text-[10px] uppercase tracking-wider text-gray-400 font-medium mb-0.5">Risk Register {risk && !isNew ? `› ${risk.reference}` : ""}</p>
+            <h2 className="text-lg font-poppins font-semibold text-gray-900 truncate">
               {isNew ? "Add New Risk" : `Edit: ${risk?.name ?? risk?.reference}`}
             </h2>
             {risk && !isNew && (
               <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <span className="inline-block font-mono text-[11px] font-bold bg-white/20 text-white px-1.5 py-0.5 rounded">
+                <span className="inline-block font-mono text-[11px] font-bold bg-updraft-bar/10 text-updraft-bar px-1.5 py-0.5 rounded">
                   {risk.reference}
                 </span>
                 {/* Review Overdue badge — M7 */}
@@ -408,7 +408,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                   if (Date.now() <= dueDate) return null;
                   const daysOverdue = Math.floor((Date.now() - dueDate) / 86_400_000);
                   return (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-400/20 text-amber-300 border border-amber-400/30"
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700"
                           title={`Review was due ${daysOverdue}d ago`}>
                       <Clock className="w-3 h-3 shrink-0" />
                       Review Overdue
@@ -417,7 +417,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                 })()}
                 {/* Appetite Breach badge — N4 */}
                 {risk.riskAppetite && calculateBreach(getRiskScore(risk.residualLikelihood, risk.residualImpact), risk.riskAppetite).breached && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-400/20 text-red-300 border border-red-400/30"
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 text-red-700"
                         title="Residual score exceeds stated risk appetite">
                     <AlertTriangle className="w-3 h-3 shrink-0" />
                     Appetite Breach
@@ -426,22 +426,22 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                 {canToggleFocus && (
                   <button
                     onClick={() => toggleRiskInFocus(risk.id, !risk.inFocus)}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium transition-colors hover:bg-white/10"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium transition-colors hover:bg-gray-100"
                     title={risk.inFocus ? "Remove from Focus" : "Mark as Risk in Focus"}
                   >
-                    <Star className={`w-3.5 h-3.5 ${risk.inFocus ? "text-amber-400 fill-amber-400" : "text-white/50"}`} />
-                    <span className={risk.inFocus ? "text-amber-300" : "text-white/50"}>
+                    <Star className={`w-3.5 h-3.5 ${risk.inFocus ? "text-amber-400 fill-amber-400" : "text-gray-400"}`} />
+                    <span className={risk.inFocus ? "text-amber-700" : "text-gray-400"}>
                       {risk.inFocus ? "In Focus" : "Focus"}
                     </span>
                   </button>
                 )}
                 {!canToggleFocus && risk.inFocus && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium text-amber-300 bg-white/10">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium text-amber-700 bg-amber-50">
                     <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
                     In Focus
                   </span>
                 )}
-                <span className="text-xs text-white/50">
+                <span className="text-xs text-gray-400">
                   Last updated {new Date(risk.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                 </span>
               </div>
@@ -459,7 +459,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
             {risk && !isNew && onViewHistory && (
               <button
                 onClick={() => onViewHistory(risk)}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-white/70 hover:bg-white/10 rounded-lg transition-colors"
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
                 title="View 12-month history"
               >
                 <History className="w-4 h-4" />
@@ -470,7 +470,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
             {!isNew && canEditRisk && !isEditing && (
               <button
                 onClick={() => setIsEditing(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-white/70 hover:bg-white/10 rounded-lg transition-colors"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
                 title="Edit this risk"
               >
                 <Pencil className="w-4 h-4" /> Edit
@@ -479,14 +479,14 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
             {!isNew && isEditing && (
               <button
                 onClick={() => { setIsEditing(false); }}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-white/70 hover:bg-white/10 rounded-lg transition-colors"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
                 title="Cancel editing"
               >
                 <XCircle className="w-4 h-4" /> Cancel
               </button>
             )}
-            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors" aria-label="Close">
-              <X className="w-5 h-5 text-white/70" />
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Close">
+              <X className="w-5 h-5 text-gray-400" />
             </button>
           </div>
         </div>

@@ -1,9 +1,92 @@
 # Meridian — Active Development Plan
-Last updated: 2026-03-18 (Sprint Q active)
+Last updated: 2026-03-23
 
 ---
 
-## CURRENT SPRINT: Sprint Q — Login & Loading Screen Visual Redesign
+## CURRENT SPRINT: Normalise — Panel Architecture, Focus Styles, Shared Utilities ✅ COMPLETE
+
+### Design intent
+- **Who**: CCRO and functional owners moving between Risk, Compliance, Actions, and Horizon throughout their working day — often in the same session.
+- **One thing**: Every detail panel must feel like the same product — same width, same surface, same animation, same header language.
+- **Remove**: The cognitive tax of re-learning "how does this open?" at every section boundary, and the AI-slop gradient headers that make panels look like landing-page hero banners.
+
+### ⚠️ Conflict check
+- None of these changes alter data, store shape, or API contracts.
+- The gradient header on RiskDetailPanel was added in Sprint Q — this sprint deliberately overrides it as part of AI-slop removal identified by the critique.
+- ActionDetailPanel gradient header is also from Sprint Q — same justification.
+- RegulationDetailPanel (inline layout) is out of scope — converting it to a fixed slide-out requires compliance page layout refactor. Deferred.
+
+### Files changed
+- `src/lib/action-utils.ts` (new)
+- `src/app/actions/page.tsx`
+- `src/components/actions/ActionDetailPanel.tsx`
+- `src/components/risk-register/RiskDetailPanel.tsx`
+- `src/components/compliance/RegulationDetailPanel.tsx`
+- `src/components/horizon/HorizonDetailPanel.tsx`
+- `src/components/policies/PolicyDetailPanel.tsx`
+- `src/components/risk-acceptances/RiskAcceptanceDetailPanel.tsx`
+- `src/components/processes/ProcessDetailPanel.tsx`
+- `src/components/or/RegCalEventDetailPanel.tsx`
+- `tasks/patterns.md` (D007 + D008 update)
+
+### Deliverables
+
+#### N1 — Shared action utilities
+- [x] Create `src/lib/action-utils.ts` with `daysUntilDue`, `dueDateColor`, `rowBorderColor`, `ACTION_STATUS_CONFIG`
+- [x] Standardise amber threshold to ≤7 days (was 30 in ActionDetailPanel — a discrepancy)
+- [x] Update `src/app/actions/page.tsx` to import from new util (remove local dupes)
+- [x] Update `src/components/actions/ActionDetailPanel.tsx` to import from new util
+- [x] Verify both files still render correctly after import swap
+
+#### N2 — Input focus standard
+- [x] Apply D008 standard (`focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30`) to all inputs in:
+  - `ActionDetailPanel.tsx` (previously used `focus:border-updraft-light-purple focus:ring-1`)
+  - `RegulationDetailPanel.tsx`
+- [x] RiskDetailPanel already uses D008 standard — confirmed, no change needed
+
+#### N3 — Panel background + overlay standard
+- [x] `HorizonDetailPanel`: `bg-white` → `panel-surface`, overlay `/20` → `/40 z-40`
+- [x] `PolicyDetailPanel`: `bg-white` → `panel-surface`, overlay add z-40
+- [x] `RiskAcceptanceDetailPanel`: `bg-white` → `panel-surface`, overlay add z-40
+- [x] `ProcessDetailPanel`: `bg-white` → `panel-surface`, add overlay `bg-black/40 z-40`
+- [x] `RegCalEventDetailPanel`: `bg-white` → `panel-surface`, overlay add z-40
+
+#### N4 — Panel animation + width standard
+- [x] `PolicyDetailPanel`: replace CSS `animate-slide-in-right` with framer spring, width `max-w-3xl` → `sm:w-[640px]`
+- [x] `RiskAcceptanceDetailPanel`: replace CSS `animate-slide-in-right` with framer spring, `max-w-2xl` → `sm:w-[640px]`
+- [x] `ProcessDetailPanel`: add framer spring, `sm:w-[520px]` → `sm:w-[640px]`
+- [x] `RegCalEventDetailPanel`: add framer spring, `sm:w-[480px]` → `sm:w-[640px]`
+- [x] `ActionDetailPanel`: `sm:w-[560px] lg:w-[620px]` → `sm:w-[640px]`
+- [x] `HorizonDetailPanel`: `w-[min(800px,95vw)]` → `sm:w-[680px]` (rich content)
+- [x] `RiskDetailPanel`: `w-[min(800px,95vw)]` → `sm:w-[680px]`
+
+#### N5 — Panel header gradient removal
+- [x] `RiskDetailPanel`: gradient removed → flat `border-b border-gray-200 bg-white/95`; badges updated to dark-on-light
+- [x] `ActionDetailPanel`: gradient removed + badge colour update
+- [x] `HorizonDetailPanel`: gradient removed + badge colour update
+- [x] `PolicyDetailPanel`, `RiskAcceptanceDetailPanel`, `ProcessDetailPanel`, `RegCalEventDetailPanel`: gradient removed
+- [x] `RegulationDetailPanel` (inline panel): gradient removed
+- [x] All panels: title `text-gray-900 font-poppins`, breadcrumb `text-gray-400`
+
+#### N6 — Update D007 in patterns.md
+- [x] Update panel width standard from `w-96`/`w-[32rem]` to `sm:w-[640px]` (standard) / `sm:w-[680px]` (rich)
+- [x] Note the overlay (`bg-black/40`) and header standards (flat, no gradient)
+
+### Acceptance criteria
+- [x] All 7 entity detail panels slide in from the right with the same spring animation
+- [x] All panels use `panel-surface` background (frosted glass, not plain white)
+- [x] All overlay backdrops are `bg-black/40 z-40`
+- [x] All panel widths are `sm:w-[640px]` or `sm:w-[680px]`
+- [x] No panel header uses a gradient background
+- [x] All detail panel form inputs use `focus:ring-2 focus:ring-updraft-bright-purple/30`
+- [x] `dueDateColor` and `STATUS_CONFIG` have one canonical definition in `src/lib/action-utils.ts`
+- [x] `npx next build` passes with zero errors
+
+---
+
+## PREVIOUSLY COMPLETED
+
+## Sprint Q — Login & Loading Screen Visual Redesign ✅ COMPLETE
 
 ### Design intent
 - **Who:** Employees opening their compliance platform — CCRO daily, OWNER reluctantly, CEO under time pressure. First interaction with the system.
@@ -40,8 +123,6 @@ Last updated: 2026-03-18 (Sprint Q active)
 - [x] Build passes
 
 ---
-
-## PREVIOUSLY COMPLETED
 
 ## Sprint P — Animation Coverage (All Pages, All Elements) ✅ COMPLETE
 

@@ -232,38 +232,38 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
     <PanelPortal>
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/20 z-40" onClick={handleClose} />
+      <div className="fixed inset-0 bg-black/40 z-40" onClick={handleClose} />
 
-      {/* Panel — wider than before; expands left to show data without scrolling */}
+      {/* Panel */}
       <motion.div
-        className="fixed right-0 top-0 bottom-0 w-[min(800px,95vw)] bg-white shadow-2xl z-50 flex flex-col"
+        className="fixed right-0 top-0 bottom-0 sm:w-[680px] w-full panel-surface shadow-2xl z-50 flex flex-col"
         initial={prefersReduced ? false : { x: "100%" }}
         animate={prefersReduced ? false : { x: 0 }}
         transition={prefersReduced ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 30 }}
         style={{ willChange: "transform" }}
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-gradient-to-r from-updraft-deep to-updraft-bar px-6 py-4 flex items-start justify-between shrink-0">
+        <div className="sticky top-0 z-10 border-b border-gray-200 bg-white/95 backdrop-blur-sm px-6 py-4 flex items-start justify-between shrink-0">
           <div className="flex-1 min-w-0 pr-4">
-            <p className="text-[10px] uppercase tracking-wider text-white/50 font-medium mb-0.5">Horizon Scanning › {item.reference}</p>
+            <p className="text-[10px] uppercase tracking-wider text-gray-400 font-medium mb-0.5">Horizon Scanning › {item.reference}</p>
             <div className="flex items-center gap-2 mb-1">
               <span className={cn("text-xs font-semibold px-1.5 py-0.5 rounded", urgencyStyle.bg, urgencyStyle.text)}>
                 {urgency}
               </span>
               {isEditing && isDirty && (
-                <span className="text-xs font-medium text-amber-300 bg-white/10 px-1.5 py-0.5 rounded border border-amber-300/30">
+                <span className="text-xs font-medium text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
                   Unsaved changes
                 </span>
               )}
             </div>
-            <h2 className="font-poppins font-semibold text-white text-sm leading-snug line-clamp-2">{title}</h2>
+            <h2 className="font-poppins font-semibold text-gray-900 text-sm leading-snug line-clamp-2">{title}</h2>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {/* Edit unlock button — CCRO Team only */}
             {canManage && !isEditing && (
               <button
                 onClick={() => setIsEditing(true)}
-                className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                 aria-label="Edit this item"
                 title="Edit"
               >
@@ -273,14 +273,14 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
             {canManage && isEditing && (
               <button
                 onClick={handleCancelEdit}
-                className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                 aria-label="Cancel editing"
                 title="Cancel edits"
               >
                 <XCircle className="w-4 h-4" />
               </button>
             )}
-            <button onClick={handleClose} className="p-1 text-white/70 hover:text-white hover:bg-white/10 rounded transition-colors" aria-label="Close">
+            <button onClick={handleClose} className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors" aria-label="Close">
               <X className="w-5 h-5" />
             </button>
           </div>

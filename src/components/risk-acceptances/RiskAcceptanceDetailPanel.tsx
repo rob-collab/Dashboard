@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import { X, ChevronDown, ChevronRight, Check, Clock, AlertTriangle, MessageCircle, Send, ArrowRight, ExternalLink } from "lucide-react";
 import { useAppStore } from "@/lib/store";
@@ -53,6 +54,7 @@ function CollapsibleSection({ title, defaultOpen = false, children, badge }: { t
 }
 
 export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdate }: Props) {
+  const prefersReduced = useReducedMotion();
   const currentUser = useAppStore((s) => s.currentUser);
   const authUser = useAppStore((s) => s.authUser);
   const users = useAppStore((s) => s.users);
@@ -169,25 +171,31 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
     <PanelPortal>
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
 
       {/* Panel */}
-      <div className="fixed inset-y-0 right-0 z-50 w-full max-w-2xl bg-white shadow-xl overflow-y-auto animate-slide-in-right">
+      <motion.div
+        className="fixed inset-y-0 right-0 z-50 sm:w-[640px] w-full panel-surface shadow-xl overflow-y-auto"
+        initial={prefersReduced ? false : { x: "100%" }}
+        animate={prefersReduced ? false : { x: 0 }}
+        transition={prefersReduced ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 30 }}
+        style={{ willChange: "transform" }}
+      >
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-gradient-to-r from-updraft-deep to-updraft-bar px-6 py-4">
+        <div className="sticky top-0 z-10 border-b border-gray-200 bg-white/95 backdrop-blur-sm px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] uppercase tracking-wider text-white/50 font-medium mb-1">Risk Acceptances › {acceptance.reference}</p>
+              <p className="text-[10px] uppercase tracking-wider text-gray-400 font-medium mb-1">Risk Acceptances › {acceptance.reference}</p>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-mono font-bold bg-white/20 text-white px-2 py-0.5 rounded">{acceptance.reference}</span>
+                <span className="text-xs font-mono font-bold bg-updraft-bar/10 text-updraft-bar px-2 py-0.5 rounded">{acceptance.reference}</span>
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColours.bg} ${statusColours.text}`}>
                   {RISK_ACCEPTANCE_STATUS_LABELS[acceptance.status]}
                 </span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-white/20 text-white/80">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
                   {RISK_ACCEPTANCE_SOURCE_LABELS[acceptance.source]}
                 </span>
               </div>
-              <h2 className="text-lg font-bold text-white font-poppins truncate">{acceptance.title}</h2>
+              <h2 className="text-lg font-bold text-gray-900 font-poppins truncate">{acceptance.title}</h2>
               {acceptance.reviewDate && (
                 <div className="mt-1">
                   {(() => {
@@ -197,7 +205,7 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
                     return (
                       <span className={cn(
                         "inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full",
-                        isExpired ? "bg-red-500/80 text-white" : isApproaching ? "bg-amber-500/80 text-white" : "bg-green-500/80 text-white"
+                        isExpired ? "bg-red-100 text-red-700" : isApproaching ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"
                       )}>
                         <Clock size={12} />
                         Accepted until {new Date(acceptance.reviewDate!).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
@@ -209,7 +217,7 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
                 </div>
               )}
             </div>
-            <button onClick={onClose} className="rounded-md p-1.5 text-white/70 hover:bg-white/10 hover:text-white transition-colors shrink-0 ml-2" aria-label="Close">
+            <button onClick={onClose} className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors shrink-0 ml-2" aria-label="Close">
               <X size={20} />
             </button>
           </div>
@@ -656,7 +664,7 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
     </>
     </PanelPortal>
   );
