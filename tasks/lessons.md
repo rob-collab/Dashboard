@@ -789,6 +789,42 @@ mount/unmount guards, or component wrappers that sit between a user action and v
 
 ---
 
+### L026 — PanelPortal applied to inline split-pane panels breaks them silently
+
+**What happened:** `IBSDetailPanel` had `PanelPortal` added during the GlowMenu sprint
+(likely by copy-pasting the pattern from `ProcessDetailPanel` or `PolicyDetailPanel`).
+`IBSDetailPanel` is an inline split-pane panel that renders inside a flex container in
+`IBSRegistryTab` — it is NOT a fixed-position overlay. `PanelPortal` teleports its content
+to `document.body`, leaving the flex container empty. Clicking an IBS item showed nothing.
+The build passed (`npx next build`). Only manual testing would have caught it.
+
+**Root cause:** Two different panel archetypes exist in this app with the same prop shape
+(`ibs`, `onUpdate`, `onClose`, `isCCRO`). One is an overlay; the other is inline.
+An agent normalising panels copied `PanelPortal` from an overlay panel without checking
+whether the target panel was inline or fixed.
+
+**The two archetypes:**
+- **Overlay panel** (uses PanelPortal + `fixed` positioning): slides in from the right,
+  covers page content, has a dark backdrop. These NEED PanelPortal to escape parent
+  CSS transforms. Examples: ProcessDetailPanel, PolicyDetailPanel, RiskDetailPanel,
+  HorizonDetailPanel, ActionDetailPanel, RiskAcceptanceDetailPanel, RegCalEventDetailPanel.
+- **Inline split-pane panel** (NO PanelPortal): renders as a flex column inside a
+  sibling container alongside a list. Uses `h-full` and flex layout to fill the column.
+  Examples: IBSDetailPanel. Adding PanelPortal here breaks the layout entirely.
+
+**Rule:** Before adding or removing `PanelPortal` from any detail panel, look at how the
+panel is rendered by its parent:
+- Parent uses `fixed inset-0` backdrop + `fixed right-0` motion.div → overlay → needs PanelPortal
+- Parent is `<div className="w-full lg:w-[520px] ...">` inside a flex row → inline → NO PanelPortal
+If the panel uses `flex flex-col h-full` (not `fixed`) at its root, it is inline. Remove PanelPortal.
+
+**Trigger:** Any change to a `*DetailPanel` component that adds, removes, or refactors
+`PanelPortal`. Any "normalise panels" sprint. Any time an agent copy-pastes panel structure.
+
+**Status:** Active.
+
+---
+
 ### W027 — Parallel agent execution for large UI-only replacements
 
 **What happened:** GlowMenu sprint replaced 14 independent tab bars. Dispatching two agents in

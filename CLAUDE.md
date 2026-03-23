@@ -435,6 +435,22 @@ something that conflicts with previous work.
 
 ---
 
+## CRITICAL: Two Detail Panel Archetypes — PanelPortal Rules
+
+This app has two fundamentally different detail panel patterns. Confusing them silently breaks the UI (build passes, feature invisible). Before touching any `*DetailPanel`:
+
+**Overlay panels** — slides in from the right, dark backdrop, covers the page. Root element is `fixed right-0 top-0 bottom-0 z-50` (or similar). **MUST use `<PanelPortal>`** to escape parent CSS transforms. Covers: ProcessDetailPanel, PolicyDetailPanel, RiskDetailPanel, HorizonDetailPanel, ActionDetailPanel, RiskAcceptanceDetailPanel, RegCalEventDetailPanel.
+
+**Inline split-pane panels** — renders as a flex column inside a sibling flex container alongside a list. Root element is `flex flex-col h-full`. **Must NOT use `<PanelPortal>`** — teleporting to `document.body` leaves the container empty. Covers: IBSDetailPanel.
+
+**Checklist before modifying any `*DetailPanel`:**
+- [ ] Is the panel's root element `fixed ...` or `flex flex-col h-full`?
+- [ ] If `fixed` → PanelPortal is correct. If `flex flex-col h-full` → remove PanelPortal.
+- [ ] Did you copy structure from another panel? Verify the archetype matches.
+- [ ] After any change, manually click an item to open the panel — don't rely on build alone.
+
+---
+
 ## CRITICAL: Seed & Migration Rules
 
 **These rules prevent data ordering corruption and silent metadata loss during seed operations and migrations.**
