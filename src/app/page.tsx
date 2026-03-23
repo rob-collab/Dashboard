@@ -6,8 +6,6 @@ import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   CheckCircle2,
-  ShieldCheck,
-  Star,
   ArrowRight,
   TrendingUp,
   TrendingDown,
@@ -433,8 +431,11 @@ export default function DashboardHome() {
                 </div>
               )}
 
-              {/* ── Latest horizon update ── */}
-              {actionNeeded.latestHorizon && (
+              {/* ── Latest horizon update — only when nothing more urgent ── */}
+              {actionNeeded.latestHorizon &&
+               actionNeeded.overdueActions.length === 0 &&
+               actionNeeded.risksNeedingRefresh.length === 0 &&
+               actionNeeded.staleMetrics.length === 0 && (
                 <div className="mt-auto space-y-2">
                   <div className="border-t border-gray-100 pt-4 dark:border-gray-800" />
                   <div className="flex items-center gap-2">
@@ -545,36 +546,42 @@ export default function DashboardHome() {
             <CardHeader>
               <CardTitle>Priorities</CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-1 flex-col justify-between gap-3">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between rounded-lg bg-red-50 px-3 py-2.5 dark:bg-red-900/10">
-                  <div>
-                    <p className="text-xs font-semibold text-red-700 dark:text-red-400">P1 — Critical</p>
-                    <p className="text-xs text-red-500/70 dark:text-red-400/50">Immediate attention</p>
+            <CardContent className="flex flex-1 flex-col justify-between">
+              <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                <div className="flex items-center justify-between py-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-red-500" />
+                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">P1 — Critical</span>
                   </div>
-                  <span className="font-poppins text-3xl font-bold text-red-700 dark:text-red-400">
+                  <span className="font-poppins text-2xl font-bold text-red-600 dark:text-red-400">
                     <AnimatedNumber value={actionStats.p1} duration={500} />
                   </span>
                 </div>
-                <div className="flex items-center justify-between rounded-lg bg-orange-50 px-3 py-2.5 dark:bg-orange-900/10">
-                  <div>
-                    <p className="text-xs font-semibold text-orange-700 dark:text-orange-400">P2 — High</p>
-                    <p className="text-xs text-orange-500/70 dark:text-orange-400/50">Due within 7 days</p>
+                <div className="flex items-center justify-between py-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-orange-400" />
+                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">P2 — High</span>
                   </div>
-                  <span className="font-poppins text-3xl font-bold text-orange-700 dark:text-orange-400">
+                  <span className="font-poppins text-2xl font-bold text-orange-500 dark:text-orange-400">
                     <AnimatedNumber value={actionStats.p2} duration={500} />
                   </span>
                 </div>
-                <div className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2.5 dark:bg-gray-800/50">
-                  <div>
-                    <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">P3 — Standard</p>
-                    <p className="text-xs text-gray-400">On track</p>
+                <div className="flex items-center justify-between py-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-gray-400" />
+                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">P3 — Standard</span>
                   </div>
-                  <span className="font-poppins text-3xl font-bold text-gray-600 dark:text-gray-300">
+                  <span className="font-poppins text-2xl font-bold text-gray-600 dark:text-gray-300">
                     <AnimatedNumber value={actionStats.p3} duration={500} />
                   </span>
                 </div>
               </div>
+              <button
+                onClick={() => hasActionsPage && router.push("/actions")}
+                className="mt-auto flex items-center gap-1 self-end text-xs font-medium text-updraft-bar hover:text-updraft-deep dark:text-updraft-light-purple transition-colors"
+              >
+                View all <ArrowRight size={12} />
+              </button>
             </CardContent>
           </Card>
         }
@@ -621,35 +628,11 @@ export default function DashboardHome() {
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                <div className="rounded-lg bg-emerald-50 p-2 dark:bg-emerald-900/10">
-                  <div className="flex items-center justify-center gap-1">
-                    <CheckCircle2 size={11} className="text-emerald-600 dark:text-emerald-400" />
-                    <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                      {controlsHealth.passing}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-gray-400 mt-0.5">passing</p>
-                </div>
-                <div className="rounded-lg bg-red-50 p-2 dark:bg-red-900/10">
-                  <div className="flex items-center justify-center gap-1">
-                    <AlertTriangle size={11} className="text-red-600 dark:text-red-400" />
-                    <span className="text-xs font-semibold text-red-700 dark:text-red-400">
-                      {controlsHealth.failing}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-gray-400 mt-0.5">failing</p>
-                </div>
-                <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800/50">
-                  <div className="flex items-center justify-center gap-1">
-                    <ShieldCheck size={11} className="text-gray-500" />
-                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">
-                      {controlsHealth.total}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-gray-400 mt-0.5">active</p>
-                </div>
-              </div>
+              <p className="mt-3 text-xs text-gray-400">
+                {controlsHealth.passing} passing
+                {controlsHealth.failing > 0 && <span className="text-red-500"> · {controlsHealth.failing} failing</span>}
+                {controlsHealth.untested > 0 && ` · ${controlsHealth.untested} untested`}
+              </p>
 
               <button
                 onClick={() => hasControlsPage && router.push("/controls")}
@@ -674,18 +657,16 @@ export default function DashboardHome() {
             </CardHeader>
             <CardContent>
               {focusRisks.length === 0 ? (
-                <div className="flex flex-col items-center gap-2 py-4 text-center">
-                  <Star size={20} className="text-gray-300" />
-                  <p className="text-sm text-gray-400">
-                    No risks in focus. Star a risk in the register to pin it here.
-                  </p>
+                <p className="text-xs text-gray-400">
+                  No risks pinned.{" "}
                   <button
                     onClick={() => hasRiskPage && router.push("/risk-register")}
-                    className="mt-1 flex items-center gap-1 text-xs font-medium text-updraft-bar hover:text-updraft-deep transition-colors"
+                    className="text-updraft-bar hover:text-updraft-deep transition-colors"
                   >
-                    Open register <ArrowRight size={12} />
-                  </button>
-                </div>
+                    Star a risk in the register
+                  </button>{" "}
+                  to track it here.
+                </p>
               ) : (
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {focusRisks.map((r) => {
