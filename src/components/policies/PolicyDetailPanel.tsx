@@ -15,6 +15,7 @@ import PolicyConsumerDutyTab from "./PolicyConsumerDutyTab";
 import PolicyFormDialog from "./PolicyFormDialog";
 import PolicyProcessesTab from "./PolicyProcessesTab";
 import PanelPortal from "@/components/common/PanelPortal";
+import { GlowMenu } from "@/components/ui/glow-menu";
 
 type TabKey = "overview" | "regulations" | "controls" | "obligations" | "consumer-duty" | "processes" | "audit";
 
@@ -126,31 +127,26 @@ export default function PolicyDetailPanel({ policy, onClose, onUpdate }: Props) 
         </div>
 
         {/* Tabs */}
-        <div className="shrink-0 flex items-center gap-1 border-b border-gray-200 px-6">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={cn(
-                "px-3 py-2.5 text-xs font-medium border-b-2 -mb-px transition-colors",
-                tab === t.key ? "border-updraft-bright-purple text-updraft-deep" : "border-transparent text-gray-500 hover:text-gray-700"
-              )}
-            >
-              {t.label}
-              {t.key === "regulations" && (policy.regulatoryLinks?.length ?? 0) > 0 && (
-                <span className="ml-1.5 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">{policy.regulatoryLinks?.length}</span>
-              )}
-              {t.key === "controls" && (policy.controlLinks?.length ?? 0) > 0 && (
-                <span className="ml-1.5 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">{policy.controlLinks?.length}</span>
-              )}
-              {t.key === "obligations" && (policy.obligations?.length ?? 0) > 0 && (
-                <span className="ml-1.5 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">{policy.obligations?.length}</span>
-              )}
-              {t.key === "consumer-duty" && (policy.consumerDutyOutcomes?.length ?? 0) > 0 && (
-                <span className="ml-1.5 rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-medium text-purple-600">{policy.consumerDutyOutcomes?.length}</span>
-              )}
-            </button>
-          ))}
+        <div className="shrink-0 px-6">
+          <GlowMenu
+            items={TABS.map((t) => ({
+              id: t.key,
+              label: t.label,
+              badge: t.key === "regulations"
+                ? (policy.regulatoryLinks?.length ?? 0) || undefined
+                : t.key === "controls"
+                ? (policy.controlLinks?.length ?? 0) || undefined
+                : t.key === "obligations"
+                ? (policy.obligations?.length ?? 0) || undefined
+                : t.key === "consumer-duty"
+                ? (policy.consumerDutyOutcomes?.length ?? 0) || undefined
+                : undefined,
+            }))}
+            activeId={tab}
+            onSelect={(id) => setTab(id as TabKey)}
+            size="sm"
+            menuId="policy-panel"
+          />
         </div>
 
         {/* Content */}

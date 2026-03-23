@@ -20,6 +20,7 @@ import ORDashboard from "@/components/or/ORDashboard";
 import SelfAssessmentTab from "@/components/or/SelfAssessmentTab";
 import { cn } from "@/lib/utils";
 import { AnimatedNumber } from "@/components/common/AnimatedNumber";
+import { GlowMenu } from "@/components/ui/glow-menu";
 
 type Tab = "processes" | "ibs" | "or-overview" | "self-assessment" | "history";
 
@@ -272,83 +273,18 @@ export default function ProcessesPage() {
       </div>
 
       {/* Page tab bar */}
-      <div className="flex gap-1 px-6 border-b border-gray-200 bg-white shrink-0">
-        <button
-          key="processes"
-          type="button"
-          onClick={() => handleTabChange("processes")}
-          className={cn(
-            "px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
-            activeTab === "processes"
-              ? "border-updraft-bright-purple text-updraft-deep"
-              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-          )}
-        >
-          Processes
-        </button>
-
-        {/* Divider between Process and OR tabs */}
-        <span className="flex items-center px-1 text-gray-300 text-sm select-none">|</span>
-
-        <button
-          key="ibs"
-          type="button"
-          onClick={() => handleTabChange("ibs")}
-          className={cn(
-            "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
-            activeTab === "ibs"
-              ? "border-updraft-bright-purple text-updraft-deep"
-              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-          )}
-        >
-          <Library size={14} />
-          IBS Registry
-        </button>
-        <button
-          key="or-overview"
-          type="button"
-          onClick={() => handleTabChange("or-overview")}
-          className={cn(
-            "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
-            activeTab === "or-overview"
-              ? "border-updraft-bright-purple text-updraft-deep"
-              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-          )}
-        >
-          <ShieldCheck size={14} />
-          Resilience Overview
-        </button>
-        <button
-          key="self-assessment"
-          type="button"
-          onClick={() => handleTabChange("self-assessment")}
-          className={cn(
-            "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
-            activeTab === "self-assessment"
-              ? "border-updraft-bright-purple text-updraft-deep"
-              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-          )}
-        >
-          <FileText size={14} />
-          Self-Assessment
-        </button>
-
-        {/* Divider before History */}
-        <span className="flex items-center px-1 text-gray-300 text-sm select-none">|</span>
-
-        <button
-          key="history"
-          type="button"
-          onClick={() => handleTabChange("history")}
-          className={cn(
-            "px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
-            activeTab === "history"
-              ? "border-updraft-bright-purple text-updraft-deep"
-              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-          )}
-        >
-          History
-        </button>
+      <div className="px-6 bg-white shrink-0">
+        <GlowMenu
+          items={[
+            { id: "processes", label: "Processes" },
+            { id: "ibs", label: "IBS Registry", icon: Library },
+            { id: "or-overview", label: "Resilience Overview", icon: ShieldCheck },
+            { id: "self-assessment", label: "Self-Assessment", icon: FileText },
+            { id: "history", label: "History" },
+          ]}
+          activeId={activeTab}
+          onSelect={(id) => handleTabChange(id as Tab)}
+        />
       </div>
 
       {/* History tab */}

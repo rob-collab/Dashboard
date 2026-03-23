@@ -13,8 +13,8 @@ import CoverageChainTab from "@/components/compliance/CoverageChainTab";
 import ComplianceRoadmapTab from "@/components/compliance/ComplianceRoadmapTab";
 import RegulatoryChangeLogTab from "@/components/compliance/RegulatoryChangeLogTab";
 import ComplianceHistoryTab from "@/components/compliance/ComplianceHistoryTab";
-import { cn } from "@/lib/utils";
 import { usePageTitle } from "@/lib/usePageTitle";
+import { GlowMenu } from "@/components/ui/glow-menu";
 import { MotionTabContent } from "@/components/motion/MotionTabContent";
 
 const TABS = [
@@ -83,23 +83,12 @@ export default function CompliancePage() {
         </div>
 
         {/* Tab bar */}
-        <div className="flex gap-1 mb-6 border-b border-gray-200 overflow-x-auto">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => handleTabChange(tab.id)}
-              className={cn(
-                "px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap shrink-0",
-                activeTab === tab.id
-                  ? "border-updraft-bright-purple text-updraft-deep"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        <GlowMenu
+          items={TABS.map((t) => ({ id: t.id, label: t.label }))}
+          activeId={activeTab}
+          onSelect={(id) => handleTabChange(id as TabId)}
+          className="mb-6"
+        />
 
         {/* Tab content — cross-fade on tab switch */}
         <MotionTabContent tabKey={activeTab}>
