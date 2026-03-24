@@ -110,12 +110,14 @@ export default function OutcomeCard({
       type="button"
       onClick={onClick}
       className={cn(
-        /* Base glass card */
-        "glass-card group relative flex flex-col items-start gap-4 text-left w-full cursor-pointer",
+        /* Base card — solid warm surface, design system border */
+        "group relative flex flex-col items-start gap-4 text-left w-full cursor-pointer",
+        "rounded-3xl border border-[var(--border-warm)] bg-[var(--surface-warm)] p-6 shadow-sm",
+        "transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-updraft-bright-purple/30",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-updraft-bar focus-visible:ring-offset-2",
         /* Selected state */
         selected &&
-          "!bg-white/70 ring-2 ring-updraft-bright-purple/60 shadow-lg shadow-updraft-bright-purple/10"
+          "!bg-white ring-2 ring-updraft-bright-purple/60 shadow-lg shadow-updraft-bright-purple/10"
       )}
       aria-pressed={selected}
     >
@@ -199,7 +201,7 @@ export default function OutcomeCard({
       {/* Name */}
       <h3
         className={cn(
-          "font-poppins text-base font-semibold leading-tight transition-colors",
+          "font-poppins text-base font-semibold leading-tight transition-colors line-clamp-2",
           selected ? "text-updraft-deep" : "text-gray-800"
         )}
       >

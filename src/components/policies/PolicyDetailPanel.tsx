@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { motion, useReducedMotion } from "framer-motion";
 import { X, Shield, BookOpen, Scale } from "lucide-react";
 import type { Policy } from "@/lib/types";
 import { POLICY_STATUS_LABELS } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import PolicyOverviewTab from "./PolicyOverviewTab";
+const PolicyOverviewTab = dynamic(() => import("./PolicyOverviewTab"), { ssr: false });
+const PolicyControlsTab = dynamic(() => import("./PolicyControlsTab"), { ssr: false });
 import PolicyRegulationsTab from "./PolicyRegulationsTab";
-import PolicyControlsTab from "./PolicyControlsTab";
 import PolicyObligationsTab from "./PolicyObligationsTab";
 import PolicyAuditTab from "./PolicyAuditTab";
 import PolicyConsumerDutyTab from "./PolicyConsumerDutyTab";
@@ -77,10 +78,13 @@ export default function PolicyDetailPanel({ policy, onClose, onUpdate }: Props) 
     <PanelPortal>
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} />
+      <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} aria-hidden="true" />
 
       {/* Panel */}
       <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="policy-panel-title"
         className="fixed right-0 top-0 z-50 h-screen sm:w-[640px] w-full panel-surface shadow-xl flex flex-col"
         initial={prefersReduced ? false : { x: "100%" }}
         animate={prefersReduced ? false : { x: 0 }}
@@ -107,7 +111,7 @@ export default function PolicyDetailPanel({ policy, onClose, onUpdate }: Props) 
               <X size={18} className="text-white/80" />
             </button>
           </div>
-          <h2 className="text-lg font-bold text-white font-poppins">{policy.name}</h2>
+          <h2 id="policy-panel-title" className="text-lg font-bold text-white font-poppins">{policy.name}</h2>
 
           {/* Health summary */}
           <div className="flex items-center gap-4 mt-3 text-white/70 text-xs">

@@ -69,16 +69,22 @@ export function HorizonFormDialog({ onClose, onCreated }: Props) {
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/30 z-40" onClick={onClose} aria-hidden="true" />
 
       {/* Dialog */}
       <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 px-4 pb-8 overflow-y-auto">
-        <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="horizon-dialog-title"
+          className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl flex flex-col"
+          onClick={(e) => e.stopPropagation()}
+        >
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b bg-slate-50 rounded-t-2xl shrink-0">
             <div className="flex items-center gap-2">
               <Radar className="w-5 h-5 text-updraft-bright-purple" />
-              <h2 className="font-poppins font-semibold text-updraft-deep">New Horizon Item</h2>
+              <h2 id="horizon-dialog-title" className="font-poppins font-semibold text-updraft-deep">New Horizon Item</h2>
             </div>
             <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 rounded transition-colors">
               <X className="w-5 h-5" />

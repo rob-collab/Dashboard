@@ -489,53 +489,63 @@ function ActionsPageContent() {
         );
       })()}
 
-      {/* Priority cards */}
-      <ScrollReveal>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {priorityCards.map((p, idx) => (
-          <button
-            key={p.filterKey}
-            onClick={() => handlePriorityChange(priorityFilter === p.filterKey ? "ALL" : p.filterKey)}
-            className={cn(
-              "rounded-xl border p-3 text-left transition-all cursor-pointer",
-              p.bg,
-              priorityFilter === p.filterKey
-                ? "border-updraft-bright-purple ring-2 ring-updraft-bright-purple/30"
-                : "border-gray-200 hover:border-gray-300"
-            )}
-          >
-            <p className="text-xs text-gray-500">{p.label}</p>
-            <AnimatedNumber value={p.value} delay={idx * 50} className={cn("text-2xl font-bold font-poppins", p.color)} />
-            <p className="text-[10px] text-gray-400 mt-0.5">active actions</p>
-          </button>
-        ))}
-      </div>
-      </ScrollReveal>
+      {/* Stats cluster — priority + status rows tightly grouped */}
+      <div className="space-y-2">
+        <ScrollReveal>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {priorityCards.map((p, idx) => (
+            <button
+              key={p.filterKey}
+              onClick={() => handlePriorityChange(priorityFilter === p.filterKey ? "ALL" : p.filterKey)}
+              className={cn(
+                "rounded-xl border p-3 text-left transition-all cursor-pointer",
+                p.bg,
+                priorityFilter === p.filterKey
+                  ? "border-updraft-bright-purple ring-2 ring-updraft-bright-purple/30"
+                  : "border-gray-200 hover:border-gray-300"
+              )}
+            >
+              <p className="text-xs text-gray-500">{p.label}</p>
+              <AnimatedNumber
+                value={p.value}
+                delay={idx * 50}
+                className={cn(
+                  "font-bold font-poppins",
+                  idx === 0 ? "text-3xl" : "text-2xl",
+                  p.color
+                )}
+              />
+              <p className="text-[10px] text-gray-400 mt-0.5">active actions</p>
+            </button>
+          ))}
+        </div>
+        </ScrollReveal>
 
-      {/* Status stats — clickable with active highlight */}
-      <ScrollReveal delay={80}>
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        {statCards.map((s, idx) => (
-          <button
-            key={s.label}
-            onClick={() => handleStatClick(s.filterKey)}
-            className={cn(
-              "rounded-xl border p-3 text-left transition-all cursor-pointer",
-              s.bg,
-              statusFilter === s.filterKey
-                ? "border-updraft-bright-purple ring-2 ring-updraft-bright-purple/30"
-                : "border-gray-200 hover:border-gray-300"
-            )}
-          >
-            <p className="text-xs text-gray-500">{s.label}</p>
-            <AnimatedNumber value={s.value} delay={idx * 50} className={cn("text-2xl font-bold font-poppins", s.color)} />
-          </button>
-        ))}
+        {/* Status row — separated by a hairline */}
+        <ScrollReveal delay={80}>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-1">
+          {statCards.map((s, idx) => (
+            <button
+              key={s.label}
+              onClick={() => handleStatClick(s.filterKey)}
+              className={cn(
+                "rounded-xl border p-3 text-left transition-all cursor-pointer",
+                s.bg,
+                statusFilter === s.filterKey
+                  ? "border-updraft-bright-purple ring-2 ring-updraft-bright-purple/30"
+                  : "border-gray-200 hover:border-gray-300"
+              )}
+            >
+              <p className="text-xs text-gray-500">{s.label}</p>
+              <AnimatedNumber value={s.value} delay={idx * 50} className={cn("text-2xl font-bold font-poppins", s.color)} />
+            </button>
+          ))}
+        </div>
+        </ScrollReveal>
       </div>
-      </ScrollReveal>
 
       {/* Search & Filters */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-gray-100">
         <div className="relative flex-1 min-w-[200px]">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input

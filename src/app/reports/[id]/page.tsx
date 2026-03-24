@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -33,7 +34,7 @@ import { sanitizeHTML } from "@/lib/sanitize";
 import { generateHTMLExport } from "@/lib/export-html";
 import VersionList from "@/components/reports/VersionList";
 import VersionCompare from "@/components/reports/VersionCompare";
-import ReportChart from "@/components/reports/ReportChart";
+const ReportChart = dynamic(() => import("@/components/reports/ReportChart"), { ssr: false });
 import OutcomeCard from "@/components/consumer-duty/OutcomeCard";
 import MeasurePanel from "@/components/consumer-duty/MeasurePanel";
 import MIModal from "@/components/consumer-duty/MIModal";

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { GripVertical, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Section } from "@/lib/types";
@@ -8,7 +9,7 @@ import TextBlock from "./TextBlock";
 import DataTable from "./DataTable";
 import CardGrid from "./CardGrid";
 import AccordionSection from "./AccordionSection";
-import ChartSection from "./ChartSection";
+const ChartSection = dynamic(() => import("./ChartSection"), { ssr: false });
 import ImageSection from "./ImageSection";
 import { useAppStore } from "@/lib/store";
 import { sanitizeHTML } from "@/lib/sanitize";

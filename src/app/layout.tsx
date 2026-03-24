@@ -326,7 +326,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
                   animate={prefersReduced ? false : { opacity: 1 }}
                   exit={prefersReduced ? undefined : { opacity: 0 }}
                   transition={{ duration: prefersReduced ? 0 : 0.15 }}
-                  className="p-6 max-w-[1400px] mx-auto"
+                  className="px-4 py-4 sm:p-6 max-w-[1400px] mx-auto"
                 >
                   <Breadcrumb />
                   {children}

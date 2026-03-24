@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRef, useState, useEffect } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
@@ -76,6 +77,25 @@ export function GlowMenu({
   className,
 }: GlowMenuProps) {
   const prefersReduced = useReducedMotion();
+  const navRef = useRef<HTMLElement>(null);
+  const [showRightFade, setShowRightFade] = useState(false);
+
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    function update() {
+      if (!el) return;
+      setShowRightFade(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+    }
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", update);
+      ro.disconnect();
+    };
+  }, []);
 
   const isMd = size === "md";
   const padClass = isMd ? "px-4 py-2" : "px-3 py-1.5";
@@ -85,60 +105,73 @@ export function GlowMenu({
   // ── Reduced motion: plain static underline tabs ──────────────────────────
   if (prefersReduced) {
     return (
-      <nav
-        role="tablist"
-        className={cn(
-          "flex gap-1 border-b border-gray-200 overflow-x-auto",
-          className,
-        )}
-      >
-        {items.map((item) => {
-          const Icon = item.icon;
-          const isActive = item.id === activeId;
-          return (
-            <button
-              key={item.id}
-              role="tab"
-              aria-selected={isActive}
-              disabled={item.disabled}
-              onClick={() => !item.disabled && onSelect(item.id)}
-              className={cn(
-                "inline-flex items-center gap-1.5 font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0",
-                padClass,
-                textClass,
-                isActive
-                  ? "border-updraft-bright-purple text-updraft-deep"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300",
-                item.disabled ? "opacity-50 cursor-not-allowed" : "",
-              )}
-            >
-              {Icon && <Icon size={iconSize} />}
-              {item.label}
-              {item.badge !== undefined && item.badge > 0 && (
-                <span
-                  className={cn(
-                    "inline-flex items-center justify-center rounded-full text-[10px] font-bold px-1.5 min-w-[18px] h-[18px]",
-                    isActive
-                      ? "bg-updraft-deep text-white"
-                      : "bg-gray-200 text-gray-600",
-                  )}
-                >
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
+      <div className="relative">
+        <nav
+          ref={navRef}
+          role="tablist"
+          className={cn(
+            "flex gap-1 border-b border-gray-200 overflow-x-auto scrollbar-none",
+            className,
+          )}
+        >
+          {items.map((item) => {
+            const Icon = item.icon;
+            const isActive = item.id === activeId;
+            return (
+              <button
+                key={item.id}
+                role="tab"
+                aria-selected={isActive}
+                disabled={item.disabled}
+                onClick={() => !item.disabled && onSelect(item.id)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0",
+                  padClass,
+                  textClass,
+                  isActive
+                    ? "border-updraft-bright-purple text-updraft-deep"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300",
+                  item.disabled ? "opacity-50 cursor-not-allowed" : "",
+                )}
+              >
+                {Icon && <Icon size={iconSize} />}
+                {item.label}
+                {item.badge !== undefined && item.badge > 0 && (
+                  <span
+                    className={cn(
+                      "inline-flex items-center justify-center rounded-full text-[10px] font-bold px-1.5 min-w-[18px] h-[18px]",
+                      isActive
+                        ? "bg-updraft-deep text-white"
+                        : "bg-gray-200 text-gray-600",
+                    )}
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+        {/* Right-edge scroll fade — opacity transitions in/out as tabs overflow */}
+        <div
+          className={cn(
+            "pointer-events-none absolute right-0 top-0 bottom-[1px] w-12 bg-gradient-to-l from-white to-transparent transition-opacity duration-200",
+            showRightFade ? "opacity-100" : "opacity-0",
+          )}
+          aria-hidden="true"
+        />
+      </div>
     );
   }
 
   // ── Full animated version ────────────────────────────────────────────────
   return (
+    <div className="relative">
     <motion.nav
+      ref={navRef}
       role="tablist"
       className={cn(
-        "flex gap-1 border-b border-gray-200 overflow-x-auto relative",
+        "flex gap-1 border-b border-gray-200 overflow-x-auto scrollbar-none relative",
         className,
       )}
       initial="initial"
@@ -247,5 +280,14 @@ export function GlowMenu({
         );
       })}
     </motion.nav>
+    {/* Right-edge scroll fade — opacity transitions in/out as tabs overflow */}
+    <div
+      className={cn(
+        "pointer-events-none absolute right-0 top-0 bottom-[1px] w-12 bg-gradient-to-l from-white to-transparent transition-opacity duration-200",
+        showRightFade ? "opacity-100" : "opacity-0",
+      )}
+      aria-hidden="true"
+    />
+    </div>
   );
 }

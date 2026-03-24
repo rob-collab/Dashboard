@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react";
+import dynamic from "next/dynamic";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import {
@@ -16,10 +17,10 @@ import {
 import ControlsLibraryTab from "@/components/controls/ControlsLibraryTab";
 import TestingScheduleTab from "@/components/controls/TestingScheduleTab";
 import TestResultsEntryTab from "@/components/controls/TestResultsEntryTab";
-import ControlsDashboardTab from "@/components/controls/ControlsDashboardTab";
+const ControlsDashboardTab = dynamic(() => import("@/components/controls/ControlsDashboardTab"), { ssr: false });
+const QuarterlySummaryTab = dynamic(() => import("@/components/controls/QuarterlySummaryTab"), { ssr: false });
+const TrendAnalysisTab = dynamic(() => import("@/components/controls/TrendAnalysisTab"), { ssr: false });
 import AttestationTab from "@/components/controls/AttestationTab";
-import QuarterlySummaryTab from "@/components/controls/QuarterlySummaryTab";
-import TrendAnalysisTab from "@/components/controls/TrendAnalysisTab";
 import HistoryTab from "@/components/common/HistoryTab";
 import { SkeletonTable } from "@/components/common/SkeletonLoader";
 import { usePageTitle } from "@/lib/usePageTitle";

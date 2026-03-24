@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useMemo, useEffect, Suspense } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Plus, Download, Search, Radar, AlertTriangle, CheckCircle2, Clock, LayoutGrid, List } from "lucide-react";
+import { Plus, Download, Search, Radar, AlertTriangle, CheckCircle2, Clock, LayoutGrid, List, SlidersHorizontal } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { useSession } from "next-auth/react";
 import type { HorizonItem, HorizonCategory, HorizonUrgency, HorizonImpact, HorizonStatus } from "@/lib/types";
@@ -60,6 +61,7 @@ function HorizonScanningPageInner() {
   const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
   const [viewMode, setViewMode] = useState<"list" | "matrix">("list");
   const [statCardFilter, setStatCardFilter] = useState<"all" | "high" | "due-soon" | "completed">("all");
+  const [showFilters, setShowFilters] = useState(false);
 
   // Sync filter state → URL (replaces current history entry, no scroll)
   useEffect(() => {
@@ -147,6 +149,9 @@ function HorizonScanningPageInner() {
     const completed = horizonItems.filter((h) => h.status === "COMPLETED").length;
     return { total: active.length, high, actionRequired, dueSoon, completed };
   }, [horizonItems]);
+
+  const activeFilterCount = (categoryFilter !== "ALL" ? 1 : 0) + (urgencyFilter !== "ALL" ? 1 : 0) + (statusFilter !== "ALL" ? 1 : 0) + (showDismissed ? 1 : 0);
+  const hasActiveFilters = activeFilterCount > 0;
 
   function handleExport() {
     window.location.href = "/api/horizon-items/export";
@@ -262,59 +267,37 @@ function HorizonScanningPageInner() {
       </div>
       </ScrollReveal>
 
-      {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative">
+      {/* Control bar: search + filters pill + view toggle */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
           <input
             type="text"
             placeholder="Search items…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30 w-56"
+            className="w-full pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30"
           />
         </div>
-        <select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value as HorizonCategory | "ALL")}
-          className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30 bg-white"
+        <button
+          onClick={() => setShowFilters((f) => !f)}
+          aria-expanded={showFilters || hasActiveFilters}
+          aria-controls="horizon-filter-bar"
+          className={cn(
+            "flex items-center gap-1.5 px-3 py-1.5 text-sm border rounded-lg transition-colors shrink-0",
+            hasActiveFilters
+              ? "border-updraft-light-purple/50 bg-updraft-pale-purple/20 text-updraft-deep"
+              : "border-slate-200 text-slate-500 hover:bg-slate-50"
+          )}
         >
-          <option value="ALL">All Categories</option>
-          {(Object.keys(HORIZON_CATEGORY_LABELS) as HorizonCategory[]).map((c) => (
-            <option key={c} value={c}>{HORIZON_CATEGORY_LABELS[c]}</option>
-          ))}
-        </select>
-        <select
-          value={urgencyFilter}
-          onChange={(e) => setUrgencyFilter(e.target.value as HorizonUrgency | "ALL")}
-          className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30 bg-white"
-        >
-          <option value="ALL">All Urgency</option>
-          <option value="HIGH">High</option>
-          <option value="MEDIUM">Medium</option>
-          <option value="LOW">Low</option>
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as HorizonStatus | "ALL")}
-          className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30 bg-white"
-        >
-          <option value="ALL">All Statuses</option>
-          <option value="MONITORING">Monitoring</option>
-          <option value="ACTION_REQUIRED">Action Required</option>
-          <option value="IN_PROGRESS">In Progress</option>
-          <option value="COMPLETED">Completed</option>
-          <option value="DISMISSED">Dismissed</option>
-        </select>
-        <label className="flex items-center gap-1.5 text-sm text-slate-500 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={showDismissed}
-            onChange={(e) => setShowDismissed(e.target.checked)}
-            className="rounded"
-          />
-          Show dismissed
-        </label>
+          <SlidersHorizontal size={13} />
+          Filters
+          {activeFilterCount > 0 && (
+            <span className="rounded-full bg-updraft-bright-purple text-white text-[10px] font-bold px-1.5 py-0.5 leading-none">
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
         {/* View toggle */}
         <div className="ml-auto flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-0.5">
           <button
@@ -333,6 +316,77 @@ function HorizonScanningPageInner() {
           </button>
         </div>
       </div>
+
+      {/* Advanced filter row — animated expand/collapse */}
+      <AnimatePresence initial={false}>
+        {(showFilters || hasActiveFilters) && (
+          <motion.div
+            id="horizon-filter-bar"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value as HorizonCategory | "ALL")}
+                className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30 bg-white"
+              >
+                <option value="ALL">All Categories</option>
+                {(Object.keys(HORIZON_CATEGORY_LABELS) as HorizonCategory[]).map((c) => (
+                  <option key={c} value={c}>{HORIZON_CATEGORY_LABELS[c]}</option>
+                ))}
+              </select>
+              <select
+                value={urgencyFilter}
+                onChange={(e) => setUrgencyFilter(e.target.value as HorizonUrgency | "ALL")}
+                className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30 bg-white"
+              >
+                <option value="ALL">All Urgency</option>
+                <option value="HIGH">High</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="LOW">Low</option>
+              </select>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as HorizonStatus | "ALL")}
+                className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-updraft-bright-purple/30 bg-white"
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="MONITORING">Monitoring</option>
+                <option value="ACTION_REQUIRED">Action Required</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="DISMISSED">Dismissed</option>
+              </select>
+              <label className="flex items-center gap-1.5 text-sm text-slate-500 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showDismissed}
+                  onChange={(e) => setShowDismissed(e.target.checked)}
+                  className="rounded"
+                />
+                Show dismissed
+              </label>
+              {hasActiveFilters && (
+                <button
+                  onClick={() => {
+                    setCategoryFilter("ALL");
+                    setUrgencyFilter("ALL");
+                    setStatusFilter("ALL");
+                    setShowDismissed(false);
+                  }}
+                  className="ml-auto text-xs text-slate-400 hover:text-slate-600 underline underline-offset-2 transition-colors"
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Urgency × Impact matrix view */}
       {viewMode === "matrix" && (

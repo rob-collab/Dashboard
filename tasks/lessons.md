@@ -855,3 +855,36 @@ Primary (page-level) navigation: `size="md"`. Secondary (panel/sub-tab): `size="
 
 **Trigger:** Any component that renders a GlowMenu inside the content area of another tab.
 **Status:** Active.
+
+---
+
+### W029 — AnimatePresence with initial={false} for URL-driven filter states
+
+**What happened:** Adding `AnimatePresence` around the Horizon Scanning filter bar. If the user
+arrives on the page with active URL filter params (e.g. `?category=FCA`), the filter row is visible
+on mount. Without `initial={false}`, Framer Motion runs the entrance animation on load — a height
+slide-in that looks wrong because the content should simply be there.
+
+**Rule:** Any `AnimatePresence` wrapping a component that may already be visible on mount
+(e.g. driven by URL params, localStorage, or pre-populated state) must use `initial={false}`.
+
+**Trigger:** `AnimatePresence` where the conditional value may be `true` on first render.
+**Status:** Active.
+
+---
+
+### W030 — Use AnimatePresence (DOM removal) over CSS grid trick for accessible accordions
+
+**What happened:** Considered the CSS `grid-template-rows: 0fr → 1fr` trick for the Horizon
+filter bar accordion. Rejected in favour of `AnimatePresence` + `motion.div height: "auto"`.
+
+**Why:** The CSS trick keeps the element in the DOM while visually hidden — keyboard users can
+still Tab into hidden form fields. `AnimatePresence` removes the element from the DOM on exit,
+which prevents the hidden-focus-trap problem entirely.
+
+**Rule:** For accordions containing interactive elements (inputs, selects, checkboxes, buttons),
+prefer `AnimatePresence` + Framer Motion height animation over CSS grid-template-rows. Reserve
+the CSS trick for text-only or read-only accordion content.
+
+**Trigger:** Any expand/collapse pattern that hides form controls.
+**Status:** Active.

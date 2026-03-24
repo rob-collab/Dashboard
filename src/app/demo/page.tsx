@@ -25,7 +25,7 @@ function MockDashboard() {
           { label: "Controls Active", value: "87", sub: "94% coverage", color: "border-green-200 bg-green-50/50" },
           { label: "Overdue Actions", value: "6", sub: "Assigned to you", color: "border-amber-200 bg-amber-50/50" },
         ].map((card) => (
-          <div key={card.label} className={cn("rounded-xl border p-4 bg-white/70 backdrop-blur-sm shadow-sm", card.color)}>
+          <div key={card.label} className={cn("rounded-xl border p-4 bg-white shadow-sm", card.color)}>
             <p className="text-xs text-gray-500 font-medium">{card.label}</p>
             <p className="text-3xl font-bold text-updraft-deep font-poppins mt-1">{card.value}</p>
             <p className="text-xs text-gray-400 mt-1">{card.sub}</p>
@@ -34,7 +34,7 @@ function MockDashboard() {
       </div>
 
       {/* Table mock */}
-      <div className="rounded-xl border border-gray-200 bg-white/70 backdrop-blur-sm shadow-sm overflow-hidden">
+      <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
         <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
           <span className="text-sm font-semibold text-updraft-deep">Top Risks</span>
           <span className="text-xs text-updraft-bright-purple cursor-pointer">View all →</span>

@@ -36,7 +36,7 @@ interface ReportChartProps {
 // Brand colour palette used when a dataset has no explicit colour
 const BRAND_COLOURS = [
   "#7B1FA2", // updraft-bright-purple
-  "#4A1D96", // updraft-deep
+  "#311B92", // updraft-deep
   "#9C27B0", // updraft-light-purple
   "#6366f1", // indigo
   "#10b981", // emerald
@@ -109,7 +109,7 @@ export default function ReportChart({ chartType, chartData }: ReportChartProps) 
     return (
       <ResponsiveContainer width="100%" height={280}>
         <LineChart data={rowData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border-warm)" />
           <XAxis dataKey="name" tick={{ fontSize: 12 }} />
           <YAxis tick={{ fontSize: 12 }} />
           <Tooltip />
@@ -134,7 +134,7 @@ export default function ReportChart({ chartType, chartData }: ReportChartProps) 
   return (
     <ResponsiveContainer width="100%" height={280}>
       <BarChart data={rowData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-warm)" />
         <XAxis dataKey="name" tick={{ fontSize: 12 }} />
         <YAxis tick={{ fontSize: 12 }} />
         <Tooltip />

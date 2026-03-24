@@ -171,10 +171,13 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
     <PanelPortal>
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} aria-hidden="true" />
 
       {/* Panel */}
       <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="risk-acceptance-panel-title"
         className="fixed inset-y-0 right-0 z-50 sm:w-[640px] w-full panel-surface shadow-xl overflow-y-auto"
         initial={prefersReduced ? false : { x: "100%" }}
         animate={prefersReduced ? false : { x: 0 }}
@@ -195,7 +198,7 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
                   {RISK_ACCEPTANCE_SOURCE_LABELS[acceptance.source]}
                 </span>
               </div>
-              <h2 className="text-lg font-bold text-white font-poppins truncate">{acceptance.title}</h2>
+              <h2 id="risk-acceptance-panel-title" className="text-lg font-bold text-white font-poppins truncate">{acceptance.title}</h2>
               {acceptance.reviewDate && (
                 <div className="mt-1">
                   {(() => {

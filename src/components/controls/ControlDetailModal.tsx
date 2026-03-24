@@ -735,7 +735,7 @@ export default function ControlDetailModal({
                         className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-xs hover:bg-white transition-colors"
                       >
                         <span className="font-mono font-medium text-updraft-deep whitespace-nowrap">{a.reference}</span>
-                        <span className="text-gray-600 truncate">{a.title}</span>
+                        <span className="text-gray-600 truncate min-w-0" title={a.title}>{a.title}</span>
                         <span className={cn("ml-auto shrink-0 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold", ACTION_STATUS_COLOURS[a.status] ?? "bg-gray-100 text-gray-600")}>
                           {a.status.replace("_", " ")}
                         </span>
@@ -772,7 +772,7 @@ export default function ControlDetailModal({
                         <td className="py-2 pr-3 font-mono font-medium text-updraft-deep whitespace-nowrap">
                           {action.reference}
                         </td>
-                        <td className="py-2 pr-3 text-gray-700 max-w-[200px] truncate">
+                        <td className="py-2 pr-3 text-gray-700 max-w-[200px] truncate" title={action.title}>
                           {action.title}
                         </td>
                         <td className="py-2 pr-3">

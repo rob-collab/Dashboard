@@ -135,10 +135,16 @@ export default function RequestEditAccessButton({
 
       {/* Dialog */}
       {dialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setDialogOpen(false)}>
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setDialogOpen(false)} aria-hidden="true">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="request-access-dialog-title"
+            className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-updraft-deep font-poppins">Request Edit Access</h3>
+              <h3 id="request-access-dialog-title" className="text-lg font-semibold text-updraft-deep font-poppins">Request Edit Access</h3>
               <button onClick={() => setDialogOpen(false)} className="p-1 hover:bg-gray-100 rounded">
                 <X size={16} />
               </button>

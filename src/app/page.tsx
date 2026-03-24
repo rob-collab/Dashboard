@@ -77,7 +77,7 @@ function GreetingHeader({
         </div>
         {/* Subtle logo mark */}
         <div className="shrink-0 opacity-20">
-          <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true">
             <circle cx="18" cy="18" r="17" stroke="white" strokeWidth="1.5" />
             <path d="M11 18 L18 10 L25 18 L18 26 Z" stroke="white" strokeWidth="1.5" fill="none" />
           </svg>
@@ -364,7 +364,7 @@ export default function DashboardHome() {
                     <button
                       key={a.id}
                       onClick={() => hasActionsPage && router.push(`/actions?edit=${a.id}`)}
-                      className="flex w-full items-start gap-2 rounded-lg border border-red-100 bg-red-50/50 p-2.5 text-left transition-colors hover:bg-red-50 dark:border-red-900/20 dark:bg-red-900/5 dark:hover:bg-red-900/10"
+                      className="flex w-full items-start gap-2 rounded-lg border border-red-100 bg-red-50/50 p-2.5 text-left transition-colors hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-updraft-bright-purple focus-visible:ring-offset-1 dark:border-red-900/20 dark:bg-red-900/5 dark:hover:bg-red-900/10"
                     >
                       <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />
                       <span className="flex-1 text-xs text-gray-700 dark:text-gray-300 leading-snug line-clamp-2">
@@ -392,7 +392,7 @@ export default function DashboardHome() {
                     <button
                       key={r.id}
                       onClick={() => hasRiskPage && router.push(`/risk-register?risk=${r.id}`)}
-                      className="flex w-full items-start gap-2 rounded-lg border border-amber-100 bg-amber-50/50 p-2.5 text-left transition-colors hover:bg-amber-50 dark:border-amber-900/20 dark:bg-amber-900/5 dark:hover:bg-amber-900/10"
+                      className="flex w-full items-start gap-2 rounded-lg border border-amber-100 bg-amber-50/50 p-2.5 text-left transition-colors hover:bg-amber-50 focus-visible:ring-2 focus-visible:ring-updraft-bright-purple focus-visible:ring-offset-1 dark:border-amber-900/20 dark:bg-amber-900/5 dark:hover:bg-amber-900/10"
                     >
                       <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
                       <span className="flex-1 text-xs text-gray-700 dark:text-gray-300 leading-snug line-clamp-2">
@@ -420,7 +420,7 @@ export default function DashboardHome() {
                     <button
                       key={m.measureId}
                       onClick={() => router.push("/consumer-duty")}
-                      className="flex w-full items-start gap-2 rounded-lg border border-updraft-pale-purple/40 bg-updraft-pale-purple/10 p-2.5 text-left transition-colors hover:bg-updraft-pale-purple/20 dark:border-updraft-bar/20 dark:bg-updraft-bar/5 dark:hover:bg-updraft-bar/10"
+                      className="flex w-full items-start gap-2 rounded-lg border border-updraft-pale-purple/40 bg-updraft-pale-purple/10 p-2.5 text-left transition-colors hover:bg-updraft-pale-purple/20 focus-visible:ring-2 focus-visible:ring-updraft-bright-purple focus-visible:ring-offset-1 dark:border-updraft-bar/20 dark:bg-updraft-bar/5 dark:hover:bg-updraft-bar/10"
                     >
                       <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-updraft-bar" />
                       <span className="flex-1 text-xs text-gray-700 dark:text-gray-300 leading-snug line-clamp-2">
@@ -446,7 +446,7 @@ export default function DashboardHome() {
                   </div>
                   <button
                     onClick={() => router.push("/horizon-scanning")}
-                    className="flex w-full flex-col gap-1 rounded-lg border border-gray-100 bg-gray-50/50 p-3 text-left transition-colors hover:bg-gray-100/50 dark:border-gray-800 dark:bg-gray-800/30 dark:hover:bg-gray-800/50"
+                    className="flex w-full flex-col gap-1 rounded-lg border border-gray-100 bg-gray-50/50 p-3 text-left transition-colors hover:bg-gray-100/50 focus-visible:ring-2 focus-visible:ring-updraft-bright-purple focus-visible:ring-offset-1 dark:border-gray-800 dark:bg-gray-800/30 dark:hover:bg-gray-800/50"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-mono text-[10px] text-gray-400">{actionNeeded.latestHorizon.reference}</span>
@@ -675,7 +675,7 @@ export default function DashboardHome() {
                       <button
                         key={r.id}
                         onClick={() => hasRiskPage && router.push(`/risk-register?risk=${r.id}`)}
-                        className="flex flex-col gap-1.5 rounded-xl border border-gray-100 p-3 text-left transition-all hover:border-updraft-light-purple/30 hover:shadow-bento dark:border-gray-800 dark:hover:border-updraft-bar/30"
+                        className="flex flex-col gap-1.5 rounded-xl border border-gray-100 p-3 text-left transition-all hover:border-updraft-light-purple/30 hover:shadow-bento focus-visible:ring-2 focus-visible:ring-updraft-bright-purple focus-visible:ring-offset-1 dark:border-gray-800 dark:hover:border-updraft-bar/30"
                       >
                         <div className="flex items-center justify-between gap-2">
                           <span className="font-mono text-[10px] text-gray-400">{r.reference}</span>

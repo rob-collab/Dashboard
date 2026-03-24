@@ -17,6 +17,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { Target, TrendingUp, TrendingDown, Minus, Save, FileText, Plus } from "lucide-react";
+import { toast } from "sonner";
 
 const RichTextEditor = dynamic(() => import("@/components/common/RichTextEditor"), { ssr: false });
 
@@ -123,6 +124,7 @@ export default function MetricDrillDown({
       setNarrativeDirty(false);
     } catch (err) {
       console.error("Failed to save narrative:", err);
+      toast.error("Failed to save narrative — please try again.");
     } finally {
       setNarrativeSaving(false);
     }

@@ -234,7 +234,10 @@ body > * {
   scrollbar-color: #d1d5db #f3f4f6;
 }
 
-/* Glassmorphism — warm variant */
+/* Glassmorphism — warm variant.
+   USAGE: Overlay/modal surfaces ONLY (e.g. login page hero backdrop).
+   Do NOT apply to content cards, measure cards, or outcome cards — use
+   solid design-system surfaces (bg-[var(--surface-warm)], bg-white) instead. */
 .glass-card {
   background: rgba(254, 253, 251, 0.55);
   backdrop-filter: blur(30px);

@@ -162,7 +162,7 @@ export default function PendingChangesPanel({
                     </span>
                     <span className="text-xs font-mono font-bold text-updraft-deep">{c._parentRef}</span>
                   </div>
-                  <p className="text-sm font-medium text-gray-900 mt-0.5">{c._parentTitle}</p>
+                  <p className="text-sm font-medium text-gray-900 mt-0.5 truncate">{c._parentTitle}</p>
                 </div>
                 <Link
                   href={originHref}
@@ -204,8 +204,8 @@ export default function PendingChangesPanel({
                         rel="noopener noreferrer"
                         className="mt-2 inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
                       >
-                        <ExternalLink className="h-3 w-3" />
-                        {ac.evidenceName ?? "View evidence"}
+                        <ExternalLink className="h-3 w-3 shrink-0" />
+                        <span className="truncate max-w-[200px]">{ac.evidenceName ?? "View evidence"}</span>
                       </a>
                     )}
                   </div>

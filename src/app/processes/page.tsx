@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Layers, BarChart2, ShieldCheck, Library, FileText, Download, Upload, X, Loader2 } from "lucide-react";
+import { Layers, BarChart2, ShieldCheck, Library, FileText, Download, Upload, X, Loader2, MoreHorizontal } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
 import { parseCsv } from "@/lib/parse-csv";
@@ -98,6 +99,17 @@ export default function ProcessesPage() {
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
+  const [showOverflow, setShowOverflow] = useState(false);
+
+  // Close overflow menu on Escape
+  useEffect(() => {
+    if (!showOverflow) return;
+    function handler(e: KeyboardEvent) {
+      if (e.key === "Escape") setShowOverflow(false);
+    }
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [showOverflow]);
 
   // PV1: CSV export/import state
   const [showImport, setShowImport] = useState(false);
@@ -244,22 +256,54 @@ export default function ProcessesPage() {
               <BarChart2 size={12} />
               {showInsights ? "Hide Insights" : insightsLoading ? "Loading…" : "Insights"}
             </button>
-            <button
-              onClick={handleExport}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              <Download size={12} />
-              Export CSV
-            </button>
-            {isCCRO && (
+            {/* Export / Import collapsed into overflow menu */}
+            <div className="relative">
               <button
-                onClick={() => { setShowImport(true); setImportRows([]); setImportFileName(""); setImportResult(null); }}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                onClick={() => setShowOverflow((v) => !v)}
+                className="inline-flex items-center justify-center rounded-lg border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-50 transition-colors"
+                aria-label="More actions"
+                aria-haspopup="true"
+                aria-expanded={showOverflow}
               >
-                <Upload size={12} />
-                Import CSV
+                <MoreHorizontal size={14} />
               </button>
-            )}
+              <AnimatePresence>
+                {showOverflow && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setShowOverflow(false)} aria-hidden="true" />
+                    <motion.div
+                      key="processes-overflow-menu"
+                      role="menu"
+                      initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                      transition={{ duration: 0.12, ease: [0.16, 1, 0.3, 1] }}
+                      style={{ transformOrigin: "top right" }}
+                      className="absolute right-0 top-full mt-1 z-20 w-44 rounded-lg border border-gray-200 bg-white shadow-lg py-1"
+                    >
+                      <button
+                        role="menuitem"
+                        onClick={() => { handleExport(); setShowOverflow(false); }}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 focus-visible:bg-gray-50 focus-visible:outline-none transition-colors"
+                      >
+                        <Download size={12} />
+                        Export CSV
+                      </button>
+                      {isCCRO && (
+                        <button
+                          role="menuitem"
+                          onClick={() => { setShowImport(true); setImportRows([]); setImportFileName(""); setImportResult(null); setShowOverflow(false); }}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 focus-visible:bg-gray-50 focus-visible:outline-none transition-colors"
+                        >
+                          <Upload size={12} />
+                          Import CSV
+                        </button>
+                      )}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
             {isCCRO && (
               <button
                 onClick={() => setShowCreateForm(true)}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import type { Risk } from "@/lib/types";
@@ -8,8 +9,9 @@ import { getRiskScore, getRiskLevel, L1_CATEGORY_COLOURS, calculateBreach } from
 import RiskHeatmap from "@/components/risk-register/RiskHeatmap";
 import RiskTable from "@/components/risk-register/RiskTable";
 import RiskDetailPanel from "@/components/risk-register/RiskDetailPanel";
-import RiskHistoryChart from "@/components/risk-register/RiskHistoryChart";
-import { Grid3X3, List, Plus, Download, Upload, ShieldAlert, TrendingDown, TrendingUp, FileText, Bell, Search, Star, AlertTriangle, Clock } from "lucide-react";
+const RiskHistoryChart = dynamic(() => import("@/components/risk-register/RiskHistoryChart"), { ssr: false });
+import { Grid3X3, List, Plus, Download, Upload, ShieldAlert, TrendingDown, TrendingUp, FileText, Bell, Search, Star, AlertTriangle, Clock, MoreHorizontal } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import HistoryTab from "@/components/common/HistoryTab";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api-client";
@@ -57,6 +59,17 @@ export default function RiskRegisterPage() {
   const [selectedRisk, setSelectedRisk] = useState<Risk | null>(null);
   const [isNewRisk, setIsNewRisk] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [showHeaderOverflow, setShowHeaderOverflow] = useState(false);
+
+  // Close header overflow menu on Escape
+  useEffect(() => {
+    if (!showHeaderOverflow) return;
+    function handler(e: KeyboardEvent) {
+      if (e.key === "Escape") setShowHeaderOverflow(false);
+    }
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [showHeaderOverflow]);
 
   // Lifted state from heatmap — URL param takes priority, then localStorage, then default
   const [scoreMode, setScoreMode] = useState<ScoreMode>(() => {
@@ -161,7 +174,10 @@ export default function RiskRegisterPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
 
-  const myRisksCount = risks.filter((r) => r.ownerId === currentUser?.id).length;
+  const myRisksCount = useMemo(
+    () => risks.filter((r) => r.ownerId === currentUser?.id).length,
+    [risks, currentUser?.id]
+  );
   const ownerRiskFilter = viewMode === "my" ? (currentUser?.id ?? null) : null;
 
   // Score helper for current mode (inherent/residual — overlay uses residual for cards)
@@ -655,37 +671,70 @@ export default function RiskRegisterPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleExportHTML}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            title="Export as standalone HTML file"
-          >
-            <FileText className="w-4 h-4" />
-            Export HTML
-          </button>
-          {(isCCROTeam || isOwner) && (
+          {/* Export / Import collapsed into overflow — keeps header clean on mobile */}
+          <div className="relative">
             <button
-              onClick={() => setShowCSVImport(true)}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              onClick={() => setShowHeaderOverflow((v) => !v)}
+              className="flex items-center justify-center rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 transition-colors"
+              aria-label="More actions"
+              aria-haspopup="true"
+              aria-expanded={showHeaderOverflow}
             >
-              <Upload className="w-4 h-4" />
-              Import CSV
+              <MoreHorizontal className="w-4 h-4" />
             </button>
-          )}
-          <button
-            onClick={handleExportCSV}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Download className="w-4 h-4" />
-            Export CSV
-          </button>
+            <AnimatePresence>
+              {showHeaderOverflow && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowHeaderOverflow(false)} aria-hidden="true" />
+                  <motion.div
+                    key="risk-register-overflow-menu"
+                    role="menu"
+                    initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                    transition={{ duration: 0.12, ease: [0.16, 1, 0.3, 1] }}
+                    style={{ transformOrigin: "top right" }}
+                    className="absolute right-0 top-full mt-1 z-20 w-44 rounded-lg border border-gray-200 bg-white shadow-lg py-1"
+                  >
+                    <button
+                      role="menuitem"
+                      onClick={() => { handleExportHTML(); setShowHeaderOverflow(false); }}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 focus-visible:bg-gray-50 focus-visible:outline-none transition-colors"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      Export HTML
+                    </button>
+                    <button
+                      role="menuitem"
+                      onClick={() => { handleExportCSV(); setShowHeaderOverflow(false); }}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 focus-visible:bg-gray-50 focus-visible:outline-none transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Export CSV
+                    </button>
+                    {(isCCROTeam || isOwner) && (
+                      <button
+                        role="menuitem"
+                        onClick={() => { setShowCSVImport(true); setShowHeaderOverflow(false); }}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 focus-visible:bg-gray-50 focus-visible:outline-none transition-colors"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        Import CSV
+                      </button>
+                    )}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
           {!isReadOnly && (
             <button
               onClick={handleNewRisk}
               className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-updraft-deep rounded-lg hover:bg-updraft-bar transition-colors"
             >
               <Plus className="w-4 h-4" />
-              Add Risk
+              <span className="hidden sm:inline">Add Risk</span>
+              <span className="sm:hidden">Add</span>
             </button>
           )}
         </div>
@@ -711,9 +760,9 @@ export default function RiskRegisterPage() {
 
       {activeTab === "register" && <>
 
-      {/* My/All toggle */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-1">
+      {/* My/All toggle + Search — single control bar */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-1 shrink-0">
           <button
             onClick={() => setViewMode("all")}
             className={cn(
@@ -745,44 +794,67 @@ export default function RiskRegisterPage() {
             )}
           </button>
         </div>
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search risks by reference, name, description, category, or owner..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm text-gray-700 placeholder:text-gray-400 focus:border-updraft-bright-purple focus:outline-none focus:ring-1 focus:ring-updraft-bright-purple/30"
+          />
+        </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Search risks by reference, name, description, category, or owner..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm text-gray-700 placeholder:text-gray-400 focus:border-updraft-bright-purple focus:outline-none focus:ring-1 focus:ring-updraft-bright-purple/30"
-        />
-      </div>
+      {/* Summary Cards — risk levels (ALL + 4 severity bands) */}
+      <div className="space-y-2">
+        <ScrollReveal>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+          {cards.slice(0, 5).map((card, idx) => {
+            const isActive = cardFilter === card.key;
+            return (
+              <button
+                key={card.key}
+                onClick={() => handleCardClick(card.key)}
+                className={`bento-card p-4 text-left transition-all cursor-pointer hover:shadow-bento-hover ${
+                  isActive ? "ring-2 ring-updraft-bright-purple/30 bg-updraft-pale-purple/10" : ""
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <AnimatedNumber value={card.value} delay={idx * 50} className={`text-2xl font-bold ${card.colour}`} />
+                </div>
+                <div className="text-xs text-gray-500 mt-0.5">{card.label}</div>
+              </button>
+            );
+          })}
+        </div>
+        </ScrollReveal>
 
-      {/* Summary Cards */}
-      <ScrollReveal>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        {cards.map((card, idx) => {
-          const isActive = cardFilter === card.key;
-          const Icon = card.key === "WORSENING" ? TrendingDown : card.key === "IMPROVING" ? TrendingUp : card.key === "IN_FOCUS" ? Star : card.key === "IN_BREACH" ? AlertTriangle : card.key === "REVIEW_OVERDUE" ? Clock : null;
-          return (
-            <button
-              key={card.key}
-              onClick={() => handleCardClick(card.key)}
-              className={`bento-card p-4 text-left transition-all cursor-pointer hover:shadow-bento-hover ${
-                isActive ? "ring-2 ring-updraft-bright-purple/30 bg-updraft-pale-purple/10" : ""
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <AnimatedNumber value={card.value} delay={idx * 50} className={`text-2xl font-bold ${card.colour}`} />
-                {Icon && <Icon className={`w-5 h-5 ${card.colour} opacity-60`} />}
-              </div>
-              <div className="text-xs text-gray-500 mt-0.5">{card.label}</div>
-            </button>
-          );
-        })}
+        {/* Risk status indicators (trend + focus + breach + overdue) */}
+        <ScrollReveal delay={60}>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 pt-1">
+          {cards.slice(5).map((card, idx) => {
+            const isActive = cardFilter === card.key;
+            const Icon = card.key === "WORSENING" ? TrendingDown : card.key === "IMPROVING" ? TrendingUp : card.key === "IN_FOCUS" ? Star : card.key === "IN_BREACH" ? AlertTriangle : card.key === "REVIEW_OVERDUE" ? Clock : null;
+            return (
+              <button
+                key={card.key}
+                onClick={() => handleCardClick(card.key)}
+                className={`bento-card p-4 text-left transition-all cursor-pointer hover:shadow-bento-hover ${
+                  isActive ? "ring-2 ring-updraft-bright-purple/30 bg-updraft-pale-purple/10" : ""
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <AnimatedNumber value={card.value} delay={idx * 50} className={`text-2xl font-bold ${card.colour}`} />
+                  {Icon && <Icon className={`w-5 h-5 ${card.colour} opacity-60`} />}
+                </div>
+                <div className="text-xs text-gray-500 mt-0.5">{card.label}</div>
+              </button>
+            );
+          })}
+        </div>
+        </ScrollReveal>
       </div>
-      </ScrollReveal>
 
       {/* Active filters indicator */}
       {(cardFilter !== "ALL" || activeCategoryL1) && (

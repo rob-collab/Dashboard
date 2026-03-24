@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
   FileText,
@@ -32,12 +33,12 @@ import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 import ChartReveal from "@/components/common/ChartReveal";
 import { HorizonDashboardWidget } from "@/components/horizon/HorizonDashboardWidget";
 import RiskMatrix from "@/components/dashboard/RiskMatrix";
-import RiskTrendChart from "@/components/dashboard/RiskTrendChart";
-import ActionPipeline from "@/components/dashboard/ActionPipeline";
+const RiskTrendChart = dynamic(() => import("@/components/dashboard/RiskTrendChart"), { ssr: false });
+const ActionPipeline = dynamic(() => import("@/components/dashboard/ActionPipeline"), { ssr: false });
+const ControlHealthTrendWidget = dynamic(() => import("@/components/dashboard/ControlHealthTrendWidget"), { ssr: false });
 import CDRadialRing from "@/components/dashboard/CDRadialRing";
 import DomainScorecardRow from "@/components/dashboard/DomainScorecardRow";
 import ActionRequiredSection from "@/components/dashboard/ActionRequiredSection";
-import ControlHealthTrendWidget from "@/components/dashboard/ControlHealthTrendWidget";
 import QuarterlySummaryWidget from "@/components/dashboard/QuarterlySummaryWidget";
 import PendingChangesPanel, { type PendingItem } from "@/components/dashboard/PendingChangesPanel";
 import type { Risk, User, Action, ControlRecord, RiskAcceptance, ConsumerDutyOutcome, ConsumerDutyMeasure, Report, AuditLogEntry, DashboardNotification, Policy, HorizonItem, BrandingConfig, SiteSettings } from "@/lib/types";

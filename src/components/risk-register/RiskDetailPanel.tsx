@@ -379,10 +379,13 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
       <ErrorBoundary>
         <div className="fixed inset-0 z-50 flex justify-end">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40" onClick={handleCancel} />
+      <div className="absolute inset-0 bg-black/40" onClick={handleCancel} aria-hidden="true" />
 
       {/* Panel */}
       <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="risk-panel-title"
         className="relative sm:w-[680px] w-full panel-surface shadow-2xl overflow-y-auto"
         initial={prefersReduced ? false : { x: "100%" }}
         animate={prefersReduced ? false : { x: 0 }}
@@ -393,7 +396,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
         <div className="sticky top-0 z-10 bg-gradient-to-r from-updraft-deep to-updraft-bar px-6 py-4 flex items-center justify-between">
           <div className="min-w-0 flex-1">
             <p className="text-[10px] uppercase tracking-wider text-white/50 font-medium mb-0.5">Risk Register {risk && !isNew ? `› ${risk.reference}` : ""}</p>
-            <h2 className="text-lg font-poppins font-semibold text-white truncate">
+            <h2 id="risk-panel-title" className="text-lg font-poppins font-semibold text-white truncate">
               {isNew ? "Add New Risk" : `Edit: ${risk?.name ?? risk?.reference}`}
             </h2>
             {risk && !isNew && (
@@ -1166,7 +1169,7 @@ export default function RiskDetailPanel({ risk, isNew, onSave, onClose, onDelete
                                     className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-xs rounded-md hover:bg-updraft-pale-purple/20 transition-colors"
                                   >
                                     <span className="font-mono font-medium text-updraft-deep whitespace-nowrap">{a.reference}</span>
-                                    <span className="text-gray-600 truncate flex-1">{a.title}</span>
+                                    <span className="text-gray-600 truncate flex-1 min-w-0" title={a.title}>{a.title}</span>
                                     <Plus className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                                   </button>
                                 ));

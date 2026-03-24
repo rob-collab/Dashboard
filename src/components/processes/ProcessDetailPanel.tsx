@@ -98,10 +98,13 @@ export default function ProcessDetailPanel({ process, onUpdate, onClose }: Props
     <PanelPortal>
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} />
+      <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} aria-hidden="true" />
 
       {/* Panel */}
       <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="process-panel-title"
         className="fixed right-0 top-0 bottom-0 z-50 sm:w-[640px] w-full panel-surface shadow-2xl flex flex-col"
         initial={prefersReduced ? false : { x: "100%" }}
         animate={prefersReduced ? false : { x: 0 }}
@@ -131,7 +134,7 @@ export default function ProcessDetailPanel({ process, onUpdate, onClose }: Props
                   {PROCESS_CATEGORY_LABELS[process.category]}
                 </span>
               </div>
-              <h2 className="font-poppins text-base font-semibold text-white leading-snug">
+              <h2 id="process-panel-title" className="font-poppins text-base font-semibold text-white leading-snug">
                 {process.name}
               </h2>
             </div>

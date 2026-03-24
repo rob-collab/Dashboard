@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import type { ReactNode } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 
 const rowVariants = {
   hidden: { opacity: 0, y: 8 },
@@ -37,14 +37,30 @@ export function MotionTr({ children, className, onClick }: MotionRowProps) {
 }
 
 /** Spring-animated div row — use inside MotionListDiv.
- *  Falls back to a plain <div> when prefers-reduced-motion is set. */
+ *  Falls back to a plain <div> when prefers-reduced-motion is set.
+ *  When onClick is provided, adds keyboard support (Enter/Space) and
+ *  role="button" so screen readers and keyboard users can activate the row. */
 export function MotionDiv({ children, className, onClick }: MotionRowProps) {
   const prefersReduced = useReducedMotion();
+
+  const interactiveProps = onClick
+    ? {
+        role: "button" as const,
+        tabIndex: 0,
+        onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onClick();
+          }
+        },
+      }
+    : {};
+
   if (prefersReduced) {
-    return <div className={className} onClick={onClick}>{children}</div>;
+    return <div className={className} onClick={onClick} {...interactiveProps}>{children}</div>;
   }
   return (
-    <motion.div variants={rowVariants} className={className} onClick={onClick}>
+    <motion.div variants={rowVariants} className={className} onClick={onClick} {...interactiveProps}>
       {children}
     </motion.div>
   );

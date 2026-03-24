@@ -139,6 +139,9 @@ export default function RegCalEventDetailPanel({ event, onClose }: RegCalEventDe
 
       {/* Panel */}
       <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="reg-cal-panel-title"
         className="fixed inset-y-0 right-0 z-50 flex sm:w-[640px] w-full flex-col panel-surface shadow-2xl"
         initial={prefersReduced ? false : { x: "100%" }}
         animate={prefersReduced ? false : { x: 0 }}
@@ -158,7 +161,7 @@ export default function RegCalEventDetailPanel({ event, onClose }: RegCalEventDe
                 </span>
                 <span className="text-[10px] font-mono text-white/60">{event.source}</span>
               </div>
-              <h2 className="font-poppins text-lg font-semibold text-white leading-tight">{event.title}</h2>
+              <h2 id="reg-cal-panel-title" className="font-poppins text-lg font-semibold text-white leading-tight">{event.title}</h2>
               <p className="text-xs text-white/70 mt-1 flex items-center gap-1">
                 <Calendar size={11} />
                 {new Date(event.eventDate).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}

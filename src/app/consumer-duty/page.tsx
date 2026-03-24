@@ -24,6 +24,7 @@ import HistoryTab from "@/components/common/HistoryTab";
 import { AnimatedNumber } from "@/components/common/AnimatedNumber";
 import ScrollReveal from "@/components/common/ScrollReveal";
 import { GlowMenu } from "@/components/ui/glow-menu";
+import { toast } from "sonner";
 
 type RagFilterValue = RAGStatus | "ALL" | "ATTENTION";
 
@@ -195,6 +196,11 @@ function ConsumerDutyContent() {
           )
       );
     }
+    // When showing all statuses, surface HARM first, then WARNING, then GOOD — so the user sees what needs attention without clicking the red stat card
+    if (ragFilter === "ALL") {
+      const ragOrder: Record<string, number> = { HARM: 0, WARNING: 1, GOOD: 2 };
+      filtered = [...filtered].sort((a, b) => (ragOrder[a.ragStatus] ?? 3) - (ragOrder[b.ragStatus] ?? 3));
+    }
     return filtered;
   }, [outcomes, ragFilter, searchQuery, users]);
 
@@ -211,15 +217,27 @@ function ConsumerDutyContent() {
     return allMeasures.filter((m) => m.ragStatus === measureRagFilter);
   }, [allMeasures, measureRagFilter]);
 
-  // Measure-level RAG stats
-  const measureGoodCount = allMeasures.filter((m) => m.ragStatus === "GOOD").length;
-  const measureWarningCount = allMeasures.filter((m) => m.ragStatus === "WARNING").length;
-  const measureHarmCount = allMeasures.filter((m) => m.ragStatus === "HARM").length;
+  // Measure-level RAG stats — single-pass to avoid 3 separate array traversals
+  const { measureGoodCount, measureWarningCount, measureHarmCount } = useMemo(() => {
+    let g = 0, w = 0, h = 0;
+    for (const m of allMeasures) {
+      if (m.ragStatus === "GOOD") g++;
+      else if (m.ragStatus === "WARNING") w++;
+      else if (m.ragStatus === "HARM") h++;
+    }
+    return { measureGoodCount: g, measureWarningCount: w, measureHarmCount: h };
+  }, [allMeasures]);
 
-  // Outcome-level stats (still used for outcome grid filtering)
-  const goodCount = outcomes.filter((o) => o.ragStatus === "GOOD").length;
-  const warningCount = outcomes.filter((o) => o.ragStatus === "WARNING").length;
-  const harmCount = outcomes.filter((o) => o.ragStatus === "HARM").length;
+  // Outcome-level stats — single-pass
+  const { goodCount, warningCount, harmCount } = useMemo(() => {
+    let g = 0, w = 0, h = 0;
+    for (const o of outcomes) {
+      if (o.ragStatus === "GOOD") g++;
+      else if (o.ragStatus === "WARNING") w++;
+      else if (o.ragStatus === "HARM") h++;
+    }
+    return { goodCount: g, warningCount: w, harmCount: h };
+  }, [outcomes]);
 
   // All metrics flattened from outcomes → measures → metrics, with measure context
   const allMetrics = useMemo(() => {
@@ -242,9 +260,16 @@ function ConsumerDutyContent() {
     });
   }, [allMetrics, metricsRagFilter, metricsIndicatorFilter]);
 
-  const metricsGoodCount = allMetrics.filter((mi) => mi.ragStatus === "GOOD").length;
-  const metricsWarningCount = allMetrics.filter((mi) => mi.ragStatus === "WARNING").length;
-  const metricsHarmCount = allMetrics.filter((mi) => mi.ragStatus === "HARM").length;
+  // Metrics-level RAG stats — single-pass
+  const { metricsGoodCount, metricsWarningCount, metricsHarmCount } = useMemo(() => {
+    let g = 0, w = 0, h = 0;
+    for (const mi of allMetrics) {
+      if (mi.ragStatus === "GOOD") g++;
+      else if (mi.ragStatus === "WARNING") w++;
+      else if (mi.ragStatus === "HARM") h++;
+    }
+    return { metricsGoodCount: g, metricsWarningCount: w, metricsHarmCount: h };
+  }, [allMetrics]);
 
   // Can the current user edit a particular measure?
   const canEditMeasure = (measure: ConsumerDutyMeasure): boolean => {
@@ -332,6 +357,7 @@ function ConsumerDutyContent() {
         await useAppStore.getState().hydrate();
       } catch (error) {
         console.error("Bulk replace failed:", error);
+        toast.error("Failed to save measures — please try again.");
         // Fallback to local-only if API unreachable
         bulkAddMeasures(items);
       }
@@ -354,6 +380,7 @@ function ConsumerDutyContent() {
           });
         } catch (err) {
           console.error("Historical MI import failed:", err);
+          toast.error("Failed to import historical metrics — please try again.");
         }
       }
       // Refresh store from API
@@ -559,13 +586,13 @@ function ConsumerDutyContent() {
         <button
           onClick={() => { setMeasureRagFilter("ALL"); handleStatRagClick("ALL"); setLastClickedSection(null); }}
           className={cn(
-            "bento-card cursor-pointer text-left",
+            "bento-card cursor-pointer text-left bg-updraft-pale-purple/30 border-updraft-light-purple/30",
             measureRagFilter === "ALL" && ragFilter === "ALL" && "ring-2 ring-updraft-bright-purple/30"
           )}
         >
-          <p className="text-xs text-fca-gray">Total Measures</p>
-          <AnimatedNumber value={totalMeasures} className="text-2xl font-bold text-updraft-deep mt-1" />
-          <p className="text-xs text-fca-gray mt-1">{outcomes.length} outcomes tracked</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-updraft-bar">Total Measures</p>
+          <AnimatedNumber value={totalMeasures} className="text-4xl font-bold text-updraft-deep mt-1" />
+          <p className="text-xs text-updraft-bar/70 mt-1">{outcomes.length} outcomes tracked</p>
         </button>
         <button
           onClick={() => { setMeasureRagFilter("GOOD"); handleStatRagClick("ALL"); setLastClickedSection("measures"); }}
@@ -819,7 +846,7 @@ function ConsumerDutyContent() {
                     type="button"
                     onClick={() => setSelectedMeasure(measure)}
                     className={cn(
-                      "group relative flex flex-col gap-2 rounded-xl border border-white/40 bg-white/50 backdrop-blur-lg p-4 text-left",
+                      "group relative flex flex-col gap-2 rounded-xl border border-gray-100 bg-white p-4 text-left",
                       "shadow-sm transition-all duration-200 ease-out",
                       "hover:-translate-y-0.5 hover:border-updraft-bright-purple/40 hover:shadow-md hover:shadow-updraft-bright-purple/5",
                       measure.ragStatus === "GOOD" && "border-l-[3px] border-l-risk-green",

@@ -1,5 +1,276 @@
 # Meridian — Active Development Plan
-Last updated: 2026-03-23
+Last updated: 2026-03-24 (animate sprint complete)
+
+---
+
+## CURRENT SPRINT: Quality Audit Findings — 2026-03-24
+
+Audit run via `/audit`. Issues documented for action via `/harden`, `/normalize`, `/polish`.
+
+### High severity
+
+- [x] **H1** — 7 detail panels missing `role="dialog"` + `aria-modal="true"` + `aria-labelledby`
+  - Files: `HorizonDetailPanel.tsx`, `ProcessDetailPanel.tsx`, `PolicyDetailPanel.tsx`,
+    `RiskAcceptanceDetailPanel.tsx`, `RegCalEventDetailPanel.tsx`, `HorizonFormDialog.tsx`,
+    `RequestEditAccessButton.tsx` (inline dialog), `RiskDetailPanel.tsx`
+  - Pattern to copy: `src/components/common/Modal.tsx:111–113`
+
+- [x] **H2** — `MotionRow` renders interactive `<div onClick>` — keyboard inaccessible
+  - File: `src/components/motion/MotionRow.tsx:44`
+  - Fix: when `onClick` present, render `<button type="button">` or add `role="button" tabIndex={0} onKeyDown`
+
+### Medium severity
+
+- [x] **M1** — Consumer Duty glassmorphism (`backdrop-blur-lg`, `bg-white/50`, `glass-card`) breaks visual consistency with the rest of the design system
+  - Files: `OutcomeCard.tsx:113–114`, `MeasurePanel.tsx:58,85`, `consumer-duty/page.tsx:822`, `demo/page.tsx:28`
+  - Fixed: solid `bg-[var(--surface-warm)]` / `bg-white` with `border border-[var(--border-warm)]`; `glass-card` CSS annotated overlay-only
+
+- [x] **M2** — 5 dashboard item buttons missing `focus-visible:ring` (keyboard users lose context)
+  - File: `src/app/page.tsx` ~lines 364, 392, 420, 447, 675
+  - Fix: add `focus-visible:ring-2 focus-visible:ring-updraft-bright-purple focus-visible:ring-offset-1`
+
+- [x] **M3** — `ReportChart` hardcodes hex colours — won't respect theme changes or dark mode
+  - File: `src/components/reports/ReportChart.tsx:38–45` (palette) + `CartesianGrid stroke="#f0f0f0"`
+  - Fixed: `#4A1D96` corrected to `#311B92` (actual updraft-deep); both `CartesianGrid` strokes → `var(--border-warm)`
+
+- [x] **M4** — Overlay backdrop divs lack `aria-hidden="true"` in 5 panels
+  - Files: `RiskDetailPanel.tsx:382`, `ProcessDetailPanel.tsx:101`, `PolicyDetailPanel.tsx:80`,
+    `HorizonDetailPanel.tsx:235`, `RiskAcceptanceDetailPanel.tsx:174`
+  - Pattern to copy: `RegCalEventDetailPanel.tsx:138` (already correct)
+
+- [x] **M5** — Decorative SVG logo mark in dashboard greeting header lacks `aria-hidden="true"`
+  - File: `src/app/page.tsx` (greeting banner SVG)
+
+### Low severity (informational — fix opportunistically)
+
+- [ ] **L1** — `min-h-[400px]` on dashboard loading state: use `min-h-[50vh] sm:min-h-[400px]`
+- [ ] **L2** — Panel headers identical across all 8 panels: consider subtle section-colour accent
+- [ ] **L3** — Inline data URI noise SVG in `globals.css::before` — negligible but noted
+
+### Already fixed this session
+- [x] `ControlDetailModal.tsx:738` — truncate span missing `min-w-0` + `title`
+- [x] `ControlDetailModal.tsx:775` — table cell truncate missing `title`
+- [x] `RiskDetailPanel.tsx:1169` — truncate flex span missing `min-w-0` + `title`
+- [x] `OutcomeCard.tsx:206` — outcome name h3 missing `line-clamp-2`
+- [x] `MeasurePanel.tsx:135` — measure name h5 missing `line-clamp-2`
+- [x] `PendingChangesPanel.tsx:165` — parent title `<p>` missing `truncate`
+- [x] `PendingChangesPanel.tsx:208` — evidence link text missing `truncate max-w-[200px]`
+- [x] `consumer-duty/page.tsx:333` — bulk replace error swallowed silently → added `toast.error()`
+- [x] `consumer-duty/page.tsx:355` — historical MI import error swallowed silently → added `toast.error()`
+- [x] `MetricDrillDown.tsx:124` — narrative save error swallowed silently → added `toast.error()`
+
+### Acceptance criteria
+- [x] All H1 panels have `role="dialog"`, `aria-modal="true"`, `aria-labelledby` pointing to title
+- [x] All M4 backdrop divs have `aria-hidden="true"`
+- [x] `MotionRow` with `onClick` is keyboard-accessible
+- [x] Consumer Duty cards use solid surfaces (no `backdrop-blur`, no `bg-white/50`) — M1 ✓
+- [x] 5 dashboard buttons have `focus-visible:ring` styles
+- [x] `ReportChart` palette corrected and grid lines use `var(--border-warm)` — M3 ✓
+- [x] Build passes — zero errors
+
+---
+
+## SPRINT: /animate — Motion & Micro-interactions ✅ COMPLETE
+
+### Design intent
+- **Who**: CCRO and OWNER using the app daily — every state change they trigger should feel intentional.
+- **One thing**: Three jarring instant transitions introduced by `/distill` and `/adapt` — the filter bar appear, the overflow dropdowns pop, the scroll fade snaps. Each needed a felt-right motion.
+- **Remove**: Instant show/hide for the overflow menus and the Horizon filter bar; sudden opacity snap on the GlowMenu scroll fade.
+
+### What was changed
+
+**A1 — Overflow menus: scale + fade entrance** (`processes/page.tsx`, `risk-register/page.tsx`)
+- Added `import { motion, AnimatePresence }` to both files
+- Replaced `<div role="menu">` with `<motion.div>` inside `<AnimatePresence>`
+- `initial={{ opacity: 0, scale: 0.95, y: -4 }}` → `animate={{ opacity: 1, scale: 1, y: 0 }}` → `exit` reverses
+- `transformOrigin: "top right"` so scale originates from the trigger button
+- Duration: 120ms, ease: `[0.16, 1, 0.3, 1]` (ease-out-expo — confident, decisive)
+
+**A2 — Horizon filter bar: animated expand/collapse** (`horizon-scanning/page.tsx`)
+- Added `import { AnimatePresence, motion }`
+- Wrapped filter row in `<AnimatePresence initial={false}>` + `<motion.div>`
+- `height: 0 → "auto"` entrance; `opacity: 0 → 1` fade; exit reverses
+- `initial={false}` prevents entrance animation on page load when filters already active
+- Duration: 200ms, same ease; DOM element removed on exit (no keyboard trap in collapsed state)
+
+**A3 — GlowMenu scroll fade: smooth opacity transition** (`glow-menu.tsx`)
+- Changed both reduced-motion and animated fade overlay from conditional render to always-present `opacity-0/opacity-100` with `transition-opacity duration-200`
+- Fade now transitions in/out smoothly as the user scrolls through tabs or the container resizes
+
+### Acceptance criteria
+- [x] Processes `…` menu scales in from top-right with 120ms ease-out-expo on open, reverses on close
+- [x] Risk Register `…` menu same pattern
+- [x] Horizon Scanning filter bar slides open (200ms height + fade) when toggled or when filters become active
+- [x] Filter bar slides closed when collapsed and no active filters
+- [x] GlowMenu scroll fade transitions in and out smoothly (no snap)
+- [x] Reduced-motion: Framer Motion respects `prefers-reduced-motion` automatically; `transition-opacity` duration is effectively 0 under reduced motion via global CSS
+- [x] Build passes — zero errors
+
+---
+
+## SPRINT: /polish — Final Quality Pass ✅ COMPLETE
+
+### Design intent
+- **Who**: All three personas — keyboard users, screen reader users, and anyone who instinctively hits Escape to close a dropdown.
+- **One thing**: The new overflow menus and filter pill introduced by `/distill` and `/adapt` needed keyboard and ARIA completeness before shipping.
+- **Remove**: Invisible interaction gaps (no Escape-to-close, no ARIA state, no way to clear all filters at once).
+
+### What was changed
+
+**P1 — Escape key closes overflow menus** (`processes/page.tsx`, `risk-register/page.tsx`)
+- Added `useEffect` keyboard listener — Escape closes the `…` dropdown when it is open
+- Listener attaches only while the menu is open, detaches on close or unmount
+
+**P2 — ARIA on overflow menus** (`processes/page.tsx`, `risk-register/page.tsx`)
+- Trigger button: `aria-haspopup="true"` + `aria-expanded={showOverflow}`
+- Dropdown container: `role="menu"`
+- Each menu item: `role="menuitem"` + `focus-visible:bg-gray-50 focus-visible:outline-none`
+
+**P3 — Horizon filter pill accessibility** (`horizon-scanning/page.tsx`)
+- Filter pill button: `aria-expanded={showFilters || hasActiveFilters}` + `aria-controls="horizon-filter-bar"`
+- Filter row container: `id="horizon-filter-bar"`
+
+**P4 — Horizon "Clear all" button** (`horizon-scanning/page.tsx`)
+- When any filter is active, a "Clear all" link appears at the far right of the filter row
+- Resets category, urgency, status filters and showDismissed in one click
+
+### Acceptance criteria
+- [x] Pressing Escape closes overflow menus in Processes and Risk Register
+- [x] `…` trigger buttons have `aria-haspopup` and `aria-expanded`
+- [x] Overflow menu containers have `role="menu"`; items have `role="menuitem"`
+- [x] Overflow menu items show `focus-visible:bg-gray-50` when keyboard-focused
+- [x] Horizon Scanning filter pill has `aria-expanded` and `aria-controls`
+- [x] Horizon Scanning "Clear all" button appears and resets all filters
+- [x] Build passes — zero errors
+
+---
+
+## SPRINT: /adapt — Mobile & Tablet Responsiveness ✅ COMPLETE
+
+### Design intent
+- **Who**: CEO doing a quick status check on mobile; OWNER reviewing their risks between meetings on tablet.
+- **One thing**: Navigation and key actions must work without horizontal overflow or invisible scrollability on screens from 375px upward.
+- **Remove**: Extra visible CTA buttons that cascade off-screen on mobile (move to overflow menus); implicit tab-scroll with no visual cue.
+
+### What was changed
+
+**R1 — GlowMenu: scroll fade indicator** (`src/components/ui/glow-menu.tsx`)
+- Added `useRef` + `ResizeObserver` scroll-position tracking to both nav variants (animated + reduced-motion)
+- When tabs overflow the viewport width, a right-edge fade gradient appears (`bg-gradient-to-l from-white to-transparent`, `w-12`, `pointer-events-none`)
+- Fade disappears automatically when the user has scrolled to the last tab
+- Added `scrollbar-none` to suppress the native scrollbar on mobile (visual noise)
+- Fixes all 14+ GlowMenu tab bars across the app in one change
+
+**R2 — Risk Register: header CTAs collapsed into overflow menu** (`src/app/risk-register/page.tsx`)
+- Export HTML, Export CSV, Import CSV moved behind a `MoreHorizontal` (`…`) dropdown
+- Header now shows: `…` menu + Add Risk = 2 items (1 for read-only)
+- "Add Risk" button text abbreviated to "Add" on mobile (`hidden sm:inline` / `sm:hidden` pattern)
+- Dropdown closes on backdrop click
+
+**R3 — Layout: reduced mobile content padding** (`src/app/layout.tsx`)
+- `className="p-6 max-w-[1400px] mx-auto"` → `px-4 py-4 sm:p-6 max-w-[1400px] mx-auto"`
+- Mobile screens gain 8px per side (16px vs 24px), giving more usable content width
+
+### Acceptance criteria
+- [x] GlowMenu shows right-edge fade when tabs overflow viewport on any screen size
+- [x] Fade disappears when scrolled to the last tab
+- [x] Risk Register page header has max 2 buttons visible; exports accessible in `…` menu
+- [x] Mobile content padding reduced to px-4 on screens below sm: breakpoint
+- [x] Build passes — zero errors
+
+### Deferred responsive items (document for future sprints)
+
+- [ ] **RA1** — Detail panels (RiskDetailPanel, PolicyDetailPanel, ActionDetailPanel): form fields are very narrow on 375px screens. Consider a condensed label-above-field layout for `sm:` and below.
+- [ ] **RA2** — GlowMenu panels that are inside containers with coloured backgrounds (e.g. `bg-[var(--surface-warm)]`) need the fade gradient to match their background, not always `from-white`. Low priority — primarily affects panel tab bars in dark-background contexts.
+- [ ] **RA3** — Pages with own `p-6` wrapper (controls, reports) now have `px-4 + p-6` = 40px mobile padding. Review whether inner padding should be removed or made conditional.
+- [ ] **RA4** — Actions page filter panel: `grid-cols-5` filter grid on mobile collapses to `grid-cols-1` correctly (already implemented), but the filter panel background `bg-gray-50/50` could be tightened to `p-3` on mobile (currently `p-4`).
+
+---
+
+## SPRINT: /distill — Whole-App Simplification Audit ✅ COMPLETE
+
+### Design intent
+- **Who**: All three personas — CCRO scanning quickly, OWNER arriving at their slice, CEO doing a status check.
+- **One thing**: Remove obstacles between users and the signal. Every extra filter, button, and flat card list is friction.
+- **Remove**: 4 filter controls defaulting to visible on Horizon Scanning; 2 CTA buttons competing for header space on Processes; HARM outcomes buried at the bottom of the grid.
+
+### What was changed
+
+**D1 — Horizon Scanning: 7 filter controls → 3** (`src/app/horizon-scanning/page.tsx`)
+- Category, Urgency, Status dropdowns + "Show dismissed" checkbox collapsed into a "Filters (N)" pill
+- Default state: search + Filters pill + view toggle = 3 controls visible
+- Active filters: row auto-expands below the control bar; pill shows count badge
+- All filter state, URL sync, and stat-card interaction preserved unchanged
+
+**D2 — Consumer Duty: HARM outcomes surface first** (`src/app/consumer-duty/page.tsx`)
+- When `ragFilter === "ALL"`, `filteredOutcomes` now sorts HARM → WARNING → GOOD
+- Users see what needs attention immediately without clicking the red stat card
+- Specific filter views (GOOD/WARNING/HARM/ATTENTION) unaffected — all same RAG status, sort order irrelevant
+
+**D3 — Processes: Export/Import collapsed into `…` overflow menu** (`src/app/processes/page.tsx`)
+- Infrequent actions (Export CSV, Import CSV) moved behind a `MoreHorizontal` dropdown
+- Header now shows: Insights toggle + `⋯` + New Process = 3 items max (2 for non-CCRO)
+- Dropdown closes on outside click; Import modal opens from within the menu as before
+
+### Acceptance criteria
+- [x] Horizon Scanning control bar is 3 items in default state (search, filters pill, view toggle)
+- [x] Horizon Scanning filters pill shows active count badge when any filter is set
+- [x] Consumer Duty HARM outcomes appear first in the grid when "All" RAG filter is selected
+- [x] Processes header has at most 3 buttons when on the Processes tab (CCRO) / 2 (non-CCRO)
+- [x] Export and Import remain fully functional via the overflow menu
+- [x] Build passes — zero errors
+
+### Deferred distillation items (document for future sprints)
+
+- [ ] **DD1** — Consumer Duty: 8 stat cards (2 rows of 4) is very dense. Consider collapsing Metrics row to show only when metrics exist, and only displaying Total + Red/Amber instead of all 4 RAG cards.
+- [ ] **DD2** — Settings: 9 tabs with no visual grouping. Group into sections: Appearance (Branding) | Configuration (Categories, Priorities, Templates, Components, Regulations, Consumer Duty) | Access (Notifications, Access Requests).
+- [ ] **DD3** — Risk Acceptances: "Proposed" stat card and "Needs Action" tab represent the same concept (pending items). Remove the overlap — either remove the tab or remove the card click-filter in favour of the tab.
+- [ ] **DD4** — PolicyDetailPanel: empty tabs (e.g. Regulatory Mapping with 0 links) should be hidden or greyed-out, not shown at full weight with no content.
+- [ ] **DD5** — Dashboard: "In Focus" risk appears in the spotlight card and potentially re-appears in the High Risk bento cards below. Suppress the duplicated entry from the bento card list.
+
+---
+
+## SPRINT: /arrange — Layout Rhythm & Visual Hierarchy ✅ COMPLETE
+
+### Design intent
+- **Who**: CCRO reviewing action queues, risk registers, and CD outcomes — scanning for what matters.
+- **One thing**: Stat cards must communicate hierarchy (P1 ≠ P4), related cards must cluster, and primary/secondary controls must not share equal visual weight.
+- **Remove**: Identical card rows with no size variation, the flat 10-card risk grid with no semantic grouping, and the stacked My/All + search bar (combined into one control bar).
+
+### Files changed
+- `src/app/actions/page.tsx` — priority + status bento rows wrapped in `space-y-2` cluster; P1 card promoted to `text-3xl`; status row `pt-1`; filter section `border-t` separator
+- `src/app/consumer-duty/page.tsx` — "Total Measures" lead card given tinted background (`bg-updraft-pale-purple/30`) + `text-4xl` number; uppercase tracking label
+- `src/app/risk-register/page.tsx` — My/All toggle and search merged into single inline flex control bar; 10-card grid split into two semantic `sm:grid-cols-5` rows (risk levels + status indicators) with `space-y-2` grouping
+
+### Acceptance criteria
+- [x] Actions stat cards have visual hierarchy — P1 visually dominant, status row grouped separately
+- [x] Consumer Duty "Total Measures" card distinguishable as lead stat at a glance
+- [x] Risk Register bento grid split into two balanced rows with clear semantic grouping
+- [x] Risk Register My/All toggle and search coexist in one horizontal control bar
+- [x] Build passes — zero errors
+
+---
+
+## SPRINT: /optimize — Performance Improvements ✅ COMPLETE
+
+### What was changed and why
+Identified and fixed three real performance bottlenecks: redundant stat recomputation on Consumer Duty (9 separate filter passes → 3 single-pass useMemo blocks), recharts bundle bloat (~180 KB of chart code loading on pages that may never render a chart), and potential stagger animation jank on large datasets (unbounded stagger × N children).
+
+### Files changed
+- `src/app/consumer-duty/page.tsx` — 9 inline filter calls merged into 3 `useMemo` blocks (single-pass over `allMeasures`)
+- `src/app/risk-register/page.tsx` — `myRisksCount` wrapped in `useMemo`; `RiskHistoryChart` dynamic import
+- `src/app/_useDashboardSectionMap.tsx` — `RiskTrendChart`, `ActionPipeline`, `ControlHealthTrendWidget` converted to dynamic imports
+- `src/app/reports/[id]/page.tsx` — `ReportChart` dynamic import
+- `src/components/sections/SectionRenderer.tsx` — `ChartSection` dynamic import
+- `src/app/controls/page.tsx` — `ControlsDashboardTab`, `QuarterlySummaryTab`, `TrendAnalysisTab` dynamic imports
+- `src/components/policies/PolicyDetailPanel.tsx` — `PolicyOverviewTab`, `PolicyControlsTab` dynamic imports
+- `src/components/motion/MotionList.tsx` — `STAGGER_LIMIT = 50`: skip animation when list > 50 items
+
+### Acceptance criteria
+- [x] Consumer Duty stat recomputation replaced with 3 memoised single-pass loops
+- [x] 11 recharts/heavy component dynamic imports added (defers ~180 KB from initial bundle)
+- [x] `MotionList` caps stagger at 50 items — no unbounded animation on large datasets
+- [x] Build passes — zero errors
 
 ---
 

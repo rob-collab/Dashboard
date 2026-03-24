@@ -232,10 +232,13 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
     <PanelPortal>
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/40 z-40" onClick={handleClose} />
+      <div className="fixed inset-0 bg-black/40 z-40" onClick={handleClose} aria-hidden="true" />
 
       {/* Panel */}
       <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="horizon-panel-title"
         className="fixed right-0 top-0 bottom-0 sm:w-[680px] w-full panel-surface shadow-2xl z-50 flex flex-col"
         initial={prefersReduced ? false : { x: "100%" }}
         animate={prefersReduced ? false : { x: 0 }}
@@ -256,7 +259,7 @@ export function HorizonDetailPanel({ item, canManage, canCreateAction, risks, on
                 </span>
               )}
             </div>
-            <h2 className="font-poppins font-semibold text-white text-sm leading-snug line-clamp-2">{title}</h2>
+            <h2 id="horizon-panel-title" className="font-poppins font-semibold text-white text-sm leading-snug line-clamp-2">{title}</h2>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {/* Edit unlock button — CCRO Team only */}

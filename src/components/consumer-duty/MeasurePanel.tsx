@@ -55,7 +55,7 @@ export default function MeasurePanel({
 
   if (measures.length === 0) {
     return (
-      <div className="animate-slide-up rounded-2xl border border-dashed border-updraft-pale-purple/60 bg-white/30 backdrop-blur-md p-8 text-center text-sm text-gray-400">
+      <div className="animate-slide-up rounded-2xl border border-dashed border-updraft-pale-purple/60 bg-[var(--surface-muted)] p-8 text-center text-sm text-gray-400">
         No measures found for this outcome.
       </div>
     );
@@ -82,7 +82,7 @@ export default function MeasurePanel({
             type="button"
             onClick={() => onMeasureClick(measure)}
             className={cn(
-              "group relative flex flex-col gap-2 rounded-xl border border-white/40 bg-white/50 backdrop-blur-lg p-4 text-left",
+              "group relative flex flex-col gap-2 rounded-xl border border-gray-100 bg-white p-4 text-left",
               "shadow-sm transition-all duration-200 ease-out",
               "hover:-translate-y-0.5 hover:border-updraft-bright-purple/40 hover:shadow-md hover:shadow-updraft-bright-purple/5",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-updraft-bar focus-visible:ring-offset-2",
@@ -132,7 +132,7 @@ export default function MeasurePanel({
             </div>
 
             {/* Name */}
-            <h5 className="text-sm font-semibold text-gray-800 leading-snug group-hover:text-updraft-deep transition-colors">
+            <h5 className="text-sm font-semibold text-gray-800 leading-snug group-hover:text-updraft-deep transition-colors line-clamp-2">
               {measure.name}
             </h5>
 
