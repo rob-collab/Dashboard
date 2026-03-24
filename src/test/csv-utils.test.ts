@@ -668,14 +668,14 @@ describe("validateRiskRow", () => {
   });
 
   it("accepts all valid risk appetite values", () => {
-    for (const val of ["VERY_LOW", "LOW", "LOW_TO_MODERATE", "MODERATE"]) {
+    for (const val of ["VERY_LOW", "LOW", "LOW_TO_MODERATE", "MODERATE", "HIGH"]) {
       const result = validateRiskRow({ ...validRow, Appetite: val }, 1, mapping);
       expect(result.errors).toHaveLength(0);
     }
   });
 
   it("errors on invalid risk appetite", () => {
-    const result = validateRiskRow({ ...validRow, Appetite: "HIGH" }, 1, mapping);
+    const result = validateRiskRow({ ...validRow, Appetite: "VERY_HIGH" }, 1, mapping);
     expect(result.errors.some((e) => e.includes("Invalid risk appetite"))).toBe(true);
   });
 

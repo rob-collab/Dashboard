@@ -8,8 +8,8 @@ import {
 // ── DASHBOARD_SECTIONS ────────────────────────────────────────────────────────
 
 describe("DASHBOARD_SECTIONS", () => {
-  it("has 19 sections", () => {
-    expect(DASHBOARD_SECTIONS).toHaveLength(19);
+  it("has 23 sections", () => {
+    expect(DASHBOARD_SECTIONS).toHaveLength(23);
   });
 
   it("every section has a non-empty key", () => {
@@ -70,8 +70,8 @@ describe("DEFAULT_SECTION_ORDER", () => {
     expect(DEFAULT_SECTION_ORDER[0]).toBe("welcome");
   });
 
-  it("'recent-activity' is the last section", () => {
-    expect(DEFAULT_SECTION_ORDER[DEFAULT_SECTION_ORDER.length - 1]).toBe("recent-activity");
+  it("'quarterly-summary' is the last section", () => {
+    expect(DEFAULT_SECTION_ORDER[DEFAULT_SECTION_ORDER.length - 1]).toBe("quarterly-summary");
   });
 
   it("all entries are unique strings", () => {
