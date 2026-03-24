@@ -20,7 +20,6 @@ import GlobalSearch from "@/components/common/GlobalSearch";
 import KeyboardShortcutsModal from "@/components/common/KeyboardShortcutsModal";
 import NotificationDrawer, { useNotificationCount } from "@/components/common/NotificationDrawer";
 import { AnimatedGridPattern } from "@/components/ui/animated-grid-pattern";
-import { cn } from "@/lib/utils";
 
 const LOADING_MESSAGES = [
   "Connecting to your workspace...",
@@ -254,10 +253,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
             stroke: "rgba(103,58,183,0.07)",
             color: "#9575CD",
           }}
-          className={cn(
-            "[mask-image:radial-gradient(ellipse_100%_80%_at_50%_0%,white_30%,transparent_100%)]",
-            "inset-0 h-full w-full",
-          )}
+          className="inset-0 h-full w-full"
         />
       </div>
       <div className="flex h-screen overflow-hidden">
