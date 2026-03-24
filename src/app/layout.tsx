@@ -227,6 +227,7 @@ const switchUser = useCallback(
             animationData={loadingAnimationData}
             loop
             className="absolute inset-0 w-full h-full"
+            rendererSettings={{ preserveAspectRatio: "xMidYMid slice" }}
           />
         )}
       </div>
