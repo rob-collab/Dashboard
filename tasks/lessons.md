@@ -888,3 +888,33 @@ the CSS trick for text-only or read-only accordion content.
 
 **Trigger:** Any expand/collapse pattern that hides form controls.
 **Status:** Active.
+
+---
+
+### L027 — Tailwind arbitrary hex colours cannot use `/opacity` suffix
+
+**Sprint:** Dashboard Widget Library (2026-03-24)
+**Trigger:** Writing `bg-[#22c55e]/85` for opacity on an arbitrary hex colour in WaffleGrid.tsx — this is invalid syntax in Tailwind v3 and silently renders incorrectly.
+**Root cause:** Tailwind's `/opacity` shorthand only works with named palette colours (e.g., `bg-green-500/85`). Arbitrary hex values need `rgba()` inside the bracket.
+**Rule:** When applying opacity to arbitrary hex colours in Tailwind, use `bg-[rgba(r,g,b,opacity)]` syntax instead of `bg-[#hex]/opacity`.
+**Example fix:** `bg-[#22c55e]/85` → `bg-[rgba(34,197,94,0.85)]`
+**Status:** Active.
+
+---
+
+### W031 — SVG gradient ID uniqueness with `useId()`
+
+**Sprint:** Dashboard Widget Library (2026-03-24)
+**What worked:** Using React 18's `useId()` hook to generate unique SVG gradient IDs in `Sparkline.tsx`. Without this, multiple sparklines of the same colour would share a gradient ID, causing all but the first to render incorrectly (wrong colour or invisible fill).
+**Why it works:** `useId()` generates a stable, instance-unique string per component mount — safe for SVG `<defs>` IDs and DOM aria attributes. Replacing colour-derived IDs (e.g., `spark-grad-${colour.replace('#','')}`) with `useId()`-based IDs eliminates the collision entirely.
+**Reuse:** Apply to any component that generates `<defs>` with IDs (gradients, clip paths, masks, patterns) when multiple instances may co-exist on the same page.
+**Status:** Active.
+
+---
+
+### W032 — Swapy v1 uses `onSwapEnd` with `slotItemMap.asArray`, not `onSwap` with `event.data.array`
+
+**Sprint:** Dashboard Widget Library (2026-03-24)
+**What worked:** When integrating Swapy for drag-to-swap, the plan spec assumed `onSwap` event with `event.data.array`. The actual Swapy v1 API uses `onSwapEnd` (fires on drag completion, not during hover) with `event.slotItemMap.asArray`. The implementer adapted correctly without blocking.
+**Lesson:** Always check the actual Swapy type definitions (`node_modules/swapy/dist/index.d.ts`) before coding the event handler — library docs and LLM knowledge can lag behind actual installed versions.
+**Status:** Active.
