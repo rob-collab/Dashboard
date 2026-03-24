@@ -1517,6 +1517,30 @@ export interface DashboardElementDef {
   description?: string;
 }
 
+// ── Widget Library ─────────────────────────────────────────────────────────
+
+export type WidgetId =
+  | "approval-queue"
+  | "risk-posture"
+  | "controls-heartbeat"
+  | "consumer-duty-health"
+  | "horizon-alert"
+  | "action-momentum"
+  | "my-runway"
+  | "firm-status"
+  | "action-needed"
+  | "my-portfolio";
+
+export interface WidgetSlot {
+  slotId: string;   // 'slot-1', 'slot-2', …
+  widgetId: WidgetId;
+}
+
+/** Shape stored in the layoutGrid JSON field for the widget system. */
+export interface WidgetLayoutGrid {
+  slots: WidgetSlot[];
+}
+
 // ── Operational Resilience Module ─────────────────────────────────────────────
 
 export type ResourceCategory = "PEOPLE" | "PROCESSES" | "TECHNOLOGY" | "FACILITIES" | "INFORMATION";
