@@ -8,8 +8,8 @@ import {
 // ── DASHBOARD_SECTIONS ────────────────────────────────────────────────────────
 
 describe("DASHBOARD_SECTIONS", () => {
-  it("has 23 sections", () => {
-    expect(DASHBOARD_SECTIONS).toHaveLength(23);
+  it("has 31 sections", () => {
+    expect(DASHBOARD_SECTIONS).toHaveLength(31);
   });
 
   it("every section has a non-empty key", () => {
@@ -114,5 +114,26 @@ describe("ROLE_DEFAULT_HIDDEN", () => {
 
   it("CCRO_TEAM has no entry (sees everything)", () => {
     expect(ROLE_DEFAULT_HIDDEN.CCRO_TEAM).toBeUndefined();
+  });
+
+  it("does not contain programme-health (removed in widget-library sprint)", () => {
+    expect(DEFAULT_SECTION_ORDER).not.toContain("programme-health");
+  });
+
+  it("contains all 9 new widget-library keys", () => {
+    const widgetKeys = [
+      "approval-queue",
+      "risk-posture",
+      "controls-heartbeat",
+      "consumer-duty-health",
+      "horizon-alert",
+      "action-momentum",
+      "my-runway",
+      "firm-status",
+      "my-portfolio",
+    ];
+    for (const key of widgetKeys) {
+      expect(DEFAULT_SECTION_ORDER).toContain(key);
+    }
   });
 });
