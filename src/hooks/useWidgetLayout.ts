@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { resolveLayout } from "@/lib/widget-registry";
-import type { WidgetSlot, WidgetLayoutGrid } from "@/lib/types";
+import type { WidgetId, WidgetSlot, WidgetLayoutGrid } from "@/lib/types";
 import type { Role } from "@/lib/types";
 import type { ResolvedSlot } from "@/lib/widget-registry";
 
@@ -14,7 +14,7 @@ export function mergeWidgetLayout(
   hiddenWidgetIds: string[],
   pinnedWidgetIds: string[]
 ): ResolvedSlot[] {
-  return resolveLayout(role, savedSlots ?? [], hiddenWidgetIds, pinnedWidgetIds);
+  return resolveLayout(role, savedSlots ?? [], hiddenWidgetIds as WidgetId[], pinnedWidgetIds as WidgetId[]);
 }
 
 // ── React hook ───────────────────────────────────────────────────────────────
