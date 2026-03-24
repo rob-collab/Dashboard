@@ -8,9 +8,9 @@ interface WaffleCellProps {
 }
 
 const cellColour: Record<WaffleResult, string> = {
-  pass:     "bg-[#22c55e]/85",
-  fail:     "bg-[#ef4444]/85",
-  partial:  "bg-[#f59e0b]/75",
+  pass:     "bg-[rgba(34,197,94,0.85)]",
+  fail:     "bg-[rgba(239,68,68,0.85)]",
+  partial:  "bg-[rgba(245,158,11,0.75)]",
   untested: "bg-[#e2e8f0]",
 };
 

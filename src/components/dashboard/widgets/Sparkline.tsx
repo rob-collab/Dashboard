@@ -1,3 +1,7 @@
+"use client";
+
+import { useId } from "react";
+
 interface SparklineProps {
   /** Data points (0..1 normalised — 0 = min, 1 = max) */
   values: number[];
@@ -7,6 +11,8 @@ interface SparklineProps {
   appetiteThreshold?: number;
   width?: number;
   height?: number;
+  /** Accessible description of this sparkline's trend (e.g. "Operational risk trend over 6 months") */
+  ariaLabel?: string;
 }
 
 export function Sparkline({
@@ -15,7 +21,11 @@ export function Sparkline({
   appetiteThreshold,
   width = 120,
   height = 22,
+  ariaLabel,
 }: SparklineProps) {
+  const uid = useId();
+  const gradId = `spark-grad-${uid.replace(/:/g, "")}`;
+
   if (values.length < 2) return null;
 
   const pts = values.map((v, i) => ({
@@ -26,15 +36,15 @@ export function Sparkline({
   const linePath = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
   const areaPath = `${linePath} L ${width} ${height} L 0 ${height} Z`;
 
-  const gradId = `spark-grad-${colour.replace("#", "")}`;
-
   return (
     <svg
       width={width}
       height={height}
       viewBox={`0 0 ${width} ${height}`}
       preserveAspectRatio="none"
-      aria-hidden="true"
+      role={ariaLabel ? "img" : undefined}
+      aria-label={ariaLabel}
+      aria-hidden={ariaLabel ? undefined : true}
       style={{ overflow: "visible" }}
     >
       <defs>

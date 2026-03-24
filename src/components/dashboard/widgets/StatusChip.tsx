@@ -38,5 +38,6 @@ export function ragToChip(rag: string | null | undefined): ChipVariant {
   if (r === "RED" || r === "HARM") return "red";
   if (r === "AMBER" || r === "WARNING") return "amber";
   if (r === "GREEN" || r === "GOOD") return "green";
+  if (r === "FOCUS" || r === "IN_FOCUS" || r === "PURPLE") return "purple";
   return "gray";
 }
