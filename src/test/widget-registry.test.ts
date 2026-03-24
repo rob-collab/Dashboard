@@ -83,4 +83,18 @@ describe("resolveLayout", () => {
     const pinned = result.find((s) => s.widgetId === "risk-posture");
     expect(pinned?.pinned).toBe(true);
   });
+  it("VIEWER role returns a 4-slot layout (CEO-equivalent)", () => {
+    const result = resolveLayout("VIEWER", [], []);
+    expect(result).toHaveLength(4);
+  });
+  it("filters out saved slots with stale widgetIds not in WIDGET_REGISTRY", () => {
+    const stale: WidgetSlot[] = [
+      { slotId: "slot-1", widgetId: "risk-posture" },
+      // @ts-expect-error intentional stale id for test
+      { slotId: "slot-2", widgetId: "deleted-widget" },
+    ];
+    const result = resolveLayout("CCRO_TEAM", stale, []);
+    expect(result.every((s) => s.widgetId in WIDGET_REGISTRY)).toBe(true);
+    expect(result.map((s) => s.slotId)).not.toContain("slot-2");
+  });
 });

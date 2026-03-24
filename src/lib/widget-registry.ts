@@ -1,5 +1,4 @@
-import type { WidgetId, WidgetSlot } from "@/lib/types";
-import type { Role } from "@/lib/types";
+import type { WidgetId, WidgetSlot, Role } from "@/lib/types";
 
 export interface WidgetDef {
   label: string;
@@ -21,7 +20,7 @@ export const WIDGET_REGISTRY: Record<WidgetId, WidgetDef> = {
 
 type DefaultLayout = WidgetSlot[];
 
-export const DEFAULT_LAYOUTS: Partial<Record<Role, DefaultLayout>> & { CEO: DefaultLayout } = {
+export const DEFAULT_LAYOUTS: Partial<Record<Role, DefaultLayout>> & { CEO: DefaultLayout; VIEWER: DefaultLayout } = {
   CCRO_TEAM: [
     { slotId: "slot-1", widgetId: "approval-queue" },
     { slotId: "slot-2", widgetId: "risk-posture" },
@@ -37,6 +36,12 @@ export const DEFAULT_LAYOUTS: Partial<Record<Role, DefaultLayout>> & { CEO: Defa
     { slotId: "slot-3", widgetId: "horizon-alert" },
     { slotId: "slot-4", widgetId: "firm-status" },
   ],
+  VIEWER: [
+    { slotId: "slot-1", widgetId: "risk-posture" },
+    { slotId: "slot-2", widgetId: "consumer-duty-health" },
+    { slotId: "slot-3", widgetId: "horizon-alert" },
+    { slotId: "slot-4", widgetId: "firm-status" },
+  ],
   OWNER: [
     { slotId: "slot-1", widgetId: "action-needed" },
     { slotId: "slot-2", widgetId: "my-portfolio" },
@@ -45,8 +50,8 @@ export const DEFAULT_LAYOUTS: Partial<Record<Role, DefaultLayout>> & { CEO: Defa
 };
 
 export interface ResolvedSlot extends WidgetSlot {
-  hidden?: boolean;
-  pinned?: boolean;
+  hidden: boolean;
+  pinned: boolean;
 }
 
 /**
@@ -58,13 +63,16 @@ export interface ResolvedSlot extends WidgetSlot {
 export function resolveLayout(
   role: Role,
   savedSlots: WidgetSlot[],
-  hiddenWidgetIds: string[],
-  pinnedWidgetIds: string[] = []
+  hiddenWidgetIds: WidgetId[],
+  pinnedWidgetIds: WidgetId[] = []
 ): ResolvedSlot[] {
   const defaults = DEFAULT_LAYOUTS[role as keyof typeof DEFAULT_LAYOUTS] ?? DEFAULT_LAYOUTS.CEO;
 
+  // Drop saved slots whose widgetId no longer exists in the registry (stale ids)
+  const validSavedSlots = savedSlots.filter((s) => s.widgetId in WIDGET_REGISTRY);
+
   // If no saved layout, use defaults in full
-  if (!savedSlots.length) {
+  if (!validSavedSlots.length) {
     return defaults.map((slot) => ({
       ...slot,
       hidden: hiddenWidgetIds.includes(slot.widgetId),
@@ -74,9 +82,9 @@ export function resolveLayout(
 
   // Saved layout present — use saved order, then append any default widgets
   // not present in the saved layout (handles new widgets added after layout was saved)
-  const savedWidgetIds = new Set(savedSlots.map((s) => s.widgetId));
+  const savedWidgetIds = new Set(validSavedSlots.map((s) => s.widgetId));
   const missing = defaults.filter((d) => !savedWidgetIds.has(d.widgetId));
-  const base = [...savedSlots, ...missing];
+  const base = [...validSavedSlots, ...missing];
 
   return base.map((slot) => ({
     ...slot,

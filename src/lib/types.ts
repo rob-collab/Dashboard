@@ -1536,7 +1536,11 @@ export interface WidgetSlot {
   widgetId: WidgetId;
 }
 
-/** Shape stored in the layoutGrid JSON field for the widget system. */
+/**
+ * New shape for the layoutGrid JSON field used by the widget library.
+ * Distinct from the legacy RGLLayoutItem[] format (react-grid-layout positions).
+ * POST body and GET response for /api/dashboard-layout will accept both formats.
+ */
 export interface WidgetLayoutGrid {
   slots: WidgetSlot[];
 }
