@@ -255,8 +255,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
             color: "#9575CD",
           }}
           className={cn(
-            "[mask-image:radial-gradient(900px_circle_at_50%_20%,white,transparent)]",
-            "inset-0 h-full",
+            "[mask-image:radial-gradient(ellipse_100%_80%_at_50%_0%,white_30%,transparent_100%)]",
+            "inset-0 h-full w-full",
           )}
         />
       </div>
