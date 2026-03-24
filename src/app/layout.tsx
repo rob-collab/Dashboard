@@ -25,11 +25,6 @@ import loadingAnimationData from "../../public/loading-animation.json";
 
 const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 
-const LOADING_MESSAGES = [
-  "Connecting to your workspace...",
-  "Loading your data...",
-  "Almost ready...",
-] as const;
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -40,8 +35,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
-  const notifCount = useNotificationCount();
+const notifCount = useNotificationCount();
 
   // Detect mobile breakpoint (< 768px = md)
   useEffect(() => {
@@ -173,18 +167,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [hydrated, storeUsers, currentUser, setCurrentUser]);
 
-  // Cycle loading messages while the app is initialising
-  useEffect(() => {
-    const isLoading = status === "loading" || !hydrated || !currentUser;
-    if (!isLoading) return;
-    const t = setInterval(
-      () => setLoadingMsgIdx((i) => (i + 1) % LOADING_MESSAGES.length),
-      2000
-    );
-    return () => clearInterval(t);
-  }, [status, hydrated, currentUser]);
-
-  const switchUser = useCallback(
+const switchUser = useCallback(
     (u: User) => {
       setCurrentUser(u);
     },
@@ -207,46 +190,45 @@ function AppShell({ children }: { children: React.ReactNode }) {
           <div className="absolute -bottom-40 -right-40 h-[600px] w-[600px] rounded-full bg-purple-950/40 blur-3xl" />
         </div>
 
-        <div className="relative flex flex-col items-center gap-5 animate-entrance">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/loading-logo.jpeg"
-            alt="Updraft"
-            className="h-14 w-14 rounded-2xl ring-2 ring-white/25 shadow-lg object-cover animate-pulse"
-            style={{ animationDuration: "2s" }}
+        {hydrateError ? (
+          <div className="relative flex flex-col items-center gap-5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/loading-logo.jpeg"
+              alt="Updraft"
+              className="h-14 w-14 rounded-2xl ring-2 ring-white/25 shadow-lg object-cover"
+            />
+            <p className="text-sm font-medium text-red-200">Failed to load data</p>
+            <p className="text-xs text-white/75 max-w-xs text-center">{hydrateError}</p>
+            <button
+              onClick={() => hydrate()}
+              className="mt-2 rounded-lg bg-white/10 border border-white/20 px-4 py-3 text-sm font-medium text-white hover:bg-white/20 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        ) : prefersReduced ? (
+          <div className="relative flex flex-col items-center gap-5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/loading-logo.jpeg"
+              alt="Updraft"
+              className="h-14 w-14 rounded-2xl ring-2 ring-white/25 shadow-lg object-cover animate-pulse"
+              style={{ animationDuration: "2s" }}
+            />
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: "0ms" }} />
+              <div className="h-2 w-2 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: "150ms" }} />
+              <div className="h-2 w-2 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: "300ms" }} />
+            </div>
+          </div>
+        ) : (
+          <Lottie
+            animationData={loadingAnimationData}
+            loop
+            className="absolute inset-0 w-full h-full"
           />
-          {hydrateError ? (
-            <>
-              <p className="text-sm font-medium text-red-200">Failed to load data</p>
-              <p className="text-xs text-white/75 max-w-xs text-center">{hydrateError}</p>
-              <button
-                onClick={() => hydrate()}
-                className="mt-2 rounded-lg bg-white/10 border border-white/20 px-4 py-3 text-sm font-medium text-white hover:bg-white/20 transition-colors"
-              >
-                Retry
-              </button>
-            </>
-          ) : (
-            <>
-              {prefersReduced ? (
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: "0ms" }} />
-                  <div className="h-2 w-2 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: "150ms" }} />
-                  <div className="h-2 w-2 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: "300ms" }} />
-                </div>
-              ) : (
-                <Lottie
-                  animationData={loadingAnimationData}
-                  loop
-                  className="w-36 h-36"
-                />
-              )}
-              <p className="text-sm text-white/75 transition-opacity duration-500">
-                {LOADING_MESSAGES[loadingMsgIdx]}
-              </p>
-            </>
-          )}
-        </div>
+        )}
       </div>
     );
   }
