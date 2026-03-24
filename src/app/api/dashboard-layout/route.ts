@@ -3,7 +3,7 @@ import { prisma, requireCCRORole, getUserId, getViewAsUserId, jsonResponse, erro
 import { Prisma } from "@/generated/prisma";
 import { serialiseDates } from "@/lib/serialise";
 import { DEFAULT_SECTION_ORDER } from "@/lib/dashboard-sections";
-import type { RGLLayoutItem } from "@/lib/types";
+import type { RGLLayoutItem, WidgetLayoutGrid } from "@/lib/types";
 
 function defaultLayout(userId: string) {
   return {
@@ -103,13 +103,18 @@ export async function PUT(request: NextRequest) {
         ? (pinnedSections as string[])
         : [];
 
-    // Validate layoutGrid shape if provided
-    let resolvedGrid: RGLLayoutItem[] | null = null;
+    // Validate layoutGrid shape if provided.
+    // layoutGrid may be: null | RGLLayoutItem[] (legacy) | WidgetLayoutGrid (new)
+    // rawGrid?.slots ?? [] gracefully falls back to role defaults for both null and legacy array shapes.
+    let resolvedGrid: WidgetLayoutGrid | RGLLayoutItem[] | null = null;
     if (layoutGrid !== undefined && layoutGrid !== null) {
-      if (!Array.isArray(layoutGrid)) {
-        return errorResponse("layoutGrid must be an array", 400);
+      if (Array.isArray(layoutGrid)) {
+        resolvedGrid = layoutGrid as RGLLayoutItem[];
+      } else if (typeof layoutGrid === "object" && Array.isArray((layoutGrid as Record<string, unknown>).slots)) {
+        resolvedGrid = layoutGrid as WidgetLayoutGrid;
+      } else {
+        return errorResponse("layoutGrid must be an array or { slots: WidgetSlot[] }", 400);
       }
-      resolvedGrid = layoutGrid as RGLLayoutItem[];
     }
 
     // Verify target user exists
