@@ -30,11 +30,19 @@ export const DASHBOARD_SECTIONS: DashboardSectionDef[] = [
   { key: "tasks-reviews", label: "Tasks & Reviews", description: "Risk reviews, personal actions, and assigned metrics" },
   { key: "consumer-duty", label: "Consumer Duty Overview", description: "RAG status summary for Consumer Duty outcomes" },
   { key: "risk-summary", label: "Risk Summary", description: "Risk register summary with heatmap indicators" },
-  { key: "programme-health", label: "Programme Health", description: "Arc-gauge scorecard for Risk, Actions, Consumer Duty and Compliance health" },
   { key: "reports", label: "Reports", description: "Recent and published reports" },
   { key: "recent-activity", label: "Recent Activity", description: "Latest audit log entries" },
   { key: "horizon-scanning", label: "Horizon Scanning", description: "Regulatory & business environment monitor — urgency breakdown and in-focus item" },
   { key: "control-health", label: "Control Health Trend", description: "6-month pass rate trend for all active controls — trajectory at a glance" },
+  { key: "approval-queue",       label: "Approval Queue",       description: "Items awaiting CCRO sign-off" },
+  { key: "risk-posture",         label: "Risk Posture",         description: "Category sparklines vs appetite" },
+  { key: "controls-heartbeat",   label: "Controls Heartbeat",   description: "Waffle grid of latest test results" },
+  { key: "consumer-duty-health", label: "Consumer Duty Health", description: "CD outcome ring by measure count" },
+  { key: "horizon-alert",        label: "Horizon Alert",        description: "Upcoming FCA deadlines and actions" },
+  { key: "action-momentum",      label: "Action Momentum",      description: "P1/P2/P3 volume trend over time" },
+  { key: "my-runway",            label: "My Runway",            description: "30-day personal item timeline" },
+  { key: "firm-status",          label: "Firm Status",          description: "4 independent domain health indicators" },
+  { key: "my-portfolio",         label: "My Portfolio",         description: "Owned risks, controls, and CD measures" },
   { key: "quarterly-summary", label: "Quarterly Summary", description: "Per-quarter test result pass rates and historical comparison" },
 ];
 
@@ -54,7 +62,6 @@ export const CCRO_DEFAULT_SECTION_ORDER: string[] = (() => {
     "compliance-health",
     "risks-in-focus",
     "pending-approvals",
-    "programme-health",
   ];
   const rest = DEFAULT_SECTION_ORDER.filter((k) => !priority.includes(k));
   return [...priority, ...rest];
@@ -71,7 +78,6 @@ export const ROLE_DEFAULT_HIDDEN: Record<string, string[]> = {
     "cross-entity",        // Board/CCRO cross-entity reporting
     "policy-health",       // Policy management is CCRO domain
     "overdue-metrics",     // CCRO oversight of Consumer Duty measure updates
-    "programme-health",    // CCRO-level portfolio scorecard
     "control-health",      // CCRO-level control testing oversight
     "quarterly-summary",   // CCRO-level quarterly review
   ],
@@ -80,7 +86,6 @@ export const ROLE_DEFAULT_HIDDEN: Record<string, string[]> = {
     "proposed-changes",
     "cross-entity",
     "overdue-metrics",
-    "programme-health",    // CCRO-level portfolio scorecard
     "control-health",
     "quarterly-summary",
   ],
@@ -132,8 +137,7 @@ export const DEFAULT_GRID_LAYOUT: RGLLayoutItem[] = [
   { i: "tasks-reviews",     x: 0, y: 77,  w: 12, h: 12, minW: 4, minH: 8 },
   { i: "consumer-duty",     x: 0, y: 89,  w: 4,  h: 10, minW: 3, minH: 6 },
   { i: "risk-summary",      x: 4, y: 89,  w: 8,  h: 12, minW: 4, minH: 8 },
-  { i: "programme-health",  x: 0, y: 101, w: 6,  h: 5,  minW: 3, minH: 4 },
-  { i: "reports",           x: 6, y: 101, w: 6,  h: 9,  minW: 3, minH: 6 },
+  { i: "reports",           x: 0, y: 101, w: 6,  h: 9,  minW: 3, minH: 6 },
   { i: "recent-activity",   x: 0, y: 110, w: 6,  h: 9,  minW: 3, minH: 6 },
   { i: "horizon-scanning",  x: 0, y: 119, w: 12, h: 8,  minW: 4, minH: 6 },
   { i: "control-health",   x: 0, y: 127, w: 6,  h: 10, minW: 3, minH: 6 },
