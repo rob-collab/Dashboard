@@ -20,6 +20,10 @@ import GlobalSearch from "@/components/common/GlobalSearch";
 import KeyboardShortcutsModal from "@/components/common/KeyboardShortcutsModal";
 import NotificationDrawer, { useNotificationCount } from "@/components/common/NotificationDrawer";
 import { AnimatedGridPattern } from "@/components/ui/animated-grid-pattern";
+import dynamic from "next/dynamic";
+import loadingAnimationData from "../../public/loading-animation.json";
+
+const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 
 const LOADING_MESSAGES = [
   "Connecting to your workspace...",
@@ -224,11 +228,19 @@ function AppShell({ children }: { children: React.ReactNode }) {
             </>
           ) : (
             <>
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: "0ms" }} />
-                <div className="h-2 w-2 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: "150ms" }} />
-                <div className="h-2 w-2 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: "300ms" }} />
-              </div>
+              {prefersReduced ? (
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <div className="h-2 w-2 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <div className="h-2 w-2 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: "300ms" }} />
+                </div>
+              ) : (
+                <Lottie
+                  animationData={loadingAnimationData}
+                  loop
+                  className="w-36 h-36"
+                />
+              )}
               <p className="text-sm text-white/75 transition-opacity duration-500">
                 {LOADING_MESSAGES[loadingMsgIdx]}
               </p>
