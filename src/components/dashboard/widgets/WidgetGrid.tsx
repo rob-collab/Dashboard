@@ -138,6 +138,7 @@ export function WidgetGrid({
       {/* Widget grid */}
       <div
         ref={containerRef}
+        data-swapy-container
         className={cn(
           "grid grid-cols-1 gap-4 md:grid-cols-2",
           className
