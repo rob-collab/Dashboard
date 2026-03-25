@@ -87,8 +87,11 @@ function GreetingHeader({
   });
 
   return (
-    <div className="rounded-2xl bg-gradient-to-br from-updraft-deep via-updraft-bar to-updraft-bright-purple p-6 text-white shadow-lg">
-      <div className="flex items-start justify-between gap-4">
+    <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-updraft-deep via-[#1e1b4b] to-updraft-bar p-6 text-white shadow-xl">
+      {/* Subtle depth overlay — matches Horizon In Focus spotlight */}
+      <div className="pointer-events-none absolute inset-0 opacity-[0.03] bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" aria-hidden="true" />
+
+      <div className="relative flex items-start justify-between gap-4">
         <div>
           <p className="font-poppins text-2xl font-semibold tracking-tight">
             {greeting}, {userName.split(" ")[0]}.
@@ -104,9 +107,9 @@ function GreetingHeader({
         </div>
       </div>
 
-      {/* Notification banners — full-width strips pinned to the bottom of the header */}
+      {/* Notification banners — full-width strips pinned flush to the bottom edge */}
       {activeMessages.length > 0 && (
-        <div className="-mx-6 mt-4">
+        <div className="relative -mx-6 -mb-6 mt-4">
           {activeMessages.map((n) => {
             const s = bannerStyles[n.type];
             return (
@@ -353,7 +356,7 @@ export default function DashboardHome() {
   const currentUser = useAppStore((s) => s.currentUser);
   const notifications = useAppStore((s) => s.notifications);
 
-  const { slots, editMode, toggleEditMode, onSwap, onHide, onShow, isSaving } =
+  const { slots, editMode, toggleEditMode, onSwap, onHide, onShow, isSaving, saveNow } =
     useWidgetLayout(currentUser?.id, currentUser?.role as Role | undefined);
 
   const hiddenWidgets = slots.filter((s) => s.hidden).map((s) => s.widgetId);
@@ -405,18 +408,22 @@ export default function DashboardHome() {
 
       {/* Widget layout customise button */}
       <div className="flex items-center justify-end gap-2">
-        {isSaving && <span style={{ fontSize: 11, color: "#94a3b8" }}>Saving…</span>}
         <button
-          onClick={toggleEditMode}
+          onClick={() => {
+            if (editMode) saveNow();
+            toggleEditMode();
+          }}
+          disabled={isSaving}
           className={cn(
             "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
             editMode
               ? "border-[#7c3aed] bg-[#f5f3ff] text-[#7c3aed]"
-              : "border-[#E8E6E1] bg-white text-[#64748b] hover:bg-[#F8F7F4]"
+              : "border-[#E8E6E1] bg-white text-[#64748b] hover:bg-[#F8F7F4]",
+            isSaving && "cursor-not-allowed opacity-60"
           )}
         >
           <Settings size={14} />
-          {editMode ? "Done" : "Customise"}
+          {isSaving ? "Saving…" : editMode ? "Done" : "Customise"}
         </button>
       </div>
       <WidgetGrid

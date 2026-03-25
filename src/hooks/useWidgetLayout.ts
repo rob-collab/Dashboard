@@ -27,6 +27,7 @@ interface UseWidgetLayoutReturn {
   onHide: (widgetId: string) => void;
   onShow: (widgetId: string) => void;
   isSaving: boolean;
+  saveNow: () => void;
 }
 
 export function useWidgetLayout(
@@ -74,7 +75,16 @@ export function useWidgetLayout(
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
-      }).finally(() => setIsSaving(false));
+      })
+        .then((res) => {
+          if (!res.ok) {
+            console.error("[useWidgetLayout] persist failed:", res.status, res.statusText);
+          }
+        })
+        .catch((err) => {
+          console.error("[useWidgetLayout] persist network error:", err);
+        })
+        .finally(() => setIsSaving(false));
     },
     [userId]
   );
@@ -83,23 +93,26 @@ export function useWidgetLayout(
 
   const onSwap = useCallback(
     (fromSlotId: string, toSlotId: string) => {
-      setSlots((prev) => {
-        const next = [...prev];
-        const fromIdx = next.findIndex((s) => s.slotId === fromSlotId);
-        const toIdx = next.findIndex((s) => s.slotId === toSlotId);
-        if (fromIdx === -1 || toIdx === -1) return prev;
-        // Don't swap pinned slots
-        if (next[fromIdx].pinned || next[toIdx].pinned) return prev;
-        [next[fromIdx], next[toIdx]] = [next[toIdx], next[fromIdx]];
-        // Restore original slotIds after swap
-        next[fromIdx] = { ...next[fromIdx], slotId: fromSlotId };
-        next[toIdx]   = { ...next[toIdx],   slotId: toSlotId };
-        persist(next, hiddenIds);
-        return next;
-      });
+      // Compute the new order from the current slots state
+      const next = [...slots];
+      const fromIdx = next.findIndex((s) => s.slotId === fromSlotId);
+      const toIdx = next.findIndex((s) => s.slotId === toSlotId);
+      if (fromIdx === -1 || toIdx === -1) return;
+      if (next[fromIdx].pinned || next[toIdx].pinned) return;
+      [next[fromIdx], next[toIdx]] = [next[toIdx], next[fromIdx]];
+      // Restore original slotIds after swap
+      next[fromIdx] = { ...next[fromIdx], slotId: fromSlotId };
+      next[toIdx]   = { ...next[toIdx],   slotId: toSlotId };
+      setSlots(next);
+      persist(next, hiddenIds);
     },
-    [hiddenIds, persist]
+    [slots, hiddenIds, persist]
   );
+
+  // Explicit save — call when exiting edit mode to guarantee the final state is persisted
+  const saveNow = useCallback(() => {
+    persist(slots, hiddenIds);
+  }, [slots, hiddenIds, persist]);
 
   const onHide = useCallback(
     (widgetId: string) => {
@@ -121,5 +134,5 @@ export function useWidgetLayout(
     [hiddenIds, slots, persist]
   );
 
-  return { slots, editMode, toggleEditMode, onSwap, onHide, onShow, isSaving };
+  return { slots, editMode, toggleEditMode, onSwap, onHide, onShow, isSaving, saveNow };
 }
