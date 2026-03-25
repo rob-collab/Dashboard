@@ -22,6 +22,7 @@ type DefaultLayout = WidgetSlot[];
 
 export const DEFAULT_LAYOUTS: Partial<Record<Role, DefaultLayout>> & { CEO: DefaultLayout; VIEWER: DefaultLayout } = {
   CCRO_TEAM: [
+    { slotId: "slot-0", widgetId: "action-needed" },
     { slotId: "slot-1", widgetId: "approval-queue" },
     { slotId: "slot-2", widgetId: "risk-posture" },
     { slotId: "slot-3", widgetId: "controls-heartbeat" },

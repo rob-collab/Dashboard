@@ -22,8 +22,8 @@ describe("WIDGET_REGISTRY", () => {
 });
 
 describe("DEFAULT_LAYOUTS", () => {
-  it("CCRO has 7 slots", () => {
-    expect(DEFAULT_LAYOUTS.CCRO_TEAM).toHaveLength(7);
+  it("CCRO has 8 slots", () => {
+    expect(DEFAULT_LAYOUTS.CCRO_TEAM).toHaveLength(8);
   });
   it("CEO has 4 slots", () => {
     expect(DEFAULT_LAYOUTS.CEO).toHaveLength(4);
@@ -49,7 +49,7 @@ describe("DEFAULT_LAYOUTS", () => {
 describe("resolveLayout", () => {
   it("returns role defaults when savedSlots is empty", () => {
     const result = resolveLayout("CCRO_TEAM", [], []);
-    expect(result).toHaveLength(7);
+    expect(result).toHaveLength(8);
   });
   it("honours saved slot order when provided", () => {
     const saved: WidgetSlot[] = [
@@ -66,7 +66,7 @@ describe("resolveLayout", () => {
       { slotId: "slot-2", widgetId: "controls-heartbeat" },
     ];
     const result = resolveLayout("CCRO_TEAM", saved, []);
-    expect(result).toHaveLength(7);
+    expect(result).toHaveLength(8);
     expect(result[0].widgetId).toBe("risk-posture");
     expect(result[1].widgetId).toBe("controls-heartbeat");
     const widgetIds = result.map((s) => s.widgetId);
