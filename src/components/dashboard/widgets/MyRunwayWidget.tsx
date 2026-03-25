@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import { WidgetShell, WidgetLabel, WidgetInsight, em, WidgetFooter, DataSourceTag } from "./WidgetShell";
-import { StatusChip } from "./StatusChip";
 
 type ItemType = "action" | "risk" | "control";
 

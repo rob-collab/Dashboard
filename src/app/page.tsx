@@ -119,18 +119,6 @@ function daysUntilDue(dueDate: string | null): number | null {
   return Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-// ── Risk severity helper ──────────────────────────────────────────────────
-function riskScore(r: { residualLikelihood: number; residualImpact: number }): number {
-  return r.residualLikelihood * r.residualImpact;
-}
-
-function riskSeverityLevel(score: number): "critical" | "high" | "medium" | "low" {
-  if (score >= 20) return "critical";
-  if (score >= 12) return "high";
-  if (score >= 6) return "medium";
-  return "low";
-}
-
 
 // ── Action Needed widget (personal items requiring attention) ─────────────
 function ActionNeededCard() {

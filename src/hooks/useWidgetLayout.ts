@@ -35,7 +35,6 @@ export function useWidgetLayout(
 ): UseWidgetLayoutReturn {
   const [slots, setSlots] = useState<ResolvedSlot[]>([]);
   const [hiddenIds, setHiddenIds] = useState<string[]>([]);
-  const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
