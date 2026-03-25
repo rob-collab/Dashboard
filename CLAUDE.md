@@ -127,6 +127,33 @@ Exceptions — skip questions only when the request is fully unambiguous and sin
 
 ---
 
+## CRITICAL: Read the Complete File Before Any Edit
+
+**Before editing any file — for any reason, of any size — call the Read tool on the entire
+file. Not a range. Not the lines around the error. The whole file.**
+
+This applies equally to:
+- A 400-line feature implementation
+- A one-line lint fix
+- Removing an unused import
+- Any other change that feels too small to need context
+
+**Why:** A removed variable may have a setter still called elsewhere in the same file.
+A deleted import may be referenced in a branch further down. A "trivial" fix seen in
+isolation is frequently not trivial in context. This was the direct cause of two
+consecutive broken deployments in March 2026 (L029).
+
+**After reading the full file, before removing any identifier (variable, function,
+import, state, prop, type):**
+1. Grep the file for every usage of that identifier
+2. Grep the codebase for cross-file usages
+3. Only proceed once both searches return zero unexpected references
+
+There is no exception for small tasks. There is no exception for lint fixes. There is
+no exception for hotfixes. If you have not read the complete file, you may not edit it.
+
+---
+
 ## Workflow: Every Change Request
 
 For every change request (features, fixes, improvements):
@@ -206,7 +233,7 @@ For every change request (features, fixes, improvements):
    - Agent team structure (if applicable — see step 0.75)
    - A checklist of acceptance criteria (`- [ ] ...`)
 
-2. **Implement one deliverable at a time — senior developer review gate after each** — do not batch all changes into one pass. After each meaningful deliverable, run all three layers before moving on:
+2. **Implement one deliverable at a time — senior developer review gate after each** — do not batch all changes into one pass. After each change — including hotfixes, lint fixes, and single-line edits — run all three layers before moving on. There is no fast path. A change that feels trivial still goes through the gate:
 
    **Layer 1 — Build & verify:**
    - State clearly what was just implemented
