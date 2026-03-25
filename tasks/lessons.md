@@ -899,3 +899,13 @@ the CSS trick for text-only or read-only accordion content.
 **Rule:** Run `npm run lint` before every push. This is now enforced by `.git/hooks/pre-push`. Do not push with `--no-verify`. If the hook fails, fix the errors — do not bypass.
 **Trigger:** Every push to any branch. No exceptions.
 **Status:** Active. [Pre-push hook installed at `.git/hooks/pre-push`]
+
+---
+
+### L029 — Lint fixes made in isolation without reading the full file
+
+**What happened:** `pinnedIds` was flagged as unused. The `useState` declaration was removed without reading the rest of the file. `setPinnedIds` was still called on line 54. The build broke with a new type error. A `_` prefix workaround was then tried without checking if it was honoured by the ESLint config. Two more failed deploys before the full file was read and the correct fix made.
+**Root cause:** Systems thinking was applied when building features but the approach reverted to pattern-match-and-patch for tasks that looked small. "Fix a lint error" triggered a local, one-line edit mode. The rule "do not propose changes to code you haven't read" was already in CLAUDE.md — it was violated because the task felt trivial.
+**Rule:** Read the COMPLETE file before fixing any lint error, no matter how simple it looks. Then grep the codebase for every usage of the removed identifier before committing. There is no class of change small enough to skip this.
+**Trigger:** Any removal of a variable, function, import, or state declaration — regardless of whether it came from a lint error, a hotfix, or a refactor.
+**Status:** Active. [Promoted to regression-agent.md Step 0]
