@@ -30,6 +30,7 @@ import { ApprovalQueueWidget } from "@/components/dashboard/widgets/ApprovalQueu
 import { FirmStatusWidget } from "@/components/dashboard/widgets/FirmStatusWidget";
 import { MyRunwayWidget } from "@/components/dashboard/widgets/MyRunwayWidget";
 import { MyPortfolioWidget } from "@/components/dashboard/widgets/MyPortfolioWidget";
+import { RisksInFocusWidget } from "@/components/dashboard/widgets/RisksInFocusWidget";
 import type { DashboardNotification, Role, WidgetId } from "@/lib/types";
 
 // ── Time-of-day greeting ──────────────────────────────────────────────────
@@ -345,6 +346,7 @@ export default function DashboardHome() {
       case "firm-status":          return <FirmStatusWidget />;
       case "action-needed":        return <ActionNeededCard />;
       case "my-portfolio":         return <MyPortfolioWidget />;
+      case "risks-in-focus":       return <RisksInFocusWidget />;
       default:                     return null;
     }
   }, [currentUser?.role]);

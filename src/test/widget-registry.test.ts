@@ -13,6 +13,7 @@ describe("WIDGET_REGISTRY", () => {
       "approval-queue", "risk-posture", "controls-heartbeat",
       "consumer-duty-health", "horizon-alert", "action-momentum",
       "my-runway", "firm-status", "action-needed", "my-portfolio",
+      "risks-in-focus",
     ];
     for (const id of ids) {
       expect(WIDGET_REGISTRY[id]).toBeDefined();
@@ -22,8 +23,8 @@ describe("WIDGET_REGISTRY", () => {
 });
 
 describe("DEFAULT_LAYOUTS", () => {
-  it("CCRO has 8 slots", () => {
-    expect(DEFAULT_LAYOUTS.CCRO_TEAM).toHaveLength(8);
+  it("CCRO has 9 slots", () => {
+    expect(DEFAULT_LAYOUTS.CCRO_TEAM).toHaveLength(9);
   });
   it("CEO has 4 slots", () => {
     expect(DEFAULT_LAYOUTS.CEO).toHaveLength(4);
@@ -49,7 +50,7 @@ describe("DEFAULT_LAYOUTS", () => {
 describe("resolveLayout", () => {
   it("returns role defaults when savedSlots is empty", () => {
     const result = resolveLayout("CCRO_TEAM", [], []);
-    expect(result).toHaveLength(8);
+    expect(result).toHaveLength(9);
   });
   it("honours saved slot order when provided", () => {
     const saved: WidgetSlot[] = [
@@ -66,7 +67,7 @@ describe("resolveLayout", () => {
       { slotId: "slot-2", widgetId: "controls-heartbeat" },
     ];
     const result = resolveLayout("CCRO_TEAM", saved, []);
-    expect(result).toHaveLength(8);
+    expect(result).toHaveLength(9);
     expect(result[0].widgetId).toBe("risk-posture");
     expect(result[1].widgetId).toBe("controls-heartbeat");
     const widgetIds = result.map((s) => s.widgetId);

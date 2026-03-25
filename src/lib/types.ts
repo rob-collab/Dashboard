@@ -1529,7 +1529,8 @@ export type WidgetId =
   | "my-runway"
   | "firm-status"
   | "action-needed"
-  | "my-portfolio";
+  | "my-portfolio"
+  | "risks-in-focus";
 
 export interface WidgetSlot {
   slotId: string;   // 'slot-1', 'slot-2', …

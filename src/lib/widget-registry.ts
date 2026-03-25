@@ -16,6 +16,7 @@ export const WIDGET_REGISTRY: Record<WidgetId, WidgetDef> = {
   "firm-status":          { label: "Firm Status",          description: "4 independent domain health indicators" },
   "action-needed":        { label: "Action Needed",        description: "Personal overdue items and reviews" },
   "my-portfolio":         { label: "My Portfolio",         description: "Owned risks, controls, and CD measures" },
+  "risks-in-focus":       { label: "Risks in Focus",       description: "Starred risks from the risk register" },
 };
 
 type DefaultLayout = WidgetSlot[];
@@ -30,6 +31,7 @@ export const DEFAULT_LAYOUTS: Partial<Record<Role, DefaultLayout>> & { CEO: Defa
     { slotId: "slot-5", widgetId: "horizon-alert" },
     { slotId: "slot-6", widgetId: "action-momentum" },
     { slotId: "slot-7", widgetId: "my-runway" },
+    { slotId: "slot-8", widgetId: "risks-in-focus" },
   ],
   CEO: [
     { slotId: "slot-1", widgetId: "risk-posture" },
