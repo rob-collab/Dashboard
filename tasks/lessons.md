@@ -888,3 +888,14 @@ the CSS trick for text-only or read-only accordion content.
 
 **Trigger:** Any expand/collapse pattern that hides form controls.
 **Status:** Active.
+
+---
+
+### L028 — Build gate skipped at sprint end; lint errors reached Vercel
+
+**Sprint:** Dashboard Widget Library (2026-03-24)
+**What happened:** Four `@typescript-eslint/no-unused-vars` errors were introduced across multiple feature commits as scaffolding that was never wired up. The sprint closed and was pushed without running `npm run lint` or `npx next build`. Vercel caught the errors; local sessions did not.
+**Root cause:** The agent team (UAT, Regression, Designer, Planning) are semantic code reviewers — they read files and trace data flows. None of them execute the compiler or ESLint. The build gate in CLAUDE.md is a manual step; if the session skips it, nothing in the agent pipeline catches it.
+**Rule:** Run `npm run lint` before every push. This is now enforced by `.git/hooks/pre-push`. Do not push with `--no-verify`. If the hook fails, fix the errors — do not bypass.
+**Trigger:** Every push to any branch. No exceptions.
+**Status:** Active. [Pre-push hook installed at `.git/hooks/pre-push`]
