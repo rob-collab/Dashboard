@@ -92,11 +92,25 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
     headers["X-Auth-User-Id"] = authUserId;
   }
 
-  const res = await fetch(path, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30000);
+
+  let res: Response;
+  try {
+    res = await fetch(path, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timer);
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new ApiError(408, `Request timed out: ${path}`);
+    }
+    throw err;
+  }
+  clearTimeout(timer);
 
   if (!res.ok) {
     let message = res.statusText;
