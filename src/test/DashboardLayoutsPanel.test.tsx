@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { DashboardLayoutsPanel } from "@/components/settings/DashboardLayoutsPanel";
+import { DEFAULT_LAYOUTS } from "@/lib/widget-registry";
 
 // Mock AdminWidgetGrid so we can focus on DashboardLayoutsPanel logic
 vi.mock("@/components/settings/AdminWidgetGrid", () => ({
@@ -16,14 +17,24 @@ vi.mock("@/components/settings/AdminWidgetGrid", () => ({
         </button>
       ))}
       <span data-testid="pinned-count">{pinnedIds.length}</span>
+      <span data-testid="slot-count">{slots.length}</span>
     </div>
   ),
 }));
 
-// Mock useAppStore to return a CCRO user by default
+// Mock sonner toast
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+import { toast } from "sonner";
+
+// Mock useAppStore to return a CCRO user by default (with id so the filter can exclude them)
 const mockUseAppStore = vi.fn();
 vi.mock("@/lib/store", () => ({
-  useAppStore: (selector: (s: { currentUser: { role: string } | null }) => unknown) =>
+  useAppStore: (selector: (s: { currentUser: { id: string; role: string } | null }) => unknown) =>
     mockUseAppStore(selector),
 }));
 
@@ -44,7 +55,7 @@ const mockLayout = {
 beforeEach(() => {
   vi.resetAllMocks();
   mockUseAppStore.mockImplementation((selector) =>
-    selector({ currentUser: { role: "CCRO_TEAM" } })
+    selector({ currentUser: { id: "ccro-user", role: "CCRO_TEAM" } })
   );
   global.fetch = vi.fn().mockImplementation((url: string) => {
     if (url === "/api/users") {
@@ -60,7 +71,7 @@ beforeEach(() => {
 describe("DashboardLayoutsPanel", () => {
   it("shows a permission message for non-CCRO users", () => {
     mockUseAppStore.mockImplementation((selector) =>
-      selector({ currentUser: { role: "CEO" } })
+      selector({ currentUser: { id: "ceo-user", role: "CEO" } })
     );
     render(<DashboardLayoutsPanel />);
     expect(
@@ -188,5 +199,36 @@ describe("DashboardLayoutsPanel", () => {
       // Both CEO users were attempted
       expect(puts).toHaveLength(2);
     });
+
+    // Assert toast.error was called with the partial-failure message
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        "Applied to 1 of 2 users — 1 failed"
+      );
+    });
+  });
+
+  it("Reset to default restores DEFAULT_LAYOUTS slots and clears pinnedIds", async () => {
+    render(<DashboardLayoutsPanel />);
+    await waitFor(() => screen.getByRole("combobox"));
+
+    // Select user-1 (CEO role) — loads layout with pinnedSections: ["risk-posture"]
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "user-1" } });
+    await waitFor(() => screen.getByTestId("admin-widget-grid"));
+
+    // Confirm there is a pinned widget initially
+    expect(screen.getByTestId("pinned-count").textContent).toBe("1");
+
+    // Click Reset to default
+    fireEvent.click(screen.getByRole("button", { name: /reset to default/i }));
+
+    // pinnedIds should be cleared (CEO default has no pins)
+    expect(screen.getByTestId("pinned-count").textContent).toBe("0");
+
+    // Slot count should match CEO default layout
+    const ceoDefaultSlots = DEFAULT_LAYOUTS.CEO;
+    expect(screen.getByTestId("slot-count").textContent).toBe(
+      String(ceoDefaultSlots.length)
+    );
   });
 });

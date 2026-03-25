@@ -45,14 +45,14 @@ export function DashboardLayoutsPanel() {
     fetch("/api/users")
       .then((r) => r.json())
       .then((data: UserSummary[]) => {
-        setUsers(data);
+        setUsers(data.filter((u) => u.id !== currentUser?.id));
         setLoadingUsers(false);
       })
       .catch(() => {
         setUsersError("Could not load users");
         setLoadingUsers(false);
       });
-  }, [isCCRO]);
+  }, [isCCRO, currentUser?.id]);
 
   // Fetch layout when a user is selected
   useEffect(() => {
@@ -100,6 +100,11 @@ export function DashboardLayoutsPanel() {
       prev.includes(widgetId)
         ? prev.filter((id) => id !== widgetId)
         : [...prev, widgetId]
+    );
+    setSlots((prev) =>
+      prev.map((s) =>
+        s.widgetId === widgetId ? { ...s, pinned: !s.pinned } : s
+      )
     );
     setIsDirty(true);
   }
@@ -180,7 +185,7 @@ export function DashboardLayoutsPanel() {
   if (!isCCRO) {
     return (
       <p className="text-sm text-gray-500">
-        You do not have permission to configure dashboard layouts.
+        You do not have permission to configure layouts.
       </p>
     );
   }
