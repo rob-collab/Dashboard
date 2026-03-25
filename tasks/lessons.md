@@ -918,3 +918,14 @@ the CSS trick for text-only or read-only accordion content.
 **What worked:** When integrating Swapy for drag-to-swap, the plan spec assumed `onSwap` event with `event.data.array`. The actual Swapy v1 API uses `onSwapEnd` (fires on drag completion, not during hover) with `event.slotItemMap.asArray`. The implementer adapted correctly without blocking.
 **Lesson:** Always check the actual Swapy type definitions (`node_modules/swapy/dist/index.d.ts`) before coding the event handler — library docs and LLM knowledge can lag behind actual installed versions.
 **Status:** Active.
+
+---
+
+### L028 — Build gate skipped at sprint end; lint errors reached Vercel
+
+**Sprint:** Dashboard Widget Library (2026-03-24)
+**What happened:** Four `@typescript-eslint/no-unused-vars` errors (`riskScore`, `riskSeverityLevel`, `StatusChip`, `pinnedIds`) were introduced across multiple feature commits as scaffolding that was never wired up. The sprint closed with a lessons-docs commit and was pushed without running `npm run lint` or `npx next build`. Vercel caught the errors; local sessions did not.
+**Root cause:** The agent team (UAT, Regression, Designer, Planning) are semantic code reviewers — they read files and trace data flows. None of them execute the compiler or ESLint. The build gate in CLAUDE.md is a manual step; if the session skips it, nothing in the agent pipeline catches it.
+**Rule:** Run `npm run lint` before every push. This is now enforced by `.git/hooks/pre-push`. Do not push with `--no-verify`. If the hook fails, fix the errors — do not bypass.
+**Trigger:** Every push to any branch. No exceptions.
+**Status:** Active. [Pre-push hook installed at `.git/hooks/pre-push`]
