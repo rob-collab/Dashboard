@@ -1,14 +1,20 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { AdminWidgetGrid } from "@/components/settings/AdminWidgetGrid";
 import type { ResolvedSlot } from "@/lib/widget-registry";
 
 // Swapy has no DOM to operate on in jsdom — mock it so tests focus on our logic.
-vi.mock("swapy", () => ({
-  createSwapy: () => ({
-    onSwapEnd: vi.fn(),
-    destroy: vi.fn(),
+// capturedOnSwapEnd holds the callback AdminWidgetGrid registers via onSwapEnd,
+// so individual tests can fire synthetic swap events and assert onReorder behaviour.
+let capturedOnSwapEnd: ((event: unknown) => void) | null = null;
+const mockSwapyInstance = {
+  onSwapEnd: vi.fn((cb: (event: unknown) => void) => {
+    capturedOnSwapEnd = cb;
   }),
+  destroy: vi.fn(),
+};
+vi.mock("swapy", () => ({
+  createSwapy: vi.fn(() => mockSwapyInstance),
 }));
 
 const baseSlots: ResolvedSlot[] = [
@@ -18,6 +24,12 @@ const baseSlots: ResolvedSlot[] = [
 ];
 
 describe("AdminWidgetGrid", () => {
+  beforeEach(() => {
+    capturedOnSwapEnd = null;
+    mockSwapyInstance.onSwapEnd.mockClear();
+    mockSwapyInstance.destroy.mockClear();
+  });
+
   it("renders a card for every slot using WIDGET_REGISTRY labels", () => {
     render(
       <AdminWidgetGrid
@@ -89,5 +101,34 @@ describe("AdminWidgetGrid", () => {
     const lockedButton = screen.getByRole("button", { name: /locked/i });
     fireEvent.click(lockedButton);
     expect(onTogglePin).toHaveBeenCalledWith("risk-posture");
+  });
+
+  it("calls onReorder with the two changed slot IDs after a swap", async () => {
+    const onReorder = vi.fn();
+    render(
+      <AdminWidgetGrid
+        slots={baseSlots}
+        pinnedIds={[]}
+        onReorder={onReorder}
+        onTogglePin={vi.fn()}
+      />
+    );
+
+    // baseSlots: slot-1 → risk-posture, slot-2 → consumer-duty-health, slot-3 → horizon-alert
+    // Simulate swapping slot-1 and slot-2: their items are exchanged.
+    act(() => {
+      capturedOnSwapEnd!({
+        hasChanged: true,
+        slotItemMap: {
+          asArray: [
+            { slot: "slot-1", item: "consumer-duty-health" }, // swapped
+            { slot: "slot-2", item: "risk-posture" },          // swapped
+            { slot: "slot-3", item: "horizon-alert" },          // unchanged
+          ],
+        },
+      });
+    });
+
+    expect(onReorder).toHaveBeenCalledWith("slot-1", "slot-2");
   });
 });
