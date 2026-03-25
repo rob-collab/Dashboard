@@ -2,7 +2,7 @@
 
 import "./globals.css";
 import { useState, useCallback, useEffect, useRef, Suspense } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Toaster } from "sonner";
 import { SessionProvider, useSession } from "@/lib/auth";
@@ -28,6 +28,7 @@ const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const prefersReduced = useReducedMotion();
   const { data: session, status } = useSession();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -36,6 +37,17 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
 const notifCount = useNotificationCount();
+
+  // Safety net: if session check hangs for >12 s, redirect to login.
+  // Root cause: the JWT callback hits the DB on every session check —
+  // a cold Vercel start + Supabase PgBouncer timeout leaves status="loading" forever.
+  useEffect(() => {
+    if (status !== "loading") return;
+    const t = setTimeout(() => {
+      router.replace("/login?reason=session_timeout");
+    }, 12000);
+    return () => clearTimeout(t);
+  }, [status, router]);
 
   // Detect mobile breakpoint (< 768px = md)
   useEffect(() => {
