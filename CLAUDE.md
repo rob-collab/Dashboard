@@ -295,9 +295,21 @@ the relevant agent prompt as context. **Run all Tier 1 agents in parallel — ne
 **Tier 1 — Every deliverable (run ALL in parallel):**
 - Build: `npx next build` via Bash — zero errors required
 - UAT agent: `Explore` subagent — CCRO end-user review of changed AND adjacent screens
-- Regression agent: `Explore` subagent — system-wide side-effect sweep
+- Regression agent: `Explore` subagent — system-wide side-effect sweep **including Step -1 file-scope audit**
 - Planning sync: `general-purpose` subagent — quick check: does this deliverable match PLAN.md?
   Tick completed items; flag if implementation drifted from the plan; propose PLAN.md updates if needed
+
+**When using subagent-driven-development (SDD):**
+The SDD skill runs its own implementer → spec reviewer → code quality reviewer loop. The regression
+agent is NOT part of that loop by default — but it is REQUIRED here regardless. After the code
+quality reviewer approves, run the regression agent before marking the task complete. Provide it:
+1. The git diff of changed files (`git diff HEAD~1 HEAD --name-only`)
+2. The task's stated file list from the plan
+3. The entity types touched
+
+If the regression agent returns REGRESSION CONFIRMED (including a file-scope violation from Step -1),
+the implementer must fix it before the task is marked complete. This is not optional and is not
+satisfied by spec or quality review passing.
 
 **Tier 2 — New screens, components, or significant visual changes (add to Tier 1):**
 - Designer agent: `Explore` subagent — design system adherence + UX quality

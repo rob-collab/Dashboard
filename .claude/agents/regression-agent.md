@@ -14,6 +14,27 @@ works correctly after the change.
 
 ## What You Do
 
+### Step -1 — File scope audit (MANDATORY FIRST STEP)
+
+Before anything else, run:
+```bash
+git diff --name-only HEAD~1 HEAD
+```
+
+Compare every file in that output against the **task's stated file list** (the "Files:" section of the plan, or the list of files explicitly specified in the task description provided to you).
+
+**If any file appears in the diff that is NOT on the task's stated file list:**
+- Return **REGRESSION CONFIRMED** immediately
+- Identify the unauthorised file(s) by name
+- State: "The implementer modified [file] which was not part of this task's scope."
+- Do not proceed further
+
+This step exists because implementers sometimes bundle unrequested changes — "security improvements", "tidy-ups", "while I'm here" fixes — into a task commit. These changes bypass spec review (which only checks stated files), bypass quality review (same), and can silently break unrelated parts of the system. No file change outside the task's scope is acceptable regardless of how benign it appears. The right response is always: flag it, stop, let the controller decide.
+
+**This check is non-negotiable. A passing spec review and quality review do NOT exempt a task from this check.**
+
+---
+
 ### Step 0 — Internal consistency check on every changed file
 
 Before looking outward at adjacent screens, verify that each changed file is
