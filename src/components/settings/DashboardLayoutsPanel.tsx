@@ -35,6 +35,7 @@ export function DashboardLayoutsPanel() {
 
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
 
   // CCRO-only guard — check before fetching to avoid unnecessary API calls
   const isCCRO = currentUser?.role === "CCRO_TEAM";
@@ -63,7 +64,9 @@ export function DashboardLayoutsPanel() {
     setLoadingLayout(true);
     setLayoutError(null);
 
-    fetch(`/api/dashboard-layout?userId=${selectedUserId}`)
+    const controller = new AbortController();
+
+    fetch(`/api/dashboard-layout?userId=${selectedUserId}`, { signal: controller.signal })
       .then((r) => r.json())
       .then((data) => {
         const rawGrid = data.layoutGrid as WidgetLayoutGrid | null;
@@ -75,10 +78,13 @@ export function DashboardLayoutsPanel() {
         setLoadingLayout(false);
         setIsDirty(false);
       })
-      .catch(() => {
+      .catch((err) => {
+        if (err.name === "AbortError") return;
         setLayoutError("Could not load layout for this user");
         setLoadingLayout(false);
       });
+
+    return () => controller.abort();
   }, [selectedUserId, users]);
 
   function handleReorder(fromSlotId: string, toSlotId: string) {
@@ -128,12 +134,13 @@ export function DashboardLayoutsPanel() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          targetUserId: selectedUserId,
+          userId: selectedUserId,
           layoutGrid: {
             slots: slots.map(({ slotId, widgetId }) => ({ slotId, widgetId })),
           },
           sectionOrder: slots.map((s) => s.widgetId),
           pinnedSections: pinnedIds,
+          hiddenSections: [],
         }),
       });
       if (!res.ok) throw new Error();
@@ -147,37 +154,38 @@ export function DashboardLayoutsPanel() {
   }
 
   async function handleApplyToRole() {
-    if (!selectedUserId) return;
+    if (!selectedUserId || isApplying) return;
     const selectedUser = users.find((u) => u.id === selectedUserId);
     if (!selectedUser) return;
 
     const roleUsers = users.filter((u) => u.role === selectedUser.role);
-    const payload = {
-      layoutGrid: {
-        slots: slots.map(({ slotId, widgetId }) => ({ slotId, widgetId })),
-      },
-      sectionOrder: slots.map((s) => s.widgetId),
-      pinnedSections: pinnedIds,
-    };
-
-    let succeeded = 0;
-    let failed = 0;
-    for (const u of roleUsers) {
-      try {
-        const res = await fetch("/api/dashboard-layout", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...payload, targetUserId: u.id }),
-        });
-        if (res.ok) succeeded++; else failed++;
-      } catch {
-        failed++;
+    setIsApplying(true);
+    try {
+      const results = await Promise.allSettled(
+        roleUsers.map((u) =>
+          fetch("/api/dashboard-layout", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId: u.id,
+              layoutGrid: { slots: slots.map(s => ({ slotId: s.slotId, widgetId: s.widgetId })) },
+              sectionOrder: slots.map(s => s.widgetId),
+              pinnedSections: pinnedIds,
+              hiddenSections: [],
+            }),
+          }).then(r => { if (!r.ok) throw new Error(); })
+        )
+      );
+      const failed = results.filter(r => r.status === "rejected").length;
+      const succeeded = results.length - failed;
+      if (failed === 0) {
+        setIsDirty(false);
+        toast.success(`Layout applied to all ${selectedUser.role} users (${succeeded} updated)`);
+      } else {
+        toast.error(`Applied to ${succeeded} of ${results.length} users — ${failed} failed`);
       }
-    }
-    if (failed === 0) {
-      toast.success(`Layout applied to all ${selectedUser.role} users (${succeeded} updated)`);
-    } else {
-      toast.error(`Applied to ${succeeded} of ${roleUsers.length} users — ${failed} failed`);
+    } finally {
+      setIsApplying(false);
     }
   }
 
@@ -223,9 +231,10 @@ export function DashboardLayoutsPanel() {
           <>
             <button
               onClick={handleApplyToRole}
-              className="rounded-lg border border-[#E8E6E1] bg-white px-3 py-2 text-sm text-gray-500 transition-colors hover:border-updraft-bar/30 hover:text-updraft-bar dark:border-gray-700 dark:bg-gray-900"
+              disabled={!selectedUserId || isApplying}
+              className="rounded-lg border border-[#E8E6E1] bg-white px-3 py-2 text-sm text-gray-500 transition-colors hover:border-updraft-bar/30 hover:text-updraft-bar disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900"
             >
-              Apply to all {selectedUser?.role} users
+              {isApplying ? "Applying…" : `Apply to all ${selectedUser?.role} users`}
             </button>
             <button
               onClick={handleResetToDefault}

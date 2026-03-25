@@ -140,9 +140,11 @@ describe("DashboardLayoutsPanel", () => {
       );
       expect(saveCall).toBeDefined();
       const body = JSON.parse((saveCall![1] as RequestInit).body as string);
-      expect(body.targetUserId).toBe("user-1");
+      expect(body.userId).toBe("user-1");
       expect(body).toHaveProperty("layoutGrid");
       expect(body).toHaveProperty("pinnedSections");
+      expect(body).toHaveProperty("hiddenSections");
+      expect(Array.isArray(body.hiddenSections)).toBe(true);
     });
   });
 
@@ -160,7 +162,7 @@ describe("DashboardLayoutsPanel", () => {
       );
       // Only Jane is CEO — apply to role writes 1 record (just for Jane)
       expect(puts).toHaveLength(1);
-      expect(JSON.parse((puts[0][1] as RequestInit).body as string).targetUserId).toBe("user-1");
+      expect(JSON.parse((puts[0][1] as RequestInit).body as string).userId).toBe("user-1");
     });
   });
 
@@ -179,7 +181,7 @@ describe("DashboardLayoutsPanel", () => {
         }
         // First PUT (user-1) succeeds; second PUT (user-3) fails
         const body = JSON.parse((opts?.body ?? "{}") as string);
-        return body.targetUserId === "user-1"
+        return body.userId === "user-1"
           ? Promise.resolve({ ok: true,  json: () => Promise.resolve({}) })
           : Promise.resolve({ ok: false, json: () => Promise.resolve({ error: "Server error" }) });
       }
