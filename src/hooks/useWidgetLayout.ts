@@ -35,7 +35,6 @@ export function useWidgetLayout(
 ): UseWidgetLayoutReturn {
   const [slots, setSlots] = useState<ResolvedSlot[]>([]);
   const [hiddenIds, setHiddenIds] = useState<string[]>([]);
-  const [_pinnedIds, setPinnedIds] = useState<string[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -52,7 +51,6 @@ export function useWidgetLayout(
         const hidden: string[] = Array.isArray(data.hiddenSections) ? data.hiddenSections : [];
         const pinned: string[] = Array.isArray(data.pinnedSections) ? data.pinnedSections : [];
         setHiddenIds(hidden);
-        setPinnedIds(pinned);
         setSlots(mergeWidgetLayout(role, savedSlots, hidden, pinned));
       })
       .catch(() => {
