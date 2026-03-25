@@ -57,7 +57,7 @@ export function ApprovalQueueWidget() {
       <WidgetInsight>
         {total === 0
           ? <>{em.good("Queue clear")} — no pending approvals.</>
-          : <>{em.num(total.toString())} item{total !== 1 ? "s" : ""} awaiting sign-off{escalating > 0 ? `, ${em.bad(escalating.toString())} escalating` : ""}.</>}
+          : <>{em.num(total.toString())} item{total !== 1 ? "s" : ""} awaiting sign-off{escalating > 0 ? <>, {em.bad(escalating.toString())} escalating</> : ""}.</>}
       </WidgetInsight>
 
       <div className="mt-3 space-y-2">

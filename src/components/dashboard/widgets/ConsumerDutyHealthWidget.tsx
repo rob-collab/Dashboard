@@ -54,8 +54,8 @@ export function ConsumerDutyHealthWidget() {
       <WidgetLabel>Consumer Duty Health</WidgetLabel>
       <WidgetInsight>
         {worstOutcome
-          ? <>{em.warn(worstOutcome.name)} {worstLabel} outcome.{boardReportDays !== null ? ` Board report ${em.num(`${boardReportDays}d`)}.` : ""}</>
-          : <>{em.good("All outcomes")} good.{boardReportDays !== null ? ` Board report ${em.num(`${boardReportDays}d`)}.` : ""}</>}
+          ? <>{em.warn(worstOutcome.name)} {worstLabel} outcome.{boardReportDays !== null ? <> Board report {em.num(`${boardReportDays}d`)}.</> : ""}</>
+          : <>{em.good("All outcomes")} good.{boardReportDays !== null ? <> Board report {em.num(`${boardReportDays}d`)}.</> : ""}</>}
       </WidgetInsight>
 
       <div className="mt-3 flex gap-4 items-start">
