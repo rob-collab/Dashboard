@@ -11,6 +11,7 @@ import NotificationsEditor from "@/components/settings/NotificationsEditor";
 import RegulationManagementTab from "@/components/settings/RegulationManagementTab";
 import AccessRequestsPanel from "@/components/settings/AccessRequestsPanel";
 import ConsumerDutySettings from "@/components/settings/ConsumerDutySettings";
+import { DashboardLayoutsPanel } from "@/components/settings/DashboardLayoutsPanel";
 import { cn } from "@/lib/utils";
 import { usePageTitle } from "@/lib/usePageTitle";
 import { GlowMenu } from "@/components/ui/glow-menu";
@@ -27,11 +28,12 @@ const TABS = [
   { id: "regulations", label: "Regulations" },
   { id: "consumer-duty", label: "Consumer Duty" },
   { id: "access-requests", label: "Access Requests" },
+  { id: "dashboard-layouts", label: "Dashboard Layouts" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
 
-const FULL_WIDTH_TABS: TabId[] = ["templates", "components", "regulations", "consumer-duty"];
+const FULL_WIDTH_TABS: TabId[] = ["templates", "components", "regulations", "consumer-duty", "dashboard-layouts"];
 
 function SettingsPageContent() {
   usePageTitle("Settings");
@@ -76,6 +78,7 @@ function SettingsPageContent() {
         {activeTab === "regulations" && <RegulationManagementTab />}
         {activeTab === "consumer-duty" && <ConsumerDutySettings />}
         {activeTab === "access-requests" && <AccessRequestsPanel />}
+        {activeTab === "dashboard-layouts" && <DashboardLayoutsPanel />}
       </div>
     </RoleGuard>
   );

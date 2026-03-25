@@ -5,12 +5,12 @@ import type { WidgetSlot } from "@/lib/types";
 describe("mergeWidgetLayout", () => {
   it("returns role defaults when savedSlots is null", () => {
     const result = mergeWidgetLayout("CCRO_TEAM", null, [], []);
-    expect(result).toHaveLength(7);
+    expect(result).toHaveLength(9);
   });
 
   it("returns role defaults when savedSlots is empty", () => {
     const result = mergeWidgetLayout("CCRO_TEAM", [], [], []);
-    expect(result).toHaveLength(7);
+    expect(result).toHaveLength(9);
   });
 
   it("uses saved order when provided", () => {
