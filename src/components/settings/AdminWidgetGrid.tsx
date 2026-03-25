@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { GripVertical } from "lucide-react";
 import { createSwapy } from "swapy";
+import type { SwapEndEvent } from "swapy";
 import { cn } from "@/lib/utils";
 import { WIDGET_REGISTRY } from "@/lib/widget-registry";
 import type { ResolvedSlot } from "@/lib/widget-registry";
@@ -40,7 +42,7 @@ export function AdminWidgetGrid({
 
     swapyRef.current = createSwapy(containerRef.current, { animation: "dynamic" });
 
-    swapyRef.current.onSwapEnd((event: import("swapy").SwapEndEvent) => {
+    swapyRef.current.onSwapEnd((event: SwapEndEvent) => {
       if (!event.hasChanged) return;
 
       const afterArray = event.slotItemMap.asArray;
@@ -51,8 +53,15 @@ export function AdminWidgetGrid({
 
       const changed: string[] = [];
       for (const entry of afterArray) {
+        if (entry.item === null) continue;
         if (beforeMap.get(entry.slot) !== entry.item) changed.push(entry.slot);
       }
+
+      // If either changed slot holds a pinned widget, skip the reorder
+      const isPinnedSwap = changed.some(
+        (slotId) => slotsRef.current.find((s) => s.slotId === slotId)?.pinned
+      );
+      if (isPinnedSwap) return;
 
       if (changed.length === 2) {
         onReorderRef.current(changed[0], changed[1]);
@@ -73,7 +82,7 @@ export function AdminWidgetGrid({
     >
       {slots.map((slot) => {
         const isPinned = pinnedIds.includes(slot.widgetId);
-        const def = WIDGET_REGISTRY[slot.widgetId as WidgetId];
+        const def = WIDGET_REGISTRY[slot.widgetId];
         if (!def) return null;
 
         return (
@@ -84,7 +93,7 @@ export function AdminWidgetGrid({
                 label={def.label}
                 description={def.description}
                 pinned={isPinned}
-                onTogglePin={() => onTogglePin(slot.widgetId as WidgetId)}
+                onTogglePin={() => onTogglePin(slot.widgetId)}
               />
             </div>
           </div>
@@ -123,10 +132,9 @@ function AdminWidgetCard({
       {!pinned && (
         <div
           data-drag-handle
-          className="cursor-grab select-none text-gray-300 active:cursor-grabbing"
-          aria-label="Drag to reorder"
+          className="cursor-grab select-none active:cursor-grabbing"
         >
-          ⠿
+          <GripVertical size={14} className="text-[#94a3b8]" />
         </div>
       )}
 

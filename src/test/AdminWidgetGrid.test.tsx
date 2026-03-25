@@ -131,4 +131,37 @@ describe("AdminWidgetGrid", () => {
 
     expect(onReorder).toHaveBeenCalledWith("slot-1", "slot-2");
   });
+
+  it("does not call onReorder when a swap involves a pinned widget", async () => {
+    const onReorder = vi.fn();
+    // slot-1 holds risk-posture which is pinned (pinned: true in the slot)
+    const pinnedSlots: ResolvedSlot[] = [
+      { slotId: "slot-1", widgetId: "risk-posture",         hidden: false, pinned: true },
+      { slotId: "slot-2", widgetId: "consumer-duty-health", hidden: false, pinned: false },
+      { slotId: "slot-3", widgetId: "horizon-alert",         hidden: false, pinned: false },
+    ];
+    render(
+      <AdminWidgetGrid
+        slots={pinnedSlots}
+        pinnedIds={["risk-posture"]}
+        onReorder={onReorder}
+        onTogglePin={vi.fn()}
+      />
+    );
+
+    act(() => {
+      capturedOnSwapEnd!({
+        hasChanged: true,
+        slotItemMap: {
+          asArray: [
+            { slot: "slot-1", item: "consumer-duty-health" }, // swapped (slot-1 was risk-posture, which is pinned)
+            { slot: "slot-2", item: "risk-posture" },
+            { slot: "slot-3", item: "horizon-alert" },
+          ],
+        },
+      });
+    });
+
+    expect(onReorder).not.toHaveBeenCalled();
+  });
 });
