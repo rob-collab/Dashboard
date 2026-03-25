@@ -939,3 +939,13 @@ the CSS trick for text-only or read-only accordion content.
 **Rule:** Read the COMPLETE file before fixing any lint error, no matter how simple it looks. Then grep the codebase for every usage of the removed identifier before committing. There is no class of change small enough to skip this.
 **Trigger:** Any removal of a variable, function, import, or state declaration — regardless of whether it came from a lint error, a hotfix, or a refactor.
 **Status:** Active. [Promoted to CLAUDE.md + regression-agent.md Step 0]
+
+---
+
+### L030 — Third-party library DOM structure requirements not caught before production
+
+**What happened:** Swapy requires a `data-swapy-container` attribute on the root element passed to `createSwapy()`. The implementation had `data-swapy-slot` and `data-swapy-item` on child elements but omitted `data-swapy-container` on the container. Build passed. TypeScript passed. Lint passed. The error only surfaced at runtime in production: "Cannot create a Swapy instance because your HTML structure is invalid."
+**Root cause:** The tests for `WidgetGrid` tested the React component structure but never exercised the actual Swapy initialisation path — Swapy only runs in a browser with a real DOM and only when `editMode` is true. No test, no type check, and no agent review verified the DOM attribute contract against the library's actual requirements.
+**Rule:** When integrating a library that imposes a specific DOM structure (attributes, element hierarchy, required markers), read the library's "getting started" or "HTML structure" docs and write the required attributes out explicitly as part of the implementation — not as a follow-up. If the library validates its own structure at runtime, add a test or integration check that exercises that initialisation path.
+**Trigger:** Any integration of a DOM-manipulating third-party library (drag-and-drop, virtual scroll, rich text, chart, map, animation). Check: does it require specific HTML attributes or element structure? Verify those are present before pushing.
+**Status:** Active.
