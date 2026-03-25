@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   ArrowRight,
-  Megaphone,
   RefreshCw,
   BarChart3,
   Radio,
@@ -42,6 +41,22 @@ function getGreeting(): string {
   return "Good night";
 }
 
+// ── Notification banner styles (module-level constant — no recreation per render) ──
+const bannerStyles: Record<"INFO" | "WARNING" | "URGENT", { wrapper: string; badge: string }> = {
+  INFO: {
+    wrapper: "bg-white/[0.13] border-t border-white/[0.18]",
+    badge: "bg-white/20 text-white/90",
+  },
+  WARNING: {
+    wrapper: "bg-amber-400/[0.18] border-t border-amber-400/30",
+    badge: "bg-amber-400/35 text-amber-200",
+  },
+  URGENT: {
+    wrapper: "bg-red-500/20 border-t border-red-500/35",
+    badge: "bg-red-500/35 text-red-200",
+  },
+};
+
 // ── Greeting header with broadcast messages ───────────────────────────────
 function GreetingHeader({
   userName,
@@ -66,13 +81,10 @@ function GreetingHeader({
     if (n.expiresAt && new Date(n.expiresAt) < now) return false;
     if (n.targetRoles?.length > 0 && !n.targetRoles.includes(role as Role)) return false;
     return true;
+  }).sort((a, b) => {
+    const priority = { URGENT: 0, WARNING: 1, INFO: 2 };
+    return priority[a.type] - priority[b.type];
   });
-
-  const urgencyStyles: Record<DashboardNotification["type"], string> = {
-    URGENT: "bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800/40 dark:text-red-300",
-    WARNING: "bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-900/20 dark:border-amber-800/40 dark:text-amber-300",
-    INFO: "bg-updraft-pale-purple/30 border-updraft-light-purple/30 text-updraft-deep dark:bg-updraft-bar/10 dark:border-updraft-bar/20 dark:text-updraft-pale-purple",
-  };
 
   return (
     <div className="rounded-2xl bg-gradient-to-br from-updraft-deep via-updraft-bar to-updraft-bright-purple p-6 text-white shadow-lg">
@@ -92,21 +104,33 @@ function GreetingHeader({
         </div>
       </div>
 
-      {/* Broadcast messages */}
+      {/* Notification banners — full-width strips pinned to the bottom of the header */}
       {activeMessages.length > 0 && (
-        <div className="mt-4 space-y-2">
-          {activeMessages.map((n) => (
-            <div
-              key={n.id}
-              className={cn(
-                "flex items-start gap-2.5 rounded-xl border px-4 py-2.5 text-sm",
-                urgencyStyles[n.type]
-              )}
-            >
-              <Megaphone size={14} className="mt-0.5 shrink-0" />
-              <span>{n.message}</span>
-            </div>
-          ))}
+        <div className="-mx-6 mt-4">
+          {activeMessages.map((n) => {
+            const s = bannerStyles[n.type];
+            return (
+              <div
+                key={n.id}
+                data-testid={`notification-banner-${n.type.toLowerCase()}`}
+                className={cn(
+                  "flex items-center gap-3 px-6 py-2.5 text-sm text-white/90",
+                  s.wrapper
+                )}
+              >
+                <span
+                  data-testid={`notification-badge-${n.type.toLowerCase()}`}
+                  className={cn(
+                    "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                    s.badge
+                  )}
+                >
+                  {n.type}
+                </span>
+                <span>{n.message}</span>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
