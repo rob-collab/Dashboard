@@ -42,6 +42,11 @@ export function WidgetGrid({
     onSwapRef.current = onSwap;
   }, [onSwap]);
 
+  // Track current slots so the Swapy handler always has the latest pinned state
+  // without needing to be re-created when slots change.
+  const slotsRef = useRef(slots);
+  useEffect(() => { slotsRef.current = slots; }, [slots]);
+
   // Initialise / destroy Swapy when editMode changes.
   // The actual Swapy SwapEvent shape exposes fromSlot and toSlot directly —
   // there is no event.data.array. We use onSwapEnd (fires once on drop, not
@@ -50,42 +55,44 @@ export function WidgetGrid({
     if (!containerRef.current) return;
 
     if (editMode) {
-      swapyRef.current = createSwapy(containerRef.current, {
-        animation: "dynamic",
-      });
+      const registerHandler = (instance: ReturnType<typeof createSwapy>) => {
+        instance.onSwapEnd((event: import("swapy").SwapEndEvent) => {
+          if (!event.hasChanged) return;
 
-      swapyRef.current.onSwapEnd((event: import("swapy").SwapEndEvent) => {
-        // Only propagate when the layout actually changed
-        if (!event.hasChanged) return;
-
-        // SlotItemMap.asArray gives us the full after-state; compare with
-        // before via oldSlotItemMap is not available on SwapEndEvent.
-        // Instead use the slotItemMap (new state) and derive which two slots
-        // differ from the slots prop held in closure — but since Swapy already
-        // physically moved the DOM items we use onSwap from onSwapRef.
-        // The simplest correct approach: call into onSwap with the two slot
-        // keys from the new SlotItemMap that differ from the original layout.
-        const afterArray = event.slotItemMap.asArray; // Array<{ slot, item }>
-
-        // Build a map of slotId → widgetId from the *current* rendered slots
-        const beforeMap = new Map<string, string>();
-        for (const s of slots) {
-          if (!s.hidden) {
-            beforeMap.set(s.slotId, s.widgetId);
+          const afterArray = event.slotItemMap.asArray;
+          const beforeMap = new Map<string, string>();
+          for (const s of slotsRef.current) {
+            if (!s.hidden) beforeMap.set(s.slotId, s.widgetId);
           }
-        }
 
-        const changed: string[] = [];
-        for (const entry of afterArray) {
-          if (beforeMap.get(entry.slot) !== entry.item) {
-            changed.push(entry.slot);
+          const changed: string[] = [];
+          for (const entry of afterArray) {
+            if (beforeMap.get(entry.slot) !== entry.item) changed.push(entry.slot);
           }
-        }
 
-        if (changed.length === 2) {
+          if (changed.length !== 2) return;
+
+          // If either changed slot is pinned, Swapy moved it visually but we
+          // blocked the swap in state. Re-init Swapy to restore the visual order.
+          const isPinnedSwap = changed.some(
+            (slotId) => slotsRef.current.find((s) => s.slotId === slotId)?.pinned
+          );
+
+          if (isPinnedSwap) {
+            swapyRef.current?.destroy();
+            if (containerRef.current) {
+              swapyRef.current = createSwapy(containerRef.current, { animation: "dynamic" });
+              registerHandler(swapyRef.current);
+            }
+            return;
+          }
+
           onSwapRef.current(changed[0], changed[1]);
-        }
-      });
+        });
+      };
+
+      swapyRef.current = createSwapy(containerRef.current, { animation: "dynamic" });
+      registerHandler(swapyRef.current);
     } else {
       swapyRef.current?.destroy();
       swapyRef.current = null;
