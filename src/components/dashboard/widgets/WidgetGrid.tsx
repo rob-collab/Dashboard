@@ -103,9 +103,8 @@ export function WidgetGrid({
       swapyRef.current = null;
     };
     // slots intentionally excluded — only editMode triggers re-init.
-    // The slots snapshot used in onSwapEnd is read from the prop at call time
-    // (closure over the render's slots), which is always the pre-swap state
-    // since the effect only re-runs when editMode changes.
+    // Slot state is read at call time via slotsRef, which is kept current by a
+    // separate effect, so this effect never needs to re-run when slots change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editMode]);
 
