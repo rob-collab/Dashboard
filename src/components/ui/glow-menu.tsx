@@ -20,6 +20,7 @@ export interface GlowMenuProps {
   onSelect: (id: string) => void;
   size?: "sm" | "md";
   menuId?: string;
+  wrap?: boolean;
   className?: string;
 }
 
@@ -74,6 +75,7 @@ export function GlowMenu({
   // menuId is accepted for future layoutId scoping
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   menuId: _menuId = "menu",
+  wrap = false,
   className,
 }: GlowMenuProps) {
   const prefersReduced = useReducedMotion();
@@ -110,7 +112,8 @@ export function GlowMenu({
           ref={navRef}
           role="tablist"
           className={cn(
-            "flex gap-1 border-b border-gray-200 overflow-x-auto scrollbar-none",
+            "flex gap-1 border-b border-gray-200",
+            wrap ? "flex-wrap overflow-x-visible" : "overflow-x-auto scrollbar-none",
             className,
           )}
         >
@@ -171,7 +174,8 @@ export function GlowMenu({
       ref={navRef}
       role="tablist"
       className={cn(
-        "flex gap-1 border-b border-gray-200 overflow-x-auto scrollbar-none relative",
+        "flex gap-1 border-b border-gray-200 relative",
+        wrap ? "flex-wrap overflow-x-visible" : "overflow-x-auto scrollbar-none",
         className,
       )}
       initial="initial"

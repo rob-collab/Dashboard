@@ -65,6 +65,8 @@ function SettingsPageContent() {
             setActiveTab(id as TabId);
             router.replace(`${pathname}?tab=${id}`, { scroll: false });
           }}
+          size="sm"
+          wrap
           className="mb-6"
         />
 
