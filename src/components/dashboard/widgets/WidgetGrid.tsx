@@ -54,7 +54,7 @@ export function WidgetGrid({
         animation: "dynamic",
       });
 
-      swapyRef.current.onSwapEnd((event) => {
+      swapyRef.current.onSwapEnd((event: import("swapy").SwapEndEvent) => {
         // Only propagate when the layout actually changed
         if (!event.hasChanged) return;
 
