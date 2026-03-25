@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
 
     const users = await prisma.user.findMany({
       where: includeInactive ? undefined : { isActive: true },
-      select: { id: true, name: true, role: true },
+      select: { id: true, name: true, role: true, email: true },
       orderBy: { name: "asc" },
     });
     return jsonResponse(serialiseDates(users));
