@@ -231,7 +231,8 @@ export function DashboardLayoutsPanel() {
           <>
             <button
               onClick={handleApplyToRole}
-              disabled={!selectedUserId || isApplying}
+              disabled={!selectedUserId || isApplying || isDirty}
+              title={isDirty ? "Save changes first before applying to all users" : undefined}
               className="rounded-lg border border-[#E8E6E1] bg-white px-3 py-2 text-sm text-gray-500 transition-colors hover:border-updraft-bar/30 hover:text-updraft-bar disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900"
             >
               {isApplying ? "Applying…" : `Apply to all ${selectedUser?.role} users`}
