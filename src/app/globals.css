@@ -396,12 +396,11 @@ body > * {
 
 /* ── Widget edit-mode wobble (iOS home screen jiggle) ────────────────────── */
 @keyframes widget-wobble {
-  0%   { transform: rotate(-1.8deg) scale(0.995); }
-  50%  { transform: rotate(1.8deg)  scale(0.995); }
-  100% { transform: rotate(-1.8deg) scale(0.995); }
+  0%, 100% { transform: rotate(-0.6deg); }
+  50%       { transform: rotate(0.6deg); }
 }
 .animate-widget-wobble {
-  animation: widget-wobble 0.38s ease-in-out infinite;
+  animation: widget-wobble 0.65s ease-in-out infinite;
   transform-origin: center center;
 }
 
