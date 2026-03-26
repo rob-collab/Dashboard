@@ -719,7 +719,7 @@ export default function TestResultsEntryTab() {
           </select>
 
           {/* View toggle + Bulk import + Save */}
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex flex-wrap items-center gap-2">
             {/* View toggle */}
             <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden">
               <button
@@ -898,7 +898,6 @@ export default function TestResultsEntryTab() {
           }}
           onCreateAction={handleCreateActionFromEntry}
           onCreateRiskAcceptance={handleCreateRiskAcceptance}
-          onOpenRecordModal={(id) => setRecordModalEntryId(id)}
           expandedNote={expandedNote}
           onToggleNote={toggleNote}
         />

@@ -352,7 +352,7 @@ export default function ControlsLibraryTab({ initialControlId, initialTypeFilter
         <h2 className="text-xl font-semibold font-poppins text-updraft-deep">
           Controls Library
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleExportCSV}
             className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"

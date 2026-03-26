@@ -203,7 +203,7 @@ export default function RiskAcceptancesPage() {
           <h1 className="text-2xl font-bold text-updraft-deep font-poppins">Risk Acceptances</h1>
           <p className="text-sm text-gray-500 mt-1">Formal risk acceptance workflow</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleExport}
             disabled={exporting}

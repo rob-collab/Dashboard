@@ -381,7 +381,7 @@ function ActionsPageContent() {
           <p className="text-sm text-gray-500 mt-1">Track and manage actions arising from reports</p>
         </div>
         {isCCRO ? (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={handleSendReminders}
               disabled={reminderSending}
@@ -642,7 +642,7 @@ function ActionsPageContent() {
 
       {/* Bulk Action Toolbar */}
       {isCCRO && selectedIds.size > 0 && (
-        <div className="flex items-center gap-3 rounded-xl border border-updraft-bright-purple/30 bg-updraft-pale-purple/10 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-updraft-bright-purple/30 bg-updraft-pale-purple/10 px-4 py-3">
           <span className="text-sm font-semibold text-updraft-deep">
             {selectedIds.size} selected
           </span>

@@ -921,6 +921,15 @@ the CSS trick for text-only or read-only accordion content.
 
 ---
 
+### W033 — Flattening ml-auto wrapper: apply to first right-aligned item, conditionally to fallback
+
+**Sprint:** Controls Card View Polish (2026-03-26)
+**What worked:** Removing a `<div className="ml-auto flex items-center gap-1.5">` wrapper and applying `ml-auto` directly to the first right-aligned button keeps the layout correct (pushes all subsequent siblings right) while eliminating a wrapper element. When the first item is conditional, the second item gets a conditional `ml-auto` (`!firstCondition ? " ml-auto" : ""`) to ensure right-alignment is preserved in either case.
+**Applies to:** Any flex row with two or more right-aligned action buttons that are independently conditional.
+**Status:** Active.
+
+---
+
 ### L028 — Build gate skipped at sprint end; lint errors reached Vercel
 
 **Sprint:** Dashboard Widget Library (2026-03-24)

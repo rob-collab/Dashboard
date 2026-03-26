@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import EntityLink from "@/components/common/EntityLink";
 import type {
   TestingScheduleEntry,
   TestResultValue,
@@ -97,7 +98,6 @@ interface CardViewTestEntryProps {
   onEditEvidenceLink?: (entryId: string, link: string) => void;
   onCreateAction?: (entry: TestingScheduleEntry) => void;
   onCreateRiskAcceptance?: (entry: TestingScheduleEntry) => void;
-  onOpenRecordModal?: (entryId: string) => void;
   expandedNote: string | null;
   onToggleNote: (entryId: string) => void;
 }
@@ -115,7 +115,6 @@ export default function CardViewTestEntry({
   onEditEvidenceLink,
   onCreateAction,
   onCreateRiskAcceptance,
-  onOpenRecordModal,
   expandedNote,
   onToggleNote,
 }: CardViewTestEntryProps) {
@@ -262,9 +261,11 @@ export default function CardViewTestEntry({
             {/* ── Header: Ref + Name ──────────────────────────────── */}
             <div>
               <div className="flex items-start gap-2">
-                <span className="font-mono text-sm font-semibold text-updraft-deep whitespace-nowrap">
-                  {control?.controlRef ?? "—"}
-                </span>
+                {control ? (
+                  <EntityLink type="control" id={control.id} reference={control.controlRef} size="sm" />
+                ) : (
+                  <span className="font-mono text-sm font-semibold text-gray-400">—</span>
+                )}
                 <span className="text-sm font-poppins font-medium text-gray-900 line-clamp-2">
                   {control?.controlName ?? "—"}
                 </span>
@@ -335,10 +336,10 @@ export default function CardViewTestEntry({
                       e.target.value as TestResultValue,
                     )
                   }
-                  className={`w-full rounded-md border px-3 py-2 text-sm appearance-none pr-8 font-medium focus:outline-none focus:ring-2 focus:ring-updraft-deep/30 transition-colors ${
+                  className={`w-full rounded-lg border px-3 py-2 text-sm appearance-none pr-9 font-medium focus:outline-none focus:ring-2 focus:ring-updraft-deep/30 transition-colors ${
                     effectiveResult
                       ? `${resultColours?.bg ?? ""} ${resultColours?.text ?? ""} border-transparent`
-                      : "border-gray-300 text-gray-500"
+                      : "border-gray-200 bg-white text-gray-500"
                   }`}
                 >
                   <option value="">-- Select --</option>
@@ -349,12 +350,14 @@ export default function CardViewTestEntry({
                   ))}
                 </select>
 
-                {/* Colour dot */}
+                {/* Colour dot — only when result selected */}
                 {effectiveResult && (
                   <span
-                    className={`absolute right-2.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full ${resultColours?.dot ?? ""}`}
+                    className={`absolute right-8 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full ${resultColours?.dot ?? ""}`}
                   />
                 )}
+                {/* Custom chevron */}
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
               </div>
             </div>
 
@@ -401,17 +404,7 @@ export default function CardViewTestEntry({
             )}
 
             {/* ── Action buttons ──────────────────────────────────── */}
-            <div className="flex items-center gap-2 mt-auto pt-1 border-t border-gray-100">
-              {/* Quick Record button — opens primary recording modal */}
-              {onOpenRecordModal && (
-                <button
-                  onClick={() => onOpenRecordModal(entry.id)}
-                  title="Record result"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-updraft-bright-purple text-white transition-colors hover:bg-updraft-deep"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
-              )}
+            <div className="flex flex-wrap items-center gap-2 mt-auto pt-1 border-t border-gray-100">
               {/* Inline notes toggle */}
               <button
                 onClick={() => onToggleNote(entry.id)}
@@ -422,7 +415,7 @@ export default function CardViewTestEntry({
                 }`}
               >
                 <Plus className="w-3.5 h-3.5" />
-                {effectiveNotes.trim() ? "Notes" : "Notes"}
+                Notes
                 {effectiveNotes.trim() && !isNotesExpanded && (
                   <span className="ml-0.5 w-1.5 h-1.5 rounded-full bg-updraft-bright-purple" />
                 )}
@@ -444,28 +437,26 @@ export default function CardViewTestEntry({
                 History
               </button>
 
-              <div className="ml-auto flex items-center gap-1.5">
-                {/* Risk Acceptance */}
-                {onCreateRiskAcceptance && (
-                  <button
-                    onClick={() => onCreateRiskAcceptance(entry)}
-                    className="inline-flex items-center gap-1 rounded-md bg-purple-50 border border-purple-200 px-2.5 py-1.5 text-xs font-medium text-purple-700 hover:bg-purple-100 transition-colors"
-                  >
-                    <ShieldQuestion className="w-3.5 h-3.5" />
-                    Risk Acceptance
-                  </button>
-                )}
-                {/* Create Action */}
-                {onCreateAction && (
-                  <button
-                    onClick={() => onCreateAction(entry)}
-                    className="inline-flex items-center gap-1 rounded-md bg-updraft-pale-purple px-2.5 py-1.5 text-xs font-medium text-updraft-deep hover:bg-updraft-light-purple transition-colors"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Create Action
-                  </button>
-                )}
-              </div>
+              {/* Risk Acceptance */}
+              {onCreateRiskAcceptance && (
+                <button
+                  onClick={() => onCreateRiskAcceptance(entry)}
+                  className="ml-auto inline-flex items-center gap-1 rounded-md bg-purple-50 border border-purple-200 px-2.5 py-1.5 text-xs font-medium text-purple-700 hover:bg-purple-100 transition-colors"
+                >
+                  <ShieldQuestion className="w-3.5 h-3.5" />
+                  Risk Acceptance
+                </button>
+              )}
+              {/* Create Action */}
+              {onCreateAction && (
+                <button
+                  onClick={() => onCreateAction(entry)}
+                  className={`inline-flex items-center gap-1 rounded-md bg-updraft-pale-purple px-2.5 py-1.5 text-xs font-medium text-updraft-deep hover:bg-updraft-light-purple transition-colors${!onCreateRiskAcceptance ? " ml-auto" : ""}`}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Create Action
+                </button>
+              )}
             </div>
 
             {/* ── Expanded edit fields ────────────────────────────── */}

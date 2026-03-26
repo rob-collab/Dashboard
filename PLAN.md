@@ -1,5 +1,5 @@
 # Meridian — Active Development Plan
-Last updated: 2026-03-24 (animate sprint complete)
+Last updated: 2026-03-26 (Controls Card View Polish complete)
 
 ---
 
@@ -67,6 +67,33 @@ Audit run via `/audit`. Issues documented for action via `/harden`, `/normalize`
 - [x] 5 dashboard buttons have `focus-visible:ring` styles
 - [x] `ReportChart` palette corrected and grid lines use `var(--border-warm)` — M3 ✓
 - [x] Build passes — zero errors
+
+---
+
+## CURRENT SPRINT: Controls Card View Polish ✅ COMPLETE
+
+### Design intent
+- **Who**: CCRO recording monthly control test results in card view
+- **One thing**: Every action button must always be visible and reachable — no clipping, no overflow
+- **Remove**: The redundant `+` record modal button (inline select + Notes expansion already covers the full workflow)
+
+### Deliverables
+- [x] **D1+D3** — Remove `onOpenRecordModal` prop + `+` button; add `flex-wrap` to button bar; flatten `ml-auto` wrapper
+- [x] **D5** — Remove dead `Notes` ternary (`effectiveNotes.trim() ? "Notes" : "Notes"` → `"Notes"`)
+- [x] **D4** — Control ref uses `<EntityLink type="control">` — clickable purple badge with null fallback (D019)
+- [x] **D2** — Select polish: `rounded-lg`, `border-gray-200`, `bg-white`, custom `ChevronDown`, colour dot at `right-8`
+- [x] **D6** — `flex-wrap` added to 6 HIGH-risk button overflow locations across `actions/page.tsx`, `TestResultsEntryTab.tsx`, `risk-acceptances/page.tsx`, `horizon-scanning/page.tsx`, `ControlsLibraryTab.tsx`
+
+### Acceptance criteria
+- [x] `+` record button removed from card footer
+- [x] Button bar wraps gracefully — no clipping
+- [x] Risk Acceptance / Create Action align right, wrap gracefully on narrow cards
+- [x] Control ref is clickable EntityLink (D019 satisfied)
+- [x] Select has `rounded-lg`, custom chevron, correct dot/chevron positioning
+- [x] Dead ternary removed; purple dot still signals existing notes
+- [x] All 6 D6 overflow locations have `flex-wrap`
+- [x] Build passes — zero errors
+- [x] Tier 1 gates: UAT PASS, Regression CLEAR, Planning Sync PASS
 
 ---
 
