@@ -3,7 +3,39 @@ Last updated: 2026-03-26
 
 ---
 
-## CURRENT SPRINT: Dashboard Grid — Persistence Fix + UX Polish
+## CURRENT SPRINT: Remove Swapy — Migrate AdminWidgetGrid to dnd-kit
+
+### Design intent
+- **Who:** CCRO using the Settings → Dashboard Layouts panel to configure widget order for other users.
+- **One thing:** Drag-to-reorder must continue to work exactly as before — the library swap must be invisible to the admin.
+- **Remove:** `swapy` package, `swapy.d.ts` type declarations, all `createSwapy` / `data-swapy-*` code.
+
+### Conflict check
+⚠️ None. `AdminWidgetGrid.tsx` is the only remaining consumer of Swapy. dnd-kit is already installed and used on the main dashboard. The parent `DashboardLayoutsPanel.tsx` interface (`onReorder(fromSlotId, toSlotId)`) is unchanged.
+
+### Deliverables
+
+- [x] **D1** — Rewrite `AdminWidgetGrid.tsx` using dnd-kit (`DndContext` + `SortableContext` + `useSortable`); keep identical `onReorder(fromSlotId, toSlotId)` API; preserve `AdminWidgetCard` visual unchanged
+- [x] **D2** — Update `AdminWidgetGrid.test.tsx` to mock `@dnd-kit/core` instead of `swapy`; all existing test cases must still pass
+- [x] **D3** — Delete `src/types/swapy.d.ts`; uninstall `swapy` package; confirm zero references remain
+
+### Acceptance criteria
+- [x] Drag-to-reorder still works in the admin settings panel
+- [x] Pinned widgets cannot be dragged (same as before)
+- [x] Lock/Unlock pin toggle works unchanged
+- [x] All existing tests pass
+- [x] Build passes — zero errors, zero type errors
+- [x] `swapy` does not appear in `package.json` or anywhere in `src/`
+
+### Files to change
+- `src/components/settings/AdminWidgetGrid.tsx` — replace Swapy with dnd-kit
+- `src/test/AdminWidgetGrid.test.tsx` — update mock
+- `src/types/swapy.d.ts` — delete
+- `package.json` / `package-lock.json` — remove swapy
+
+---
+
+## PREVIOUSLY COMPLETED: Dashboard Grid — Persistence Fix + UX Polish ✅ COMPLETE
 
 ### Design intent
 - **Who:** Every dashboard user (CCRO, CEO, OWNER) — the dashboard is their primary entry point.

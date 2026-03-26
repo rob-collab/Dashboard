@@ -3,18 +3,42 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
 import { AdminWidgetGrid } from "@/components/settings/AdminWidgetGrid";
 import type { ResolvedSlot } from "@/lib/widget-registry";
 
-// Swapy has no DOM to operate on in jsdom — mock it so tests focus on our logic.
-// capturedOnSwapEnd holds the callback AdminWidgetGrid registers via onSwapEnd,
-// so individual tests can fire synthetic swap events and assert onReorder behaviour.
-let capturedOnSwapEnd: ((event: unknown) => void) | null = null;
-const mockSwapyInstance = {
-  onSwapEnd: vi.fn((cb: (event: unknown) => void) => {
-    capturedOnSwapEnd = cb;
+// dnd-kit has no DOM to operate on in jsdom — mock it so tests focus on our logic.
+// capturedOnDragEnd holds the callback AdminWidgetGrid registers via onDragEnd,
+// so individual tests can fire synthetic drag events and assert onReorder behaviour.
+let capturedOnDragEnd: ((event: unknown) => void) | null = null;
+
+vi.mock("@dnd-kit/core", () => ({
+  DndContext: ({
+    onDragEnd,
+    children,
+  }: {
+    onDragEnd: (e: unknown) => void;
+    children: React.ReactNode;
+  }) => {
+    capturedOnDragEnd = onDragEnd;
+    return children;
+  },
+  closestCenter: {},
+  PointerSensor: class {},
+  useSensor: () => ({}),
+  useSensors: (...args: unknown[]) => args,
+}));
+
+vi.mock("@dnd-kit/sortable", () => ({
+  SortableContext: ({ children }: { children: React.ReactNode }) => children,
+  useSortable: ({ disabled }: { id: string; disabled?: boolean }) => ({
+    attributes: {},
+    listeners: disabled ? undefined : {},
+    setNodeRef: () => {},
+    transform: null,
+    transition: null,
   }),
-  destroy: vi.fn(),
-};
-vi.mock("swapy", () => ({
-  createSwapy: vi.fn(() => mockSwapyInstance),
+  rectSortingStrategy: {},
+}));
+
+vi.mock("@dnd-kit/utilities", () => ({
+  CSS: { Transform: { toString: () => "" } },
 }));
 
 const baseSlots: ResolvedSlot[] = [
@@ -25,9 +49,7 @@ const baseSlots: ResolvedSlot[] = [
 
 describe("AdminWidgetGrid", () => {
   beforeEach(() => {
-    capturedOnSwapEnd = null;
-    mockSwapyInstance.onSwapEnd.mockClear();
-    mockSwapyInstance.destroy.mockClear();
+    capturedOnDragEnd = null;
   });
 
   it("renders a card for every slot using WIDGET_REGISTRY labels", () => {
@@ -66,9 +88,7 @@ describe("AdminWidgetGrid", () => {
         onTogglePin={vi.fn()}
       />
     );
-    // The pinned card shows "Locked" state label
     expect(screen.getByText("Locked")).toBeInTheDocument();
-    // The pinned card's drag handle is hidden (aria-hidden or absent)
     const riskPostureCard = screen.getByTestId("admin-widget-card-risk-posture");
     expect(riskPostureCard.querySelector("[data-drag-handle]")).toBeNull();
   });
@@ -103,7 +123,7 @@ describe("AdminWidgetGrid", () => {
     expect(onTogglePin).toHaveBeenCalledWith("risk-posture");
   });
 
-  it("calls onReorder with the two changed slot IDs after a swap", async () => {
+  it("calls onReorder with the two slot IDs when a drag completes", async () => {
     const onReorder = vi.fn();
     render(
       <AdminWidgetGrid
@@ -114,27 +134,19 @@ describe("AdminWidgetGrid", () => {
       />
     );
 
-    // baseSlots: slot-1 → risk-posture, slot-2 → consumer-duty-health, slot-3 → horizon-alert
-    // Simulate swapping slot-1 and slot-2: their items are exchanged.
+    // Drag risk-posture (slot-1) onto consumer-duty-health (slot-2)
     act(() => {
-      capturedOnSwapEnd!({
-        hasChanged: true,
-        slotItemMap: {
-          asArray: [
-            { slot: "slot-1", item: "consumer-duty-health" }, // swapped
-            { slot: "slot-2", item: "risk-posture" },          // swapped
-            { slot: "slot-3", item: "horizon-alert" },          // unchanged
-          ],
-        },
+      capturedOnDragEnd!({
+        active: { id: "risk-posture" },
+        over: { id: "consumer-duty-health" },
       });
     });
 
     expect(onReorder).toHaveBeenCalledWith("slot-1", "slot-2");
   });
 
-  it("does not call onReorder when a swap involves a pinned widget", async () => {
+  it("does not call onReorder when the dragged widget is pinned", async () => {
     const onReorder = vi.fn();
-    // slot-1 holds risk-posture which is pinned (pinned: true in the slot)
     const pinnedSlots: ResolvedSlot[] = [
       { slotId: "slot-1", widgetId: "risk-posture",         hidden: false, pinned: true },
       { slotId: "slot-2", widgetId: "consumer-duty-health", hidden: false, pinned: false },
@@ -149,16 +161,38 @@ describe("AdminWidgetGrid", () => {
       />
     );
 
+    // Attempt to drag pinned risk-posture onto another widget
     act(() => {
-      capturedOnSwapEnd!({
-        hasChanged: true,
-        slotItemMap: {
-          asArray: [
-            { slot: "slot-1", item: "consumer-duty-health" }, // swapped (slot-1 was risk-posture, which is pinned)
-            { slot: "slot-2", item: "risk-posture" },
-            { slot: "slot-3", item: "horizon-alert" },
-          ],
-        },
+      capturedOnDragEnd!({
+        active: { id: "risk-posture" },
+        over: { id: "consumer-duty-health" },
+      });
+    });
+
+    expect(onReorder).not.toHaveBeenCalled();
+  });
+
+  it("does not call onReorder when the drop target is pinned", async () => {
+    const onReorder = vi.fn();
+    const pinnedSlots: ResolvedSlot[] = [
+      { slotId: "slot-1", widgetId: "risk-posture",         hidden: false, pinned: true },
+      { slotId: "slot-2", widgetId: "consumer-duty-health", hidden: false, pinned: false },
+      { slotId: "slot-3", widgetId: "horizon-alert",         hidden: false, pinned: false },
+    ];
+    render(
+      <AdminWidgetGrid
+        slots={pinnedSlots}
+        pinnedIds={["risk-posture"]}
+        onReorder={onReorder}
+        onTogglePin={vi.fn()}
+      />
+    );
+
+    // Attempt to drag onto pinned risk-posture
+    act(() => {
+      capturedOnDragEnd!({
+        active: { id: "consumer-duty-health" },
+        over: { id: "risk-posture" },
       });
     });
 
