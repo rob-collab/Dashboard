@@ -3,7 +3,25 @@ Last updated: 2026-03-26 (Card View Modal sprint active)
 
 ---
 
-## CURRENT SPRINT: Card View — Restore Modal, Remove Notes, Enhance Modal
+## CURRENT SPRINT: Hotfix — Dashboard Layout GET Cache
+
+### Root cause
+PUT /api/dashboard-layout returns 200 OK (save succeeds). On reload, Vercel's edge CDN
+serves a stale cached GET response because the response has `Cache-Control: public` — the
+default Next.js header for dynamic route handlers. Fix: add explicit `private, no-store`
+to the GET response so Vercel never caches user-specific layout data.
+
+### Deliverables
+- [x] H1 — Add `Cache-Control: private, no-store` to GET /api/dashboard-layout response
+
+### Acceptance criteria
+- [x] Page reload after a widget order change shows the saved order, not the previous/default order
+- [x] Network tab shows `Cache-Control: private, no-store` on GET /api/dashboard-layout response
+- [x] Build passes
+
+---
+
+## PREVIOUSLY COMPLETED: Card View — Restore Modal, Remove Notes, Enhance Modal
 
 ### Design intent
 - **Who:** CCRO recording monthly control test results in card view

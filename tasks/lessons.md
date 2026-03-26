@@ -977,3 +977,13 @@ the CSS trick for text-only or read-only accordion content.
 **Rule:** When integrating a library that imposes a specific DOM structure (attributes, element hierarchy, required markers), read the library's "getting started" or "HTML structure" docs and write the required attributes out explicitly as part of the implementation — not as a follow-up. If the library validates its own structure at runtime, add a test or integration check that exercises that initialisation path.
 **Trigger:** Any integration of a DOM-manipulating third-party library (drag-and-drop, virtual scroll, rich text, chart, map, animation). Check: does it require specific HTML attributes or element structure? Verify those are present before pushing.
 **Status:** Active.
+
+---
+
+### L032 — User-specific API GET responses must explicitly set `Cache-Control: private, no-store`
+
+**What happened:** `GET /api/dashboard-layout` was returning `Cache-Control: public, max-age=0, must-revalidate` — Next.js's default for dynamic route handlers. On Vercel, the edge CDN treated `public` as a signal it could cache the response. After a PUT saved the new layout (200 OK), a page reload hit the CDN and received the pre-save cached response. The user saw their changes revert every time they refreshed.
+**Root cause:** Next.js's default `Cache-Control` header is `public, max-age=0, must-revalidate`. The `public` directive tells shared caches (CDNs, proxies) they are allowed to cache the response. For user-specific, session-authenticated API responses this is wrong — the response is not shared data.
+**Rule:** Any API route handler that returns user-specific data (tied to a session, user ID, or role) must explicitly set `Cache-Control: private, no-store` on the response. Do not rely on Next.js defaults.
+**Trigger:** Any new GET route handler that reads from the DB or uses `getUserId`/`getViewAsUserId`. Before shipping: does the response contain user-specific data? If yes, add `Cache-Control: private, no-store`.
+**Status:** Active.

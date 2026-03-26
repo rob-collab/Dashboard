@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma, requireCCRORole, getUserId, getViewAsUserId, jsonResponse, errorResponse, auditLog } from "@/lib/api-helpers";
 import { Prisma } from "@/generated/prisma";
 import { serialiseDates } from "@/lib/serialise";
@@ -21,6 +21,13 @@ function defaultLayout(userId: string) {
   };
 }
 
+/** User-specific layout data must never be cached by Vercel's edge CDN or the browser. */
+function noCacheJson(data: unknown) {
+  return NextResponse.json(data, {
+    headers: { "Cache-Control": "private, no-store" },
+  });
+}
+
 /**
  * GET — Returns a user's dashboard layout (or defaults).
  *
@@ -40,19 +47,19 @@ export async function GET(request: NextRequest) {
       const layout = await prisma.dashboardLayout.findUnique({
         where: { userId: targetUserId },
       });
-      return jsonResponse(layout ? serialiseDates(layout) : defaultLayout(targetUserId));
+      return noCacheJson(layout ? serialiseDates(layout) : defaultLayout(targetUserId));
     }
 
     // Default: return the current viewed user's layout
     const viewUserId = getViewAsUserId(request);
     if (!viewUserId) {
-      return jsonResponse(defaultLayout(""));
+      return noCacheJson(defaultLayout(""));
     }
 
     const layout = await prisma.dashboardLayout.findUnique({
       where: { userId: viewUserId },
     });
-    return jsonResponse(layout ? serialiseDates(layout) : defaultLayout(viewUserId));
+    return noCacheJson(layout ? serialiseDates(layout) : defaultLayout(viewUserId));
   } catch (err) {
     console.error("[GET /api/dashboard-layout]", err);
     return errorResponse("Failed to fetch dashboard layout", 500);
