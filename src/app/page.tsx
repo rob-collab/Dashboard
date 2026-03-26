@@ -356,10 +356,8 @@ export default function DashboardHome() {
   const currentUser = useAppStore((s) => s.currentUser);
   const notifications = useAppStore((s) => s.notifications);
 
-  const { slots, editMode, toggleEditMode, onSwap, onHide, onShow, isSaving, saveNow } =
+  const { order, heights, hiddenIds, pinnedIds, editMode, toggleEditMode, onOrderChange, onResize, onHide, onShow, isSaving, saveNow } =
     useWidgetLayout(currentUser?.id, currentUser?.role as Role | undefined);
-
-  const hiddenWidgets = slots.filter((s) => s.hidden).map((s) => s.widgetId);
 
   const renderWidget = useCallback((widgetId: WidgetId): React.ReactNode => {
     switch (widgetId) {
@@ -427,12 +425,15 @@ export default function DashboardHome() {
         </button>
       </div>
       <WidgetGrid
-        slots={slots}
+        order={order}
+        heights={heights}
+        hiddenIds={hiddenIds}
+        pinnedIds={pinnedIds}
         editMode={editMode}
-        onSwap={onSwap}
+        onOrderChange={onOrderChange}
+        onResize={onResize}
         onHide={onHide}
         onShow={onShow}
-        hiddenWidgets={hiddenWidgets}
         renderWidget={renderWidget}
       />
     </div>

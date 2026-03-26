@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { resolveLayout } from "@/lib/widget-registry";
-import type { WidgetId, WidgetSlot, WidgetLayoutGrid } from "@/lib/types";
+import { resolveLayout, resolveWidgetOrder, WIDGET_REGISTRY } from "@/lib/widget-registry";
+import type { WidgetId, WidgetSlot, WidgetLayoutV2 } from "@/lib/types";
 import type { Role } from "@/lib/types";
 import type { ResolvedSlot } from "@/lib/widget-registry";
 
-// ── Pure helper (exported for tests) ─────────────────────────────────────────
+// ── Kept for backward compat — existing test suite imports this ───────────────
 
 export function mergeWidgetLayout(
   role: Role,
@@ -17,15 +17,19 @@ export function mergeWidgetLayout(
   return resolveLayout(role, savedSlots ?? [], hiddenWidgetIds as WidgetId[], pinnedWidgetIds as WidgetId[]);
 }
 
-// ── React hook ───────────────────────────────────────────────────────────────
+// ── Model B hook ──────────────────────────────────────────────────────────────
 
 interface UseWidgetLayoutReturn {
-  slots: ResolvedSlot[];
+  order: WidgetId[];
+  heights: Partial<Record<WidgetId, number>>;
+  hiddenIds: WidgetId[];
+  pinnedIds: WidgetId[];
   editMode: boolean;
   toggleEditMode: () => void;
-  onSwap: (fromSlotId: string, toSlotId: string) => void;
-  onHide: (widgetId: string) => void;
-  onShow: (widgetId: string) => void;
+  onOrderChange: (newOrder: WidgetId[]) => void;
+  onResize: (widgetId: WidgetId, newH: number) => void;
+  onHide: (widgetId: WidgetId) => void;
+  onShow: (widgetId: WidgetId) => void;
   isSaving: boolean;
   saveNow: () => void;
 }
@@ -34,8 +38,10 @@ export function useWidgetLayout(
   userId: string | undefined,
   role: Role | undefined
 ): UseWidgetLayoutReturn {
-  const [slots, setSlots] = useState<ResolvedSlot[]>([]);
-  const [hiddenIds, setHiddenIds] = useState<string[]>([]);
+  const [order, setOrder] = useState<WidgetId[]>([]);
+  const [heights, setHeights] = useState<Partial<Record<WidgetId, number>>>({});
+  const [hiddenIds, setHiddenIds] = useState<WidgetId[]>([]);
+  const [pinnedIds, setPinnedIds] = useState<WidgetId[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -45,45 +51,55 @@ export function useWidgetLayout(
     fetch("/api/dashboard-layout")
       .then((r) => r.json())
       .then((data) => {
-        // layoutGrid may be: null | RGLLayoutItem[] (legacy) | WidgetLayoutGrid (new)
-        // In all cases, rawGrid?.slots ?? [] gracefully falls back to role defaults.
-        const rawGrid = data.layoutGrid as WidgetLayoutGrid | null;
-        const savedSlots: WidgetSlot[] = rawGrid?.slots ?? [];
-        const hidden: string[] = Array.isArray(data.hiddenSections) ? data.hiddenSections : [];
-        const pinned: string[] = Array.isArray(data.pinnedSections) ? data.pinnedSections : [];
-        setHiddenIds(hidden);
-        setSlots(mergeWidgetLayout(role, savedSlots, hidden, pinned));
+        const hidden = (Array.isArray(data.hiddenSections) ? data.hiddenSections : []) as WidgetId[];
+        const pinned = (Array.isArray(data.pinnedSections) ? data.pinnedSections : []) as WidgetId[];
+
+        const rawGrid = data.layoutGrid as (Record<string, unknown>) | null;
+
+        if (rawGrid && Array.isArray(rawGrid.order)) {
+          // Model B format: { order, heights }
+          const v2 = rawGrid as unknown as WidgetLayoutV2;
+          const { order: resolvedOrder, hidden: resolvedHidden, pinned: resolvedPinned } =
+            resolveWidgetOrder(role, v2.order as WidgetId[], hidden, pinned);
+          setOrder(resolvedOrder);
+          setHeights((v2.heights ?? {}) as Partial<Record<WidgetId, number>>);
+          setHiddenIds(resolvedHidden);
+          setPinnedIds(resolvedPinned);
+        } else {
+          // No saved layout or legacy slot format — fall back to role defaults
+          const { order: defaultOrder, hidden: resolvedHidden, pinned: resolvedPinned } =
+            resolveWidgetOrder(role, null, hidden, pinned);
+          setOrder(defaultOrder);
+          setHiddenIds(resolvedHidden);
+          setPinnedIds(resolvedPinned);
+        }
       })
       .catch(() => {
-        // Fall back to role defaults on API error
-        setSlots(mergeWidgetLayout(role, [], [], []));
+        const { order: defaultOrder } = resolveWidgetOrder(role, null, [], []);
+        setOrder(defaultOrder);
       });
   }, [userId, role]);
 
-  // Persist layout to API
   const persist = useCallback(
-    (newSlots: ResolvedSlot[], newHidden: string[]) => {
+    (newOrder: WidgetId[], newHeights: Partial<Record<WidgetId, number>>, newHidden: WidgetId[]) => {
       if (!userId) return;
       setIsSaving(true);
-      const body = {
-        userId,
-        sectionOrder: newSlots.map((s) => s.widgetId),
-        hiddenSections: newHidden,
-        layoutGrid: { slots: newSlots.map(({ slotId, widgetId }) => ({ slotId, widgetId })) },
+      const layoutGrid: WidgetLayoutV2 = {
+        order: newOrder,
+        heights: newHeights as Record<string, number>,
       };
       fetch("/api/dashboard-layout", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          userId,
+          sectionOrder: newOrder,
+          hiddenSections: newHidden,
+          layoutGrid,
+        }),
       })
-        .then((res) => {
-          if (!res.ok) {
-            console.error("[useWidgetLayout] persist failed:", res.status, res.statusText);
-          }
-        })
-        .catch((err) => {
-          console.error("[useWidgetLayout] persist network error:", err);
-        })
+        .then((res) => { if (!res.ok) console.error("[useWidgetLayout] persist failed:", res.status); })
+        .catch((err) => console.error("[useWidgetLayout] persist error:", err))
         .finally(() => setIsSaving(false));
     },
     [userId]
@@ -91,48 +107,59 @@ export function useWidgetLayout(
 
   const toggleEditMode = useCallback(() => setEditMode((v) => !v), []);
 
-  const onSwap = useCallback(
-    (fromSlotId: string, toSlotId: string) => {
-      // Compute the new order from the current slots state
-      const next = [...slots];
-      const fromIdx = next.findIndex((s) => s.slotId === fromSlotId);
-      const toIdx = next.findIndex((s) => s.slotId === toSlotId);
-      if (fromIdx === -1 || toIdx === -1) return;
-      if (next[fromIdx].pinned || next[toIdx].pinned) return;
-      [next[fromIdx], next[toIdx]] = [next[toIdx], next[fromIdx]];
-      // Restore original slotIds after swap
-      next[fromIdx] = { ...next[fromIdx], slotId: fromSlotId };
-      next[toIdx]   = { ...next[toIdx],   slotId: toSlotId };
-      setSlots(next);
-      persist(next, hiddenIds);
+  const onOrderChange = useCallback(
+    (newOrder: WidgetId[]) => {
+      setOrder(newOrder);
+      persist(newOrder, heights, hiddenIds);
     },
-    [slots, hiddenIds, persist]
+    [heights, hiddenIds, persist]
   );
 
-  // Explicit save — call when exiting edit mode to guarantee the final state is persisted
-  const saveNow = useCallback(() => {
-    persist(slots, hiddenIds);
-  }, [slots, hiddenIds, persist]);
+  const onResize = useCallback(
+    (widgetId: WidgetId, newH: number) => {
+      const def = WIDGET_REGISTRY[widgetId];
+      const h = def ? Math.max(def.minH, newH) : Math.max(2, newH);
+      const newHeights = { ...heights, [widgetId]: h };
+      setHeights(newHeights);
+      persist(order, newHeights, hiddenIds);
+    },
+    [order, heights, hiddenIds, persist]
+  );
 
   const onHide = useCallback(
-    (widgetId: string) => {
-      const newHidden = [...hiddenIds, widgetId];
+    (widgetId: WidgetId) => {
+      const newHidden = [...hiddenIds, widgetId] as WidgetId[];
       setHiddenIds(newHidden);
-      setSlots((prev) => prev.map((s) => s.widgetId === widgetId ? { ...s, hidden: true } : s));
-      persist(slots, newHidden);
+      persist(order, heights, newHidden);
     },
-    [hiddenIds, slots, persist]
+    [order, heights, hiddenIds, persist]
   );
 
   const onShow = useCallback(
-    (widgetId: string) => {
+    (widgetId: WidgetId) => {
       const newHidden = hiddenIds.filter((id) => id !== widgetId);
       setHiddenIds(newHidden);
-      setSlots((prev) => prev.map((s) => s.widgetId === widgetId ? { ...s, hidden: false } : s));
-      persist(slots, newHidden);
+      persist(order, heights, newHidden);
     },
-    [hiddenIds, slots, persist]
+    [order, heights, hiddenIds, persist]
   );
 
-  return { slots, editMode, toggleEditMode, onSwap, onHide, onShow, isSaving, saveNow };
+  const saveNow = useCallback(() => {
+    persist(order, heights, hiddenIds);
+  }, [order, heights, hiddenIds, persist]);
+
+  return {
+    order,
+    heights,
+    hiddenIds,
+    pinnedIds,
+    editMode,
+    toggleEditMode,
+    onOrderChange,
+    onResize,
+    onHide,
+    onShow,
+    isSaving,
+    saveNow,
+  };
 }

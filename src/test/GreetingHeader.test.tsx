@@ -36,14 +36,18 @@ vi.mock("@/lib/usePermission", () => ({
 
 vi.mock("@/hooks/useWidgetLayout", () => ({
   useWidgetLayout: () => ({
-    slots: [],
+    order: [],
+    heights: {},
+    hiddenIds: [],
+    pinnedIds: [],
     editMode: false,
-    hiddenWidgets: [],
     isSaving: false,
     toggleEditMode: vi.fn(),
-    onSwap: vi.fn(),
+    onOrderChange: vi.fn(),
+    onResize: vi.fn(),
     onHide: vi.fn(),
     onShow: vi.fn(),
+    saveNow: vi.fn(),
   }),
 }));
 

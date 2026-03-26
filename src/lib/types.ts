@@ -1546,6 +1546,16 @@ export interface WidgetLayoutGrid {
   slots: WidgetSlot[];
 }
 
+/**
+ * Model B persistence format — priority order + per-widget heights.
+ * Stored in the layoutGrid JSON field alongside (or replacing) WidgetLayoutGrid.
+ * Detected at load time by presence of the `order` key.
+ */
+export interface WidgetLayoutV2 {
+  order: string[];                      // WidgetId[] in priority order
+  heights: Record<string, number>;      // WidgetId → h (row units)
+}
+
 // ── Operational Resilience Module ─────────────────────────────────────────────
 
 export type ResourceCategory = "PEOPLE" | "PROCESSES" | "TECHNOLOGY" | "FACILITIES" | "INFORMATION";

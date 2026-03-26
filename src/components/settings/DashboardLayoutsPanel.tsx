@@ -6,7 +6,7 @@ import { useAppStore } from "@/lib/store";
 import { resolveLayout, DEFAULT_LAYOUTS } from "@/lib/widget-registry";
 import { AdminWidgetGrid } from "@/components/settings/AdminWidgetGrid";
 import type { ResolvedSlot } from "@/lib/widget-registry";
-import type { Role, WidgetId, WidgetLayoutGrid } from "@/lib/types";
+import type { Role, WidgetId, WidgetSlot } from "@/lib/types";
 
 interface UserSummary {
   id: string;
@@ -69,8 +69,17 @@ export function DashboardLayoutsPanel() {
     fetch(`/api/dashboard-layout?userId=${selectedUserId}`, { signal: controller.signal })
       .then((r) => r.json())
       .then((data) => {
-        const rawGrid = data.layoutGrid as WidgetLayoutGrid | null;
-        const savedSlots = rawGrid?.slots ?? [];
+        const rawGrid = data.layoutGrid as Record<string, unknown> | null;
+        // Support both WidgetLayoutV2 (new: { order, heights }) and legacy ({ slots })
+        let savedSlots: WidgetSlot[] = [];
+        if (rawGrid && Array.isArray(rawGrid.order)) {
+          savedSlots = (rawGrid.order as WidgetId[]).map((widgetId, i) => ({
+            slotId: `slot-${i + 1}`,
+            widgetId,
+          }));
+        } else if (rawGrid?.slots && Array.isArray(rawGrid.slots)) {
+          savedSlots = rawGrid.slots as WidgetSlot[];
+        }
         const hidden: string[] = Array.isArray(data.hiddenSections) ? data.hiddenSections : [];
         const pinned: string[] = Array.isArray(data.pinnedSections) ? data.pinnedSections : [];
         setPinnedIds(pinned);
@@ -136,7 +145,8 @@ export function DashboardLayoutsPanel() {
         body: JSON.stringify({
           userId: selectedUserId,
           layoutGrid: {
-            slots: slots.map(({ slotId, widgetId }) => ({ slotId, widgetId })),
+            order: slots.map((s) => s.widgetId),
+            heights: {},
           },
           sectionOrder: slots.map((s) => s.widgetId),
           pinnedSections: pinnedIds,
@@ -168,7 +178,7 @@ export function DashboardLayoutsPanel() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               userId: u.id,
-              layoutGrid: { slots: slots.map(s => ({ slotId: s.slotId, widgetId: s.widgetId })) },
+              layoutGrid: { order: slots.map(s => s.widgetId), heights: {} },
               sectionOrder: slots.map(s => s.widgetId),
               pinnedSections: pinnedIds,
               hiddenSections: [],

@@ -1,9 +1,56 @@
 # Meridian — Active Development Plan
-Last updated: 2026-03-26 (Card View Modal sprint active)
+Last updated: 2026-03-26
 
 ---
 
-## CURRENT SPRINT: Hotfix — Dashboard Layout GET Cache
+## CURRENT SPRINT: Dynamic Widget Grid — Model B (priority order + bin-packing)
+
+### Design intent
+- **Who:** CCRO and CEO users who live in their dashboard every day — opening it as their primary command interface multiple times per session.
+- **One thing:** Widgets appear in priority order (most important at the top) with zero wasted white space. The user sets order and height; the layout engine handles column assignment automatically.
+- **Remove:** The fixed equal-height 2-column CSS grid and Swapy's slot-based swap model. Replace with priority-ordered drag-to-sort + bin-packing column assignment + per-widget resize.
+
+### Interaction model (confirmed via prototype)
+- User drags a widget's handle bar to change its **priority position** in the ordered list
+- User drags the **bottom edge** of a widget to resize its height (snapped to row units)
+- A **bin-packing algorithm** auto-assigns widgets to the shorter column after every change — no manual column placement, no gaps ever possible
+- Framer Motion `layoutId` springs all non-dragged widgets to their new positions
+- CCRO can configure any user's layout on their behalf (existing API supports this)
+
+### Conflict check
+⚠️ Swapy fully removed. `WidgetGrid` props API changes (`onSwap` → `onOrderChange` + `onResize`). `useWidgetLayout` hook API changes. `page.tsx` updated. Persistence migrates from `WidgetLayoutGrid { slots }` to `{ order: string[], heights: Record<string, number> }` stored in the `layoutGrid` JSON field. `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` already installed (added during prototype). No schema migration needed.
+
+### Deliverables
+
+- [x] **D1** — Extend `widget-registry.ts`: add `defaultH`, `minH` to `WidgetDef`; add per-widget values to `WIDGET_REGISTRY`; add `binPack()` utility that takes `(orderedIds, heights)` and returns positioned items; update `DEFAULT_LAYOUTS` to ordered `WidgetId[]` arrays per role
+- [x] **D2** — Rewrite `useWidgetLayout`: state is `{ order: WidgetId[], heights: Record<WidgetId, number>, hiddenIds: WidgetId[], pinnedIds: WidgetId[] }`; persist `{ order, heights }` to `layoutGrid` field; load on mount; `onOrderChange`, `onResize`, `onHide`, `onShow` replace `onSwap`
+- [x] **D3** — Rewrite `WidgetGrid.tsx`: dnd-kit `SortableContext` for drag-to-reorder; pointer-event resize handle on bottom edge; Framer Motion `layoutId` spring animations for reflow; `DragOverlay` with lift shadow; edit-mode overlays (grip bar, hide button, PINNED badge); pinned widgets non-draggable + non-resizable
+- [x] **D4** — Update `page.tsx` to use new hook + grid API; NOTE: swapy NOT removed from `package.json` — `AdminWidgetGrid.tsx` (settings panel) still depends on it; separate follow-up sprint needed
+- [x] **D4b** — Fix `DashboardLayoutsPanel.tsx` to read AND write `WidgetLayoutV2` format (UAT-found regression: settings panel was writing legacy `{ slots }` format, causing hook to lose the layout on reload)
+- [ ] **D5** — Verify persistence end-to-end: save order + heights → reload → confirm restored (covers cache fix regression check)
+
+### Acceptance criteria
+- [x] Widgets appear in user-defined priority order — higher priority = closer to top
+- [x] No white space gaps — bin-packing always fills the shorter column
+- [x] Dragging reorders widgets; bin-packing recomputes column assignments live with spring animations
+- [x] Resizing a widget's height causes all other widgets to reflow with spring animations
+- [ ] Priority order AND per-widget heights persist on save and are restored on reload (D5 pending)
+- [x] Edit mode: grip bar at top, bottom-edge resize handle, EyeOff button, PINNED badge (non-draggable/resizable)
+- [x] Hidden widgets tray — restore adds widget back at end of priority list
+- [x] CCRO can save layout on behalf of another user (DashboardLayoutsPanel now saves V2 format)
+- [x] Build passes — zero errors, zero type errors
+
+### Files to change
+- `package.json` — remove `swapy`; `@dnd-kit/*` already present
+- `src/lib/widget-registry.ts` — add `defaultH`/`minH` to `WidgetDef`; `binPack()` utility; updated `DEFAULT_LAYOUTS`
+- `src/lib/types.ts` — add `WidgetLayoutV2` type `{ order: string[], heights: Record<string, number> }`; keep `WidgetLayoutGrid` for backward compat
+- `src/hooks/useWidgetLayout.ts` — full rewrite
+- `src/components/dashboard/widgets/WidgetGrid.tsx` — full rewrite
+- `src/app/page.tsx` — update to new hook/grid API
+
+---
+
+## PREVIOUSLY COMPLETED: Hotfix — Dashboard Layout GET Cache ✅ COMPLETE
 
 ### Root cause
 PUT /api/dashboard-layout returns 200 OK (save succeeds). On reload, Vercel's edge CDN
