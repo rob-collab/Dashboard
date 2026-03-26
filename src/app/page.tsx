@@ -10,7 +10,6 @@ import {
   RefreshCw,
   BarChart3,
   Radio,
-  Settings,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { useHasPermission } from "@/lib/usePermission";
@@ -62,10 +61,16 @@ function GreetingHeader({
   userName,
   notifications,
   role,
+  editMode,
+  isSaving,
+  onToggle,
 }: {
   userName: string;
   notifications: DashboardNotification[];
   role: string;
+  editMode: boolean;
+  isSaving: boolean;
+  onToggle: () => void;
 }) {
   const [greeting] = useState(getGreeting);
   const now = new Date();
@@ -98,13 +103,19 @@ function GreetingHeader({
           </p>
           <p className="mt-0.5 text-sm text-white/60">{dateLabel}</p>
         </div>
-        {/* Subtle logo mark */}
-        <div className="shrink-0 opacity-20">
-          <svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true">
-            <circle cx="18" cy="18" r="17" stroke="white" strokeWidth="1.5" />
-            <path d="M11 18 L18 10 L25 18 L18 26 Z" stroke="white" strokeWidth="1.5" fill="none" />
-          </svg>
-        </div>
+        {/* Customise my dashboard toggle */}
+        <button
+          onClick={onToggle}
+          disabled={isSaving}
+          className={cn(
+            "shrink-0 rounded-lg border px-3 py-1.5 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+            editMode
+              ? "border-white/35 bg-white/[0.22] font-semibold text-white"
+              : "border-white/[0.2] bg-white/[0.12] font-medium text-white/80 hover:bg-white/20"
+          )}
+        >
+          {isSaving ? "Saving…" : editMode ? "Done" : "Customise my dashboard"}
+        </button>
       </div>
 
       {/* Notification banners — full-width strips pinned flush to the bottom edge */}
@@ -400,30 +411,13 @@ export default function DashboardHome() {
             userName={currentUser.name}
             notifications={notifications}
             role={currentUser.role}
+            editMode={editMode}
+            isSaving={isSaving}
+            onToggle={() => { if (editMode) saveNow(); toggleEditMode(); }}
           />
         </motion.div>
       )}
 
-      {/* Widget layout customise button */}
-      <div className="flex items-center justify-end gap-2">
-        <button
-          onClick={() => {
-            if (editMode) saveNow();
-            toggleEditMode();
-          }}
-          disabled={isSaving}
-          className={cn(
-            "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
-            editMode
-              ? "border-[#7c3aed] bg-[#f5f3ff] text-[#7c3aed]"
-              : "border-[#E8E6E1] bg-white text-[#64748b] hover:bg-[#F8F7F4]",
-            isSaving && "cursor-not-allowed opacity-60"
-          )}
-        >
-          <Settings size={14} />
-          {isSaving ? "Saving…" : editMode ? "Done" : "Customise"}
-        </button>
-      </div>
       <WidgetGrid
         order={order}
         heights={heights}

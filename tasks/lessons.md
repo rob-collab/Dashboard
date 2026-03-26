@@ -987,3 +987,13 @@ the CSS trick for text-only or read-only accordion content.
 **Rule:** Any API route handler that returns user-specific data (tied to a session, user ID, or role) must explicitly set `Cache-Control: private, no-store` on the response. Do not rely on Next.js defaults.
 **Trigger:** Any new GET route handler that reads from the DB or uses `getUserId`/`getViewAsUserId`. Before shipping: does the response contain user-specific data? If yes, add `Cache-Control: private, no-store`.
 **Status:** Active.
+
+---
+
+### L033 — API validation must be updated in lockstep with new persistence formats
+
+**What happened:** A new `WidgetLayoutV2 { order: string[], heights: Record<string, number> }` format was introduced in the hook and the settings panel save path, but the API PUT handler's `layoutGrid` validation only accepted `Array` (legacy RGL) or `{ slots }` (old format). The new format fell to the `else` branch and returned a 400 error. The hook silently swallowed the 400 (`if (!res.ok) console.error(...)`). The UI showed no error. Every save appeared to succeed but nothing was written to the DB.
+**Root cause:** The validation in the API route was not updated when the persistence format changed. The silent error handling in the hook made the failure invisible.
+**Rule:** When adding a new data format to a hook or client, the first thing to update is the API validation that accepts it. A format change is incomplete until both the writer (hook) and the acceptor (API) are updated. Also: API save errors should not be silently swallowed — surface them as toasts so failures are visible.
+**Trigger:** Any time a new `layoutGrid`, `elementOrder`, or similar JSON field format is introduced. Immediately check: does the API PUT handler accept this shape? Update the validation before shipping.
+**Status:** Active.

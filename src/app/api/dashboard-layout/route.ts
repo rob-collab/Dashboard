@@ -111,16 +111,25 @@ export async function PUT(request: NextRequest) {
         : [];
 
     // Validate layoutGrid shape if provided.
-    // layoutGrid may be: null | RGLLayoutItem[] (legacy) | WidgetLayoutGrid (new)
-    // rawGrid?.slots ?? [] gracefully falls back to role defaults for both null and legacy array shapes.
-    let resolvedGrid: WidgetLayoutGrid | RGLLayoutItem[] | null = null;
+    // Accepted formats:
+    //   null                              → clear/default
+    //   RGLLayoutItem[]                   → legacy react-grid-layout
+    //   WidgetLayoutGrid { slots }        → old slot format
+    //   WidgetLayoutV2 { order, heights } → current Model B format
+    let resolvedGrid: WidgetLayoutGrid | RGLLayoutItem[] | Record<string, unknown> | null = null;
     if (layoutGrid !== undefined && layoutGrid !== null) {
       if (Array.isArray(layoutGrid)) {
         resolvedGrid = layoutGrid as RGLLayoutItem[];
-      } else if (typeof layoutGrid === "object" && Array.isArray((layoutGrid as Record<string, unknown>).slots)) {
-        resolvedGrid = layoutGrid as WidgetLayoutGrid;
+      } else if (typeof layoutGrid === "object") {
+        const g = layoutGrid as Record<string, unknown>;
+        if (Array.isArray(g.slots) || Array.isArray(g.order)) {
+          // Both WidgetLayoutGrid { slots } and WidgetLayoutV2 { order, heights } are accepted
+          resolvedGrid = g;
+        } else {
+          return errorResponse("layoutGrid must be an array, { slots }, or { order, heights }", 400);
+        }
       } else {
-        return errorResponse("layoutGrid must be an array or { slots: WidgetSlot[] }", 400);
+        return errorResponse("layoutGrid must be an array, { slots }, or { order, heights }", 400);
       }
     }
 

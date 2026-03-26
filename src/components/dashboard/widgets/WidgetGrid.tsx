@@ -144,7 +144,8 @@ function SortableWidget({
       <div
         className={cn(
           "group relative flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--border-warm)] bg-[var(--surface-warm)]",
-          "shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)]"
+          "shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)]",
+          editMode && !isDragging && !isPinned && "animate-widget-wobble"
         )}
       >
         {/* Drag/control handle bar — edit mode only */}

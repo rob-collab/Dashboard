@@ -3,7 +3,38 @@ Last updated: 2026-03-26
 
 ---
 
-## CURRENT SPRINT: Dynamic Widget Grid — Model B (priority order + bin-packing)
+## CURRENT SPRINT: Dashboard Grid — Persistence Fix + UX Polish
+
+### Design intent
+- **Who:** Every dashboard user (CCRO, CEO, OWNER) — the dashboard is their primary entry point.
+- **One thing:** Customisation must work end-to-end: save persists, the control is discoverable in the header, and edit mode is unmistakable.
+- **Remove:** The floating standalone Customise button below the header; the meaningless diamond logo mark; the silent 400 error killing saves.
+
+### Conflict check
+⚠️ API validation was blocking WidgetLayoutV2 saves with a silent 400. GreetingHeader gains new props (editMode, isSaving, onToggle). The standalone Customise button block is removed from page.tsx.
+
+### Deliverables
+
+- [x] **D1** — Fix API validation: accept `WidgetLayoutV2 { order, heights }` alongside existing formats (`src/app/api/dashboard-layout/route.ts`)
+- [x] **D2** — Move Customise control into GreetingHeader: replace diamond SVG with "Customise my dashboard" / "Done" button; remove standalone button block from page.tsx
+- [x] **D3** — iOS-style wobble animation: widgets jiggle in edit mode to signal draggability; stop on exit
+
+### Acceptance criteria
+- [x] API now accepts `{ order, heights }` format — silent 400 eliminated
+- [x] The diamond icon is gone; a "Customise my dashboard" button sits in the header top-right
+- [x] In edit mode all (non-pinned, non-dragging) widgets wobble; wobble stops when Done is clicked; reduced-motion respected
+- [x] Build passes — zero errors, zero type errors
+- [ ] Runtime: saving a reorder persists on reload (verify in browser after deploy)
+
+### Files to change
+- `src/app/api/dashboard-layout/route.ts` — add V2 format to layoutGrid validation
+- `src/app/page.tsx` — GreetingHeader gains editMode/isSaving/onToggle props; remove standalone button
+- `src/app/globals.css` — add `@keyframes widget-wobble` + `.animate-widget-wobble`
+- `src/components/dashboard/widgets/WidgetGrid.tsx` — apply wobble class in edit mode
+
+---
+
+## PREVIOUSLY COMPLETED: Dynamic Widget Grid — Model B (priority order + bin-packing)
 
 ### Design intent
 - **Who:** CCRO and CEO users who live in their dashboard every day — opening it as their primary command interface multiple times per session.
