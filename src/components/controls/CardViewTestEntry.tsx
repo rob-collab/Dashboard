@@ -407,9 +407,9 @@ export default function CardViewTestEntry({
                 <button
                   onClick={() => onOpenRecordModal(entry.id)}
                   title="Record result"
-                  className="h-7 w-7 rounded-full bg-updraft-bright-purple text-white flex items-center justify-center text-base font-semibold hover:bg-updraft-deep transition-colors shrink-0"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-updraft-bright-purple text-white transition-colors hover:bg-updraft-deep"
                 >
-                  +
+                  <Plus className="h-3.5 w-3.5" />
                 </button>
               )}
               {/* Inline notes toggle */}

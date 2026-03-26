@@ -218,6 +218,30 @@ Ask these questions for every changed screen or component:
    adjacent screens? Neither cramped nor sparse.
 6. **Alignment** — Are elements aligned to a shared edge? No elements floating in unexpected
    positions.
+7. **Circular badges and icon button centering** — These cannot be detected from JSX reading
+   alone. Flag any new instance for screenshot verification, and check all of the following:
+
+   - **Count badges** (circular `span`/`div` showing a number): MUST have `leading-none` +
+     `tabular-nums`. Without `leading-none`, the browser's default `line-height` (≈1.5×
+     font-size) at `text-[9px]`–`text-[10px]` creates invisible vertical padding that pushes
+     the number off-centre. Without `tabular-nums`, narrow glyphs like "1" occupy less than
+     their em width and appear optically left-biased inside the circle. No `px-*` padding on
+     single-digit-only badges — it creates an asymmetric 26px wide element instead of the
+     intended 18px circle.
+     Required minimum: `flex items-center justify-center leading-none tabular-nums`
+
+   - **Circular icon buttons** (`rounded-full` + fixed `h-X w-X` dimensions): MUST render
+     a `<LucideIconName className="w-X h-X" />` SVG component — NEVER a bare text character
+     (`+`, `×`, `−`, `✕`). Text glyphs at small sizes are subject to font ascent/descent
+     offsets that vary by font and render size, causing them to appear off-centre in their
+     circle. SVG icons are positioned by viewBox geometry, not font metrics, and always
+     render centred.
+
+8. **Layout alignment with sibling elements** — Every header/filter/search element at the top
+   of a card grid or list MUST span the same width as the content below it. A search input
+   with `w-72` floating above a full-width 3-column grid creates visual "overspill" — the
+   header does not contain its space. Use `w-full` or `flex-1` inside a flex container so
+   the search/filter bar matches the width of the grid it controls.
 
 ### Layer 5 — Microcopy Quality (are the words right?)
 

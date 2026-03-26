@@ -429,7 +429,7 @@ export default function RiskAcceptanceDetailPanel({ acceptance, onClose, onUpdat
                 return (
                   <div key={c.id} className={cn("rounded-lg p-3 text-sm", isCcroComment ? "bg-updraft-pale-purple/20 border border-updraft-pale-purple/30" : "bg-gray-50")}>
                     <div className="flex items-center gap-2 mb-1">
-                      <div className={cn("h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white", isCcroComment ? "bg-updraft-bright-purple" : "bg-gray-400")}>
+                      <div className={cn("flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold leading-none text-white", isCcroComment ? "bg-updraft-bright-purple" : "bg-gray-400")}>
                         {(commenter?.name ?? "?").charAt(0)}
                       </div>
                       <span className="text-xs font-medium text-gray-700">{commenter?.name ?? "Unknown"}</span>

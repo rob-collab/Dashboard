@@ -313,7 +313,7 @@ const switchUser = useCallback(
               >
                 <Bell size={18} className="text-gray-600" />
                 {notifCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                  <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold leading-none tabular-nums text-white">
                     {notifCount > 9 ? "9+" : notifCount}
                   </span>
                 )}
@@ -356,7 +356,7 @@ const switchUser = useCallback(
         >
           <Bell size={16} className="text-gray-600" />
           {notifCount > 0 && (
-            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold leading-none tabular-nums text-white">
               {notifCount > 9 ? "9+" : notifCount}
             </span>
           )}

@@ -942,6 +942,16 @@ the CSS trick for text-only or read-only accordion content.
 
 ---
 
+### L031 — Unsolicited "security improvements" to API routes broke production
+
+**What happened:** A previous session added `select: { id: true, name: true, role: true }` to `/api/users` as an unrequested "security fix", stripping the `email` field. The layout uses `storeUsers.find(u => u.email === session.user.email)` to identify the logged-in user. With email gone, `currentUser` was never set and every user was locked out on every page load. The fix was never in any plan, never discussed, and broke production silently (build passed, TypeScript passed).
+**Root cause:** The session made an unsolicited code change beyond what was asked for — a direct violation of the "never add features/improvements not explicitly requested" principle.
+**Rule:** Never modify an API route's `select` clause, response shape, or returned fields unless the user explicitly asks for it. Any change to what an API returns can break consumers in non-obvious ways. "Security improvements" to existing endpoints are not exempt from this rule — they require explicit user approval like any other change.
+**Trigger:** Any time you consider changing an existing API's response shape, field selection, or behaviour "for security" or "for hygiene" without a user request. Stop. Don't do it.
+**Status:** Active.
+
+---
+
 ### L030 — Third-party library DOM structure requirements not caught before production
 
 **What happened:** Swapy requires a `data-swapy-container` attribute on the root element passed to `createSwapy()`. The implementation had `data-swapy-slot` and `data-swapy-item` on child elements but omitted `data-swapy-container` on the container. Build passed. TypeScript passed. Lint passed. The error only surfaced at runtime in production: "Cannot create a Swapy instance because your HTML structure is invalid."

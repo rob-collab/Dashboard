@@ -887,7 +887,7 @@ function ActionsPageContent() {
                     >
                       {owner ? (
                         <span
-                          className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-updraft-bar text-white text-[9px] font-bold shrink-0"
+                          className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-updraft-bar text-white text-[9px] font-bold leading-none shrink-0"
                         >
                           {owner.name.split(" ").map((n: string) => n[0]).slice(0, 2).join("")}
                         </span>

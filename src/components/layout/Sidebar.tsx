@@ -421,8 +421,8 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
                       )}
                       {!collapsed && <span className="truncate">{item.label}</span>}
                       {!collapsed && item.badgeKey && (badges[item.badgeKey] ?? 0) > 0 && (
-                        <span className="ml-auto rounded-full bg-red-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                          {badges[item.badgeKey]}
+                        <span className="ml-auto flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 text-[10px] font-bold leading-none tabular-nums text-white">
+                          {(badges[item.badgeKey] ?? 0) > 9 ? "9+" : badges[item.badgeKey]}
                         </span>
                       )}
                       {active && !collapsed && !(item.badgeKey && (badges[item.badgeKey] ?? 0) > 0) && (

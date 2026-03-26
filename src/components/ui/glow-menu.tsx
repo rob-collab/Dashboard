@@ -142,7 +142,7 @@ export function GlowMenu({
                 {item.badge !== undefined && item.badge > 0 && (
                   <span
                     className={cn(
-                      "inline-flex items-center justify-center rounded-full text-[10px] font-bold px-1.5 min-w-[18px] h-[18px]",
+                      "inline-flex items-center justify-center rounded-full text-[10px] font-bold leading-none tabular-nums px-1.5 min-w-[18px] h-[18px]",
                       isActive
                         ? "bg-updraft-deep text-white"
                         : "bg-gray-200 text-gray-600",
@@ -245,7 +245,7 @@ export function GlowMenu({
                   {item.badge !== undefined && item.badge > 0 && (
                     <span
                       className={cn(
-                        "inline-flex items-center justify-center rounded-full text-[10px] font-bold px-1.5 min-w-[18px] h-[18px]",
+                        "inline-flex items-center justify-center rounded-full text-[10px] font-bold leading-none tabular-nums px-1.5 min-w-[18px] h-[18px]",
                         isActive
                           ? "bg-updraft-deep text-white"
                           : "bg-gray-200 text-gray-600",
@@ -273,7 +273,7 @@ export function GlowMenu({
                   {Icon && <Icon size={iconSize} />}
                   {item.label}
                   {item.badge !== undefined && item.badge > 0 && (
-                    <span className="inline-flex items-center justify-center rounded-full text-[10px] font-bold px-1.5 min-w-[18px] h-[18px] bg-updraft-deep text-white">
+                    <span className="inline-flex items-center justify-center rounded-full text-[10px] font-bold leading-none tabular-nums px-1.5 min-w-[18px] h-[18px] bg-updraft-deep text-white">
                       {item.badge}
                     </span>
                   )}

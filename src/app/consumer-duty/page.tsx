@@ -828,7 +828,7 @@ function ConsumerDutyContent() {
                     <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
                       {ccroTeam.map((u) => (
                         <span key={u.id} className="inline-flex items-center gap-1.5 rounded-full bg-updraft-pale-purple/30 px-3 py-1 text-xs font-medium text-updraft-deep">
-                          <span className="w-5 h-5 rounded-full bg-updraft-bright-purple/20 text-updraft-bright-purple text-[10px] font-bold flex items-center justify-center shrink-0">
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-updraft-bright-purple/20 text-[10px] font-bold leading-none text-updraft-bright-purple">
                             {u.name.charAt(0)}
                           </span>
                           {u.name}

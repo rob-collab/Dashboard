@@ -1269,7 +1269,7 @@ export function useDashboardSectionMap(props: SectionMapProps): Record<string, R
             return (
               <Link key={log.id} href={entityUrl} className="flex-shrink-0 w-64 rounded-xl border border-[#E8E6E1] bg-surface-warm p-3 hover:border-updraft-light-purple hover:-translate-y-0.5 hover:shadow-bento transition-all cursor-pointer">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-updraft-pale-purple/40 text-[10px] font-semibold text-updraft-bright-purple">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-updraft-pale-purple/40 text-[10px] font-semibold leading-none text-updraft-bright-purple">
                     {(logUser?.name ?? "?").charAt(0).toUpperCase()}
                   </div>
                   <span className="text-xs font-medium text-gray-800 truncate">{logUser?.name || log.userId}</span>

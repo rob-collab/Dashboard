@@ -845,16 +845,16 @@ export default function TestResultsEntryTab() {
 
       {/* Search input (D8) */}
       {totalEntries > 0 && viewMode === "card" && (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full">
           <input
             type="text"
             placeholder="Search controls by name or ref..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm w-72 focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
+            className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
           />
           {search && (
-            <span className="text-xs text-gray-400">{filteredEntries.length} of {Array.from(groupedByArea.values()).flat().length} shown</span>
+            <span className="shrink-0 text-xs text-gray-400">{filteredEntries.length} of {Array.from(groupedByArea.values()).flat().length} shown</span>
           )}
         </div>
       )}
