@@ -48,6 +48,7 @@ const resultSchema = z.object({
   notes: z.string().nullable().optional(),
   evidenceLinks: z.array(z.string()).optional(),
   effectiveDate: z.string().nullable().optional(),
+  testedById: z.string().optional(),
 });
 
 const bulkSchema = z.object({
@@ -97,6 +98,7 @@ export async function POST(request: NextRequest) {
           effectiveDate: entry.effectiveDate ? new Date(entry.effectiveDate) : null,
           isBackdated,
           updatedById: userId,
+          ...(entry.testedById && { testedById: entry.testedById }),
         },
         create: {
           scheduleEntryId: entry.scheduleEntryId,
@@ -107,7 +109,7 @@ export async function POST(request: NextRequest) {
           evidenceLinks: entry.evidenceLinks ?? [],
           effectiveDate: entry.effectiveDate ? new Date(entry.effectiveDate) : null,
           isBackdated,
-          testedById: userId,
+          testedById: entry.testedById ?? userId,
         },
         include: {
           testedBy: true,

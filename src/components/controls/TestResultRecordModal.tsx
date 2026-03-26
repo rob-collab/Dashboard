@@ -5,6 +5,7 @@ import Modal from "@/components/common/Modal";
 import { api } from "@/lib/api-client";
 import type { TestingScheduleEntry, TestResultValue } from "@/lib/types";
 import { TEST_RESULT_LABELS } from "@/lib/types";
+import { useAppStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -31,9 +32,14 @@ interface Props {
 }
 
 export default function TestResultRecordModal({ entry, year, month, open, onClose, onSaved }: Props) {
+  const users = useAppStore((s) => s.users);
+  const currentUser = useAppStore((s) => s.currentUser);
+
   const [result, setResult] = useState<TestResultValue | "">("");
   const [notes, setNotes] = useState("");
   const [evidenceLinks, setEvidenceLinks] = useState("");
+  const [effectiveDate, setEffectiveDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [testerId, setTesterId] = useState(() => currentUser?.id ?? "");
   const [saving, setSaving] = useState(false);
 
   // Reset state when modal opens for a new entry
@@ -42,6 +48,8 @@ export default function TestResultRecordModal({ entry, year, month, open, onClos
       setResult("");
       setNotes("");
       setEvidenceLinks("");
+      setEffectiveDate(new Date().toISOString().slice(0, 10));
+      setTesterId(currentUser?.id ?? "");
     } else {
       onClose();
     }
@@ -69,6 +77,8 @@ export default function TestResultRecordModal({ entry, year, month, open, onClos
               result,
               notes: notes.trim() || null,
               evidenceLinks: links,
+              effectiveDate: effectiveDate || null,
+              testedById: testerId || undefined,
             },
           ],
         },
@@ -127,6 +137,36 @@ export default function TestResultRecordModal({ entry, year, month, open, onClos
             <p className="text-sm text-gray-700 whitespace-pre-wrap">{entry.summaryOfTest}</p>
           </div>
         )}
+
+        {/* Date tested + Tester — two-column row */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+              Date Tested
+            </label>
+            <input
+              type="date"
+              value={effectiveDate}
+              onChange={(e) => setEffectiveDate(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+              Tested By
+            </label>
+            <select
+              value={testerId}
+              onChange={(e) => setTesterId(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
+            >
+              <option value="">— Select tester —</option>
+              {users.filter((u) => u.isActive).map((u) => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
 
         {/* Result Selector */}
         <div>

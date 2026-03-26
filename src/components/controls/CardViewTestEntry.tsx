@@ -93,13 +93,9 @@ interface CardViewTestEntryProps {
   entries: TestingScheduleEntry[];
   edits: Map<string, { result: TestResultValue; notes: string; effectiveDate?: string; evidenceLinks?: string[] }>;
   onEditResult: (entryId: string, result: TestResultValue) => void;
-  onEditNotes: (entryId: string, notes: string) => void;
-  onEditEffectiveDate?: (entryId: string, date: string) => void;
-  onEditEvidenceLink?: (entryId: string, link: string) => void;
+  onOpenRecordModal?: (entryId: string) => void;
   onCreateAction?: (entry: TestingScheduleEntry) => void;
   onCreateRiskAcceptance?: (entry: TestingScheduleEntry) => void;
-  expandedNote: string | null;
-  onToggleNote: (entryId: string) => void;
 }
 
 /* ── Component ────────────────────────────────────────────────────────────── */
@@ -110,13 +106,9 @@ export default function CardViewTestEntry({
   entries,
   edits,
   onEditResult,
-  onEditNotes,
-  onEditEffectiveDate,
-  onEditEvidenceLink,
+  onOpenRecordModal,
   onCreateAction,
   onCreateRiskAcceptance,
-  expandedNote,
-  onToggleNote,
 }: CardViewTestEntryProps) {
   const users = useAppStore((s) => s.users);
   const controls = useAppStore((s) => s.controls);
@@ -184,36 +176,6 @@ export default function CardViewTestEntry({
     return getResultForPeriod(entry, selectedYear, selectedMonth);
   }
 
-  function getEffectiveDate(entry: TestingScheduleEntry): string {
-    const edit = edits.get(entry.id);
-    if (edit?.effectiveDate !== undefined) return edit.effectiveDate;
-    const found = (entry.testResults ?? []).find(
-      (r) => r.periodYear === selectedYear && r.periodMonth === selectedMonth,
-    );
-    return found?.effectiveDate ?? "";
-  }
-
-  function getEffectiveEvidenceLink(entry: TestingScheduleEntry): string {
-    const edit = edits.get(entry.id);
-    if (edit?.evidenceLinks !== undefined) return edit.evidenceLinks[0] ?? "";
-    const found = (entry.testResults ?? []).find(
-      (r) => r.periodYear === selectedYear && r.periodMonth === selectedMonth,
-    );
-    return found?.evidenceLinks?.[0] ?? "";
-  }
-
-  function getEffectiveNotes(entry: TestingScheduleEntry): string {
-    const edit = edits.get(entry.id);
-    if (edit) return edit.notes;
-
-    const results = entry.testResults ?? [];
-    const found = results.find(
-      (r) =>
-        r.periodYear === selectedYear && r.periodMonth === selectedMonth,
-    );
-    return found?.notes ?? "";
-  }
-
   /* ── Previous 3 months for mini-history ──────────────────────────────── */
   const prev3 = previousMonths(selectedYear, selectedMonth, 3);
 
@@ -235,11 +197,7 @@ export default function CardViewTestEntry({
       {entries.map((entry) => {
         const control = entry.control;
         const effectiveResult = getEffectiveResult(entry);
-        const effectiveNotes = getEffectiveNotes(entry);
-        const effectiveDate = getEffectiveDate(entry);
-        const effectiveEvidenceLink = getEffectiveEvidenceLink(entry);
         const attestation = getAttestationForPeriod(entry);
-        const isNotesExpanded = expandedNote === entry.id;
         const isHistoryExpanded = expandedHistory.has(entry.id);
 
         /* Discrepancy: owner attested but test result is FAIL */
@@ -405,21 +363,16 @@ export default function CardViewTestEntry({
 
             {/* ── Action buttons ──────────────────────────────────── */}
             <div className="flex flex-wrap items-center gap-2 mt-auto pt-1 border-t border-gray-100">
-              {/* Inline notes toggle */}
-              <button
-                onClick={() => onToggleNote(entry.id)}
-                className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                  isNotesExpanded
-                    ? "bg-updraft-deep/10 text-updraft-deep"
-                    : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                }`}
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Notes
-                {effectiveNotes.trim() && !isNotesExpanded && (
-                  <span className="ml-0.5 w-1.5 h-1.5 rounded-full bg-updraft-bright-purple" />
-                )}
-              </button>
+              {/* Record result modal button */}
+              {onOpenRecordModal && (
+                <button
+                  onClick={() => onOpenRecordModal(entry.id)}
+                  title="Record result"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-updraft-bright-purple text-white transition-colors hover:bg-updraft-deep"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              )}
 
               <button
                 onClick={() => toggleHistory(entry.id)}
@@ -458,59 +411,6 @@ export default function CardViewTestEntry({
                 </button>
               )}
             </div>
-
-            {/* ── Expanded edit fields ────────────────────────────── */}
-            {isNotesExpanded && (
-              <div className="space-y-2">
-                {/* Date tested */}
-                {onEditEffectiveDate && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Date tested</label>
-                    <input
-                      type="date"
-                      value={effectiveDate}
-                      onChange={(e) => onEditEffectiveDate(entry.id, e.target.value)}
-                      className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
-                    />
-                  </div>
-                )}
-                {/* Evidence link */}
-                {onEditEvidenceLink && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Evidence (Google Drive link)</label>
-                    <input
-                      type="url"
-                      value={effectiveEvidenceLink}
-                      onChange={(e) => onEditEvidenceLink(entry.id, e.target.value)}
-                      placeholder="https://drive.google.com/..."
-                      className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30"
-                    />
-                  </div>
-                )}
-                {/* Notes */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
-                  <textarea
-                    value={effectiveNotes}
-                    onChange={(e) => onEditNotes(entry.id, e.target.value)}
-                    placeholder="Enter testing notes, observations, or evidence references..."
-                    rows={3}
-                    className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-updraft-deep/30 resize-y"
-                  />
-                  {(effectiveResult === "FAIL" ||
-                    effectiveResult === "PARTIALLY") &&
-                    !effectiveNotes.trim() && (
-                      <p className="mt-1 text-xs text-amber-600">
-                        Notes are required for{" "}
-                        {effectiveResult
-                          ? TEST_RESULT_LABELS[effectiveResult]
-                          : ""}{" "}
-                        results.
-                      </p>
-                    )}
-                </div>
-              </div>
-            )}
 
             {/* ── Expanded history panel ──────────────────────────── */}
             {isHistoryExpanded && (

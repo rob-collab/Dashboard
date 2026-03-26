@@ -877,29 +877,9 @@ export default function TestResultsEntryTab() {
           onEditResult={(entryId, result) =>
             updateEdit(entryId, "result", result)
           }
-          onEditNotes={(entryId, notes) =>
-            updateEdit(entryId, "notes", notes)
-          }
-          onEditEffectiveDate={(entryId, date) => {
-            setEdits((prev) => {
-              const next = new Map(prev);
-              const cur = next.get(entryId) ?? { result: "" as TestResultValue, notes: "" };
-              next.set(entryId, { ...cur, effectiveDate: date });
-              return next;
-            });
-          }}
-          onEditEvidenceLink={(entryId, link) => {
-            setEdits((prev) => {
-              const next = new Map(prev);
-              const cur = next.get(entryId) ?? { result: "" as TestResultValue, notes: "" };
-              next.set(entryId, { ...cur, evidenceLinks: link ? [link] : [] });
-              return next;
-            });
-          }}
+          onOpenRecordModal={(id) => setRecordModalEntryId(id)}
           onCreateAction={handleCreateActionFromEntry}
           onCreateRiskAcceptance={handleCreateRiskAcceptance}
-          expandedNote={expandedNote}
-          onToggleNote={toggleNote}
         />
       ) : (
         /* ── Grid view ─────────────────────────────────────────── */

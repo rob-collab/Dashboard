@@ -921,6 +921,15 @@ the CSS trick for text-only or read-only accordion content.
 
 ---
 
+### L029 — "Implement the following plan" is not plan approval
+
+**What happened:** A plan was handed to me at the start of a session with "Implement the following plan." I executed it without surfacing the plan back to the user for confirmation. The plan contained a design decision (removing the `+` record modal button as "redundant") that the user had never agreed to and explicitly disagreed with when they saw the result. A feature was incorrectly deleted and had to be restored in a follow-up sprint.
+**Rule:** A plan handed to you at the start of a session must still be surfaced to the user and confirmed before any code is written. "Implement the following plan" means execute the mechanics — it does not mean every decision in the plan has been reviewed and approved. Surface the plan, wait for "yes, proceed."
+**Trigger:** Any session that begins with a pre-written plan or spec to implement.
+**Status:** [PROMOTED → CLAUDE.md workflow step 1]
+
+---
+
 ### W033 — Flattening ml-auto wrapper: apply to first right-aligned item, conditionally to fallback
 
 **Sprint:** Controls Card View Polish (2026-03-26)

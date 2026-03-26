@@ -226,12 +226,18 @@ For every change request (features, fixes, improvements):
    - Teammate B: [responsibility + which PLAN.md items]
    ```
 
-1. **Write to PLAN.md first** — before touching any code, add the requested items to `PLAN.md` under a new sprint heading (or the current sprint if one is active). Include:
-   - What is being changed and why
-   - The design intent (who / one thing / remove) if UI-touching
-   - Files to be modified/created
-   - Agent team structure (if applicable — see step 0.75)
-   - A checklist of acceptance criteria (`- [ ] ...`)
+1. **Write to PLAN.md first, then surface it and wait for approval** — before touching any code:
+   a. Add the requested items to `PLAN.md` under a new sprint heading (or the current sprint if one is active). Include:
+      - What is being changed and why
+      - The design intent (who / one thing / remove) if UI-touching
+      - Files to be modified/created
+      - Agent team structure (if applicable — see step 0.75)
+      - A checklist of acceptance criteria (`- [ ] ...`)
+   b. **Surface the full plan to the user** — paste or summarise it in the conversation so they can read it
+   c. **Wait for explicit approval** ("yes", "proceed", "looks good") before writing a single line of code
+   d. If the user identifies any issue with the plan, update PLAN.md and surface the revised plan before proceeding
+
+   **There is no exception to the approval gate.** A plan handed to you at the start of a session must still be surfaced and confirmed — plans can contain mistakes, omissions, or decisions the user did not intend. "Implement the following plan" is not the same as "I have read and approved every decision in this plan."
 
 2. **Implement one deliverable at a time — senior developer review gate after each** — do not batch all changes into one pass. After each change — including hotfixes, lint fixes, and single-line edits — run all three layers before moving on. There is no fast path. A change that feels trivial still goes through the gate:
 

@@ -1,5 +1,36 @@
 # Meridian — Active Development Plan
-Last updated: 2026-03-26 (Controls Card View Polish complete)
+Last updated: 2026-03-26 (Card View Modal sprint active)
+
+---
+
+## CURRENT SPRINT: Card View — Restore Modal, Remove Notes, Enhance Modal
+
+### Design intent
+- **Who:** CCRO recording monthly control test results in card view
+- **One thing:** The `+` modal is the full recording UX — result, date tested, tester, evidence, notes all in one place
+- **Remove:** Inline Notes expansion (date/evidence/notes inline fields) — the modal now covers all of it. Inline result dropdown stays for quick status setting.
+
+### Context
+Previous sprint incorrectly removed the `+` record modal button and kept the inline Notes expansion. This sprint reverses that and improves the modal with date tested and tester name fields.
+
+No schema migration needed — `testedById` (FK → User) and `effectiveDate` (Date?) already exist on `ControlTestResult`.
+
+### Deliverables
+
+- [x] **D1+D2** — Restore `+` button + remove Notes button (`CardViewTestEntry.tsx` + `TestResultsEntryTab.tsx`)
+- [x] **D3+D4** — Add date tested + tester dropdown to modal; API accepts optional `testedById`
+- [x] **D5** — Update CLAUDE.md: plan must be shown and approved before any implementation
+
+### Acceptance criteria
+- [x] `+` circular purple button restored to card footer; clicking opens `TestResultRecordModal`
+- [x] Notes toggle button removed from card footer
+- [x] Inline expanded Notes section (date/evidence/notes fields) removed from card view
+- [x] Modal has date tested field (defaults to today)
+- [x] Modal has tester name dropdown (active users, defaults to current user)
+- [x] Tester name and date tested save to `ControlTestResult.testedById` / `effectiveDate`
+- [x] API accepts optional `testedById` override; defaults to session user if omitted
+- [x] Inline result dropdown still works for quick status change
+- [x] Build passes — zero errors
 
 ---
 
