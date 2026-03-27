@@ -1,7 +1,14 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
+import { OAuth2Client } from "google-auth-library";
 import prisma from "./prisma";
+
+let _oauthClient: OAuth2Client | null = null;
+function getOAuthClient(clientId: string): OAuth2Client {
+  if (!_oauthClient) _oauthClient = new OAuth2Client(clientId);
+  return _oauthClient;
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -39,23 +46,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.credential) return null;
         try {
-          const { OAuth2Client } = await import("google-auth-library");
-          const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+          // C1: Guard against missing env var — undefined audience collapses token validation.
+          const clientId = process.env.GOOGLE_CLIENT_ID;
+          if (!clientId) {
+            console.error("[auth][google-onetap] GOOGLE_CLIENT_ID env var is not set");
+            return null;
+          }
+
+          // I1: Reuse cached OAuth2Client to benefit from google-auth-library's certificate cache.
+          const client = getOAuthClient(clientId);
           const ticket = await client.verifyIdToken({
             idToken: credentials.credential as string,
-            audience: process.env.GOOGLE_CLIENT_ID,
+            audience: clientId,
           });
           const payload = ticket.getPayload();
           if (!payload?.email) return null;
 
+          // I3: Narrow email to string after the null guard above.
+          const email = payload.email;
+
           const dbUser = await prisma.user.findUnique({
-            where: { email: payload.email },
+            where: { email },
             select: { id: true, email: true, name: true, isActive: true },
           });
 
           // Mirror the signIn callback guard: reject if not found or inactive.
           // Note: the signIn callback does NOT fire for CredentialsProvider in next-auth v5 beta —
           // these guards and lastLoginAt must live here instead.
+          // C2: next-auth v5 beta.30 CredentialsProvider authorize return type is `User | null` —
+          // string redirects are not supported. Returns null (AccessDenied) instead of /unauthorised.
           if (!dbUser || !dbUser.isActive) return null;
 
           // Update lastLoginAt — best-effort, same pattern as the signIn callback
@@ -65,14 +84,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               data: { lastLoginAt: new Date() },
             });
           } catch (updateErr) {
-            console.error("[google-onetap] lastLoginAt update failed:", updateErr);
+            console.error("[auth][google-onetap] lastLoginAt update failed:", updateErr);
           }
 
           return { id: dbUser.id, email: dbUser.email, name: dbUser.name };
         } catch (err) {
           // verifyIdToken throws on network error, expired/invalid token.
           // Return null → next-auth converts to AccessDenied redirect.
-          console.error("[google-onetap] verifyIdToken failed:", err);
+          console.error("[auth][google-onetap] verifyIdToken failed:", err);
           return null;
         }
       },
