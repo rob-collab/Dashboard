@@ -76,7 +76,7 @@ Single entrance: `opacity: 0 → 1`, `translateY: 12px → 0`, `duration: 200ms`
 1. Page loads → Google Identity Services (GIS) script is loaded via `next/script` strategy `"afterInteractive"` (not `"beforeInteractive"` — that is incompatible with client components in Next.js 14)
 2. `next/script`'s `onLoad` callback fires when GIS is ready → `google.accounts.id.initialize({ client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID, callback: handleCredentialResponse, auto_select: false })`
 3. `google.accounts.id.prompt()` — triggers One Tap floating UI if Google detects an account
-4. If the user approves One Tap: `handleCredentialResponse` receives `{ credential: string }` (Google JWT ID token) and **immediately** calls `signIn("credentials", { credential, callbackUrl, redirect: true })`. No additional button click required — One Tap is a single-gesture approval.
+4. If the user approves One Tap: `handleCredentialResponse` receives `{ credential: string }` (Google JWT ID token) and **immediately** calls `signIn("google-onetap", { credential, callbackUrl, redirect: true })`. In next-auth v5 beta, CredentialsProvider is invoked via its provider `id` field, not the generic `"credentials"` string. No additional button click required — One Tap is a single-gesture approval.
 5. **Fallback**: "Continue with Google" button calls `signIn("google", { callbackUrl })` — existing redirect OAuth flow, unchanged.
 
 ### TypeScript: GIS Global Type
