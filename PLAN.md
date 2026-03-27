@@ -1,9 +1,87 @@
 # Meridian — Active Development Plan
-Last updated: 2026-03-26
+Last updated: 2026-03-27
 
 ---
 
-## CURRENT SPRINT: Remove Swapy — Migrate AdminWidgetGrid to dnd-kit
+## CURRENT SPRINT: Harden — Accessibility & Product Compliance (Audit 2026-03-27)
+
+Sprint origin: `/audit` run 2026-03-27, then `/harden` invoked to action the findings.
+
+### Conflict check
+⚠️ None identified. All items are additive (ARIA attributes, navigation wiring, keyboard
+handlers). No existing behaviour is removed. The dnd-kit keyboard sensor addition (D3) adds
+a new interaction path and does not change pointer-event behaviour.
+
+Note: H1 (detail panel dialog roles) was addressed in the 2026-03-24 audit sprint. The
+2026-03-27 audit flagged *additional* panels not covered before (ActionDetailPanel,
+NotificationDrawer, CSV upload dialogs). D1 below covers those gaps.
+
+### Design intent (for C1 — bento card wiring only; all other items are purely technical)
+- **Who:** CCRO and CEO landing on the dashboard for their daily "is anything on fire?" scan.
+- **One thing:** Every metric count must be a direct gateway to the filtered detail — clicking
+  "5 HIGH" risks must take you straight to the HIGH-risk subset. A number you can't act on is noise.
+- **Remove:** Nothing visible. Add cursor-pointer + active ring on the card cell; the number
+  itself becomes the affordance.
+
+### Deliverables
+
+- [x] **D1** — Verify & patch remaining dialog ARIA gaps
+  - Modal.tsx: already compliant — `role="dialog"` + `aria-modal="true"` + `aria-labelledby` present ✓
+  - NotificationDrawer.tsx: already compliant ✓
+  - ActionDetailPanel.tsx: patched — added `role="dialog"`, `aria-modal="true"`,
+    `aria-labelledby="action-detail-panel-title"` to root motion.div; added `id` to `<h2>` title
+
+- [x] **D2** — Add `aria-label` to Sidebar view-as back button
+  - Added `aria-label="Exit view-as mode"` to icon-only back button in Sidebar.tsx ~line 359
+
+- [x] **D3** — Add ARIA labels + keyboard sensor to WidgetGrid drag/resize handles
+  - Added `KeyboardSensor` + `sortableKeyboardCoordinates` — keyboard drag now functional
+  - Added `aria-label="Drag to reorder {label}"` to drag handle bar
+  - Added `role="button"`, `tabIndex={0}`, `aria-label="Resize {label}: press Up/Down..."`,
+    `onKeyDown` (ArrowUp/Down) to ResizeHandle; added `focus-visible:ring` to resize + hide/restore buttons
+
+- [x] **D4** — Add `aria-sort` to RiskTable sortable column headers
+  - Added `aria-sort` ("ascending" / "descending" / "none") to all sortable `<th>` elements
+
+- [x] **D5** — Accessible labels on DataTable editable inputs
+  - Note: component has no async save cycle (`onChange` only, no `onSave`/`onError`)
+  - Added `aria-label="Edit column header: {name}"` to header inputs
+  - Added `aria-label="Edit {column}, row {n}"` to cell inputs
+  - Screen readers now announce which field is being edited on focus
+
+- [x] **D6** — Wire bento card metrics as interactive filters (product compliance)
+  - RiskPostureWidget: each category row → `router.push('/risk-register?cat={name}')`, hover + focus ring
+  - ApprovalQueueWidget: each item row → `/risk-acceptances` (acceptance) or `/change-requests` (risk/action)
+  - ControlsHeartbeatWidget: Pass/Fail StatusChip chips wrapped in buttons → `/controls`
+
+### Acceptance criteria
+- [x] `ActionDetailPanel`, `NotificationDrawer`, and all form/CSV dialogs (via `Modal.tsx`)
+  have `role="dialog"` + `aria-modal="true"` + `aria-labelledby` pointing to their title
+- [x] Sidebar view-as back button has an accessible name
+- [x] WidgetGrid grip and resize handles have ARIA labels; keyboard drag is possible
+- [x] RiskTable sortable headers report `aria-sort` state to assistive technology
+- [x] DataTable editable inputs have accessible labels (column/row context on focus)
+- [x] Clicking a RiskPostureWidget category navigates to risk-register filtered by that category
+- [x] Clicking an ApprovalQueueWidget item navigates to risk-acceptances or change-requests
+- [x] Clicking a ControlsHeartbeatWidget chip navigates to controls
+- [x] Build passes — zero errors, zero type errors
+- [x] All Tier 1 gates pass after each deliverable
+
+### Files to change (provisional — confirm on file read)
+- `src/components/actions/ActionDetailPanel.tsx`
+- `src/components/common/NotificationDrawer.tsx`
+- `src/components/common/Modal.tsx`
+- `src/components/layout/Sidebar.tsx`
+- `src/components/dashboard/widgets/WidgetGrid.tsx`
+- `src/components/risk-register/RiskTable.tsx`
+- `src/components/sections/DataTable.tsx`
+- `src/components/dashboard/widgets/RiskPostureWidget.tsx`
+- `src/components/dashboard/widgets/ApprovalQueueWidget.tsx`
+- `src/components/dashboard/widgets/ControlsHeartbeatWidget.tsx`
+
+---
+
+## PREVIOUSLY COMPLETED: Remove Swapy — Migrate AdminWidgetGrid to dnd-kit ✅ COMPLETE
 
 ### Design intent
 - **Who:** CCRO using the Settings → Dashboard Layouts panel to configure widget order for other users.

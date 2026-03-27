@@ -356,6 +356,7 @@ export function Sidebar({ currentUser, collapsed: collapsedProp, onToggle, onSwi
           <button
             onClick={() => authUser && onSwitchUser?.(authUser)}
             className={cn("shrink-0 rounded p-1 transition-colors", t.bannerIcon, t.bannerHover)}
+            aria-label="Exit view-as mode"
             title="Back to my account"
           >
             <ArrowLeft size={14} />

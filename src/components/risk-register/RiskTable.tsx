@@ -197,6 +197,7 @@ export default function RiskTable({ risks, onRiskClick }: RiskTableProps) {
                 <th
                   key={field}
                   onClick={() => toggleSort(field)}
+                  aria-sort={sortField === field ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
                   className={`px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide cursor-pointer hover:text-gray-700 select-none ${width}`}
                 >
                   <span className="inline-flex items-center gap-1">

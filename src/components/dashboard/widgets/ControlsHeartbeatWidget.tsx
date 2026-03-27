@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import { WidgetShell, WidgetLabel, WidgetInsight, em, WidgetFooter, DataSourceTag } from "./WidgetShell";
 import { WaffleGrid, WaffleResult } from "./WaffleGrid";
@@ -8,6 +9,7 @@ import { StatusChip } from "./StatusChip";
 
 export function ControlsHeartbeatWidget() {
   const controls = useAppStore((s) => s.controls);
+  const router = useRouter();
 
   const { cells, passRate, failCluster } = useMemo(() => {
     const active = controls.filter((c) => c.isActive);
@@ -44,11 +46,23 @@ export function ControlsHeartbeatWidget() {
       </WidgetInsight>
 
       <div className="mt-3 flex gap-2">
-        <StatusChip variant={passRate >= 80 ? "green" : passRate >= 60 ? "amber" : "red"}>
-          {passRate}% Pass
-        </StatusChip>
+        <button
+          onClick={() => router.push("/controls")}
+          className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-updraft-bar"
+          aria-label={`View controls — ${passRate}% passing`}
+        >
+          <StatusChip variant={passRate >= 80 ? "green" : passRate >= 60 ? "amber" : "red"}>
+            {passRate}% Pass
+          </StatusChip>
+        </button>
         {cells.filter((c) => c.result === "fail").length > 0 && (
-          <StatusChip variant="red">{cells.filter((c) => c.result === "fail").length} Fail</StatusChip>
+          <button
+            onClick={() => router.push("/controls")}
+            className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-updraft-bar"
+            aria-label={`View ${cells.filter((c) => c.result === "fail").length} failing controls`}
+          >
+            <StatusChip variant="red">{cells.filter((c) => c.result === "fail").length} Fail</StatusChip>
+          </button>
         )}
       </div>
 

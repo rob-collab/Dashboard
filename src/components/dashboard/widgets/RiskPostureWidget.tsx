@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import { WidgetShell, WidgetLabel, WidgetInsight, em, WidgetFooter, DataSourceTag } from "./WidgetShell";
 import { Sparkline } from "./Sparkline";
@@ -20,6 +21,7 @@ interface RiskPostureWidgetProps {
 
 export function RiskPostureWidget({ simplified = false }: RiskPostureWidgetProps) {
   const risks = useAppStore((s) => s.risks);
+  const router = useRouter();
 
   const { categories, aboveAppetiteMonths, worstCategory } = useMemo(() => {
     // Group snapshot scores by categoryL1 (category is on the risk, not the snapshot)
@@ -57,9 +59,14 @@ export function RiskPostureWidget({ simplified = false }: RiskPostureWidgetProps
           : <>{em.good("All categories")} within appetite.</>}
       </WidgetInsight>
 
-      <div className="mt-3 space-y-2">
+      <div className="mt-3 space-y-1">
         {categories.map((cat) => (
-          <div key={cat.name}>
+          <button
+            key={cat.name}
+            onClick={() => router.push(`/risk-register?cat=${encodeURIComponent(cat.name)}`)}
+            className="w-full rounded-lg px-2 py-1 -mx-2 text-left transition-colors hover:bg-updraft-pale-purple/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-updraft-bar"
+            aria-label={`View ${cat.name} risks in risk register`}
+          >
             <div className="mb-0.5 flex items-center justify-between">
               <span style={{ fontSize: 11, fontWeight: 500, color: "#1A1A2E" }}>{cat.name}</span>
               <StatusChip variant={cat.scores[cat.scores.length - 1] > 15 ? "red" : "green"}>
@@ -74,7 +81,7 @@ export function RiskPostureWidget({ simplified = false }: RiskPostureWidgetProps
               height={22}
               ariaLabel={`${cat.name} risk score over time`}
             />
-          </div>
+          </button>
         ))}
       </div>
 

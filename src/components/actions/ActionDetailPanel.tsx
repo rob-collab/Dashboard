@@ -285,6 +285,9 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
         animate={prefersReduced ? false : { x: 0 }}
         transition={prefersReduced ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 30 }}
         style={{ willChange: "transform" }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="action-detail-panel-title"
       >
         {/* Header */}
         <div className="bg-gradient-to-r from-updraft-deep to-updraft-bar px-6 py-4 shrink-0">
@@ -328,7 +331,7 @@ export default function ActionDetailPanel({ action, onClose, onEdit }: ActionDet
                 )}
               </div>
               {/* Title */}
-              <h2 className="font-poppins text-lg font-semibold text-white leading-tight">
+              <h2 id="action-detail-panel-title" className="font-poppins text-lg font-semibold text-white leading-tight">
                 {action.title}
               </h2>
               {/* Due date */}

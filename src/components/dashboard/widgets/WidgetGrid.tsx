@@ -5,6 +5,7 @@ import {
   DndContext,
   closestCenter,
   PointerSensor,
+  KeyboardSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -16,6 +17,7 @@ import {
   useSortable,
   verticalListSortingStrategy,
   arrayMove,
+  sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { motion, AnimatePresence } from "framer-motion";
@@ -49,11 +51,13 @@ interface WidgetGridProps {
 
 function ResizeHandle({
   id,
+  label,
   currentH,
   minH,
   onResize,
 }: {
   id: WidgetId;
+  label: string;
   currentH: number;
   minH: number;
   onResize: (id: WidgetId, newH: number) => void;
@@ -90,10 +94,27 @@ function ResizeHandle({
     [id, currentH, minH, onResize]
   );
 
+  const onKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        onResize(id, Math.max(minH, currentH - 1));
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        onResize(id, currentH + 1);
+      }
+    },
+    [id, currentH, minH, onResize]
+  );
+
   return (
     <div
       onPointerDown={onPointerDown}
-      className="absolute bottom-0 left-0 right-0 flex h-5 cursor-s-resize items-center justify-center rounded-b-2xl opacity-0 transition-opacity group-hover:opacity-100"
+      onKeyDown={onKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-label={`Resize ${label}: press Up/Down arrow keys to adjust height`}
+      className="absolute bottom-0 left-0 right-0 flex h-5 cursor-s-resize items-center justify-center rounded-b-2xl opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-updraft-bar focus-visible:ring-inset"
       style={{ background: "linear-gradient(to bottom, transparent, rgba(0,0,0,0.04))" }}
     >
       <div className="flex gap-[3px]">
@@ -161,6 +182,7 @@ function SortableWidget({
                 !isPinned && "cursor-grab active:cursor-grabbing"
               )}
               {...(!isPinned ? { ...attributes, ...listeners } : {})}
+              aria-label={!isPinned ? `Drag to reorder ${def?.label ?? id}` : undefined}
             >
               <div className="flex items-center gap-2">
                 {isPinned ? (
@@ -178,7 +200,8 @@ function SortableWidget({
                 <button
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={() => onHide(id)}
-                  className="flex h-5 w-5 items-center justify-center rounded-full transition-colors hover:bg-red-50"
+                  className="flex h-5 w-5 items-center justify-center rounded-full transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                  aria-label={`Hide ${def?.label ?? id} widget`}
                   title="Hide widget"
                 >
                   <EyeOff size={11} className="text-[#94a3b8]" />
@@ -197,6 +220,7 @@ function SortableWidget({
         {editMode && !isPinned && def && (
           <ResizeHandle
             id={id}
+            label={def.label}
             currentH={currentH}
             minH={def.minH}
             onResize={onResize}
@@ -245,7 +269,8 @@ export function WidgetGrid({
   const [activeId, setActiveId] = useState<WidgetId | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
   const visibleOrder = useMemo(
@@ -301,7 +326,8 @@ export function WidgetGrid({
                 <button
                   key={id}
                   onClick={() => onShow(id)}
-                  className="flex items-center gap-1.5 rounded-lg border border-[var(--border-warm)] bg-[var(--surface-muted)] px-3 py-1.5 transition-colors hover:bg-[#F0EEE9]"
+                  aria-label={`Restore ${WIDGET_REGISTRY[id]?.label ?? id} widget`}
+                  className="flex items-center gap-1.5 rounded-lg border border-[var(--border-warm)] bg-[var(--surface-muted)] px-3 py-1.5 transition-colors hover:bg-[#F0EEE9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-updraft-bar"
                   style={{ fontSize: 12 }}
                 >
                   <Eye size={11} className="text-[#94a3b8]" />

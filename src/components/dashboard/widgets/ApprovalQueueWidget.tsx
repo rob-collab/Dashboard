@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import { WidgetShell, WidgetLabel, WidgetInsight, em, WidgetFooter, DataSourceTag } from "./WidgetShell";
 import { StatusChip } from "./StatusChip";
@@ -9,6 +10,7 @@ export function ApprovalQueueWidget() {
   const riskAcceptances = useAppStore((s) => s.riskAcceptances);
   const risks = useAppStore((s) => s.risks);
   const actions = useAppStore((s) => s.actions);
+  const router = useRouter();
 
   const { items, total, escalating } = useMemo(() => {
     const acceptancePending = (riskAcceptances ?? [])
@@ -62,7 +64,12 @@ export function ApprovalQueueWidget() {
 
       <div className="mt-3 space-y-2">
         {items.slice(0, 5).map((item) => (
-          <div key={item.id} className="flex items-center justify-between rounded-lg border border-[#E8E6E1] bg-[#F8F7F4] px-3 py-2">
+          <button
+            key={item.id}
+            onClick={() => router.push(item.type === "acceptance" ? "/risk-acceptances" : "/change-requests")}
+            className="w-full flex items-center justify-between rounded-lg border border-[#E8E6E1] bg-[#F8F7F4] px-3 py-2 text-left transition-colors hover:bg-updraft-pale-purple/20 hover:border-updraft-light-purple/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-updraft-bar"
+            aria-label={`View ${item.title} — pending ${item.type}`}
+          >
             <div className="flex items-center gap-2 min-w-0">
               <span
                 className="shrink-0 rounded px-1.5 py-0.5"
@@ -77,7 +84,7 @@ export function ApprovalQueueWidget() {
               </span>
             </div>
             {item.escalating && <StatusChip variant="red">Escalating</StatusChip>}
-          </div>
+          </button>
         ))}
         {total === 0 && (
           <p style={{ fontSize: 12, color: "#94a3b8" }}>Nothing pending.</p>

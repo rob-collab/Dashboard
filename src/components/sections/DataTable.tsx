@@ -51,6 +51,7 @@ export default function DataTable({ content, editable, onChange }: DataTableProp
                     type="text"
                     value={header}
                     onChange={(e) => updateHeader(i, e.target.value)}
+                    aria-label={`Edit column header: ${header || `Column ${i + 1}`}`}
                     className="w-full bg-transparent outline-none font-semibold"
                   />
                 ) : (
@@ -79,6 +80,7 @@ export default function DataTable({ content, editable, onChange }: DataTableProp
                         type="text"
                         value={cell}
                         onChange={(e) => updateCell(ri, ci, e.target.value)}
+                        aria-label={`Edit ${headers[ci] || `column ${ci + 1}`}, row ${ri + 1}`}
                         className="w-full bg-transparent outline-none"
                       />
                     ) : (
