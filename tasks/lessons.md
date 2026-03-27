@@ -183,6 +183,27 @@ Also applies to `Set` spread: `[...new Set(arr)]` fails with the same error (see
 
 <!-- Add new L-series entries here: L020, ... -->
 
+### L019 — next-auth v5 beta CredentialsProvider has three silent gotchas
+**What happened:** When adding the `google-onetap` CredentialsProvider in next-auth v5 beta, three
+non-obvious behaviours caused rework during plan review:
+1. **`signIn` callback does NOT fire for CredentialsProvider.** Any guards or side-effects
+   (isActive check, lastLoginAt update) that the `signIn` callback handles for the OAuth path
+   must be duplicated inside `authorize`.
+2. **String redirects are not supported from `authorize`.** The return type is `User | null`.
+   Returning `null` always produces an `AccessDenied` error redirect; there is no way to redirect
+   to a custom URL (e.g. `/unauthorised`) from `authorize` in v5 beta.
+3. **Provider is invoked via its `id` field.** Call `signIn("google-onetap", ...)` — not
+   `signIn("credentials", ...)` as the generic fallback. Using the wrong string silently
+   routes to the wrong provider.
+**Rule:** When adding any CredentialsProvider to next-auth v5 beta:
+- Reproduce all `signIn` callback guards inside `authorize` (isActive, lastLoginAt, etc.)
+- Never return a string from `authorize` — only `User | null`
+- Use the provider's specific `id` field in `signIn(id, ...)` calls
+**Trigger:** Any new CredentialsProvider or signIn callback logic in next-auth v5 beta.
+**Status:** Active.
+
+---
+
 ### L018 — Context compaction silently drops open questions; "continue" does not cancel them
 **What happened:** Open questions were asked of the user in a previous session. The conversation
 was compacted. On resume, the user wrote "continue" — which I interpreted as permission to
