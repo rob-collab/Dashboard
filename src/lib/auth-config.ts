@@ -1,4 +1,5 @@
 import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import prisma from "./prisma";
 
@@ -31,6 +32,50 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // cross-deployment cookie scoping issue (post-beta.30).
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       checks: [] as any,
+    }),
+    Credentials({
+      id: "google-onetap",
+      credentials: { credential: { type: "text" } },
+      async authorize(credentials) {
+        if (!credentials?.credential) return null;
+        try {
+          const { OAuth2Client } = await import("google-auth-library");
+          const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+          const ticket = await client.verifyIdToken({
+            idToken: credentials.credential as string,
+            audience: process.env.GOOGLE_CLIENT_ID,
+          });
+          const payload = ticket.getPayload();
+          if (!payload?.email) return null;
+
+          const dbUser = await prisma.user.findUnique({
+            where: { email: payload.email },
+            select: { id: true, email: true, name: true, isActive: true },
+          });
+
+          // Mirror the signIn callback guard: reject if not found or inactive.
+          // Note: the signIn callback does NOT fire for CredentialsProvider in next-auth v5 beta —
+          // these guards and lastLoginAt must live here instead.
+          if (!dbUser || !dbUser.isActive) return null;
+
+          // Update lastLoginAt — best-effort, same pattern as the signIn callback
+          try {
+            await prisma.user.update({
+              where: { id: dbUser.id },
+              data: { lastLoginAt: new Date() },
+            });
+          } catch (updateErr) {
+            console.error("[google-onetap] lastLoginAt update failed:", updateErr);
+          }
+
+          return { id: dbUser.id, email: dbUser.email, name: dbUser.name };
+        } catch (err) {
+          // verifyIdToken throws on network error, expired/invalid token.
+          // Return null → next-auth converts to AccessDenied redirect.
+          console.error("[google-onetap] verifyIdToken failed:", err);
+          return null;
+        }
+      },
     }),
   ],
   session: { strategy: "jwt", maxAge: 8 * 60 * 60 /* 8 hours — re-authenticate each working day */ },
